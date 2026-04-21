@@ -6,7 +6,7 @@ if (!defined("ABSPATH")) {
 
 function upsellio_get_data_schema_version()
 {
-    return "2026.04.21.1";
+    return "2026.04.21.2";
 }
 
 function upsellio_initialize_data_schema($force = false)
@@ -32,6 +32,9 @@ function upsellio_initialize_data_schema($force = false)
     }
     if (function_exists("upsellio_register_definition_post_type")) {
         upsellio_register_definition_post_type();
+    }
+    if (function_exists("upsellio_register_lead_magnets_cpt")) {
+        upsellio_register_lead_magnets_cpt();
     }
     if (function_exists("upsellio_crm_register_post_type")) {
         upsellio_crm_register_post_type();
