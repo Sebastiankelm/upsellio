@@ -1,0 +1,2633 @@
+<!DOCTYPE html>
+<html lang="pl-PL">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upsellio — Marketing internetowy i strony WWW dla firm B2B | Sebastian Kelm</title>
+  <meta
+    name="description"
+    content="Kampanie Meta Ads i Google Ads, strony i sklepy internetowe dla małych i średnich firm B2B. Sebastian Kelm — praktyk z 10-letnim doświadczeniem w sprzedaży B2B."
+  />
+  <meta property="og:title" content="Upsellio — Marketing internetowy i strony WWW dla firm B2B" />
+  <meta
+    property="og:description"
+    content="Kampanie Meta Ads i Google Ads, strony i sklepy internetowe. 10 lat praktyki w sprzedaży B2B. Bezpłatna rozmowa wstępna."
+  />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://upsellio.pl/" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    "name": "Upsellio",
+    "url": "https://upsellio.pl/",
+    "email": "kontakt@upsellio.pl",
+    "description": "Marketing internetowy, strony internetowe, sklepy online i doradztwo sprzedażowe dla małych i średnich firm.",
+    "founder": {
+      "@type": "Person",
+      "name": "Sebastian Kelm"
+    }
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-soft: #f8f8f6;
+      --bg-muted: #f1f1ee;
+      --surface: #ffffff;
+
+      --text: #111110;
+      --text-2: #3d3d38;
+      --text-3: #7c7c74;
+
+      --border: #e6e6e1;
+      --border-strong: #c9c9c3;
+
+      --teal: #1d9e75;
+      --teal-hover: #17885f;
+      --teal-dark: #085041;
+      --teal-soft: #e8f8f2;
+      --teal-line: #c3eddd;
+
+      --danger: #d94c4c;
+
+      --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.04);
+
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 18px;
+      --r-xl: 28px;
+      --r-pill: 999px;
+
+      --sp-1: 8px;
+      --sp-2: 16px;
+      --sp-3: 24px;
+      --sp-4: 32px;
+      --sp-5: 40px;
+      --sp-6: 48px;
+      --sp-7: 56px;
+      --sp-8: 64px;
+      --sp-10: 80px;
+      --sp-12: 96px;
+      --sp-14: 120px;
+
+      --container: 1180px;
+      --content: 760px;
+
+      --font-display: "Syne", sans-serif;
+      --font-body: "DM Sans", sans-serif;
+      color-scheme: light;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      text-size-adjust: 100%;
+      overflow-x: hidden;
+    }
+    body.is-mobile-menu-open {
+      overflow: hidden;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    .wrap {
+      width: min(var(--container), calc(100% - 48px));
+      margin: 0 auto;
+    }
+
+    .content {
+      width: min(var(--content), 100%);
+    }
+
+    .section {
+      padding: var(--sp-12) 0;
+    }
+
+    .section-sm {
+      padding: var(--sp-8) 0;
+    }
+
+    .section-border {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .bg-soft {
+      background: var(--bg-soft);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: var(--sp-3);
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 22px;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--teal);
+    }
+
+    .h1 {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(38px, 5vw, 64px);
+      line-height: 1.02;
+      letter-spacing: -2px;
+    }
+
+    .h2 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: clamp(28px, 3.4vw, 42px);
+      line-height: 1.08;
+      letter-spacing: -1px;
+    }
+
+    .h3 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .lead {
+      font-size: 18px;
+      line-height: 1.8;
+      color: var(--text-2);
+    }
+
+    .body {
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--text-2);
+    }
+
+    .muted {
+      color: var(--text-3);
+    }
+
+    .accent {
+      color: var(--teal);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 46px;
+      border-radius: var(--r-md);
+      border: none;
+      cursor: pointer;
+      transition: 0.18s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--teal);
+      color: #fff;
+      padding: 15px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 0 0 0 rgba(29, 158, 117, 0.38);
+      animation: pulse 2.8s ease 2.5s infinite;
+    }
+
+    .btn-primary:hover {
+      background: var(--teal-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(29, 158, 117, 0.28);
+      animation: none;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      padding: 15px 24px;
+      font-size: 15px;
+      font-weight: 500;
+      border: 1px solid var(--border-strong);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--teal);
+      color: var(--teal);
+      transform: translateY(-2px);
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(29, 158, 117, 0.36); }
+      70% { box-shadow: 0 0 0 12px rgba(29, 158, 117, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(29, 158, 117, 0); }
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: color-mix(in srgb, var(--bg) 90%, transparent);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-3);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 15px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.05;
+    }
+
+    .brand-name {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 3px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 34px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      color: var(--text-2);
+      border-bottom: 2px solid transparent;
+      padding: 4px 0;
+      transition: 0.18s ease;
+    }
+
+    .nav-links a.active,
+    .nav-links a[aria-current="page"],
+    .nav-links a:hover {
+      color: var(--text);
+      border-bottom-color: var(--teal);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+    }
+
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      background: var(--teal);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: var(--r-md);
+      font-size: 14px;
+      font-weight: 600;
+      transition: 0.18s ease;
+    }
+
+    .nav-cta:hover {
+      background: var(--teal-hover);
+      transform: translateY(-1px);
+    }
+
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .hamburger span {
+      width: 22px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: 0.25s ease;
+    }
+
+    .hamburger.open span:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+
+    .hamburger.open span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .hamburger.open span:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+
+    .mobile-menu {
+      display: none;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease;
+      border-top: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .mobile-menu.open {
+      max-height: calc(100vh - 72px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .mobile-menu a {
+      display: flex;
+      align-items: center;
+      min-height: 48px;
+      padding: 15px 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      font-size: 15px;
+    }
+
+    .mobile-menu a:last-child {
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 3px;
+      background: var(--teal);
+      transform-origin: left;
+      animation: grow 0.9s cubic-bezier(.16,1,.3,1) .2s both;
+    }
+
+    @keyframes grow {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: var(--sp-10);
+      align-items: center;
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-soft);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-pill);
+      padding: 8px 16px 8px 8px;
+      margin-bottom: var(--sp-4);
+    }
+
+    .hero-pill-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+      color: var(--teal);
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .hero-pill span {
+      font-size: 13px;
+      color: var(--text-2);
+    }
+
+    .hero-copy {
+      max-width: 720px;
+    }
+
+    .hero-copy .h1 {
+      margin-bottom: var(--sp-4);
+    }
+
+    .hero-copy .lead {
+      max-width: 640px;
+      margin-bottom: var(--sp-5);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--sp-2);
+      margin-bottom: var(--sp-2);
+    }
+
+    .hero-actions .btn {
+      width: 100%;
+    }
+
+    .hero-micro {
+      font-size: 12px;
+      color: var(--text-3);
+    }
+
+    .hero-trust {
+      margin-top: var(--sp-4);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      color: var(--text-2);
+      font-size: 13px;
+    }
+
+    .hero-trust-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hero-trust-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+      color: var(--teal);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .hero-aside {
+      background: linear-gradient(180deg, var(--bg-soft), var(--surface));
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      padding: var(--sp-5);
+      box-shadow: var(--shadow-md);
+    }
+
+    .hero-aside-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: var(--sp-3);
+    }
+
+    .hero-stat + .hero-stat {
+      margin-top: var(--sp-3);
+      padding-top: var(--sp-3);
+      border-top: 1px solid var(--border);
+    }
+
+    .hero-stat-num {
+      font-family: var(--font-display);
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--teal);
+    }
+
+    .hero-stat-text {
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: var(--sp-10);
+      align-items: start;
+    }
+
+    .stack-cards {
+      display: grid;
+      gap: var(--sp-3);
+    }
+
+    .feature-row {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: var(--sp-3);
+      padding: var(--sp-4);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-sm);
+      transition: 0.2s ease;
+    }
+
+    .feature-row:hover {
+      transform: translateX(4px);
+      border-color: var(--teal-line);
+      box-shadow: var(--shadow-md);
+    }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+      color: var(--teal);
+      flex-shrink: 0;
+    }
+
+    .feature-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.7;
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--sp-3);
+      margin-top: var(--sp-5);
+    }
+
+    .problem-card {
+      padding: var(--sp-4);
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border-strong);
+      border-radius: var(--r-lg);
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--text-2);
+      transition: 0.2s ease;
+    }
+
+    .problem-card:hover {
+      border-left-color: var(--teal);
+      transform: translateX(5px);
+      color: var(--text);
+    }
+
+    .service-hero {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: var(--sp-6);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      padding: var(--sp-6);
+      box-shadow: var(--shadow-sm);
+      transition: 0.2s ease;
+    }
+
+    .service-hero:hover {
+      border-color: var(--teal-line);
+      box-shadow: var(--shadow-md);
+    }
+
+    .service-check-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.3px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: var(--sp-2);
+    }
+
+    .service-checklist {
+      display: grid;
+      gap: 10px;
+    }
+
+    .service-check {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .service-check-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+      color: var(--teal);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .service-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--sp-4);
+      margin-top: var(--sp-4);
+    }
+
+    .service-card {
+      padding: var(--sp-5);
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      transition: 0.2s ease;
+    }
+
+    .service-card:hover {
+      border-color: var(--teal-line);
+      transform: translateY(-2px);
+    }
+
+    .service-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--sp-2);
+      margin-bottom: var(--sp-2);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: var(--r-pill);
+      padding: 4px 12px;
+      white-space: nowrap;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-green {
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+    }
+
+    .badge-gray {
+      background: var(--bg-muted);
+      color: var(--text-2);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: var(--sp-3);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-2);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-sm);
+      padding: 4px 10px;
+      transition: 0.18s ease;
+    }
+
+    .chip:hover {
+      border-color: var(--teal);
+      color: var(--teal-dark);
+    }
+
+    .bonus {
+      margin-top: var(--sp-4);
+      padding: var(--sp-6);
+      background: var(--teal-soft);
+      border: 1.5px solid var(--teal-line);
+      border-radius: var(--r-xl);
+      transition: 0.2s ease;
+    }
+
+    .bonus:hover {
+      border-color: var(--teal);
+      box-shadow: var(--shadow-md);
+    }
+
+    .bonus-head {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-2);
+      flex-wrap: wrap;
+      margin-bottom: var(--sp-3);
+    }
+
+    .bonus-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: var(--teal);
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .bonus-title {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--teal-dark);
+      flex: 1;
+    }
+
+    .bonus-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--teal);
+      border-radius: var(--r-pill);
+      padding: 4px 12px;
+    }
+
+    .bonus-body {
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--teal-dark);
+    }
+
+    .bonus-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: var(--sp-3);
+    }
+
+    .bonus-chip {
+      background: rgba(255,255,255,0.58);
+      border: 1px solid rgba(29,158,117,0.14);
+      border-radius: var(--r-sm);
+      padding: 4px 10px;
+      font-size: 12px;
+      color: var(--teal-dark);
+    }
+
+    .cta-band {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-5);
+      flex-wrap: wrap;
+      padding: var(--sp-6);
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+      border-radius: var(--r-xl);
+    }
+
+    .cta-band h3 {
+      font-family: var(--font-display);
+      font-size: 24px;
+      line-height: 1.1;
+      color: var(--teal-dark);
+      margin-bottom: 6px;
+    }
+
+    .cta-band p {
+      font-size: 15px;
+      color: var(--teal-dark);
+      line-height: 1.7;
+      max-width: 640px;
+    }
+
+    .steps {
+      max-width: 900px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+      gap: var(--sp-4);
+      padding: var(--sp-4) 0;
+      border-bottom: 1px solid var(--border);
+      transition: 0.2s ease;
+    }
+
+    .step:last-child {
+      border-bottom: none;
+    }
+
+    .step:hover {
+      transform: translateX(8px);
+    }
+
+    .step-num {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 36px;
+      line-height: 1;
+      color: var(--border-strong);
+    }
+
+    .step:hover .step-num {
+      color: var(--teal);
+    }
+
+    .step-title {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .step-desc {
+      font-size: 14px;
+      line-height: 1.75;
+      color: var(--text-2);
+      max-width: 760px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--sp-4);
+      margin-top: var(--sp-5);
+    }
+
+    .stat-card {
+      padding: var(--sp-4);
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      transition: 0.2s ease;
+    }
+
+    .stat-card:hover {
+      border-color: var(--teal-line);
+      transform: translateY(-3px);
+    }
+
+    .stat-num {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--teal);
+    }
+
+    .stat-text {
+      margin-top: 7px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-2);
+    }
+
+    .cases {
+      display: grid;
+      gap: var(--sp-3);
+      margin-top: var(--sp-5);
+    }
+
+    .case {
+      padding: var(--sp-5);
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--teal);
+      border-radius: var(--r-lg);
+      transition: 0.2s ease;
+    }
+
+    .case:hover {
+      transform: translateX(5px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .case-tag {
+      display: inline-flex;
+      margin-bottom: var(--sp-2);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--teal-dark);
+      background: var(--teal-soft);
+      border-radius: 4px;
+      padding: 4px 9px;
+    }
+
+    .case-title {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .case-body {
+      font-size: 14px;
+      line-height: 1.75;
+      color: var(--text-2);
+    }
+
+    .case-result {
+      display: inline-flex;
+      margin-top: var(--sp-3);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--teal-dark);
+      background: rgba(29,158,117,0.12);
+      border-radius: var(--r-sm);
+      padding: 6px 12px;
+    }
+
+    .fit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--sp-4);
+    }
+
+    .fit-card {
+      padding: var(--sp-5);
+      border-radius: var(--r-lg);
+    }
+
+    .fit-card.yes {
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+    }
+
+    .fit-card.no {
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+    }
+
+    .fit-label {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: var(--sp-3);
+    }
+
+    .fit-card.yes .fit-label {
+      color: var(--teal-dark);
+    }
+
+    .fit-card.no .fit-label {
+      color: var(--text-2);
+    }
+
+    .fit-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .fit-item {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .fit-card.yes .fit-item {
+      color: var(--teal-dark);
+    }
+
+    .fit-card .btn {
+      margin-top: var(--sp-4);
+    }
+
+    .fit-card.no .fit-item {
+      color: var(--text-2);
+    }
+
+    .fit-icon {
+      flex-shrink: 0;
+      margin-top: 1px;
+      font-style: normal;
+    }
+
+    .faq {
+      max-width: 900px;
+    }
+
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .faq-item:last-child {
+      border-bottom: none;
+    }
+
+    .faq-q {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--sp-3);
+      padding: var(--sp-3) 0;
+      font-size: 15px;
+      font-weight: 600;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+      transition: 0.18s ease;
+      user-select: none;
+    }
+
+    .faq-q:hover {
+      color: var(--teal);
+    }
+
+    .faq-icon {
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--border-strong);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      font-size: 16px;
+      color: var(--text-3);
+      transition: 0.25s ease;
+    }
+
+    .faq-item.open .faq-icon {
+      transform: rotate(45deg);
+      background: var(--teal-soft);
+      border-color: var(--teal-line);
+      color: var(--teal);
+    }
+
+    .faq-a {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease, padding 0.25s ease;
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--text-2);
+    }
+
+    .faq-item.open .faq-a {
+      max-height: 320px;
+      padding-bottom: var(--sp-3);
+    }
+
+    .form-shell {
+      padding: var(--sp-6);
+      background: linear-gradient(180deg, var(--bg-soft), var(--surface));
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--teal);
+      border-radius: var(--r-xl);
+      box-shadow: var(--shadow-md);
+    }
+
+    .form-head {
+      max-width: 720px;
+      margin-bottom: var(--sp-5);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--sp-3);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .input,
+    .textarea,
+    .select {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: var(--r-md);
+      padding: 13px 15px;
+      font-size: 16px;
+      outline: none;
+      transition: 0.18s ease;
+    }
+
+    .textarea {
+      min-height: 110px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    .input::placeholder,
+    .textarea::placeholder {
+      color: var(--text-3);
+    }
+
+    .input:focus,
+    .textarea:focus,
+    .select:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(29,158,117,0.13);
+    }
+
+    .input.error,
+    .textarea.error {
+      border-color: var(--danger);
+    }
+
+    .field-error {
+      display: none;
+      font-size: 12px;
+      color: var(--danger);
+    }
+
+    .field-error.show {
+      display: block;
+    }
+
+    .submit {
+      margin-top: var(--sp-3);
+      width: 100%;
+      justify-content: center;
+    }
+
+    .form-note {
+      margin-top: var(--sp-2);
+      font-size: 12px;
+      color: var(--text-3);
+      text-align: center;
+    }
+
+    .form-alt {
+      display: flex;
+      gap: var(--sp-4);
+      flex-wrap: wrap;
+      margin-top: var(--sp-4);
+      padding-top: var(--sp-4);
+      border-top: 1px solid var(--border);
+    }
+
+    .form-alt-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-2);
+    }
+
+    .form-alt-item a {
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    .footer {
+      padding: var(--sp-8) 0 var(--sp-5);
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--sp-5);
+      flex-wrap: wrap;
+    }
+
+    .footer-brand {
+      max-width: 420px;
+    }
+
+    .footer-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 160px;
+    }
+
+    .footer-col-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 4px;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      align-items: flex-end;
+    }
+
+    .footer-links a {
+      font-size: 14px;
+      color: var(--text-3);
+      transition: 0.18s ease;
+    }
+
+    .footer-links a:hover {
+      color: var(--teal);
+    }
+
+    .footer-copy {
+      margin-top: var(--sp-5);
+      padding-top: var(--sp-3);
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-3);
+      text-align: center;
+    }
+
+    .scroll-top {
+      position: fixed;
+      right: 28px;
+      bottom: 28px;
+      z-index: 50;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: none;
+      background: var(--teal);
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: 0.25s ease;
+      box-shadow: var(--shadow-md);
+    }
+
+    .scroll-top.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .scroll-top:hover {
+      background: var(--teal-dark);
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.65s cubic-bezier(.16,1,.3,1), transform 0.65s cubic-bezier(.16,1,.3,1);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .d1 { transition-delay: 0.08s; }
+    .d2 { transition-delay: 0.16s; }
+    .d3 { transition-delay: 0.24s; }
+
+    .wrap {
+      width: min(var(--container), calc(100% - 32px));
+    }
+
+    .nav-links,
+    .nav-actions {
+      display: none;
+    }
+
+    .hamburger {
+      display: flex;
+    }
+
+    .mobile-menu {
+      display: block;
+    }
+
+    .section {
+      padding: var(--sp-8) 0;
+    }
+
+    .section-sm {
+      padding: var(--sp-6) 0;
+    }
+
+    .hero-grid,
+    .split,
+    .service-hero,
+    .problem-grid,
+    .service-grid,
+    .stats-grid,
+    .fit-grid,
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-aside {
+      display: none;
+    }
+
+    .cta-band,
+    .footer-inner {
+      flex-direction: column;
+    }
+
+    .footer-links {
+      align-items: flex-start;
+    }
+
+    .form-shell,
+    .bonus,
+    .service-hero {
+      padding: var(--sp-4);
+    }
+
+    .hero-copy .lead {
+      font-size: 17px;
+    }
+
+    @media (min-width: 761px) {
+      .wrap {
+        width: min(var(--container), calc(100% - 48px));
+      }
+
+      .nav-links,
+      .nav-actions {
+        display: flex;
+      }
+
+      .hamburger,
+      .mobile-menu {
+        display: none;
+      }
+
+      .hero-actions .btn {
+        width: auto;
+      }
+
+      .input,
+      .textarea,
+      .select {
+        font-size: 15px;
+      }
+    }
+
+    @media (min-width: 981px) {
+      .section {
+        padding: var(--sp-12) 0;
+      }
+
+      .section-sm {
+        padding: var(--sp-8) 0;
+      }
+
+      .hero-grid,
+      .split,
+      .service-hero {
+        grid-template-columns: minmax(0, 1fr) 420px;
+      }
+
+      .split {
+        grid-template-columns: 320px minmax(0, 1fr);
+      }
+
+      .hero-aside {
+        display: block;
+      }
+
+      .problem-grid,
+      .service-grid,
+      .stats-grid,
+      .fit-grid,
+      .form-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .cta-band,
+      .footer-inner {
+        flex-direction: row;
+      }
+
+      .footer-links {
+        align-items: flex-end;
+      }
+    }
+  </style>
+  <title>upsellio.pl &#8211; Just another WordPress site</title>
+<meta name='robots' content='max-image-preview:large' />
+<link rel="icon" href="https://upsellio.pl/wp-content/themes/upsellio/assets/images/favicon.ico" sizes="any" /><link rel="icon" type="image/png" href="https://upsellio.pl/wp-content/themes/upsellio/assets/images/favicon-16x16.png" sizes="16x16" /><link rel="icon" type="image/png" href="https://upsellio.pl/wp-content/themes/upsellio/assets/images/favicon-32x32.png" sizes="32x32" /><link rel="apple-touch-icon" href="https://upsellio.pl/wp-content/themes/upsellio/assets/images/apple-touch-icon.png" sizes="180x180" /><style id='wp-img-auto-sizes-contain-inline-css'>
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<style id='wp-emoji-styles-inline-css'>
+
+	img.wp-smiley, img.emoji {
+		display: inline !important;
+		border: none !important;
+		box-shadow: none !important;
+		height: 1em !important;
+		width: 1em !important;
+		margin: 0 0.07em !important;
+		vertical-align: -0.1em !important;
+		background: none !important;
+		padding: 0 !important;
+	}
+/*# sourceURL=wp-emoji-styles-inline-css */
+</style>
+<style id='wp-block-library-inline-css'>
+:root{--wp-block-synced-color:#7a00df;--wp-block-synced-color--rgb:122,0,223;--wp-bound-block-color:var(--wp-block-synced-color);--wp-editor-canvas-background:#ddd;--wp-admin-theme-color:#007cba;--wp-admin-theme-color--rgb:0,124,186;--wp-admin-theme-color-darker-10:#006ba1;--wp-admin-theme-color-darker-10--rgb:0,107,160.5;--wp-admin-theme-color-darker-20:#005a87;--wp-admin-theme-color-darker-20--rgb:0,90,135;--wp-admin-border-width-focus:2px}@media (min-resolution:192dpi){:root{--wp-admin-border-width-focus:1.5px}}.wp-element-button{cursor:pointer}:root .has-very-light-gray-background-color{background-color:#eee}:root .has-very-dark-gray-background-color{background-color:#313131}:root .has-very-light-gray-color{color:#eee}:root .has-very-dark-gray-color{color:#313131}:root .has-vivid-green-cyan-to-vivid-cyan-blue-gradient-background{background:linear-gradient(135deg,#00d084,#0693e3)}:root .has-purple-crush-gradient-background{background:linear-gradient(135deg,#34e2e4,#4721fb 50%,#ab1dfe)}:root .has-hazy-dawn-gradient-background{background:linear-gradient(135deg,#faaca8,#dad0ec)}:root .has-subdued-olive-gradient-background{background:linear-gradient(135deg,#fafae1,#67a671)}:root .has-atomic-cream-gradient-background{background:linear-gradient(135deg,#fdd79a,#004a59)}:root .has-nightshade-gradient-background{background:linear-gradient(135deg,#330968,#31cdcf)}:root .has-midnight-gradient-background{background:linear-gradient(135deg,#020381,#2874fc)}:root{--wp--preset--font-size--normal:16px;--wp--preset--font-size--huge:42px}.has-regular-font-size{font-size:1em}.has-larger-font-size{font-size:2.625em}.has-normal-font-size{font-size:var(--wp--preset--font-size--normal)}.has-huge-font-size{font-size:var(--wp--preset--font-size--huge)}.has-text-align-center{text-align:center}.has-text-align-left{text-align:left}.has-text-align-right{text-align:right}.has-fit-text{white-space:nowrap!important}#end-resizable-editor-section{display:none}.aligncenter{clear:both}.items-justified-left{justify-content:flex-start}.items-justified-center{justify-content:center}.items-justified-right{justify-content:flex-end}.items-justified-space-between{justify-content:space-between}.screen-reader-text{border:0;clip-path:inset(50%);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px;word-wrap:normal!important}.screen-reader-text:focus{background-color:#ddd;clip-path:none;color:#444;display:block;font-size:1em;height:auto;left:5px;line-height:normal;padding:15px 23px 14px;text-decoration:none;top:5px;width:auto;z-index:100000}html :where(.has-border-color){border-style:solid}html :where([style*=border-top-color]){border-top-style:solid}html :where([style*=border-right-color]){border-right-style:solid}html :where([style*=border-bottom-color]){border-bottom-style:solid}html :where([style*=border-left-color]){border-left-style:solid}html :where([style*=border-width]){border-style:solid}html :where([style*=border-top-width]){border-top-style:solid}html :where([style*=border-right-width]){border-right-style:solid}html :where([style*=border-bottom-width]){border-bottom-style:solid}html :where([style*=border-left-width]){border-left-style:solid}html :where(img[class*=wp-image-]){height:auto;max-width:100%}:where(figure){margin:0 0 1em}html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:var(--wp-admin--admin-bar--height,0px)}@media screen and (max-width:600px){html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:0px}}
+
+/*# sourceURL=wp-block-library-inline-css */
+</style>
+<style id='classic-theme-styles-inline-css'>
+/*! This file is auto-generated */
+.wp-block-button__link{color:#fff;background-color:#32373c;border-radius:9999px;box-shadow:none;text-decoration:none;padding:calc(.667em + 2px) calc(1.333em + 2px);font-size:1.125em}.wp-block-file__button{background:#32373c;color:#fff;text-decoration:none}
+/*# sourceURL=/wp-includes/css/classic-themes.min.css */
+</style>
+<style id='global-styles-inline-css'>
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgb(6,147,227) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgb(252,185,0) 0%,rgb(255,105,0) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgb(255,105,0) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: 20px;--wp--preset--font-size--large: 36px;--wp--preset--font-size--x-large: 42px;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);}:where(.is-layout-flex){gap: 0.5em;}:where(.is-layout-grid){gap: 0.5em;}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}:where(.wp-block-columns.is-layout-flex){gap: 2em;}:where(.wp-block-columns.is-layout-grid){gap: 2em;}:where(.wp-block-post-template.is-layout-flex){gap: 1.25em;}:where(.wp-block-post-template.is-layout-grid){gap: 1.25em;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}
+/*# sourceURL=global-styles-inline-css */
+</style>
+
+<link rel='stylesheet' id='upsellio-main-css' href='https://upsellio.pl/wp-content/themes/upsellio/assets/css/upsellio.css?ver=1776802813' media='all' />
+<link rel="https://api.w.org/" href="https://upsellio.pl/index.php?rest_route=/" /><link rel="EditURI" type="application/rsd+xml" title="RSD" href="https://upsellio.pl/xmlrpc.php?rsd" />
+<meta name="generator" content="WordPress 6.9.4" />
+</head>
+<body class="home blog wp-theme-upsellio">
+    <header class="nav">
+    <div class="wrap nav-inner">
+      <a href="https://upsellio.pl/#start" class="brand" aria-label="Upsellio — strona główna">
+        <div class="brand-mark">U</div>
+        <div class="brand-text">
+          <div class="brand-name">Upsellio</div>
+          <div class="brand-sub">by Sebastian Kelm</div>
+        </div>
+      </a>
+
+      <ul class="nav-links">
+                            <li><a href="https://upsellio.pl/#uslugi">Uslugi</a></li>
+                            <li><a href="https://upsellio.pl/#jak-dzialam">Jak dzialam</a></li>
+                            <li><a href="https://upsellio.pl/#wyniki">Wyniki</a></li>
+                            <li><a href="https://upsellio.pl/#faq">FAQ</a></li>
+                            <li><a href="https://upsellio.pl/blog">Blog</a></li>
+              </ul>
+
+      <div class="nav-actions">
+        <a href="https://upsellio.pl/#kontakt" class="nav-cta">Bezpłatna rozmowa</a>
+      </div>
+
+      <button class="hamburger" id="hamburger" aria-label="Otwórz menu" aria-controls="mobile-menu" aria-expanded="false" type="button">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Menu mobilne">
+      <div class="wrap">
+                            <a href="https://upsellio.pl/#uslugi">Uslugi</a>
+                            <a href="https://upsellio.pl/#jak-dzialam">Jak dzialam</a>
+                            <a href="https://upsellio.pl/#wyniki">Wyniki</a>
+                            <a href="https://upsellio.pl/#faq">FAQ</a>
+                            <a href="https://upsellio.pl/blog">Blog</a>
+                <a href="https://upsellio.pl/#kontakt">Bezpłatna rozmowa →</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+        <section class="hero s-hero" id="start">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <div class="hero-pill reveal visible">
+            <div class="hero-pill-dot">●</div>
+            <span>Dla malych i srednich firm B2B, ktore chca poukladac marketing i sprzedaz</span>
+          </div>
+
+          <h1 class="h1 reveal visible">Marketing internetowy i strony WWW, ktore realnie sprzedaja</h1>
+
+          <p class="lead reveal visible">Kampanie Meta Ads i Google Ads, strony i sklepy internetowe dla firm B2B.</p>
+
+          <div class="hero-actions reveal visible">
+            <a href="https://upsellio.pl/#kontakt" class="btn btn-primary btn-pulse">Umow bezplatna rozmowe →</a>
+            <a href="https://upsellio.pl/#uslugi" class="btn btn-secondary">Zobacz co robie</a>
+          </div>
+
+          <div class="hero-micro reveal visible">
+            Bez zobowiązań. 30 minut rozmowy, żeby sprawdzić czy i jak mogę pomóc.
+          </div>
+
+          <div class="hero-trust reveal visible">
+            <div class="hero-trust-item"><span class="hero-trust-dot">✓</span>Ponad 10 lat praktyki</div>
+            <div class="hero-trust-item"><span class="hero-trust-dot">✓</span>Doradztwo sprzedażowe w cenie</div>
+            <div class="hero-trust-item"><span class="hero-trust-dot">✓</span>Odpowiedź w 24h</div>
+          </div>
+        </div>
+
+        <aside class="hero-aside">
+          <div class="hero-aside-label">Doświadczenie z praktyki</div>
+
+          <div class="hero-stat">
+            <div class="hero-stat-num">~1 mln PLN</div>
+            <div class="hero-stat-text">miesięczna sprzedaż zbudowana jako handlowiec B2B — w 2 lata</div>
+          </div>
+
+          <div class="hero-stat">
+            <div class="hero-stat-num">~500k PLN</div>
+            <div class="hero-stat-text">obrót sklepu internetowego zbudowanego od zera — po 3 latach</div>
+          </div>
+
+          <div class="hero-stat">
+            <div class="hero-stat-num">3×</div>
+            <div class="hero-stat-text">wyższa marża sklepu vs. ten sam produkt sprzedawany przez handlowców</div>
+          </div>
+
+          <div class="hero-stat">
+            <div class="hero-stat-num">15 osób</div>
+            <div class="hero-stat-text">dział sprzedaży zbudowany i zarządzany — od rekrutacji po wyniki</div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section section-border" id="dlaczego">
+      <div class="wrap split">
+        <div class="content">
+          <div class="eyebrow reveal">Dlaczego to dziala</div>
+          <h2 class="h2 reveal d1">Lacze rzeczy, ktore rzadko ida razem</h2>
+          <p class="body reveal d2" style="margin-top: 18px;">Marketing, strona i praktyka sprzedazy B2B pracuja razem, dlatego latwiej o wyniki.</p>
+        </div>
+
+        <div class="stack-cards">
+                                                            <div class="feature-row reveal">
+                <div class="feature-icon">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <circle cx="9" cy="9" r="8" stroke="currentColor" stroke-width="1.4"/>
+                    <path d="M5.2 9.1l2.2 2.2 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="feature-title">Marketing nastawiony na wynik</div>
+                  <div class="feature-desc">Kampanie sa optymalizowane pod wartosciowe zapytania i klientow.</div>
+                </div>
+              </div>
+                                        <div class="feature-row reveal d1">
+                <div class="feature-icon">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <circle cx="9" cy="9" r="8" stroke="currentColor" stroke-width="1.4"/>
+                    <path d="M5.2 9.1l2.2 2.2 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="feature-title">Strony i sklepy pod konwersje</div>
+                  <div class="feature-desc">Widoki i komunikaty prowadza uzytkownika do konkretnej akcji.</div>
+                </div>
+              </div>
+                                        <div class="feature-row reveal d2">
+                <div class="feature-icon">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <circle cx="9" cy="9" r="8" stroke="currentColor" stroke-width="1.4"/>
+                    <path d="M5.2 9.1l2.2 2.2 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="feature-title">Praktyka sprzedazy B2B</div>
+                  <div class="feature-desc">Decyzje marketingowe sa osadzone w realnym procesie handlowym.</div>
+                </div>
+              </div>
+                              </div>
+      </div>
+    </section>
+
+    <section class="section bg-soft section-border" id="problem">
+      <div class="wrap">
+        <div class="content">
+          <div class="eyebrow reveal">Problem</div>
+          <h2 class="h2 reveal d1">Technicznie poprawne działania, które <span class="accent">nie przynoszą klientów</span></h2>
+          <p class="body reveal d2" style="margin-top: 18px;">
+            Kampania może być ustawiona poprawnie i nadal nie dowozić.
+            Strona może wyglądać dobrze i nie generować zapytań.
+            Zwykle problem leży głębiej — w komunikacie, ofercie, lejku albo sposobie, w jaki firma pracuje z ruchem i sprzedażą.
+          </p>
+        </div>
+
+        <div class="problem-grid">
+          <div class="problem-card reveal">Płacisz za reklamy, ale mało wartościowych klientów się odzywa</div>
+          <div class="problem-card reveal d1">Strona wygląda profesjonalnie, ale nie generuje zapytań</div>
+          <div class="problem-card reveal d2">Sklep ma ruch, ale konwersja jest zbyt niska</div>
+          <div class="problem-card reveal d3">Nie wiesz, co faktycznie działa, a co jest stratą budżetu</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-border" id="uslugi">
+      <div class="wrap">
+        <div class="content">
+          <div class="eyebrow reveal">Uslugi</div>
+          <h2 class="h2 reveal d1">Co konkretnie dostajesz</h2>
+          <p class="body reveal d2" style="margin-top: 18px;">Praca bezposrednio z osoba odpowiedzialna za efekt, bez warstwy posrednikow.</p>
+        </div>
+
+                <div class="service-hero reveal" style="margin-top: 40px;">
+          <div>
+            <div class="service-top">
+              <div class="h3">Marketing - Meta i Google Ads</div>
+              <span class="badge badge-green">Glowna usluga</span>
+            </div>
+            <p class="body">Kampanie reklamowe i iteracyjna optymalizacja pod jakosc leadow oraz sprzedaz.</p>
+          </div>
+
+          <div>
+            <div class="service-check-title">W ramach tej uslugi</div>
+            <div class="service-checklist">
+                                                                            <div class="service-check"><span class="service-check-icon">✓</span><span>Staly nadzor i optymalizacja kampanii</span></div>
+                                                              <div class="service-check"><span class="service-check-icon">✓</span><span>Raport z wnioskami i rekomendacjami</span></div>
+                                                              <div class="service-check"><span class="service-check-icon">✓</span><span>Bezposredni kontakt i szybkie decyzje</span></div>
+                          </div>
+            <a href="https://upsellio.pl/#kontakt" class="btn btn-primary" style="margin-top: var(--sp-3);">Zapytaj o kampanie →</a>
+          </div>
+        </div>
+
+        <div class="service-grid">
+                                            <div class="service-card reveal">
+              <div class="service-top">
+                <div class="h3">Strony i sklepy internetowe</div>
+                <span class="badge badge-gray">Usluga</span>
+              </div>
+              <p class="body">Projektowanie i wdrozenie stron nastawionych na konwersje i cele biznesowe.</p>
+                            <div class="chips">
+                                                                      <span class="chip">Landing page</span>
+                                                                      <span class="chip">Strony firmowe</span>
+                                                                      <span class="chip">WooCommerce</span>
+                                                                      <span class="chip">Shopify</span>
+                                                                      <span class="chip">UX</span>
+                              </div>
+            </div>
+                                  <div class="service-card reveal d1">
+              <div class="service-top">
+                <div class="h3">Rozwiazania webowe i automatyzacje</div>
+                <span class="badge badge-gray">Dodatkowo</span>
+              </div>
+              <p class="body">Aplikacje i automatyzacje wspierajace zespoly sprzedazy i marketingu.</p>
+                            <div class="chips">
+                                                                      <span class="chip">Aplikacje webowe</span>
+                                                                      <span class="chip">Automatyzacje</span>
+                                                                      <span class="chip">Integracje API</span>
+                              </div>
+            </div>
+                  </div>
+
+                <div class="bonus reveal d2">
+          <div class="bonus-head">
+            <div class="bonus-icon">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M9 2L11.5 7H17L12.5 10.5L14 16L9 12.5L4 16L5.5 10.5L1 7H6.5L9 2Z" fill="white"/>
+              </svg>
+            </div>
+            <div class="bonus-title">Doradztwo sprzedazowe - w ramach kazdej wspolpracy</div>
+            <div class="bonus-tag">W cenie</div>
+          </div>
+
+          <div class="bonus-body">Wiedza handlowa i zarzadcza wspiera kazdy projekt, a nie tylko wybrane uslugi.</div>
+
+          <div class="bonus-chips">
+                                                                  <span class="bonus-chip">Audyt procesow sprzedazy</span>
+                                                      <span class="bonus-chip">Analiza danych sprzedazowych</span>
+                                                      <span class="bonus-chip">Identyfikacja waskich gardel</span>
+                                                      <span class="bonus-chip">Optymalizacja kosztowa</span>
+                      </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-sm section-border">
+      <div class="wrap">
+        <div class="cta-band reveal">
+          <div>
+            <h3>Nie wiesz, od czego zacząć?</h3>
+            <p>Powiedz mi kilka zdań o swojej firmie — powiem wprost, co moim zdaniem najbardziej blokuje wzrost.</p>
+          </div>
+          <a href="#kontakt" class="btn btn-primary">Umów bezpłatną rozmowę →</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-border" id="jak-dzialam">
+      <div class="wrap">
+        <div class="content">
+          <div class="eyebrow reveal">Jak działam</div>
+          <h2 class="h2 reveal d1">Nie zaczynam od <span class="accent">ustawiania kampanii</span></h2>
+          <p class="body reveal d2" style="margin-top: 18px;">Zaczynam od diagnozy — co dziś blokuje wzrost i które działanie da najlepszy efekt przy danym budżecie i celach.</p>
+        </div>
+
+        <div class="steps" style="margin-top: 40px;">
+          <div class="step reveal">
+            <div class="step-num">01</div>
+            <div>
+              <div class="step-title">Poznaję firmę i diagnozuję problem</div>
+              <div class="step-desc">
+                30-minutowa bezpłatna rozmowa bez zobowiązań. Chcę zrozumieć co hamuje wzrost: oferta, komunikacja, lejek, strona, dane czy proces sprzedaży. Powiem wprost co widzę — nawet jeśli to nie będzie rekomendacja do współpracy ze mną.
+              </div>
+            </div>
+          </div>
+
+          <div class="step reveal d1">
+            <div class="step-num">02</div>
+            <div>
+              <div class="step-title">Wybieram najlepszą drogę — nie najdroższą</div>
+              <div class="step-desc">
+                Nie sprzedaję z góry konkretnej usługi. Propozycja wychodzi z rozmowy i realnych potrzeb — czasem to kampania, czasem nowy landing page, a czasem poprawa tego, co już działa.
+              </div>
+            </div>
+          </div>
+
+          <div class="step reveal d2">
+            <div class="step-num">03</div>
+            <div>
+              <div class="step-title">Wdrażam i jestem w stałym kontakcie</div>
+              <div class="step-desc">
+                Pracujesz bezpośrednio ze mną — nie z juniorskim zespołem. Wiesz na bieżąco co robię, dlaczego i jakie są efekty. Zero tygodniowego milczenia agencji.
+              </div>
+            </div>
+          </div>
+
+          <div class="step reveal d3">
+            <div class="step-num">04</div>
+            <div>
+              <div class="step-title">Mierzę, optymalizuję i patrzę szerzej</div>
+              <div class="step-desc">
+                Analizuję wyniki i poprawiam. Do tego aktywnie dzielę się obserwacjami dotyczącymi Twojego biznesu i sprzedaży — bo praktyczne doradztwo opłaci Ci się bardziej niż kolejny raport.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section bg-soft section-border" id="wyniki">
+      <div class="wrap">
+        <div class="content">
+          <div class="eyebrow reveal">Doswiadczenie i wyniki</div>
+          <h2 class="h2 reveal d1">Podejscie oparte na praktyce</h2>
+          <p class="body reveal d2" style="margin-top: 18px;">Wyniki budowane na bazie wieloletniej pracy w sprzedazy i ecommerce.</p>
+        </div>
+
+        <div class="stats-grid">
+                                            <div class="stat-card reveal">
+              <div class="stat-num">~1 mln</div>
+              <div class="stat-text">PLN / mies. sprzedazy B2B po 2 latach pracy</div>
+            </div>
+                                  <div class="stat-card reveal d1">
+              <div class="stat-num">~500k</div>
+              <div class="stat-text">PLN / mies. obrot sklepu internetowego</div>
+            </div>
+                                  <div class="stat-card reveal d2">
+              <div class="stat-num">3x</div>
+              <div class="stat-text">wyzsza marza sklepu wzgledem kanalu handlowego</div>
+            </div>
+                                  <div class="stat-card reveal d3">
+              <div class="stat-num">15 os.</div>
+              <div class="stat-text">zbudowany zespol sprzedazy z procesami i KPI</div>
+            </div>
+                  </div>
+
+        <div class="cases">
+                                            <div class="case reveal">
+              <div class="case-tag">Sprzedaz B2B</div>
+              <div class="case-title">Budowa sprzedazy od zera</div>
+              <div class="case-body">Budowa lejka, targetingu i procesu handlowego od podstaw.</div>
+              <div class="case-result">Efekt: ok. 1 mln PLN / mies. w 24 miesiace</div>
+            </div>
+                                  <div class="case reveal d1">
+              <div class="case-tag">E-commerce</div>
+              <div class="case-title">Sklep z wyzsza marza</div>
+              <div class="case-body">Sklep zbudowany od zera dla produktu sprzedawanego tradycyjnie.</div>
+              <div class="case-result">Efekt: 500k PLN / mies. i 3x wyzsza marza</div>
+            </div>
+                  </div>
+      </div>
+    </section>
+
+    <section class="section section-border" id="dla-kogo">
+      <div class="wrap">
+        <div class="content">
+          <div class="eyebrow reveal">Dla kogo</div>
+          <h2 class="h2 reveal d1">Sprawdz, czy do siebie pasujemy</h2>
+        </div>
+
+        <div class="fit-grid" style="margin-top: 40px;">
+          <div class="fit-card yes reveal">
+            <div class="fit-label">Dobry fit, jesli:</div>
+            <div class="fit-list">
+                                                                            <div class="fit-item"><span class="fit-icon">✓</span>Prowadzisz firme B2B lub uslugowa</div>
+                                                              <div class="fit-item"><span class="fit-icon">✓</span>Chcesz rozumiec dzialania marketingowe i ich sens</div>
+                                                              <div class="fit-item"><span class="fit-icon">✓</span>Szukasz partnera, nie tylko wykonawcy</div>
+                          </div>
+            <a href="https://upsellio.pl/#kontakt" class="btn btn-primary">Umow bezplatna rozmowe →</a>
+          </div>
+
+          <div class="fit-card no reveal d1">
+            <div class="fit-label">Mniejszy fit, jesli:</div>
+            <div class="fit-list">
+                                                                            <div class="fit-item"><span class="fit-icon">—</span>Szukasz tylko najtanszej opcji</div>
+                                                              <div class="fit-item"><span class="fit-icon">—</span>Potrzebujesz wielu specjalistow naraz</div>
+                                                              <div class="fit-item"><span class="fit-icon">—</span>Nie masz czasu na rozmowe o celach</div>
+                          </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section bg-soft section-border" id="faq">
+      <div class="wrap">
+        <div class="content">
+          <div class="eyebrow reveal">FAQ</div>
+          <h2 class="h2 reveal d1">Najczęstsze <span class="accent">pytania</span></h2>
+        </div>
+
+        <div class="faq" style="margin-top: 40px;">
+                                                  <div class="faq-item reveal">
+                <button class="faq-q" type="button">
+                  <span>Co zyskuje, wspolpracujac z Upsellio zamiast z agencja?</span>
+                  <span class="faq-icon">+</span>
+                </button>
+                <div class="faq-a">Masz bezposredni kontakt i pelna przejrzystosc wspolpracy, bez warstwy posrednikow.</div>
+              </div>
+                                        <div class="faq-item reveal d1">
+                <button class="faq-q" type="button">
+                  <span>Jak wyglada bezplatna rozmowa wstepna?</span>
+                  <span class="faq-icon">+</span>
+                </button>
+                <div class="faq-a">30 minut rozmowy o sytuacji i celach. Bez presji sprzedazowej i gotowych pakietow.</div>
+              </div>
+                              </div>
+      </div>
+    </section>
+
+    <section class="section" id="kontakt">
+      <div class="wrap">
+        <div class="form-shell reveal visible">
+          <div class="form-head">
+            <div class="eyebrow">Kontakt</div>
+            <h2 class="h2">Umów <span class="accent">bezpłatną rozmowę</span></h2>
+            <p class="body" style="margin-top: 18px;">Napisz kilka słów o firmie i tym, co chcesz poprawić. Odpiszę do końca dnia roboczego — osobiście, nie bot.</p>
+          </div>
+
+                    
+          <form id="contact-form" method="post" action="https://upsellio.pl/wp-admin/admin-post.php" novalidate data-upsellio-lead-form="1" data-upsellio-server-form="1">
+            <input type="hidden" name="action" value="upsellio_submit_lead" />
+            <input type="hidden" name="redirect_url" value="https://upsellio.pl/#kontakt" />
+            <input type="hidden" name="lead_form_origin" value="contact-form" />
+            <input type="hidden" name="lead_source" value="contact-form" />
+            <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
+            <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
+            <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
+            <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
+            <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
+            <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
+            <input type="hidden" id="upsellio_lead_form_nonce" name="upsellio_lead_form_nonce" value="1ce9d2b507" /><input type="hidden" name="_wp_http_referer" value="/portfolio/" />            <div class="form-grid">
+              <div class="field">
+                <label for="fname">Imię i nazwa firmy *</label>
+                <input class="input" type="text" id="fname" name="lead_name" placeholder="np. Marek Kowalski, firma XYZ" required />
+                <span class="field-error" id="fname-err">Podaj imię i nazwę firmy</span>
+              </div>
+
+              <div class="field">
+                <label for="femail">E-mail służbowy *</label>
+                <input class="input" type="email" id="femail" name="lead_email" placeholder="adres@twojafirma.pl" required />
+                <span class="field-error" id="femail-err">Podaj poprawny adres e-mail</span>
+              </div>
+
+              <div class="field">
+                <label for="fphone">Telefon (opcjonalnie)</label>
+                <input class="input" type="tel" id="fphone" name="lead_phone" placeholder="+48 600 000 000" autocomplete="tel" />
+              </div>
+
+              <div class="field">
+                <label for="fservice">Czego szukasz?</label>
+                <select class="select" id="fservice" name="lead_service">
+                  <option value="">— wybierz —</option>
+                                                                              <option>Kampanie Meta / Google Ads</option>
+                                                                              <option>Strona lub sklep internetowy</option>
+                                                                              <option>Marketing + strona (oba)</option>
+                                                                              <option>Aplikacja lub automatyzacja</option>
+                                                                              <option>Nie wiem - chce porozmawiac</option>
+                                  </select>
+              </div>
+
+              <div class="field full">
+                <label for="fmsg">Co chcesz poprawić lub osiągnąć? *</label>
+                <textarea class="textarea" id="fmsg" name="lead_message" placeholder="np. reklamy nie przynoszą wartościowych klientów, chcę nowy sklep nastawiony na konwersję, chcę poukładać sprzedaż..." required></textarea>
+                <span class="field-error" id="fmsg-err">Opisz w kilku słowach swoją sytuację</span>
+              </div>
+              <div class="field full">
+                <label style="display:flex;gap:8px;align-items:flex-start;">
+                  <input type="checkbox" name="lead_consent" value="1" required style="margin-top:3px;" />
+                  <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary submit" id="submit-btn">Wyślij i umów rozmowę →</button>
+            <p class="form-note">Dane przekazane w formularzu są poufne i służą wyłącznie do kontaktu.</p>
+          </form>
+
+          <div class="form-alt">
+            <div class="form-alt-item">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M7 1a6 6 0 100 12A6 6 0 007 1zM7 4v3.5l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+              </svg>
+              Odpowiem do końca dnia roboczego
+            </div>
+            <div class="form-alt-item">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M2 4.5C2 3.12 3.12 2 4.5 2h5C10.88 2 12 3.12 12 4.5v5C12 10.88 10.88 12 9.5 12h-5C3.12 12 2 10.88 2 9.5v-5z" stroke="currentColor" stroke-width="1.2" fill="none"/>
+                <path d="M5 7l1.5 1.5L9 5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Bez ciśnienia — sprawdzimy czy możemy razem działać
+            </div>
+            <div class="form-alt-item">
+              Wolisz zadzwonić?
+                              <a href="tel:+48000000000">+48 000 000 000</a>
+                          </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="brand">
+            <div class="brand-mark">U</div>
+            <div class="brand-text">
+              <div class="brand-name">Upsellio</div>
+              <div class="brand-sub">by Sebastian Kelm</div>
+            </div>
+          </div>
+          <div class="footer-sub">
+            Upsellio — Sebastian Kelm<br />
+            Marketing internetowy i strony WWW dla firm B2B
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <div class="footer-col-label">Usługi</div>
+          <a href="#uslugi">Meta Ads i Google Ads</a>
+          <a href="#uslugi">Strony internetowe</a>
+          <a href="#uslugi">Sklepy internetowe</a>
+          <a href="#uslugi">Doradztwo sprzedażowe</a>
+        </div>
+
+        <div class="footer-col">
+          <div class="footer-col-label">Nawigacja</div>
+          <a href="#jak-dzialam">Jak działam</a>
+          <a href="#wyniki">Wyniki</a>
+          <a href="#faq">FAQ</a>
+          <a href="https://upsellio.pl/blog">Blog</a>
+        </div>
+
+        <div class="footer-col footer-links">
+          <div class="footer-col-label">Kontakt</div>
+                      <a href="mailto:kontakt@upsellio.pl">kontakt@upsellio.pl</a>
+                                <a href="tel:+48000000000">+48 000 000 000</a>
+                    <a href="https://linkedin.com/in/sebastiankelm" target="_blank" rel="noopener">LinkedIn</a>
+          <a href="#kontakt">Bezpłatna rozmowa</a>
+        </div>
+      </div>
+
+          <section style="margin-top:28px;padding-top:24px;border-top:1px solid #e6e6e1;">
+      <h3 style="margin:0 0 12px;font-family:Syne,sans-serif;font-size:18px;color:#111110;">Popularne definicje</h3>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;">
+                  <a href="https://upsellio.pl/?definicja=linkowanie-wewnetrzne" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+            Linkowanie wewnetrzne          </a>
+                  <a href="https://upsellio.pl/?definicja=lifetime-value" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+            Lifetime Value          </a>
+                  <a href="https://upsellio.pl/?definicja=eventy" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+            Eventy          </a>
+                  <a href="https://upsellio.pl/?definicja=utm" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+            UTM          </a>
+                  <a href="https://upsellio.pl/?definicja=ga4" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+            GA4          </a>
+                  <a href="https://upsellio.pl/?definicja=atrybucja" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+            Atrybucja          </a>
+                  <a href="https://upsellio.pl/?definicja=brand-awareness" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+            Brand Awareness          </a>
+                  <a href="https://upsellio.pl/?definicja=share-of-voice" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+            Share of Voice          </a>
+                  <a href="https://upsellio.pl/?definicja=impression-share" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+            Impression Share          </a>
+                  <a href="https://upsellio.pl/?definicja=frequency-capping" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+            Frequency Capping          </a>
+                  <a href="https://upsellio.pl/?definicja=view-through-conversion" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+            View Through Conversion          </a>
+                  <a href="https://upsellio.pl/?definicja=remarketing" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+            Remarketing          </a>
+              </div>
+    </section>
+    <style>
+      @media(min-width:861px){
+        footer [style*="grid-template-columns:repeat(2,minmax(0,1fr));"]{grid-template-columns:repeat(4,minmax(0,1fr)) !important}
+      }
+    </style>
+              <section class="upsellio-local-seo" aria-label="Miasta obslugi" id="upsellio-local-seo-v9SlGk">
+      <style>
+        .upsellio-local-seo{margin-top:32px;padding-top:24px;border-top:1px solid var(--border,#e6e6e1)}
+        .upsellio-local-seo-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+        .upsellio-local-seo-title{font-size:13px;font-weight:700;letter-spacing:.3px;color:var(--text-2,#3d3d38)}
+        .upsellio-local-seo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px}
+        .upsellio-local-seo-link{font-size:13px;line-height:1.5;color:var(--text-3,#7c7c74);display:inline-block;text-decoration:none}
+        .upsellio-local-seo-link:hover{color:var(--teal,#1d9e75)}
+        .upsellio-local-seo-more{overflow:hidden;max-height:0;opacity:0;transition:max-height .45s ease, opacity .25s ease}
+        .upsellio-local-seo-more.is-open{opacity:1;max-height:2200px;margin-top:14px}
+        .upsellio-local-seo-toggle{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border-strong,#c9c9c3);border-radius:999px;background:transparent;color:var(--text-2,#3d3d38);cursor:pointer;font-size:12px}
+        .upsellio-local-seo-toggle:hover{border-color:var(--teal,#1d9e75);color:var(--teal,#1d9e75)}
+        @media(min-width:861px){.upsellio-local-seo-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+      </style>
+      <div class="upsellio-local-seo-head">
+        <div class="upsellio-local-seo-title">Uslugi w najwiekszych miastach Polski</div>
+                  <button class="upsellio-local-seo-toggle" type="button" data-role="toggle">Pokaz wszystkie miasta</button>
+              </div>
+      <div class="upsellio-local-seo-grid">
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=andrychow">
+            Marketing i strony WWW Andrychow          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=augustow">
+            Marketing i strony WWW Augustow          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=bartoszyce">
+            Marketing i strony WWW Bartoszyce          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=bedzin">
+            Marketing i strony WWW Bedzin          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=belchatow">
+            Marketing i strony WWW Belchatow          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=biala-podlaska">
+            Marketing i strony WWW Biala Podlaska          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=bialogard">
+            Marketing i strony WWW Bialogard          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=bialystok">
+            Marketing i strony WWW Bialystok          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=bielawa">
+            Marketing i strony WWW Bielawa          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=bielsko-biala">
+            Marketing i strony WWW Bielsko-Biala          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=bilgoraj">
+            Marketing i strony WWW Bilgoraj          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=bochnia">
+            Marketing i strony WWW Bochnia          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=boleslawiec">
+            Marketing i strony WWW Boleslawiec          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=brodnica">
+            Marketing i strony WWW Brodnica          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=brzeg">
+            Marketing i strony WWW Brzeg          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=brzesko">
+            Marketing i strony WWW Brzesko          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=busko-zdroj">
+            Marketing i strony WWW Busko-Zdroj          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=bydgoszcz">
+            Marketing i strony WWW Bydgoszcz          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=bytom">
+            Marketing i strony WWW Bytom          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=bytow">
+            Marketing i strony WWW Bytow          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=chelm">
+            Marketing i strony WWW Chelm          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=chojnice">
+            Marketing i strony WWW Chojnice          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=chorzow">
+            Marketing i strony WWW Chorzow          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=ciechanow">
+            Marketing i strony WWW Ciechanow          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=cieszyn">
+            Marketing i strony WWW Cieszyn          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=czestochowa">
+            Marketing i strony WWW Czestochowa          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=czestochowa-polnoc">
+            Marketing i strony WWW Czestochowa Polnoc          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=czluchow">
+            Marketing i strony WWW Czluchow          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=dabrowa-gornicza">
+            Marketing i strony WWW Dabrowa Gornicza          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=debica">
+            Marketing i strony WWW Debica          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=drawsko-pomorskie">
+            Marketing i strony WWW Drawsko Pomorskie          </a>
+                  <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=elblag">
+            Marketing i strony WWW Elblag          </a>
+              </div>
+              <div class="upsellio-local-seo-more" data-role="hidden-list">
+          <div class="upsellio-local-seo-grid">
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=elk">
+                Marketing i strony WWW Ełk              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=gdansk">
+                Marketing i strony WWW Gdansk              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=gdynia">
+                Marketing i strony WWW Gdynia              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=gliwice">
+                Marketing i strony WWW Gliwice              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=glogow">
+                Marketing i strony WWW Glogow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=gniezno">
+                Marketing i strony WWW Gniezno              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=goleniow">
+                Marketing i strony WWW Goleniow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=gorlice">
+                Marketing i strony WWW Gorlice              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=gorzow-wielkopolski">
+                Marketing i strony WWW Gorzow Wielkopolski              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=gostynin">
+                Marketing i strony WWW Gostynin              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=grodzisk-mazowiecki">
+                Marketing i strony WWW Grodzisk Mazowiecki              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=grudziadz">
+                Marketing i strony WWW Grudziadz              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=gryfino">
+                Marketing i strony WWW Gryfino              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=hrubieszow">
+                Marketing i strony WWW Hrubieszow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=ilawa">
+                Marketing i strony WWW Ilawa              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=inowroclaw">
+                Marketing i strony WWW Inowroclaw              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=jarocin">
+                Marketing i strony WWW Jarocin              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=jaroslaw">
+                Marketing i strony WWW Jaroslaw              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=jaslo">
+                Marketing i strony WWW Jaslo              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=jastrzebie-zdroj">
+                Marketing i strony WWW Jastrzebie-Zdroj              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=jaworzno">
+                Marketing i strony WWW Jaworzno              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=jelenia-gora">
+                Marketing i strony WWW Jelenia Gora              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=kalisz">
+                Marketing i strony WWW Kalisz              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=kamien-pomorski">
+                Marketing i strony WWW Kamien Pomorski              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=katowice">
+                Marketing i strony WWW Katowice              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=kedzierzyn-kozle">
+                Marketing i strony WWW Kedzierzyn-Kozle              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=ketrzyn">
+                Marketing i strony WWW Ketrzyn              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=kielce">
+                Marketing i strony WWW Kielce              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=kluczbork">
+                Marketing i strony WWW Kluczbork              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=knurow">
+                Marketing i strony WWW Knurow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=kolo">
+                Marketing i strony WWW Kolo              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=kolobrzeg">
+                Marketing i strony WWW Kolobrzeg              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=konin">
+                Marketing i strony WWW Konin              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=konskie">
+                Marketing i strony WWW Konskie              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=koscian">
+                Marketing i strony WWW Koscian              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=koszalin">
+                Marketing i strony WWW Koszalin              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=krakow">
+                Marketing i strony WWW Krakow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=krapkowice">
+                Marketing i strony WWW Krapkowice              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=krosno">
+                Marketing i strony WWW Krosno              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=krosno-odrzanskie">
+                Marketing i strony WWW Krosno Odrzanskie              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=kutno">
+                Marketing i strony WWW Kutno              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=kwidzyn">
+                Marketing i strony WWW Kwidzyn              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=leba">
+                Marketing i strony WWW Leba              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=lebork">
+                Marketing i strony WWW Lębork              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=leczna">
+                Marketing i strony WWW Leczna              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=legionowo">
+                Marketing i strony WWW Legionowo              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=legnica">
+                Marketing i strony WWW Legnica              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=leszno">
+                Marketing i strony WWW Leszno              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=lidzbark-warminski">
+                Marketing i strony WWW Lidzbark Warminski              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=limanowa">
+                Marketing i strony WWW Limanowa              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=lodz">
+                Marketing i strony WWW Lodz              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=lomza">
+                Marketing i strony WWW Lomza              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=luban">
+                Marketing i strony WWW Luban              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=lubartow">
+                Marketing i strony WWW Lubartow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=lubin">
+                Marketing i strony WWW Lubin              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=lublin">
+                Marketing i strony WWW Lublin              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=lukow">
+                Marketing i strony WWW Lukow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=malbork">
+                Marketing i strony WWW Malbork              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=marki">
+                Marketing i strony WWW Marki              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=miedzyrzecz">
+                Marketing i strony WWW Miedzyrzecz              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=mielec">
+                Marketing i strony WWW Mielec              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=mikolow">
+                Marketing i strony WWW Mikolow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=minsk-mazowiecki">
+                Marketing i strony WWW Mińsk Mazowiecki              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=mlawa">
+                Marketing i strony WWW Mlawa              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=mragowo">
+                Marketing i strony WWW Mragowo              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=myslenice">
+                Marketing i strony WWW Myslenice              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=myslowice">
+                Marketing i strony WWW Myslowice              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=myszkow">
+                Marketing i strony WWW Myszkow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=namyslow">
+                Marketing i strony WWW Namyslow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=nidzica">
+                Marketing i strony WWW Nidzica              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=nowa-sol">
+                Marketing i strony WWW Nowa Sol              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=nowy-dwor-mazowiecki">
+                Marketing i strony WWW Nowy Dwor Mazowiecki              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=nowy-sacz">
+                Marketing i strony WWW Nowy Sacz              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=nowy-targ">
+                Marketing i strony WWW Nowy Targ              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=nysa">
+                Marketing i strony WWW Nysa              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=olecko">
+                Marketing i strony WWW Olecko              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=olsztyn">
+                Marketing i strony WWW Olsztyn              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=opole">
+                Marketing i strony WWW Opole              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=ostroda">
+                Marketing i strony WWW Ostroda              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=ostroleka">
+                Marketing i strony WWW Ostroleka              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=ostrow-wielkopolski">
+                Marketing i strony WWW Ostrow Wielkopolski              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=ostrowiec-swietokrzyski">
+                Marketing i strony WWW Ostrowiec Swietokrzyski              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=otwock">
+                Marketing i strony WWW Otwock              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=pabianice">
+                Marketing i strony WWW Pabianice              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=piaseczno">
+                Marketing i strony WWW Piaseczno              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=piekary-slaskie">
+                Marketing i strony WWW Piekary Slaskie              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=pila">
+                Marketing i strony WWW Pila              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=piotrkow-trybunalski">
+                Marketing i strony WWW Piotrkow Trybunalski              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=pisz">
+                Marketing i strony WWW Pisz              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=plock">
+                Marketing i strony WWW Plock              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=plonsk">
+                Marketing i strony WWW Plonsk              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=police">
+                Marketing i strony WWW Police              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=polkowice">
+                Marketing i strony WWW Polkowice              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=poznan">
+                Marketing i strony WWW Poznan              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=prudnik">
+                Marketing i strony WWW Prudnik              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=pruszkow">
+                Marketing i strony WWW Pruszkow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=przemkow">
+                Marketing i strony WWW Przemkow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=przemysl">
+                Marketing i strony WWW Przemysl              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=pszczyna">
+                Marketing i strony WWW Pszczyna              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=puck">
+                Marketing i strony WWW Puck              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=pulawy">
+                Marketing i strony WWW Pulawy              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=pultusk">
+                Marketing i strony WWW Pultusk              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=raciborz">
+                Marketing i strony WWW Raciborz              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=radom">
+                Marketing i strony WWW Radom              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=radzionkow">
+                Marketing i strony WWW Radzionkow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=radzymia">
+                Marketing i strony WWW Radzymia              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=radzyn-podlaski">
+                Marketing i strony WWW Radzyn Podlaski              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=reda">
+                Marketing i strony WWW Reda              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=ruda-slaska">
+                Marketing i strony WWW Ruda Slaska              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=rumia">
+                Marketing i strony WWW Rumia              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=rybnik">
+                Marketing i strony WWW Rybnik              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=rzeszow">
+                Marketing i strony WWW Rzeszow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=sandomierz">
+                Marketing i strony WWW Sandomierz              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=sanok">
+                Marketing i strony WWW Sanok              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=siedlce">
+                Marketing i strony WWW Siedlce              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=siemianowice-slaskie">
+                Marketing i strony WWW Siemianowice Slaskie              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=sieradz">
+                Marketing i strony WWW Sieradz              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=sierpc">
+                Marketing i strony WWW Sierpc              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=skarzysko-kamienna">
+                Marketing i strony WWW Skarzysko-Kamienna              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=skierniewice">
+                Marketing i strony WWW Skierniewice              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=slupsk">
+                Marketing i strony WWW Slupsk              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=sochaczew">
+                Marketing i strony WWW Sochaczew              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=sopot">
+                Marketing i strony WWW Sopot              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=sosnowiec">
+                Marketing i strony WWW Sosnowiec              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=srem">
+                Marketing i strony WWW Srem              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=stalowa-wola">
+                Marketing i strony WWW Stalowa Wola              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=starachowice">
+                Marketing i strony WWW Starachowice              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=stargard">
+                Marketing i strony WWW Stargard              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=starogard-gdanski">
+                Marketing i strony WWW Starogard Gdanski              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=sulechow">
+                Marketing i strony WWW Sulechow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=suwalki">
+                Marketing i strony WWW Suwalki              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=swidnica">
+                Marketing i strony WWW Swidnica              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=swiebodzin">
+                Marketing i strony WWW Swiebodzin              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=swinoujscie">
+                Marketing i strony WWW Swinoujscie              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=szamotuly">
+                Marketing i strony WWW Szamotuly              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=szczecin">
+                Marketing i strony WWW Szczecin              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=szczecinek">
+                Marketing i strony WWW Szczecinek              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=szczytno">
+                Marketing i strony WWW Szczytno              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=tarnow">
+                Marketing i strony WWW Tarnow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=tarnowskie-gory">
+                Marketing i strony WWW Tarnowskie Gory              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=tczew">
+                Marketing i strony WWW Tczew              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=tomaszow-mazowiecki">
+                Marketing i strony WWW Tomaszow Mazowiecki              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=torun">
+                Marketing i strony WWW Torun              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=turek">
+                Marketing i strony WWW Turek              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=tychy">
+                Marketing i strony WWW Tychy              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=wadowice">
+                Marketing i strony WWW Wadowice              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=wagrowiec">
+                Marketing i strony WWW Wagrowiec              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=walbrzych">
+                Marketing i strony WWW Walbrzych              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=walcz">
+                Marketing i strony WWW Walcz              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=warszawa">
+                Marketing i strony WWW Warszawa              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=wejherowo">
+                Marketing i strony WWW Wejherowo              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=wielun">
+                Marketing i strony WWW Wielun              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=wloclawek">
+                Marketing i strony WWW Wloclawek              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=wodzislaw-slaski">
+                Marketing i strony WWW Wodzislaw Slaski              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=wolomin">
+                Marketing i strony WWW Wolomin              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=wroclaw">
+                Marketing i strony WWW Wroclaw              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=wrzesnia">
+                Marketing i strony WWW Wrzesnia              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=wyszkow">
+                Marketing i strony WWW Wyszkow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=zabrze">
+                Marketing i strony WWW Zabrze              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=zamosc">
+                Marketing i strony WWW Zamosc              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=zary">
+                Marketing i strony WWW Zary              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=zawiercie">
+                Marketing i strony WWW Zawiercie              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=zdunska-wola">
+                Marketing i strony WWW Zdunska Wola              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=zgierz">
+                Marketing i strony WWW Zgierz              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=zielona-gora">
+                Marketing i strony WWW Zielona Gora              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=zlotow">
+                Marketing i strony WWW Zlotow              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=zory">
+                Marketing i strony WWW Zory              </a>
+                          <a class="upsellio-local-seo-link" href="https://upsellio.pl/?miasto=zyrardow">
+                Marketing i strony WWW Zyrardow              </a>
+                      </div>
+        </div>
+        <script>
+          (function () {
+            var root = document.getElementById('upsellio-local-seo-v9SlGk');
+            if (!root) return;
+            var btn = root.querySelector('[data-role="toggle"]');
+            var hidden = root.querySelector('[data-role="hidden-list"]');
+            if (!btn || !hidden) return;
+            btn.addEventListener('click', function () {
+              var open = hidden.classList.toggle('is-open');
+              btn.textContent = open ? 'Ukryj liste miast' : 'Pokaz wszystkie miasta';
+            });
+          })();
+        </script>
+          </section>
+          <div class="footer-copy">© 2025 Upsellio / Sebastian Kelm. Wszelkie prawa zastrzeżone. · <a href="https://upsellio.pl/polityka-prywatnosci" style="color:inherit;">Polityka prywatności</a></div>
+    </div>
+  </footer>
+
+  <button class="scroll-top" id="scroll-top" aria-label="Wróć na górę">↑</button>
+  <script id="upsellio-main-js-extra">
+var upsellioData = {"ajaxUrl":"https://upsellio.pl/wp-admin/admin-ajax.php","blogNonce":"af2c4c16a2","blogIndexUrl":"https://upsellio.pl/?page_id=302","contactNonce":"d1f375cfe7"};
+//# sourceURL=upsellio-main-js-extra
+</script>
+<script src="https://upsellio.pl/wp-content/themes/upsellio/assets/js/upsellio.js?ver=1776802813" id="upsellio-main-js"></script>
+<script id="wp-emoji-settings" type="application/json">
+{"baseUrl":"https://s.w.org/images/core/emoji/17.0.2/72x72/","ext":".png","svgUrl":"https://s.w.org/images/core/emoji/17.0.2/svg/","svgExt":".svg","source":{"concatemoji":"https://upsellio.pl/wp-includes/js/wp-emoji-release.min.js?ver=6.9.4"}}
+</script>
+<script type="module">
+/*! This file is auto-generated */
+const a=JSON.parse(document.getElementById("wp-emoji-settings").textContent),o=(window._wpemojiSettings=a,"wpEmojiSettingsSupports"),s=["flag","emoji"];function i(e){try{var t={supportTests:e,timestamp:(new Date).valueOf()};sessionStorage.setItem(o,JSON.stringify(t))}catch(e){}}function c(e,t,n){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);t=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data);e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(n,0,0);const a=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data);return t.every((e,t)=>e===a[t])}function p(e,t){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);var n=e.getImageData(16,16,1,1);for(let e=0;e<n.data.length;e++)if(0!==n.data[e])return!1;return!0}function u(e,t,n,a){switch(t){case"flag":return n(e,"\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f","\ud83c\udff3\ufe0f\u200b\u26a7\ufe0f")?!1:!n(e,"\ud83c\udde8\ud83c\uddf6","\ud83c\udde8\u200b\ud83c\uddf6")&&!n(e,"\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f","\ud83c\udff4\u200b\udb40\udc67\u200b\udb40\udc62\u200b\udb40\udc65\u200b\udb40\udc6e\u200b\udb40\udc67\u200b\udb40\udc7f");case"emoji":return!a(e,"\ud83e\u1fac8")}return!1}function f(e,t,n,a){let r;const o=(r="undefined"!=typeof WorkerGlobalScope&&self instanceof WorkerGlobalScope?new OffscreenCanvas(300,150):document.createElement("canvas")).getContext("2d",{willReadFrequently:!0}),s=(o.textBaseline="top",o.font="600 32px Arial",{});return e.forEach(e=>{s[e]=t(o,e,n,a)}),s}function r(e){var t=document.createElement("script");t.src=e,t.defer=!0,document.head.appendChild(t)}a.supports={everything:!0,everythingExceptFlag:!0},new Promise(t=>{let n=function(){try{var e=JSON.parse(sessionStorage.getItem(o));if("object"==typeof e&&"number"==typeof e.timestamp&&(new Date).valueOf()<e.timestamp+604800&&"object"==typeof e.supportTests)return e.supportTests}catch(e){}return null}();if(!n){if("undefined"!=typeof Worker&&"undefined"!=typeof OffscreenCanvas&&"undefined"!=typeof URL&&URL.createObjectURL&&"undefined"!=typeof Blob)try{var e="postMessage("+f.toString()+"("+[JSON.stringify(s),u.toString(),c.toString(),p.toString()].join(",")+"));",a=new Blob([e],{type:"text/javascript"});const r=new Worker(URL.createObjectURL(a),{name:"wpTestEmojiSupports"});return void(r.onmessage=e=>{i(n=e.data),r.terminate(),t(n)})}catch(e){}i(n=f(s,u,c,p))}t(n)}).then(e=>{for(const n in e)a.supports[n]=e[n],a.supports.everything=a.supports.everything&&a.supports[n],"flag"!==n&&(a.supports.everythingExceptFlag=a.supports.everythingExceptFlag&&a.supports[n]);var t;a.supports.everythingExceptFlag=a.supports.everythingExceptFlag&&!a.supports.flag,a.supports.everything||((t=a.source||{}).concatemoji?r(t.concatemoji):t.wpemoji&&t.twemoji&&(r(t.twemoji),r(t.wpemoji)))});
+//# sourceURL=https://upsellio.pl/wp-includes/js/wp-emoji-loader.min.js
+</script>
+    <script>
+    (function () {
+      var ajaxUrl = "https:\/\/upsellio.pl\/wp-admin\/admin-ajax.php";
+      var sent = 0;
+      var limit = 3;
+      function send(payload) {
+        if (!ajaxUrl || sent >= limit) return;
+        sent += 1;
+        var body = new URLSearchParams();
+        body.set("action", "upsellio_track_frontend_error");
+        body.set("message", String(payload.message || "").slice(0, 400));
+        body.set("source", String(payload.source || "").slice(0, 400));
+        body.set("line", String(payload.line || 0));
+        body.set("column", String(payload.column || 0));
+        body.set("stack", String(payload.stack || "").slice(0, 2000));
+        body.set("page_url", window.location.href);
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(ajaxUrl, body);
+          return;
+        }
+        fetch(ajaxUrl, { method: "POST", body: body, keepalive: true, credentials: "same-origin" }).catch(function () {});
+      }
+      window.addEventListener("error", function (event) {
+        send({
+          message: event && event.message ? event.message : "window.error",
+          source: event && event.filename ? event.filename : "unknown",
+          line: event && event.lineno ? event.lineno : 0,
+          column: event && event.colno ? event.colno : 0,
+          stack: event && event.error && event.error.stack ? event.error.stack : ""
+        });
+      });
+      window.addEventListener("unhandledrejection", function (event) {
+        var reason = event && event.reason ? event.reason : {};
+        send({
+          message: reason && reason.message ? reason.message : "unhandledrejection",
+          source: "promise",
+          line: 0,
+          column: 0,
+          stack: reason && reason.stack ? reason.stack : ""
+        });
+      });
+    })();
+    </script>
+    </body>
+</html>
+
