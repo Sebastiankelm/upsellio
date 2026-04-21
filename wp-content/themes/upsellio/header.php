@@ -3,12 +3,12 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
-$blog_page_id = (int) get_option("page_for_posts");
+$blog_page_id = function_exists("upsellio_get_blog_page_id") ? (int) upsellio_get_blog_page_id() : (int) get_option("page_for_posts");
 $blog_index_url = $blog_page_id ? get_permalink($blog_page_id) : home_url("/");
 if (!$blog_index_url) {
     $blog_index_url = home_url("/");
 }
-$is_blog_context = is_home() || is_singular("post") || is_category() || is_tag() || is_search();
+$is_blog_context = is_home() || is_singular("post") || is_category() || is_tag() || is_search() || is_page_template("page-blog.php");
 $is_definitions_context = is_post_type_archive("definicja") || is_singular("definicja");
 $is_cities_context = is_post_type_archive("miasto") || is_singular("miasto");
 $primary_navigation_links = function_exists("upsellio_get_primary_navigation_links") ? upsellio_get_primary_navigation_links() : [];
