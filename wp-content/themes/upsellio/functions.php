@@ -4,6 +4,99 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
+function upsellio_ensure_contact_page_exists()
+{
+    if (!is_admin() || !current_user_can("manage_options")) {
+        return;
+    }
+
+    $contact_slug = "kontakt";
+    $existing_page = get_page_by_path($contact_slug);
+    if ($existing_page instanceof WP_Post) {
+        if ((string) get_post_meta((int) $existing_page->ID, "_wp_page_template", true) !== "page-kontakt.php") {
+            update_post_meta((int) $existing_page->ID, "_wp_page_template", "page-kontakt.php");
+        }
+        return;
+    }
+
+    $page_id = wp_insert_post([
+        "post_type" => "page",
+        "post_status" => "publish",
+        "post_title" => "Kontakt",
+        "post_name" => $contact_slug,
+        "post_content" => "",
+    ]);
+
+    if (!is_wp_error($page_id) && (int) $page_id > 0) {
+        update_post_meta((int) $page_id, "_wp_page_template", "page-kontakt.php");
+    }
+}
+add_action("admin_init", "upsellio_ensure_contact_page_exists");
+
+function upsellio_is_contact_page_context()
+{
+    return is_page("kontakt") || is_page_template("page-kontakt.php");
+}
+
+function upsellio_get_contact_page_seo_payload()
+{
+    $contact_url = home_url("/kontakt/");
+    $contact_page = get_page_by_path("kontakt");
+    if ($contact_page instanceof WP_Post) {
+        $page_permalink = get_permalink((int) $contact_page->ID);
+        if (is_string($page_permalink) && $page_permalink !== "") {
+            $contact_url = $page_permalink;
+        }
+    }
+
+    return [
+        "title" => "Kontakt | Upsellio - Marketing i strony WWW dla firm B2B",
+        "description" => "Skontaktuj się z Upsellio. Opisz cele i wyzwania, a wrócę z konkretną rekomendacją działań marketingowych, webowych i lead generation dla Twojej firmy.",
+        "canonical" => $contact_url,
+    ];
+}
+
+function upsellio_contact_page_document_title($title)
+{
+    if (!upsellio_is_contact_page_context()) {
+        return $title;
+    }
+
+    $seo_payload = upsellio_get_contact_page_seo_payload();
+    $custom_title = trim((string) ($seo_payload["title"] ?? ""));
+    return $custom_title !== "" ? $custom_title : $title;
+}
+add_filter("pre_get_document_title", "upsellio_contact_page_document_title");
+
+function upsellio_print_contact_page_seo_meta()
+{
+    if (!upsellio_is_contact_page_context()) {
+        return;
+    }
+
+    $seo_payload = upsellio_get_contact_page_seo_payload();
+    $description = trim((string) ($seo_payload["description"] ?? ""));
+    $canonical = trim((string) ($seo_payload["canonical"] ?? ""));
+    $title = trim((string) ($seo_payload["title"] ?? ""));
+
+    if ($description !== "") {
+        echo '<meta name="description" content="' . esc_attr($description) . '">' . "\n";
+        echo '<meta property="og:description" content="' . esc_attr($description) . '">' . "\n";
+        echo '<meta name="twitter:description" content="' . esc_attr($description) . '">' . "\n";
+    }
+    if ($title !== "") {
+        echo '<meta property="og:title" content="' . esc_attr($title) . '">' . "\n";
+        echo '<meta name="twitter:title" content="' . esc_attr($title) . '">' . "\n";
+    }
+    if ($canonical !== "") {
+        echo '<link rel="canonical" href="' . esc_url($canonical) . '">' . "\n";
+        echo '<meta property="og:url" content="' . esc_url($canonical) . '">' . "\n";
+    }
+    echo '<meta property="og:type" content="website">' . "\n";
+    echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
+}
+add_action("wp_head", "upsellio_print_contact_page_seo_meta", 1);
+
 function upsellio_strlen($value)
 {
     $value = (string) $value;
@@ -11,14 +104,18 @@ function upsellio_strlen($value)
 }
 
 require_once get_template_directory() . "/inc/cities-data.php";
-require_once get_template_directory() . "/inc/cities-seed.php";
 require_once get_template_directory() . "/inc/definitions-data.php";
+require_once get_template_directory() . "/inc/cities-seed.php";
 require_once get_template_directory() . "/inc/definitions-seed.php";
 require_once get_template_directory() . "/inc/blog-seo-tool.php";
 require_once get_template_directory() . "/inc/crm.php";
 require_once get_template_directory() . "/inc/seo-automation.php";
 require_once get_template_directory() . "/inc/data-schema.php";
 require_once get_template_directory() . "/inc/site-analytics.php";
+require_once get_template_directory() . "/inc/advanced-tests.php";
+require_once get_template_directory() . "/inc/portfolio-seed.php";
+require_once get_template_directory() . "/inc/marketing-portfolio-seed.php";
+require_once get_template_directory() . "/inc/theme-config.php";
 
 function upsellio_setup()
 {
@@ -34,6 +131,16 @@ function upsellio_setup()
 }
 add_action("after_setup_theme", "upsellio_setup");
 
+function upsellio_print_favicon_links()
+{
+    $assets_base_url = get_template_directory_uri() . "/assets/images";
+    echo '<link rel="icon" href="' . esc_url($assets_base_url . '/favicon.ico') . '" sizes="any" />';
+    echo '<link rel="icon" type="image/png" href="' . esc_url($assets_base_url . '/favicon-16x16.png') . '" sizes="16x16" />';
+    echo '<link rel="icon" type="image/png" href="' . esc_url($assets_base_url . '/favicon-32x32.png') . '" sizes="32x32" />';
+    echo '<link rel="apple-touch-icon" href="' . esc_url($assets_base_url . '/apple-touch-icon.png') . '" sizes="180x180" />';
+}
+add_action("wp_head", "upsellio_print_favicon_links", 5);
+
 function upsellio_primary_menu_name()
 {
     return "Upsellio Primary Auto";
@@ -48,12 +155,24 @@ function upsellio_get_primary_navigation_links()
     if ($menu_id > 0) {
         $menu_items = wp_get_nav_menu_items($menu_id, ["update_post_term_cache" => false]);
         if (is_array($menu_items)) {
+            $seen_urls = [];
             foreach ($menu_items as $menu_item) {
+                if ((int) ($menu_item->menu_item_parent ?? 0) > 0) {
+                    continue;
+                }
                 $url = isset($menu_item->url) ? (string) $menu_item->url : "";
                 $title = isset($menu_item->title) ? wp_strip_all_tags((string) $menu_item->title) : "";
                 if ($url === "" || $title === "") {
                     continue;
                 }
+                $normalized_url = untrailingslashit((string) wp_parse_url($url, PHP_URL_PATH));
+                if ($normalized_url === "") {
+                    $normalized_url = "/";
+                }
+                if (isset($seen_urls[$normalized_url])) {
+                    continue;
+                }
+                $seen_urls[$normalized_url] = true;
                 $links[] = [
                     "title" => $title,
                     "url" => $url,
@@ -63,7 +182,7 @@ function upsellio_get_primary_navigation_links()
     }
 
     if (!empty($links)) {
-        return $links;
+        return upsellio_append_special_navigation_links($links);
     }
 
     // Fallback if menu is not configured yet.
@@ -79,7 +198,7 @@ function upsellio_get_primary_navigation_links()
         ];
     }
 
-    return $links;
+    return upsellio_append_special_navigation_links($links);
 }
 
 function upsellio_build_page_tree($pages)
@@ -102,11 +221,9 @@ function upsellio_get_lead_magnet_candidates($limit = 12)
     $items = [];
 
     $query = new WP_Query([
-        "post_type" => ["page", "post", "definicja"],
+        "post_type" => ["lead_magnet", "page", "post", "definicja"],
         "post_status" => "publish",
-        "posts_per_page" => $limit,
-        "meta_key" => "_upsellio_is_lead_magnet",
-        "meta_value" => "1",
+        "posts_per_page" => max($limit, 12),
         "orderby" => "menu_order date",
         "order" => "ASC",
         "ignore_sticky_posts" => true,
@@ -115,6 +232,11 @@ function upsellio_get_lead_magnet_candidates($limit = 12)
     if (!empty($query->posts)) {
         foreach ($query->posts as $post) {
             $post_id = (int) $post->ID;
+            $post_type = (string) get_post_type($post_id);
+            $is_marked = $post_type === "lead_magnet" || (string) get_post_meta($post_id, "_upsellio_is_lead_magnet", true) === "1";
+            if (!$is_marked) {
+                continue;
+            }
             $items[] = [
                 "id" => $post_id,
                 "title" => (string) get_the_title($post_id),
@@ -124,19 +246,6 @@ function upsellio_get_lead_magnet_candidates($limit = 12)
         }
     }
     wp_reset_postdata();
-
-    if (empty($items)) {
-        $fallback_page = get_page_by_path("audyt-meta");
-        if ($fallback_page instanceof WP_Post) {
-            $fallback_id = (int) $fallback_page->ID;
-            $items[] = [
-                "id" => $fallback_id,
-                "title" => (string) get_the_title($fallback_id),
-                "url" => (string) get_permalink($fallback_id),
-                "excerpt" => (string) get_the_excerpt($fallback_id),
-            ];
-        }
-    }
 
     return array_slice($items, 0, $limit);
 }
@@ -148,12 +257,7 @@ function upsellio_get_primary_lead_magnet()
         return $items[0];
     }
 
-    return [
-        "id" => 0,
-        "title" => "Darmowy audyt Meta Ads",
-        "url" => home_url("/audyt-meta"),
-        "excerpt" => "Sprawdź, co w kampaniach działa, co przepala budżet i co poprawić, żeby podnieść jakość leadów.",
-    ];
+    return [];
 }
 
 function upsellio_add_lead_magnet_meta_box()
@@ -166,7 +270,7 @@ function upsellio_add_lead_magnet_meta_box()
     foreach ($screens as $screen) {
         add_meta_box(
             "upsellio_lead_magnet_box",
-            "Upsellio: Lead magnet",
+            "Upsellio: Materiał do pobrania",
             "upsellio_render_lead_magnet_meta_box",
             $screen,
             "side",
@@ -183,7 +287,7 @@ function upsellio_render_lead_magnet_meta_box($post)
     ?>
     <label for="upsellio_is_lead_magnet" style="display:flex;gap:8px;align-items:flex-start;">
       <input type="checkbox" id="upsellio_is_lead_magnet" name="upsellio_is_lead_magnet" value="1" <?php checked($is_marked); ?> />
-      <span>Oznacz ten wpis jako lead magnet (pojawi się w synchronizacji nawigacji).</span>
+      <span>Oznacz ten wpis jako materiał do pobrania (pojawi się w synchronizacji nawigacji).</span>
     </label>
     <?php
 }
@@ -301,17 +405,32 @@ function upsellio_sync_primary_navigation_menu()
         }
     }
 
-    $lead_magnets = upsellio_get_lead_magnet_candidates(20);
-    if (!empty($lead_magnets)) {
+    $marketing_portfolio_page_url = upsellio_get_marketing_portfolio_page_url();
+    if ($marketing_portfolio_page_url !== "") {
+        $marketing_portfolio_item = wp_update_nav_menu_item($menu_id, 0, [
+            "menu-item-title" => "Portfolio marketingowe",
+            "menu-item-url" => $marketing_portfolio_page_url,
+            "menu-item-type" => "custom",
+            "menu-item-status" => "publish",
+            "menu-item-parent-id" => 0,
+        ]);
+        if (!is_wp_error($marketing_portfolio_item)) {
+            $created++;
+        }
+    }
+
+    $lead_magnets_page_url = upsellio_get_lead_magnets_page_url();
+    if ($lead_magnets_page_url !== "") {
         $lead_magnets_parent_item = wp_update_nav_menu_item($menu_id, 0, [
-            "menu-item-title" => "Lead magnety",
-            "menu-item-url" => "#",
+            "menu-item-title" => "Materiały",
+            "menu-item-url" => $lead_magnets_page_url,
             "menu-item-type" => "custom",
             "menu-item-status" => "publish",
             "menu-item-parent-id" => 0,
         ]);
         if (!is_wp_error($lead_magnets_parent_item)) {
             $created++;
+            $lead_magnets = upsellio_get_lead_magnet_candidates(20);
             foreach ($lead_magnets as $lead_magnet) {
                 $lead_item = wp_update_nav_menu_item($menu_id, 0, [
                     "menu-item-title" => (string) $lead_magnet["title"],
@@ -376,7 +495,7 @@ function upsellio_navigation_sync_screen()
     ?>
     <div class="wrap">
       <h1>Synchronizacja nawigacji</h1>
-      <p>Jednym kliknięciem zaktualizujesz menu nawigacji na podstawie wszystkich opublikowanych stron, podstron i oznaczonych lead magnetów.</p>
+      <p>Jednym kliknięciem zaktualizujesz menu nawigacji na podstawie wszystkich opublikowanych stron, podstron i oznaczonych materiałów.</p>
       <p><a class="button button-primary" href="<?php echo esc_url(upsellio_get_navigation_sync_url()); ?>">Wykonaj szybką aktualizację bazy menu</a></p>
     </div>
     <?php
@@ -415,10 +534,14 @@ add_action("admin_notices", "upsellio_navigation_sync_admin_notice");
 
 function upsellio_assets()
 {
+    $style_path = get_template_directory() . "/assets/css/upsellio.css";
+    $style_uri = get_template_directory_uri() . "/assets/css/upsellio.css";
+    $style_version = file_exists($style_path) ? (string) filemtime($style_path) : "1.0.0";
     $script_path = get_template_directory() . "/assets/js/upsellio.js";
     $script_uri = get_template_directory_uri() . "/assets/js/upsellio.js";
     $script_version = file_exists($script_path) ? (string) filemtime($script_path) : "1.0.0";
 
+    wp_enqueue_style("upsellio-main", $style_uri, [], $style_version);
     wp_enqueue_script("upsellio-main", $script_uri, [], $script_version, true);
     wp_localize_script(
         "upsellio-main",
@@ -621,7 +744,7 @@ function upsellio_render_blog_dynamic_content($selected_category = "", $selected
 
         <aside class="ups-blog-side">
           <div class="ups-blog-panel">
-            <div class="eyebrow" style="margin-bottom: 0;">Newsletter / lead magnet</div>
+            <div class="eyebrow" style="margin-bottom: 0;">Newsletter / materiały do pobrania</div>
             <h3 class="ups-blog-panel-title">Chcesz praktyczne materiały o reklamach i sprzedaży?</h3>
             <p class="ups-blog-panel-text">
               Raz na jakiś czas wyślę Ci konkretny materiał: checklistę, analizę albo wpis, który pomaga podejmować lepsze decyzje marketingowe.
@@ -672,25 +795,34 @@ function upsellio_render_blog_dynamic_content($selected_category = "", $selected
 
         <?php if (!empty($regular_posts)) : ?>
           <div class="ups-blog-grid">
-            <?php foreach ($regular_posts as $post_item) : ?>
+            <?php foreach ($regular_posts as $post_index => $post_item) : ?>
               <?php
               $post_categories = get_the_category($post_item->ID);
               $post_category_name = !empty($post_categories) ? $post_categories[0]->name : "Artykuł";
+              $card_class = "ups-blog-card";
+              if ($post_index === 0) {
+                  $card_class .= " is-wide";
+              }
               ?>
-              <article class="ups-blog-card">
-                <div class="ups-blog-card-category"><?php echo esc_html($post_category_name); ?></div>
+              <article class="<?php echo esc_attr($card_class); ?>">
+                <div class="ups-blog-card-top">
+                  <div class="ups-blog-card-category"><?php echo esc_html($post_category_name); ?></div>
+                  <div class="ups-blog-card-time"><?php echo esc_html(upsellio_estimated_read_time($post_item->ID)); ?></div>
+                </div>
                 <h3 class="ups-blog-card-title"><?php echo esc_html(get_the_title($post_item)); ?></h3>
                 <p class="ups-blog-card-excerpt"><?php echo esc_html(get_the_excerpt($post_item)); ?></p>
                 <div class="ups-blog-card-footer">
                   <div class="ups-blog-card-meta">
-                    <?php echo esc_html(upsellio_estimated_read_time($post_item->ID)); ?> · <?php echo esc_html(get_the_date("j F Y", $post_item)); ?>
+                    <?php echo esc_html(get_the_date("j F Y", $post_item)); ?>
                   </div>
                   <a class="ups-blog-card-link" href="<?php echo esc_url(get_permalink($post_item)); ?>">Czytaj dalej →</a>
                 </div>
               </article>
             <?php endforeach; ?>
           </div>
-        <?php elseif (!$featured_post) : ?>
+        <?php elseif ($featured_post) : ?>
+          <div class="ups-blog-empty">Brak kolejnych artykułów dla tych filtrów. Zmień kategorię lub tagi, aby zobaczyć więcej wpisów.</div>
+        <?php else : ?>
           <div class="ups-blog-empty">Nie znaleziono wpisów pasujących do aktualnego filtrowania.</div>
         <?php endif; ?>
 
@@ -825,4 +957,1765 @@ function upsellio_submit_contact_form()
 }
 add_action("wp_ajax_upsellio_submit_contact_form", "upsellio_submit_contact_form");
 add_action("wp_ajax_nopriv_upsellio_submit_contact_form", "upsellio_submit_contact_form");
+
+function upsellio_get_lead_magnets_page_url()
+{
+    $lead_magnets_path = upsellio_get_special_navigation_path_by_title("Lead magnety", "/lead-magnety/");
+    $lead_magnets_page = get_page_by_path(trim($lead_magnets_path, "/"));
+    if ($lead_magnets_page instanceof WP_Post) {
+        $permalink = get_permalink((int) $lead_magnets_page->ID);
+        if ($permalink) {
+            return $permalink;
+        }
+    }
+
+    return home_url($lead_magnets_path);
+}
+
+function upsellio_append_special_navigation_links($links)
+{
+    $links = is_array($links) ? $links : [];
+    $special_links = [];
+    if (function_exists("upsellio_get_special_navigation_links_config")) {
+        foreach (upsellio_get_special_navigation_links_config() as $configured_link) {
+            $special_links[] = [
+                "title" => (string) $configured_link["title"],
+                "url" => home_url((string) $configured_link["path"]),
+            ];
+        }
+    }
+
+    foreach ($special_links as $special_link) {
+        $special_url = (string) $special_link["url"];
+        if ($special_url === "") {
+            continue;
+        }
+        $already_exists = false;
+
+        foreach ($links as $link) {
+            $url = isset($link["url"]) ? (string) $link["url"] : "";
+            if ($url !== "" && untrailingslashit($url) === untrailingslashit($special_url)) {
+                $already_exists = true;
+                break;
+            }
+        }
+
+        if (!$already_exists) {
+            $links[] = [
+                "title" => (string) $special_link["title"],
+                "url" => $special_url,
+            ];
+        }
+    }
+
+    return $links;
+}
+
+function upsellio_append_lead_magnets_link($links)
+{
+    return upsellio_append_special_navigation_links($links);
+}
+
+function upsellio_get_special_navigation_path_by_title($title, $default_path)
+{
+    $title = (string) $title;
+    $default_path = "/" . ltrim((string) $default_path, "/");
+    if (function_exists("upsellio_get_special_navigation_links_config")) {
+        foreach (upsellio_get_special_navigation_links_config() as $configured_link) {
+            if ((string) ($configured_link["title"] ?? "") === $title) {
+                $path = (string) ($configured_link["path"] ?? "");
+                return $path !== "" ? "/" . ltrim($path, "/") : $default_path;
+            }
+        }
+    }
+
+    return $default_path;
+}
+
+function upsellio_register_lead_magnets_cpt()
+{
+    register_post_type("lead_magnet", [
+        "labels" => [
+            "name" => "Materiały",
+            "singular_name" => "Materiał",
+            "add_new" => "Dodaj materiał",
+            "add_new_item" => "Dodaj nowy materiał",
+            "edit_item" => "Edytuj materiał",
+            "new_item" => "Nowy materiał",
+            "view_item" => "Zobacz materiał",
+            "search_items" => "Szukaj materiałów",
+            "not_found" => "Nie znaleziono materiałów",
+            "menu_name" => "Materiały",
+        ],
+        "public" => true,
+        "show_in_rest" => true,
+        "menu_icon" => "dashicons-download",
+        "supports" => ["title", "editor", "excerpt", "thumbnail", "page-attributes"],
+        "has_archive" => false,
+        "rewrite" => ["slug" => "lead-magnet", "with_front" => false],
+    ]);
+
+    register_taxonomy("lead_magnet_category", ["lead_magnet"], [
+        "labels" => [
+            "name" => "Kategorie materiałów",
+            "singular_name" => "Kategoria materiału",
+            "search_items" => "Szukaj kategorii",
+            "all_items" => "Wszystkie kategorie",
+            "edit_item" => "Edytuj kategorię",
+            "update_item" => "Aktualizuj kategorię",
+            "add_new_item" => "Dodaj nową kategorię",
+            "new_item_name" => "Nowa kategoria",
+            "menu_name" => "Kategorie",
+        ],
+        "hierarchical" => true,
+        "show_admin_column" => true,
+        "show_in_rest" => true,
+        "rewrite" => ["slug" => "kategoria-lead-magnetu", "with_front" => false],
+    ]);
+}
+add_action("init", "upsellio_register_lead_magnets_cpt");
+
+function upsellio_add_lead_magnet_details_meta_box()
+{
+    add_meta_box(
+        "upsellio_lead_magnet_details",
+        "Dane katalogu materiału",
+        "upsellio_render_lead_magnet_details_meta_box",
+        "lead_magnet",
+        "normal",
+        "high"
+    );
+}
+add_action("add_meta_boxes", "upsellio_add_lead_magnet_details_meta_box");
+
+function upsellio_render_lead_magnet_details_meta_box($post)
+{
+    $post_id = (int) $post->ID;
+    $type = (string) get_post_meta($post_id, "_ups_lm_type", true);
+    $meta = (string) get_post_meta($post_id, "_ups_lm_meta", true);
+    $badge = (string) get_post_meta($post_id, "_ups_lm_badge", true);
+    $cta = (string) get_post_meta($post_id, "_ups_lm_cta", true);
+    $image = (string) get_post_meta($post_id, "_ups_lm_image", true);
+    $is_featured = (string) get_post_meta($post_id, "_ups_lm_featured", true) === "1";
+    $custom_html = (string) get_post_meta($post_id, "_ups_lm_custom_html", true);
+    $custom_css = (string) get_post_meta($post_id, "_ups_lm_custom_css", true);
+    $custom_js = (string) get_post_meta($post_id, "_ups_lm_custom_js", true);
+
+    wp_nonce_field("upsellio_lead_magnet_details", "upsellio_lead_magnet_details_nonce");
+    ?>
+    <p>
+      <label for="ups_lm_type"><strong>Typ materiału</strong></label><br />
+      <input type="text" id="ups_lm_type" name="ups_lm_type" value="<?php echo esc_attr($type); ?>" class="widefat" placeholder="np. Checklista, Audyt, Raport" />
+    </p>
+    <p>
+      <label for="ups_lm_meta"><strong>Meta materiału</strong></label><br />
+      <input type="text" id="ups_lm_meta" name="ups_lm_meta" value="<?php echo esc_attr($meta); ?>" class="widefat" placeholder="np. PDF · 7 min" />
+    </p>
+    <p>
+      <label for="ups_lm_badge"><strong>Badge wyróżnienia</strong></label><br />
+      <input type="text" id="ups_lm_badge" name="ups_lm_badge" value="<?php echo esc_attr($badge); ?>" class="widefat" placeholder="np. Najczęściej pobierany" />
+    </p>
+    <p>
+      <label for="ups_lm_cta"><strong>Tekst CTA</strong></label><br />
+      <input type="text" id="ups_lm_cta" name="ups_lm_cta" value="<?php echo esc_attr($cta); ?>" class="widefat" placeholder="np. Zobacz materiał" />
+    </p>
+    <p>
+      <label for="ups_lm_image"><strong>URL obrazka (hero/karta)</strong></label><br />
+      <input type="url" id="ups_lm_image" name="ups_lm_image" value="<?php echo esc_attr($image); ?>" class="widefat" placeholder="https://..." />
+    </p>
+    <p>
+      <label style="display:flex;align-items:flex-start;gap:8px;">
+        <input type="checkbox" name="ups_lm_featured" value="1" <?php checked($is_featured); ?> />
+        <span>Ustaw jako wyróżniony materiał na stronie katalogu.</span>
+      </label>
+    </p>
+    <hr />
+    <p><strong>Niestandardowy widok (HTML + CSS + JS)</strong><br />
+      <span style="color:#6b7280;">Wklej kod, jeśli ten materiał ma mieć własny layout osadzony na stronie szczegółów.</span>
+    </p>
+    <p>
+      <label for="ups_lm_custom_html"><strong>HTML</strong></label>
+      <textarea id="ups_lm_custom_html" name="ups_lm_custom_html" class="widefat" rows="8"><?php echo esc_textarea($custom_html); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_lm_custom_css"><strong>CSS</strong></label>
+      <textarea id="ups_lm_custom_css" name="ups_lm_custom_css" class="widefat" rows="8"><?php echo esc_textarea($custom_css); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_lm_custom_js"><strong>JS</strong></label>
+      <textarea id="ups_lm_custom_js" name="ups_lm_custom_js" class="widefat" rows="8"><?php echo esc_textarea($custom_js); ?></textarea>
+    </p>
+    <?php
+}
+
+function upsellio_save_lead_magnet_details_meta_box($post_id)
+{
+    if (get_post_type((int) $post_id) !== "lead_magnet") {
+        return;
+    }
+    if (!isset($_POST["upsellio_lead_magnet_details_nonce"])) {
+        return;
+    }
+
+    $nonce = sanitize_text_field(wp_unslash($_POST["upsellio_lead_magnet_details_nonce"]));
+    if (!wp_verify_nonce($nonce, "upsellio_lead_magnet_details")) {
+        return;
+    }
+    if (defined("DOING_AUTOSAVE") && DOING_AUTOSAVE) {
+        return;
+    }
+    if (!current_user_can("edit_post", (int) $post_id)) {
+        return;
+    }
+
+    $fields = [
+        "_ups_lm_type" => isset($_POST["ups_lm_type"]) ? sanitize_text_field(wp_unslash($_POST["ups_lm_type"])) : "",
+        "_ups_lm_meta" => isset($_POST["ups_lm_meta"]) ? sanitize_text_field(wp_unslash($_POST["ups_lm_meta"])) : "",
+        "_ups_lm_badge" => isset($_POST["ups_lm_badge"]) ? sanitize_text_field(wp_unslash($_POST["ups_lm_badge"])) : "",
+        "_ups_lm_cta" => isset($_POST["ups_lm_cta"]) ? sanitize_text_field(wp_unslash($_POST["ups_lm_cta"])) : "",
+        "_ups_lm_image" => isset($_POST["ups_lm_image"]) ? esc_url_raw(wp_unslash($_POST["ups_lm_image"])) : "",
+    ];
+
+    foreach ($fields as $meta_key => $meta_value) {
+        update_post_meta((int) $post_id, $meta_key, $meta_value);
+    }
+
+    update_post_meta((int) $post_id, "_ups_lm_featured", isset($_POST["ups_lm_featured"]) ? "1" : "0");
+    update_post_meta((int) $post_id, "_upsellio_is_lead_magnet", "1");
+
+    $custom_html = isset($_POST["ups_lm_custom_html"]) ? wp_unslash($_POST["ups_lm_custom_html"]) : "";
+    $custom_css = isset($_POST["ups_lm_custom_css"]) ? wp_unslash($_POST["ups_lm_custom_css"]) : "";
+    $custom_js = isset($_POST["ups_lm_custom_js"]) ? wp_unslash($_POST["ups_lm_custom_js"]) : "";
+
+    if (!current_user_can("unfiltered_html")) {
+        $custom_html = wp_kses_post((string) $custom_html);
+        $custom_css = wp_strip_all_tags((string) $custom_css);
+        $custom_js = wp_strip_all_tags((string) $custom_js);
+    }
+
+    update_post_meta((int) $post_id, "_ups_lm_custom_html", (string) $custom_html);
+    update_post_meta((int) $post_id, "_ups_lm_custom_css", (string) $custom_css);
+    update_post_meta((int) $post_id, "_ups_lm_custom_js", (string) $custom_js);
+}
+add_action("save_post", "upsellio_save_lead_magnet_details_meta_box");
+
+function upsellio_get_lead_magnet_list($limit = 30)
+{
+    $query = new WP_Query([
+        "post_type" => "lead_magnet",
+        "post_status" => "publish",
+        "posts_per_page" => max(1, (int) $limit),
+        "orderby" => "menu_order date",
+        "order" => "ASC",
+    ]);
+
+    $items = [];
+    foreach ((array) $query->posts as $post_item) {
+        $post_id = (int) $post_item->ID;
+        $terms = get_the_terms($post_id, "lead_magnet_category");
+        $first_term = (!empty($terms) && !is_wp_error($terms)) ? $terms[0] : null;
+
+        $items[] = [
+            "id" => $post_id,
+            "title" => (string) get_the_title($post_id),
+            "url" => (string) get_permalink($post_id),
+            "excerpt" => (string) get_the_excerpt($post_id),
+            "type" => (string) get_post_meta($post_id, "_ups_lm_type", true),
+            "meta" => (string) get_post_meta($post_id, "_ups_lm_meta", true),
+            "badge" => (string) get_post_meta($post_id, "_ups_lm_badge", true),
+            "cta" => (string) get_post_meta($post_id, "_ups_lm_cta", true),
+            "image" => (string) get_post_meta($post_id, "_ups_lm_image", true),
+            "category" => $first_term ? (string) $first_term->name : "Lead generation",
+            "category_slug" => $first_term ? (string) $first_term->slug : "lead-generation",
+            "is_featured" => (string) get_post_meta($post_id, "_ups_lm_featured", true) === "1",
+        ];
+    }
+    wp_reset_postdata();
+
+    return $items;
+}
+
+function upsellio_ensure_lead_magnets_page_exists()
+{
+    if (!is_admin() || !current_user_can("manage_options")) {
+        return;
+    }
+
+    $lead_magnets_path = upsellio_get_special_navigation_path_by_title("Lead magnety", "/lead-magnety/");
+    $lead_magnets_slug = trim((string) wp_parse_url($lead_magnets_path, PHP_URL_PATH), "/");
+    if ($lead_magnets_slug === "") {
+        $lead_magnets_slug = "lead-magnety";
+    }
+    $existing_page = get_page_by_path($lead_magnets_slug);
+    if ($existing_page instanceof WP_Post) {
+        if ((string) get_post_meta((int) $existing_page->ID, "_wp_page_template", true) !== "page-lead-magnety.php") {
+            update_post_meta((int) $existing_page->ID, "_wp_page_template", "page-lead-magnety.php");
+        }
+        return;
+    }
+
+    $page_id = wp_insert_post([
+        "post_type" => "page",
+        "post_status" => "publish",
+        "post_title" => "Materiały",
+        "post_name" => $lead_magnets_slug,
+        "post_content" => "",
+    ]);
+
+    if (!is_wp_error($page_id) && (int) $page_id > 0) {
+        update_post_meta((int) $page_id, "_wp_page_template", "page-lead-magnety.php");
+    }
+}
+add_action("admin_init", "upsellio_ensure_lead_magnets_page_exists");
+
+function upsellio_get_portfolio_page_url()
+{
+    $portfolio_path = upsellio_get_special_navigation_path_by_title("Portfolio", "/portfolio/");
+    $portfolio_page = get_page_by_path(trim($portfolio_path, "/"));
+    if ($portfolio_page instanceof WP_Post) {
+        $permalink = get_permalink((int) $portfolio_page->ID);
+        if ($permalink) {
+            return $permalink;
+        }
+    }
+
+    return home_url($portfolio_path);
+}
+
+function upsellio_register_portfolio_cpt()
+{
+    register_post_type("portfolio", [
+        "labels" => [
+            "name" => "Portfolio",
+            "singular_name" => "Projekt portfolio",
+            "add_new" => "Dodaj projekt",
+            "add_new_item" => "Dodaj nowy projekt portfolio",
+            "edit_item" => "Edytuj projekt",
+            "new_item" => "Nowy projekt",
+            "view_item" => "Zobacz projekt",
+            "search_items" => "Szukaj projektów",
+            "not_found" => "Nie znaleziono projektów",
+            "menu_name" => "Portfolio",
+        ],
+        "public" => true,
+        "show_in_rest" => true,
+        "menu_icon" => "dashicons-portfolio",
+        "supports" => ["title", "editor", "excerpt", "thumbnail", "page-attributes"],
+        "has_archive" => false,
+        "rewrite" => ["slug" => "realizacja", "with_front" => false],
+    ]);
+
+    register_taxonomy("portfolio_category", ["portfolio"], [
+        "labels" => [
+            "name" => "Kategorie portfolio",
+            "singular_name" => "Kategoria portfolio",
+            "search_items" => "Szukaj kategorii",
+            "all_items" => "Wszystkie kategorie",
+            "edit_item" => "Edytuj kategorię",
+            "update_item" => "Aktualizuj kategorię",
+            "add_new_item" => "Dodaj nową kategorię",
+            "new_item_name" => "Nowa kategoria",
+            "menu_name" => "Kategorie",
+        ],
+        "hierarchical" => true,
+        "show_admin_column" => true,
+        "show_in_rest" => true,
+        "rewrite" => ["slug" => "kategoria-portfolio", "with_front" => false],
+    ]);
+}
+add_action("init", "upsellio_register_portfolio_cpt");
+
+function upsellio_add_portfolio_details_meta_box()
+{
+    add_meta_box(
+        "upsellio_portfolio_details",
+        "Dane projektu portfolio",
+        "upsellio_render_portfolio_details_meta_box",
+        "portfolio",
+        "normal",
+        "high"
+    );
+}
+add_action("add_meta_boxes", "upsellio_add_portfolio_details_meta_box");
+
+function upsellio_render_portfolio_details_meta_box($post)
+{
+    $post_id = (int) $post->ID;
+    $type = (string) get_post_meta($post_id, "_ups_port_type", true);
+    $meta = (string) get_post_meta($post_id, "_ups_port_meta", true);
+    $badge = (string) get_post_meta($post_id, "_ups_port_badge", true);
+    $cta = (string) get_post_meta($post_id, "_ups_port_cta", true);
+    $image = (string) get_post_meta($post_id, "_ups_port_image", true);
+    $result = (string) get_post_meta($post_id, "_ups_port_result", true);
+    $problem = (string) get_post_meta($post_id, "_ups_port_problem", true);
+    $scope = (string) get_post_meta($post_id, "_ups_port_scope", true);
+    $external_url = (string) get_post_meta($post_id, "_ups_port_external_url", true);
+    $metrics = (string) get_post_meta($post_id, "_ups_port_metrics", true);
+    $is_featured = (string) get_post_meta($post_id, "_ups_port_featured", true) === "1";
+    $custom_html = (string) get_post_meta($post_id, "_ups_port_custom_html", true);
+    $custom_css = (string) get_post_meta($post_id, "_ups_port_custom_css", true);
+    $custom_js = (string) get_post_meta($post_id, "_ups_port_custom_js", true);
+
+    wp_nonce_field("upsellio_portfolio_details", "upsellio_portfolio_details_nonce");
+    ?>
+    <p>
+      <label for="ups_port_type"><strong>Typ realizacji</strong></label><br />
+      <input type="text" id="ups_port_type" name="ups_port_type" value="<?php echo esc_attr($type); ?>" class="widefat" placeholder="np. Strona firmowa, Aplikacja webowa, E-commerce" />
+    </p>
+    <p>
+      <label for="ups_port_meta"><strong>Meta projektu</strong></label><br />
+      <input type="text" id="ups_port_meta" name="ups_port_meta" value="<?php echo esc_attr($meta); ?>" class="widefat" placeholder="np. B2B · UX · SEO · Konwersja" />
+    </p>
+    <p>
+      <label for="ups_port_badge"><strong>Badge wyróżnienia</strong></label><br />
+      <input type="text" id="ups_port_badge" name="ups_port_badge" value="<?php echo esc_attr($badge); ?>" class="widefat" placeholder="np. Wyróżniony projekt" />
+    </p>
+    <p>
+      <label for="ups_port_cta"><strong>Tekst CTA</strong></label><br />
+      <input type="text" id="ups_port_cta" name="ups_port_cta" value="<?php echo esc_attr($cta); ?>" class="widefat" placeholder="np. Zobacz case study" />
+    </p>
+    <p>
+      <label for="ups_port_image"><strong>URL obrazka projektu</strong></label><br />
+      <input type="url" id="ups_port_image" name="ups_port_image" value="<?php echo esc_attr($image); ?>" class="widefat" placeholder="https://..." />
+    </p>
+    <p>
+      <label for="ups_port_external_url"><strong>Link zewnętrzny (opcjonalnie)</strong></label><br />
+      <input type="url" id="ups_port_external_url" name="ups_port_external_url" value="<?php echo esc_attr($external_url); ?>" class="widefat" placeholder="https://..." />
+    </p>
+    <p>
+      <label for="ups_port_problem"><strong>Problem biznesowy (SEO + case study)</strong></label>
+      <textarea id="ups_port_problem" name="ups_port_problem" class="widefat" rows="4" placeholder="Jakie wyzwanie miał klient?"><?php echo esc_textarea($problem); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_port_scope"><strong>Zakres prac</strong></label>
+      <textarea id="ups_port_scope" name="ups_port_scope" class="widefat" rows="4" placeholder="Jakie działania zostały wykonane?"><?php echo esc_textarea($scope); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_port_result"><strong>Efekt biznesowy</strong></label>
+      <textarea id="ups_port_result" name="ups_port_result" class="widefat" rows="4" placeholder="Jaki był rezultat projektu?"><?php echo esc_textarea($result); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_port_metrics"><strong>Metryki projektu (jedna na linię)</strong></label>
+      <textarea id="ups_port_metrics" name="ups_port_metrics" class="widefat" rows="5" placeholder="np. +42% zapytań&#10;-31% CPL&#10;+19% konwersji"><?php echo esc_textarea($metrics); ?></textarea>
+    </p>
+    <p>
+      <label style="display:flex;align-items:flex-start;gap:8px;">
+        <input type="checkbox" name="ups_port_featured" value="1" <?php checked($is_featured); ?> />
+        <span>Ustaw jako wyróżniony projekt w katalogu portfolio.</span>
+      </label>
+    </p>
+    <hr />
+    <p><strong>Niestandardowy widok projektu (HTML + CSS + JS)</strong><br />
+      <span style="color:#6b7280;">Wklej kod, jeśli ta realizacja ma mieć dedykowaną sekcję osadzoną na podstronie case study.</span>
+    </p>
+    <p>
+      <label for="ups_port_custom_html"><strong>HTML</strong></label>
+      <textarea id="ups_port_custom_html" name="ups_port_custom_html" class="widefat" rows="8"><?php echo esc_textarea($custom_html); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_port_custom_css"><strong>CSS</strong></label>
+      <textarea id="ups_port_custom_css" name="ups_port_custom_css" class="widefat" rows="8"><?php echo esc_textarea($custom_css); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_port_custom_js"><strong>JS</strong></label>
+      <textarea id="ups_port_custom_js" name="ups_port_custom_js" class="widefat" rows="8"><?php echo esc_textarea($custom_js); ?></textarea>
+    </p>
+    <?php
+}
+
+function upsellio_save_portfolio_details_meta_box($post_id)
+{
+    if (get_post_type((int) $post_id) !== "portfolio") {
+        return;
+    }
+    if (!isset($_POST["upsellio_portfolio_details_nonce"])) {
+        return;
+    }
+
+    $nonce = sanitize_text_field(wp_unslash($_POST["upsellio_portfolio_details_nonce"]));
+    if (!wp_verify_nonce($nonce, "upsellio_portfolio_details")) {
+        return;
+    }
+    if (defined("DOING_AUTOSAVE") && DOING_AUTOSAVE) {
+        return;
+    }
+    if (!current_user_can("edit_post", (int) $post_id)) {
+        return;
+    }
+
+    $fields = [
+        "_ups_port_type" => isset($_POST["ups_port_type"]) ? sanitize_text_field(wp_unslash($_POST["ups_port_type"])) : "",
+        "_ups_port_meta" => isset($_POST["ups_port_meta"]) ? sanitize_text_field(wp_unslash($_POST["ups_port_meta"])) : "",
+        "_ups_port_badge" => isset($_POST["ups_port_badge"]) ? sanitize_text_field(wp_unslash($_POST["ups_port_badge"])) : "",
+        "_ups_port_cta" => isset($_POST["ups_port_cta"]) ? sanitize_text_field(wp_unslash($_POST["ups_port_cta"])) : "",
+        "_ups_port_image" => isset($_POST["ups_port_image"]) ? esc_url_raw(wp_unslash($_POST["ups_port_image"])) : "",
+        "_ups_port_external_url" => isset($_POST["ups_port_external_url"]) ? esc_url_raw(wp_unslash($_POST["ups_port_external_url"])) : "",
+        "_ups_port_problem" => isset($_POST["ups_port_problem"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_port_problem"])) : "",
+        "_ups_port_scope" => isset($_POST["ups_port_scope"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_port_scope"])) : "",
+        "_ups_port_result" => isset($_POST["ups_port_result"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_port_result"])) : "",
+        "_ups_port_metrics" => isset($_POST["ups_port_metrics"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_port_metrics"])) : "",
+    ];
+
+    foreach ($fields as $meta_key => $meta_value) {
+        update_post_meta((int) $post_id, $meta_key, $meta_value);
+    }
+
+    update_post_meta((int) $post_id, "_ups_port_featured", isset($_POST["ups_port_featured"]) ? "1" : "0");
+
+    $custom_html = isset($_POST["ups_port_custom_html"]) ? wp_unslash($_POST["ups_port_custom_html"]) : "";
+    $custom_css = isset($_POST["ups_port_custom_css"]) ? wp_unslash($_POST["ups_port_custom_css"]) : "";
+    $custom_js = isset($_POST["ups_port_custom_js"]) ? wp_unslash($_POST["ups_port_custom_js"]) : "";
+
+    if (!current_user_can("unfiltered_html")) {
+        $custom_html = wp_kses_post((string) $custom_html);
+        $custom_css = wp_strip_all_tags((string) $custom_css);
+        $custom_js = wp_strip_all_tags((string) $custom_js);
+    }
+
+    update_post_meta((int) $post_id, "_ups_port_custom_html", (string) $custom_html);
+    update_post_meta((int) $post_id, "_ups_port_custom_css", (string) $custom_css);
+    update_post_meta((int) $post_id, "_ups_port_custom_js", (string) $custom_js);
+}
+add_action("save_post", "upsellio_save_portfolio_details_meta_box");
+
+function upsellio_parse_metrics_lines($value)
+{
+    $raw_lines = preg_split("/\r\n|\r|\n/", (string) $value);
+    $lines = [];
+    foreach ((array) $raw_lines as $line) {
+        $line = trim((string) $line);
+        if ($line === "") {
+            continue;
+        }
+        $lines[] = $line;
+    }
+
+    return array_slice($lines, 0, 8);
+}
+
+function upsellio_get_portfolio_list($limit = 60)
+{
+    $query = new WP_Query([
+        "post_type" => "portfolio",
+        "post_status" => "publish",
+        "posts_per_page" => max(1, (int) $limit),
+        "orderby" => "menu_order date",
+        "order" => "ASC",
+    ]);
+
+    $items = [];
+    foreach ((array) $query->posts as $post_item) {
+        $post_id = (int) $post_item->ID;
+        $terms = get_the_terms($post_id, "portfolio_category");
+        $first_term = (!empty($terms) && !is_wp_error($terms)) ? $terms[0] : null;
+
+        $items[] = [
+            "id" => $post_id,
+            "title" => (string) get_the_title($post_id),
+            "url" => (string) get_permalink($post_id),
+            "excerpt" => (string) get_the_excerpt($post_id),
+            "type" => (string) get_post_meta($post_id, "_ups_port_type", true),
+            "meta" => (string) get_post_meta($post_id, "_ups_port_meta", true),
+            "badge" => (string) get_post_meta($post_id, "_ups_port_badge", true),
+            "cta" => (string) get_post_meta($post_id, "_ups_port_cta", true),
+            "image" => (string) get_post_meta($post_id, "_ups_port_image", true),
+            "problem" => (string) get_post_meta($post_id, "_ups_port_problem", true),
+            "scope" => (string) get_post_meta($post_id, "_ups_port_scope", true),
+            "result" => (string) get_post_meta($post_id, "_ups_port_result", true),
+            "metrics" => upsellio_parse_metrics_lines((string) get_post_meta($post_id, "_ups_port_metrics", true)),
+            "category" => $first_term ? (string) $first_term->name : "Realizacje",
+            "category_slug" => $first_term ? (string) $first_term->slug : "realizacje",
+            "is_featured" => (string) get_post_meta($post_id, "_ups_port_featured", true) === "1",
+        ];
+    }
+    wp_reset_postdata();
+
+    return $items;
+}
+
+function upsellio_ensure_portfolio_page_exists()
+{
+    if (!is_admin() || !current_user_can("manage_options")) {
+        return;
+    }
+
+    $portfolio_path = upsellio_get_special_navigation_path_by_title("Portfolio", "/portfolio/");
+    $portfolio_slug = trim((string) wp_parse_url($portfolio_path, PHP_URL_PATH), "/");
+    if ($portfolio_slug === "") {
+        $portfolio_slug = "portfolio";
+    }
+    $existing_page = get_page_by_path($portfolio_slug);
+    if ($existing_page instanceof WP_Post) {
+        return;
+    }
+
+    wp_insert_post([
+        "post_type" => "page",
+        "post_status" => "publish",
+        "post_title" => "Portfolio",
+        "post_name" => $portfolio_slug,
+        "post_content" => "",
+    ]);
+}
+add_action("admin_init", "upsellio_ensure_portfolio_page_exists");
+
+function upsellio_get_marketing_portfolio_page_url()
+{
+    $marketing_portfolio_path = upsellio_get_special_navigation_path_by_title("Portfolio marketingowe", "/portfolio-marketingowe/");
+    $page = get_page_by_path(trim($marketing_portfolio_path, "/"));
+    if ($page instanceof WP_Post) {
+        $permalink = get_permalink((int) $page->ID);
+        if ($permalink) {
+            return $permalink;
+        }
+    }
+
+    return home_url($marketing_portfolio_path);
+}
+
+function upsellio_register_marketing_portfolio_cpt()
+{
+    register_post_type("marketing_portfolio", [
+        "labels" => [
+            "name" => "Portfolio marketingowe",
+            "singular_name" => "Case marketingowy",
+            "add_new" => "Dodaj case",
+            "add_new_item" => "Dodaj nowy case marketingowy",
+            "edit_item" => "Edytuj case marketingowy",
+            "new_item" => "Nowy case marketingowy",
+            "view_item" => "Zobacz case",
+            "search_items" => "Szukaj case studies",
+            "not_found" => "Nie znaleziono case studies",
+            "menu_name" => "Portfolio marketingowe",
+        ],
+        "public" => true,
+        "show_in_rest" => true,
+        "menu_icon" => "dashicons-chart-line",
+        "supports" => ["title", "editor", "excerpt", "thumbnail", "page-attributes"],
+        "has_archive" => false,
+        "rewrite" => ["slug" => "portfolio-marketingowe", "with_front" => false],
+    ]);
+
+    register_taxonomy("marketing_portfolio_category", ["marketing_portfolio"], [
+        "labels" => [
+            "name" => "Kategorie case studies",
+            "singular_name" => "Kategoria case study",
+            "search_items" => "Szukaj kategorii",
+            "all_items" => "Wszystkie kategorie",
+            "edit_item" => "Edytuj kategorię",
+            "update_item" => "Aktualizuj kategorię",
+            "add_new_item" => "Dodaj nową kategorię",
+            "new_item_name" => "Nowa kategoria",
+            "menu_name" => "Kategorie",
+        ],
+        "hierarchical" => true,
+        "show_admin_column" => true,
+        "show_in_rest" => true,
+        "rewrite" => ["slug" => "kategoria-portfolio-marketingowego", "with_front" => false],
+    ]);
+}
+add_action("init", "upsellio_register_marketing_portfolio_cpt");
+
+function upsellio_add_marketing_portfolio_details_meta_box()
+{
+    add_meta_box(
+        "upsellio_marketing_portfolio_details",
+        "Dane case study marketingowego",
+        "upsellio_render_marketing_portfolio_details_meta_box",
+        "marketing_portfolio",
+        "normal",
+        "high"
+    );
+}
+add_action("add_meta_boxes", "upsellio_add_marketing_portfolio_details_meta_box");
+
+function upsellio_render_marketing_portfolio_details_meta_box($post)
+{
+    $post_id = (int) $post->ID;
+    $type = (string) get_post_meta($post_id, "_ups_mport_type", true);
+    $meta = (string) get_post_meta($post_id, "_ups_mport_meta", true);
+    $badge = (string) get_post_meta($post_id, "_ups_mport_badge", true);
+    $cta = (string) get_post_meta($post_id, "_ups_mport_cta", true);
+    $image = (string) get_post_meta($post_id, "_ups_mport_image", true);
+    $date = (string) get_post_meta($post_id, "_ups_mport_date", true);
+    $sector = (string) get_post_meta($post_id, "_ups_mport_sector", true);
+    $problem = (string) get_post_meta($post_id, "_ups_mport_problem", true);
+    $solution = (string) get_post_meta($post_id, "_ups_mport_solution", true);
+    $result = (string) get_post_meta($post_id, "_ups_mport_result", true);
+    $tags = (string) get_post_meta($post_id, "_ups_mport_tags", true);
+    $kpis = (string) get_post_meta($post_id, "_ups_mport_kpis", true);
+    $theme = (string) get_post_meta($post_id, "_ups_mport_theme", true);
+    $is_featured = (string) get_post_meta($post_id, "_ups_mport_featured", true) === "1";
+    $custom_html = (string) get_post_meta($post_id, "_ups_mport_custom_html", true);
+    $custom_css = (string) get_post_meta($post_id, "_ups_mport_custom_css", true);
+    $custom_js = (string) get_post_meta($post_id, "_ups_mport_custom_js", true);
+    $seo_title = (string) get_post_meta($post_id, "_ups_mport_seo_title", true);
+    $seo_description = (string) get_post_meta($post_id, "_ups_mport_seo_description", true);
+    $seo_canonical = (string) get_post_meta($post_id, "_ups_mport_seo_canonical", true);
+
+    wp_nonce_field("upsellio_marketing_portfolio_details", "upsellio_marketing_portfolio_details_nonce");
+    ?>
+    <p>
+      <label for="ups_mport_type"><strong>Typ case study</strong></label><br />
+      <input type="text" id="ups_mport_type" name="ups_mport_type" value="<?php echo esc_attr($type); ?>" class="widefat" placeholder="np. Meta Ads, Google Ads, Landing page" />
+    </p>
+    <p>
+      <label for="ups_mport_meta"><strong>Meta projektu</strong></label><br />
+      <input type="text" id="ups_mport_meta" name="ups_mport_meta" value="<?php echo esc_attr($meta); ?>" class="widefat" placeholder="np. Lead generation · B2B · Q1 2024" />
+    </p>
+    <p>
+      <label for="ups_mport_badge"><strong>Badge</strong></label><br />
+      <input type="text" id="ups_mport_badge" name="ups_mport_badge" value="<?php echo esc_attr($badge); ?>" class="widefat" placeholder="np. Meta Ads" />
+    </p>
+    <p>
+      <label for="ups_mport_cta"><strong>CTA na karcie/listingu</strong></label><br />
+      <input type="text" id="ups_mport_cta" name="ups_mport_cta" value="<?php echo esc_attr($cta); ?>" class="widefat" placeholder="np. Zobacz case study" />
+    </p>
+    <p>
+      <label for="ups_mport_image"><strong>URL obrazka</strong></label><br />
+      <input type="url" id="ups_mport_image" name="ups_mport_image" value="<?php echo esc_attr($image); ?>" class="widefat" placeholder="https://..." />
+    </p>
+    <p>
+      <label for="ups_mport_theme"><strong>Motyw wizualny karty</strong></label><br />
+      <select id="ups_mport_theme" name="ups_mport_theme" class="widefat">
+        <option value="">Domyślny</option>
+        <option value="vis-meta" <?php selected($theme, "vis-meta"); ?>>Meta Ads</option>
+        <option value="vis-google" <?php selected($theme, "vis-google"); ?>>Google Ads</option>
+        <option value="vis-ecom" <?php selected($theme, "vis-ecom"); ?>>E-commerce</option>
+        <option value="vis-landing" <?php selected($theme, "vis-landing"); ?>>Landing page</option>
+        <option value="vis-b2b" <?php selected($theme, "vis-b2b"); ?>>B2B</option>
+        <option value="vis-social" <?php selected($theme, "vis-social"); ?>>Social</option>
+      </select>
+    </p>
+    <p>
+      <label for="ups_mport_date"><strong>Data/okres case study</strong></label><br />
+      <input type="text" id="ups_mport_date" name="ups_mport_date" value="<?php echo esc_attr($date); ?>" class="widefat" placeholder="np. Q1 2024" />
+    </p>
+    <p>
+      <label for="ups_mport_sector"><strong>Sektor klienta</strong></label><br />
+      <input type="text" id="ups_mport_sector" name="ups_mport_sector" value="<?php echo esc_attr($sector); ?>" class="widefat" placeholder="np. Firma usługowa B2B" />
+    </p>
+    <p>
+      <label for="ups_mport_problem"><strong>Problem wyjściowy</strong></label>
+      <textarea id="ups_mport_problem" name="ups_mport_problem" class="widefat" rows="4"><?php echo esc_textarea($problem); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_mport_solution"><strong>Rozwiązanie / zakres działań</strong></label>
+      <textarea id="ups_mport_solution" name="ups_mport_solution" class="widefat" rows="4"><?php echo esc_textarea($solution); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_mport_result"><strong>Wynik biznesowy</strong></label>
+      <textarea id="ups_mport_result" name="ups_mport_result" class="widefat" rows="4"><?php echo esc_textarea($result); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_mport_tags"><strong>Tagi (jedna pozycja na linię)</strong></label>
+      <textarea id="ups_mport_tags" name="ups_mport_tags" class="widefat" rows="4" placeholder="Meta Ads&#10;Lead generation&#10;B2B"><?php echo esc_textarea($tags); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_mport_kpis"><strong>KPI rows (label|przed|po|zmiana|opis, jedna linia = jeden KPI)</strong></label>
+      <textarea id="ups_mport_kpis" name="ups_mport_kpis" class="widefat" rows="6" placeholder="CPL|312 PLN|150 PLN|-52%|w 4 miesiące"><?php echo esc_textarea($kpis); ?></textarea>
+    </p>
+    <p>
+      <label style="display:flex;align-items:flex-start;gap:8px;">
+        <input type="checkbox" name="ups_mport_featured" value="1" <?php checked($is_featured); ?> />
+        <span>Wyróżnij ten case na stronie głównej portfolio marketingowego.</span>
+      </label>
+    </p>
+    <hr />
+    <p><strong>SEO per case study</strong><br />
+      <span style="color:#6b7280;">Uzupełnij pola, aby nadpisać domyślny title/description/canonical dla tego wpisu.</span>
+    </p>
+    <p>
+      <label for="ups_mport_seo_title"><strong>Meta title</strong></label><br />
+      <input type="text" id="ups_mport_seo_title" name="ups_mport_seo_title" value="<?php echo esc_attr($seo_title); ?>" class="widefat" maxlength="160" placeholder="np. Case Meta Ads B2B -52% CPL | Upsellio" />
+    </p>
+    <p>
+      <label for="ups_mport_seo_description"><strong>Meta description</strong></label><br />
+      <textarea id="ups_mport_seo_description" name="ups_mport_seo_description" class="widefat" rows="3" maxlength="320" placeholder="Krótki opis case study do wyników wyszukiwania."><?php echo esc_textarea($seo_description); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_mport_seo_canonical"><strong>Canonical URL</strong></label><br />
+      <input type="url" id="ups_mport_seo_canonical" name="ups_mport_seo_canonical" value="<?php echo esc_attr($seo_canonical); ?>" class="widefat" placeholder="https://twojadomena.pl/portfolio-marketingowe/nazwa-case-study/" />
+    </p>
+    <hr />
+    <p><strong>Niestandardowy blok HTML + CSS + JS</strong><br />
+      <span style="color:#6b7280;">Możesz osadzić interaktywną sekcję case study na stronie wpisu.</span>
+    </p>
+    <p>
+      <label for="ups_mport_custom_html"><strong>HTML</strong></label>
+      <textarea id="ups_mport_custom_html" name="ups_mport_custom_html" class="widefat" rows="8"><?php echo esc_textarea($custom_html); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_mport_custom_css"><strong>CSS</strong></label>
+      <textarea id="ups_mport_custom_css" name="ups_mport_custom_css" class="widefat" rows="8"><?php echo esc_textarea($custom_css); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_mport_custom_js"><strong>JS</strong></label>
+      <textarea id="ups_mport_custom_js" name="ups_mport_custom_js" class="widefat" rows="8"><?php echo esc_textarea($custom_js); ?></textarea>
+    </p>
+    <?php
+}
+
+function upsellio_save_marketing_portfolio_details_meta_box($post_id)
+{
+    if (get_post_type((int) $post_id) !== "marketing_portfolio") {
+        return;
+    }
+    if (!isset($_POST["upsellio_marketing_portfolio_details_nonce"])) {
+        return;
+    }
+    $nonce = sanitize_text_field(wp_unslash($_POST["upsellio_marketing_portfolio_details_nonce"]));
+    if (!wp_verify_nonce($nonce, "upsellio_marketing_portfolio_details")) {
+        return;
+    }
+    if (defined("DOING_AUTOSAVE") && DOING_AUTOSAVE) {
+        return;
+    }
+    if (!current_user_can("edit_post", (int) $post_id)) {
+        return;
+    }
+
+    $fields = [
+        "_ups_mport_type" => isset($_POST["ups_mport_type"]) ? sanitize_text_field(wp_unslash($_POST["ups_mport_type"])) : "",
+        "_ups_mport_meta" => isset($_POST["ups_mport_meta"]) ? sanitize_text_field(wp_unslash($_POST["ups_mport_meta"])) : "",
+        "_ups_mport_badge" => isset($_POST["ups_mport_badge"]) ? sanitize_text_field(wp_unslash($_POST["ups_mport_badge"])) : "",
+        "_ups_mport_cta" => isset($_POST["ups_mport_cta"]) ? sanitize_text_field(wp_unslash($_POST["ups_mport_cta"])) : "",
+        "_ups_mport_image" => isset($_POST["ups_mport_image"]) ? esc_url_raw(wp_unslash($_POST["ups_mport_image"])) : "",
+        "_ups_mport_theme" => isset($_POST["ups_mport_theme"]) ? sanitize_key(wp_unslash($_POST["ups_mport_theme"])) : "",
+        "_ups_mport_date" => isset($_POST["ups_mport_date"]) ? sanitize_text_field(wp_unslash($_POST["ups_mport_date"])) : "",
+        "_ups_mport_sector" => isset($_POST["ups_mport_sector"]) ? sanitize_text_field(wp_unslash($_POST["ups_mport_sector"])) : "",
+        "_ups_mport_problem" => isset($_POST["ups_mport_problem"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_mport_problem"])) : "",
+        "_ups_mport_solution" => isset($_POST["ups_mport_solution"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_mport_solution"])) : "",
+        "_ups_mport_result" => isset($_POST["ups_mport_result"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_mport_result"])) : "",
+        "_ups_mport_tags" => isset($_POST["ups_mport_tags"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_mport_tags"])) : "",
+        "_ups_mport_kpis" => isset($_POST["ups_mport_kpis"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_mport_kpis"])) : "",
+        "_ups_mport_seo_title" => isset($_POST["ups_mport_seo_title"]) ? sanitize_text_field(wp_unslash($_POST["ups_mport_seo_title"])) : "",
+        "_ups_mport_seo_description" => isset($_POST["ups_mport_seo_description"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_mport_seo_description"])) : "",
+        "_ups_mport_seo_canonical" => isset($_POST["ups_mport_seo_canonical"]) ? esc_url_raw(wp_unslash($_POST["ups_mport_seo_canonical"])) : "",
+    ];
+
+    foreach ($fields as $meta_key => $meta_value) {
+        update_post_meta((int) $post_id, $meta_key, $meta_value);
+    }
+    update_post_meta((int) $post_id, "_ups_mport_featured", isset($_POST["ups_mport_featured"]) ? "1" : "0");
+
+    $custom_html = isset($_POST["ups_mport_custom_html"]) ? wp_unslash($_POST["ups_mport_custom_html"]) : "";
+    $custom_css = isset($_POST["ups_mport_custom_css"]) ? wp_unslash($_POST["ups_mport_custom_css"]) : "";
+    $custom_js = isset($_POST["ups_mport_custom_js"]) ? wp_unslash($_POST["ups_mport_custom_js"]) : "";
+
+    if (!current_user_can("unfiltered_html")) {
+        $custom_html = wp_kses_post((string) $custom_html);
+        $custom_css = wp_strip_all_tags((string) $custom_css);
+        $custom_js = wp_strip_all_tags((string) $custom_js);
+    }
+
+    update_post_meta((int) $post_id, "_ups_mport_custom_html", (string) $custom_html);
+    update_post_meta((int) $post_id, "_ups_mport_custom_css", (string) $custom_css);
+    update_post_meta((int) $post_id, "_ups_mport_custom_js", (string) $custom_js);
+}
+add_action("save_post", "upsellio_save_marketing_portfolio_details_meta_box");
+
+function upsellio_parse_textarea_lines($value, $limit = 12)
+{
+    $raw_lines = preg_split("/\r\n|\r|\n/", (string) $value);
+    $lines = [];
+    foreach ((array) $raw_lines as $line) {
+        $line = trim((string) $line);
+        if ($line === "") {
+            continue;
+        }
+        $lines[] = $line;
+    }
+
+    return array_slice($lines, 0, max(1, (int) $limit));
+}
+
+function upsellio_parse_marketing_kpi_lines($value)
+{
+    $rows = [];
+    $lines = upsellio_parse_textarea_lines($value, 8);
+    foreach ($lines as $line) {
+        $parts = array_map("trim", explode("|", (string) $line));
+        $rows[] = [
+            "label" => (string) ($parts[0] ?? ""),
+            "before" => (string) ($parts[1] ?? ""),
+            "after" => (string) ($parts[2] ?? ""),
+            "change" => (string) ($parts[3] ?? ""),
+            "desc" => (string) ($parts[4] ?? ""),
+        ];
+    }
+
+    return $rows;
+}
+
+function upsellio_get_marketing_portfolio_category_mapping($source_name = "", $source_slug = "")
+{
+    $normalized_slug = sanitize_title((string) $source_slug);
+    $normalized_name = sanitize_title((string) $source_name);
+    $lookup = strtolower(trim($normalized_slug !== "" ? $normalized_slug : $normalized_name));
+
+    $map = [
+        "meta" => ["label" => "Meta", "theme" => "vis-meta", "aliases" => ["meta", "meta-ads", "facebook", "facebook-ads", "social"]],
+        "google" => ["label" => "Google", "theme" => "vis-google", "aliases" => ["google", "google-ads", "ads", "search", "performance-max", "pmax"]],
+        "strona" => ["label" => "Strona", "theme" => "vis-landing", "aliases" => ["strona", "strony", "strony-www", "strona-www", "landing", "landing-page", "www"]],
+        "ecom" => ["label" => "Ecom", "theme" => "vis-ecom", "aliases" => ["ecom", "ecommerce", "e-commerce", "sklep", "sklep-online", "woocommerce"]],
+    ];
+
+    foreach ($map as $target_slug => $entry) {
+        if ($lookup === $target_slug || in_array($lookup, (array) $entry["aliases"], true)) {
+            return [
+                "slug" => $target_slug,
+                "label" => (string) $entry["label"],
+                "theme" => (string) $entry["theme"],
+            ];
+        }
+    }
+
+    return [
+        "slug" => "meta",
+        "label" => "Meta",
+        "theme" => "vis-meta",
+    ];
+}
+
+function upsellio_sync_marketing_portfolio_primary_category($post_id, $post, $update)
+{
+    if (!(int) $post_id || !($post instanceof WP_Post) || $post->post_type !== "marketing_portfolio") {
+        return;
+    }
+    if (wp_is_post_revision((int) $post_id) || (defined("DOING_AUTOSAVE") && DOING_AUTOSAVE)) {
+        return;
+    }
+
+    $terms = get_the_terms((int) $post_id, "marketing_portfolio_category");
+    $first_term = (!empty($terms) && !is_wp_error($terms)) ? $terms[0] : null;
+    $mapped = upsellio_get_marketing_portfolio_category_mapping($first_term ? (string) $first_term->name : "", $first_term ? (string) $first_term->slug : "");
+
+    $target_term = term_exists((string) $mapped["slug"], "marketing_portfolio_category");
+    if (!$target_term) {
+        $target_term = wp_insert_term((string) $mapped["label"], "marketing_portfolio_category", ["slug" => (string) $mapped["slug"]]);
+    }
+    if (is_wp_error($target_term)) {
+        return;
+    }
+
+    $target_term_id = (int) (is_array($target_term) ? ($target_term["term_id"] ?? 0) : 0);
+    if ($target_term_id > 0) {
+        wp_set_object_terms((int) $post_id, [$target_term_id], "marketing_portfolio_category");
+    }
+}
+add_action("save_post_marketing_portfolio", "upsellio_sync_marketing_portfolio_primary_category", 20, 3);
+
+function upsellio_get_marketing_portfolio_list($limit = 120)
+{
+    $query = new WP_Query([
+        "post_type" => "marketing_portfolio",
+        "post_status" => "publish",
+        "posts_per_page" => max(1, (int) $limit),
+        "orderby" => "menu_order date",
+        "order" => "ASC",
+    ]);
+
+    $items = [];
+    foreach ((array) $query->posts as $post_item) {
+        $post_id = (int) $post_item->ID;
+        $terms = get_the_terms($post_id, "marketing_portfolio_category");
+        $first_term = (!empty($terms) && !is_wp_error($terms)) ? $terms[0] : null;
+        $mapped_category = upsellio_get_marketing_portfolio_category_mapping($first_term ? (string) $first_term->name : "", $first_term ? (string) $first_term->slug : "");
+        $theme = (string) get_post_meta($post_id, "_ups_mport_theme", true);
+        if ($theme === "") {
+            $theme = (string) $mapped_category["theme"];
+        }
+        $items[] = [
+            "id" => $post_id,
+            "title" => (string) get_the_title($post_id),
+            "url" => (string) get_permalink($post_id),
+            "excerpt" => (string) get_the_excerpt($post_id),
+            "type" => (string) get_post_meta($post_id, "_ups_mport_type", true),
+            "meta" => (string) get_post_meta($post_id, "_ups_mport_meta", true),
+            "badge" => (string) get_post_meta($post_id, "_ups_mport_badge", true),
+            "cta" => (string) get_post_meta($post_id, "_ups_mport_cta", true),
+            "image" => (string) get_post_meta($post_id, "_ups_mport_image", true),
+            "theme" => $theme,
+            "date" => (string) get_post_meta($post_id, "_ups_mport_date", true),
+            "sector" => (string) get_post_meta($post_id, "_ups_mport_sector", true),
+            "problem" => (string) get_post_meta($post_id, "_ups_mport_problem", true),
+            "solution" => (string) get_post_meta($post_id, "_ups_mport_solution", true),
+            "result" => (string) get_post_meta($post_id, "_ups_mport_result", true),
+            "tags" => upsellio_parse_textarea_lines((string) get_post_meta($post_id, "_ups_mport_tags", true), 8),
+            "kpis" => upsellio_parse_marketing_kpi_lines((string) get_post_meta($post_id, "_ups_mport_kpis", true)),
+            "category" => (string) $mapped_category["label"],
+            "category_slug" => (string) $mapped_category["slug"],
+            "is_featured" => (string) get_post_meta($post_id, "_ups_mport_featured", true) === "1",
+            "custom_html" => (string) get_post_meta($post_id, "_ups_mport_custom_html", true),
+            "custom_css" => (string) get_post_meta($post_id, "_ups_mport_custom_css", true),
+            "custom_js" => (string) get_post_meta($post_id, "_ups_mport_custom_js", true),
+            "seo_title" => (string) get_post_meta($post_id, "_ups_mport_seo_title", true),
+            "seo_description" => (string) get_post_meta($post_id, "_ups_mport_seo_description", true),
+            "seo_canonical" => (string) get_post_meta($post_id, "_ups_mport_seo_canonical", true),
+        ];
+    }
+    wp_reset_postdata();
+
+    return $items;
+}
+
+function upsellio_ensure_marketing_portfolio_page_exists()
+{
+    if (!is_admin() || !current_user_can("manage_options")) {
+        return;
+    }
+
+    $marketing_portfolio_path = upsellio_get_special_navigation_path_by_title("Portfolio marketingowe", "/portfolio-marketingowe/");
+    $marketing_portfolio_slug = trim((string) wp_parse_url($marketing_portfolio_path, PHP_URL_PATH), "/");
+    if ($marketing_portfolio_slug === "") {
+        $marketing_portfolio_slug = "portfolio-marketingowe";
+    }
+    $existing_page = get_page_by_path($marketing_portfolio_slug);
+    if ($existing_page instanceof WP_Post) {
+        if ((string) get_post_meta((int) $existing_page->ID, "_wp_page_template", true) !== "page-portfolio-marketingowe.php") {
+            update_post_meta((int) $existing_page->ID, "_wp_page_template", "page-portfolio-marketingowe.php");
+        }
+        return;
+    }
+
+    $page_id = wp_insert_post([
+        "post_type" => "page",
+        "post_status" => "publish",
+        "post_title" => "Portfolio marketingowe",
+        "post_name" => $marketing_portfolio_slug,
+        "post_content" => "",
+    ]);
+
+    if (!is_wp_error($page_id) && (int) $page_id > 0) {
+        update_post_meta((int) $page_id, "_wp_page_template", "page-portfolio-marketingowe.php");
+    }
+}
+add_action("admin_init", "upsellio_ensure_marketing_portfolio_page_exists");
+
+function upsellio_get_marketing_portfolio_seo_payload($post_id)
+{
+    $post_id = (int) $post_id;
+    if ($post_id <= 0 || get_post_type($post_id) !== "marketing_portfolio") {
+        return [];
+    }
+
+    $title = trim((string) get_post_meta($post_id, "_ups_mport_seo_title", true));
+    $description = trim((string) get_post_meta($post_id, "_ups_mport_seo_description", true));
+    $canonical = trim((string) get_post_meta($post_id, "_ups_mport_seo_canonical", true));
+    $fallback_description = (string) get_the_excerpt($post_id);
+    if ($description === "") {
+        $description = wp_strip_all_tags($fallback_description);
+    }
+
+    return [
+        "title" => $title,
+        "description" => wp_trim_words($description, 34, ""),
+        "canonical" => $canonical !== "" ? esc_url_raw($canonical) : (string) get_permalink($post_id),
+    ];
+}
+
+function upsellio_marketing_portfolio_document_title($title)
+{
+    if (!is_singular("marketing_portfolio")) {
+        return $title;
+    }
+
+    $post_id = (int) get_queried_object_id();
+    $seo_payload = upsellio_get_marketing_portfolio_seo_payload($post_id);
+    $custom_title = trim((string) ($seo_payload["title"] ?? ""));
+
+    return $custom_title !== "" ? $custom_title : $title;
+}
+add_filter("pre_get_document_title", "upsellio_marketing_portfolio_document_title");
+
+function upsellio_print_marketing_portfolio_seo_meta()
+{
+    if (!is_singular("marketing_portfolio")) {
+        return;
+    }
+
+    $post_id = (int) get_queried_object_id();
+    $seo_payload = upsellio_get_marketing_portfolio_seo_payload($post_id);
+    $description = trim((string) ($seo_payload["description"] ?? ""));
+    $canonical = trim((string) ($seo_payload["canonical"] ?? ""));
+    $title = trim((string) ($seo_payload["title"] ?? get_the_title($post_id)));
+
+    if ($description !== "") {
+        echo '<meta name="description" content="' . esc_attr($description) . '">' . "\n";
+        echo '<meta property="og:description" content="' . esc_attr($description) . '">' . "\n";
+        echo '<meta name="twitter:description" content="' . esc_attr($description) . '">' . "\n";
+    }
+    if ($title !== "") {
+        echo '<meta property="og:title" content="' . esc_attr($title) . '">' . "\n";
+        echo '<meta name="twitter:title" content="' . esc_attr($title) . '">' . "\n";
+    }
+    if ($canonical !== "") {
+        echo '<link rel="canonical" href="' . esc_url($canonical) . '">' . "\n";
+        echo '<meta property="og:url" content="' . esc_url($canonical) . '">' . "\n";
+    }
+}
+add_action("wp_head", "upsellio_print_marketing_portfolio_seo_meta", 3);
+
+function upsellio_get_supported_error_codes()
+{
+    return [400, 401, 403, 404, 429, 500, 503];
+}
+
+function upsellio_get_marketing_portfolio_redirect_aliases()
+{
+    return [
+        "meta-ads" => "meta",
+        "facebook" => "meta",
+        "facebook-ads" => "meta",
+        "social" => "meta",
+        "google-ads" => "google",
+        "ads" => "google",
+        "search" => "google",
+        "performance-max" => "google",
+        "pmax" => "google",
+        "strony" => "strona",
+        "strony-www" => "strona",
+        "strona-www" => "strona",
+        "landing" => "strona",
+        "landing-page" => "strona",
+        "www" => "strona",
+        "ecommerce" => "ecom",
+        "e-commerce" => "ecom",
+        "sklep" => "ecom",
+        "sklep-online" => "ecom",
+        "woocommerce" => "ecom",
+    ];
+}
+
+function upsellio_get_marketing_portfolio_category_redirect_target($requested_slug)
+{
+    $requested_slug = sanitize_title((string) $requested_slug);
+    if ($requested_slug === "") {
+        return "";
+    }
+
+    $aliases = upsellio_get_marketing_portfolio_redirect_aliases();
+
+    return isset($aliases[$requested_slug]) ? (string) $aliases[$requested_slug] : "";
+}
+
+function upsellio_maybe_redirect_legacy_marketing_portfolio_category_slug()
+{
+    if (is_admin() || wp_doing_ajax() || (defined("REST_REQUEST") && REST_REQUEST)) {
+        return;
+    }
+
+    $taxonomy_base = "kategoria-portfolio-marketingowego";
+    $request_uri = isset($_SERVER["REQUEST_URI"]) ? (string) wp_unslash($_SERVER["REQUEST_URI"]) : "";
+    $request_path = (string) parse_url($request_uri, PHP_URL_PATH);
+    $request_path = trim($request_path, "/");
+    if ($request_path === "") {
+        return;
+    }
+
+    $match = [];
+    if (!preg_match("#^" . preg_quote($taxonomy_base, "#") . "/([^/]+)/?$#", $request_path, $match)) {
+        return;
+    }
+
+    $requested_slug = isset($match[1]) ? sanitize_title((string) $match[1]) : "";
+    $target_slug = upsellio_get_marketing_portfolio_category_redirect_target($requested_slug);
+    if ($target_slug === "") {
+        return;
+    }
+
+    $target_url = home_url("/" . $taxonomy_base . "/" . $target_slug . "/");
+    $query_string = (string) parse_url($request_uri, PHP_URL_QUERY);
+    if ($query_string !== "") {
+        $target_url = $target_url . "?" . $query_string;
+    }
+
+    wp_safe_redirect($target_url, 301);
+    exit;
+}
+add_action("template_redirect", "upsellio_maybe_redirect_legacy_marketing_portfolio_category_slug", 1);
+
+function upsellio_register_error_page_rewrite()
+{
+    add_rewrite_rule("^blad/([0-9]{3})/?$", "index.php?ups_error_code=$matches[1]", "top");
+}
+add_action("init", "upsellio_register_error_page_rewrite");
+
+function upsellio_add_error_query_var($query_vars)
+{
+    $query_vars[] = "ups_error_code";
+
+    return $query_vars;
+}
+add_filter("query_vars", "upsellio_add_error_query_var");
+
+function upsellio_maybe_flush_error_page_rewrite()
+{
+    if (!is_admin() || !current_user_can("manage_options")) {
+        return;
+    }
+
+    $version_key = "upsellio_error_page_rewrite_version";
+    $target_version = "2026-04-21-1";
+    $current_version = (string) get_option($version_key, "");
+    if ($current_version === $target_version) {
+        return;
+    }
+
+    flush_rewrite_rules(false);
+    update_option($version_key, $target_version, false);
+}
+add_action("admin_init", "upsellio_maybe_flush_error_page_rewrite");
+
+function upsellio_get_forced_error_code()
+{
+    if (is_404()) {
+        return 404;
+    }
+
+    $requested_code = (int) get_query_var("ups_error_code");
+    if ($requested_code <= 0) {
+        return 0;
+    }
+
+    return in_array($requested_code, upsellio_get_supported_error_codes(), true) ? $requested_code : 0;
+}
+
+function upsellio_render_forced_error_template()
+{
+    $error_code = upsellio_get_forced_error_code();
+    if ($error_code <= 0 || is_404()) {
+        return;
+    }
+
+    status_header($error_code);
+    nocache_headers();
+    $GLOBALS["upsellio_forced_error_code"] = $error_code;
+    $GLOBALS["upsellio_error_context"] = upsellio_prepare_error_page_context($error_code);
+    require get_template_directory() . "/template-error-modern.php";
+    exit;
+}
+add_action("template_redirect", "upsellio_render_forced_error_template", 2);
+
+function upsellio_error_pages_document_title($title)
+{
+    $error_code = upsellio_get_forced_error_code();
+    if ($error_code <= 0) {
+        return $title;
+    }
+
+    return "Błąd " . $error_code . " | Upsellio";
+}
+add_filter("pre_get_document_title", "upsellio_error_pages_document_title");
+
+function upsellio_print_error_pages_meta()
+{
+    $error_code = upsellio_get_forced_error_code();
+    if ($error_code <= 0) {
+        return;
+    }
+
+    echo '<meta name="robots" content="noindex, nofollow">' . "\n";
+}
+add_action("wp_head", "upsellio_print_error_pages_meta", 2);
+
+function upsellio_get_error_log_option_key()
+{
+    return "upsellio_error_log_entries_v1";
+}
+
+function upsellio_get_error_logs_limit()
+{
+    return 400;
+}
+
+function upsellio_get_error_logs()
+{
+    $logs = get_option(upsellio_get_error_log_option_key(), []);
+
+    return is_array($logs) ? $logs : [];
+}
+
+function upsellio_get_error_logs_filters_from_request()
+{
+    $preset = isset($_GET["filter_preset"]) ? sanitize_key((string) wp_unslash($_GET["filter_preset"])) : "";
+    $type = isset($_GET["filter_type"]) ? sanitize_key((string) wp_unslash($_GET["filter_type"])) : "";
+    $status_code = isset($_GET["filter_code"]) ? (int) $_GET["filter_code"] : 0;
+    $date_from = isset($_GET["filter_date_from"]) ? sanitize_text_field((string) wp_unslash($_GET["filter_date_from"])) : "";
+    $date_to = isset($_GET["filter_date_to"]) ? sanitize_text_field((string) wp_unslash($_GET["filter_date_to"])) : "";
+
+    if ($date_from !== "" && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_from)) {
+        $date_from = "";
+    }
+    if ($date_to !== "" && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_to)) {
+        $date_to = "";
+    }
+    if ($preset === "last_24h") {
+        $date_from = gmdate("Y-m-d", time() - DAY_IN_SECONDS);
+        $date_to = gmdate("Y-m-d");
+    } elseif ($preset === "only_js") {
+        $type = "js";
+        $status_code = 0;
+    } elseif ($preset === "only_5xx") {
+        $type = "http";
+    } else {
+        $preset = "";
+    }
+
+    return [
+        "preset" => $preset,
+        "type" => $type,
+        "status_code" => $status_code > 0 ? $status_code : 0,
+        "date_from" => $date_from,
+        "date_to" => $date_to,
+    ];
+}
+
+function upsellio_filter_error_logs($logs, $filters)
+{
+    $logs = is_array($logs) ? $logs : [];
+    $type = isset($filters["type"]) ? sanitize_key((string) $filters["type"]) : "";
+    $status_code = isset($filters["status_code"]) ? (int) $filters["status_code"] : 0;
+    $date_from = isset($filters["date_from"]) ? (string) $filters["date_from"] : "";
+    $date_to = isset($filters["date_to"]) ? (string) $filters["date_to"] : "";
+    $preset = isset($filters["preset"]) ? sanitize_key((string) $filters["preset"]) : "";
+
+    $date_from_ts = $date_from !== "" ? strtotime($date_from . " 00:00:00") : 0;
+    $date_to_ts = $date_to !== "" ? strtotime($date_to . " 23:59:59") : 0;
+
+    return array_values(array_filter($logs, function ($row) use ($type, $status_code, $date_from_ts, $date_to_ts, $preset) {
+        $row_type = isset($row["type"]) ? sanitize_key((string) $row["type"]) : "";
+        $row_code = isset($row["status_code"]) ? (int) $row["status_code"] : 0;
+        $row_ts = isset($row["timestamp"]) ? strtotime((string) $row["timestamp"]) : 0;
+
+        if ($type !== "" && $row_type !== $type) {
+            return false;
+        }
+        if ($status_code > 0 && $row_code !== $status_code) {
+            return false;
+        }
+        if ($preset === "only_5xx" && ($row_code < 500 || $row_code > 599)) {
+            return false;
+        }
+        if ($date_from_ts > 0 && ($row_ts <= 0 || $row_ts < $date_from_ts)) {
+            return false;
+        }
+        if ($date_to_ts > 0 && ($row_ts <= 0 || $row_ts > $date_to_ts)) {
+            return false;
+        }
+
+        return true;
+    }));
+}
+
+function upsellio_output_error_logs_csv($rows)
+{
+    nocache_headers();
+    header("Content-Type: text/csv; charset=utf-8");
+    header("Content-Disposition: attachment; filename=upsellio-error-logs-" . gmdate("Ymd-His") . ".csv");
+
+    $stream = fopen("php://output", "w");
+    if ($stream === false) {
+        exit;
+    }
+
+    fputcsv($stream, ["timestamp", "type", "status_code", "incident_id", "message", "url", "path", "referrer", "client_hash", "context_json"]);
+    foreach ((array) $rows as $row) {
+        $context = isset($row["context"]) && is_array($row["context"]) ? wp_json_encode($row["context"], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : "";
+        fputcsv($stream, [
+            isset($row["timestamp"]) ? (string) $row["timestamp"] : "",
+            isset($row["type"]) ? (string) $row["type"] : "",
+            isset($row["status_code"]) ? (string) ((int) $row["status_code"]) : "0",
+            isset($row["incident_id"]) ? (string) $row["incident_id"] : "",
+            isset($row["message"]) ? (string) $row["message"] : "",
+            isset($row["url"]) ? (string) $row["url"] : "",
+            isset($row["path"]) ? (string) $row["path"] : "",
+            isset($row["referrer"]) ? (string) $row["referrer"] : "",
+            isset($row["client_hash"]) ? (string) $row["client_hash"] : "",
+            (string) $context,
+        ]);
+    }
+    fclose($stream);
+    exit;
+}
+
+function upsellio_generate_incident_id()
+{
+    $raw = wp_generate_uuid4();
+    $normalized = strtoupper(str_replace("-", "", (string) $raw));
+
+    return substr($normalized, 0, 12);
+}
+
+function upsellio_get_request_path()
+{
+    $request_uri = isset($_SERVER["REQUEST_URI"]) ? (string) wp_unslash($_SERVER["REQUEST_URI"]) : "/";
+    $path = (string) parse_url($request_uri, PHP_URL_PATH);
+
+    return $path !== "" ? $path : "/";
+}
+
+function upsellio_get_client_hash()
+{
+    $ip = isset($_SERVER["REMOTE_ADDR"]) ? (string) wp_unslash($_SERVER["REMOTE_ADDR"]) : "unknown";
+    $salt = (string) wp_salt("auth");
+
+    return substr(hash("sha256", $ip . "|" . $salt), 0, 18);
+}
+
+function upsellio_log_error_event($payload)
+{
+    $defaults = [
+        "timestamp" => current_time("mysql"),
+        "timestamp_gmt" => gmdate("c"),
+        "incident_id" => "",
+        "type" => "http",
+        "status_code" => 0,
+        "message" => "",
+        "url" => home_url(upsellio_get_request_path()),
+        "path" => upsellio_get_request_path(),
+        "referrer" => isset($_SERVER["HTTP_REFERER"]) ? esc_url_raw((string) wp_unslash($_SERVER["HTTP_REFERER"])) : "",
+        "user_agent" => isset($_SERVER["HTTP_USER_AGENT"]) ? sanitize_text_field((string) wp_unslash($_SERVER["HTTP_USER_AGENT"])) : "",
+        "client_hash" => upsellio_get_client_hash(),
+        "context" => [],
+    ];
+    $entry = wp_parse_args((array) $payload, $defaults);
+    $entry["status_code"] = (int) $entry["status_code"];
+    $entry["message"] = sanitize_text_field((string) $entry["message"]);
+    $entry["path"] = sanitize_text_field((string) $entry["path"]);
+    $entry["url"] = esc_url_raw((string) $entry["url"]);
+    $entry["referrer"] = esc_url_raw((string) $entry["referrer"]);
+    $entry["type"] = sanitize_key((string) $entry["type"]);
+    $entry["incident_id"] = sanitize_text_field((string) $entry["incident_id"]);
+    $entry["context"] = is_array($entry["context"]) ? $entry["context"] : [];
+
+    if ($entry["incident_id"] === "" && in_array((int) $entry["status_code"], [500, 503], true)) {
+        $entry["incident_id"] = upsellio_generate_incident_id();
+    }
+
+    $fingerprint = md5(implode("|", [
+        (string) $entry["type"],
+        (string) $entry["status_code"],
+        (string) $entry["path"],
+        (string) $entry["message"],
+        (string) $entry["client_hash"],
+    ]));
+    $dedupe_key = "upsellio_err_log_" . $fingerprint;
+    if (get_transient($dedupe_key)) {
+        return (string) $entry["incident_id"];
+    }
+    set_transient($dedupe_key, "1", 90);
+
+    $logs = upsellio_get_error_logs();
+    array_unshift($logs, $entry);
+    $logs = array_slice($logs, 0, upsellio_get_error_logs_limit());
+    update_option(upsellio_get_error_log_option_key(), $logs, false);
+
+    return (string) $entry["incident_id"];
+}
+
+function upsellio_prepare_error_page_context($error_code)
+{
+    $error_code = (int) $error_code;
+    $timestamp_iso = current_time("c");
+    $incident_id = in_array($error_code, [500, 503], true) ? upsellio_generate_incident_id() : "";
+
+    upsellio_log_error_event([
+        "type" => "http",
+        "status_code" => $error_code,
+        "incident_id" => $incident_id,
+        "message" => "Rendered error page",
+        "path" => upsellio_get_request_path(),
+        "url" => home_url(upsellio_get_request_path()),
+        "context" => [
+            "template" => "template-error-modern.php",
+        ],
+    ]);
+
+    return [
+        "error_code" => $error_code,
+        "timestamp_iso" => $timestamp_iso,
+        "incident_id" => $incident_id,
+    ];
+}
+
+function upsellio_track_frontend_error_ajax()
+{
+    $message = isset($_POST["message"]) ? sanitize_text_field((string) wp_unslash($_POST["message"])) : "";
+    $source = isset($_POST["source"]) ? sanitize_text_field((string) wp_unslash($_POST["source"])) : "";
+    $line = isset($_POST["line"]) ? (int) $_POST["line"] : 0;
+    $column = isset($_POST["column"]) ? (int) $_POST["column"] : 0;
+    $stack = isset($_POST["stack"]) ? sanitize_textarea_field((string) wp_unslash($_POST["stack"])) : "";
+    $page_url = isset($_POST["page_url"]) ? esc_url_raw((string) wp_unslash($_POST["page_url"])) : "";
+
+    if ($message === "" || $page_url === "") {
+        wp_send_json_error(["message" => "missing_payload"], 400);
+    }
+    $page_host = (string) wp_parse_url($page_url, PHP_URL_HOST);
+    $site_host = (string) wp_parse_url(home_url("/"), PHP_URL_HOST);
+    if ($page_host === "" || $site_host === "" || strtolower($page_host) !== strtolower($site_host)) {
+        wp_send_json_error(["message" => "invalid_host"], 400);
+    }
+
+    $incident_id = upsellio_log_error_event([
+        "type" => "js",
+        "status_code" => 0,
+        "incident_id" => upsellio_generate_incident_id(),
+        "message" => $message,
+        "path" => (string) wp_parse_url($page_url, PHP_URL_PATH),
+        "url" => $page_url,
+        "context" => [
+            "source" => $source,
+            "line" => $line,
+            "column" => $column,
+            "stack" => $stack,
+        ],
+    ]);
+
+    wp_send_json_success(["incident_id" => $incident_id], 200);
+}
+add_action("wp_ajax_upsellio_track_frontend_error", "upsellio_track_frontend_error_ajax");
+add_action("wp_ajax_nopriv_upsellio_track_frontend_error", "upsellio_track_frontend_error_ajax");
+
+function upsellio_print_frontend_error_logger_script()
+{
+    if (is_admin()) {
+        return;
+    }
+
+    $ajax_url = admin_url("admin-ajax.php");
+    ?>
+    <script>
+    (function () {
+      var ajaxUrl = <?php echo wp_json_encode($ajax_url); ?>;
+      var sent = 0;
+      var limit = 3;
+      function send(payload) {
+        if (!ajaxUrl || sent >= limit) return;
+        sent += 1;
+        var body = new URLSearchParams();
+        body.set("action", "upsellio_track_frontend_error");
+        body.set("message", String(payload.message || "").slice(0, 400));
+        body.set("source", String(payload.source || "").slice(0, 400));
+        body.set("line", String(payload.line || 0));
+        body.set("column", String(payload.column || 0));
+        body.set("stack", String(payload.stack || "").slice(0, 2000));
+        body.set("page_url", window.location.href);
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(ajaxUrl, body);
+          return;
+        }
+        fetch(ajaxUrl, { method: "POST", body: body, keepalive: true, credentials: "same-origin" }).catch(function () {});
+      }
+      window.addEventListener("error", function (event) {
+        send({
+          message: event && event.message ? event.message : "window.error",
+          source: event && event.filename ? event.filename : "unknown",
+          line: event && event.lineno ? event.lineno : 0,
+          column: event && event.colno ? event.colno : 0,
+          stack: event && event.error && event.error.stack ? event.error.stack : ""
+        });
+      });
+      window.addEventListener("unhandledrejection", function (event) {
+        var reason = event && event.reason ? event.reason : {};
+        send({
+          message: reason && reason.message ? reason.message : "unhandledrejection",
+          source: "promise",
+          line: 0,
+          column: 0,
+          stack: reason && reason.stack ? reason.stack : ""
+        });
+      });
+    })();
+    </script>
+    <?php
+}
+add_action("wp_footer", "upsellio_print_frontend_error_logger_script", 99);
+
+function upsellio_register_error_logs_admin_page()
+{
+    add_management_page(
+        "Dziennik błędów Upsellio",
+        "Dziennik błędów",
+        "manage_options",
+        "upsellio-error-logs",
+        "upsellio_render_error_logs_admin_page"
+    );
+}
+add_action("admin_menu", "upsellio_register_error_logs_admin_page");
+
+function upsellio_handle_error_logs_admin_actions()
+{
+    if (!is_admin() || !current_user_can("manage_options")) {
+        return;
+    }
+    if (!isset($_GET["upsellio_error_logs_action"])) {
+        return;
+    }
+
+    $action = sanitize_key((string) wp_unslash($_GET["upsellio_error_logs_action"]));
+    if (!in_array($action, ["clear", "export_csv"], true)) {
+        return;
+    }
+
+    if ($action === "clear") {
+        $nonce = isset($_GET["_upsellio_nonce"]) ? sanitize_text_field((string) wp_unslash($_GET["_upsellio_nonce"])) : "";
+        if (!wp_verify_nonce($nonce, "upsellio_error_logs_clear")) {
+            return;
+        }
+
+        update_option(upsellio_get_error_log_option_key(), [], false);
+        wp_safe_redirect(add_query_arg(["page" => "upsellio-error-logs", "cleared" => 1], admin_url("tools.php")));
+        exit;
+    }
+
+    $nonce = isset($_GET["_upsellio_nonce"]) ? sanitize_text_field((string) wp_unslash($_GET["_upsellio_nonce"])) : "";
+    if (!wp_verify_nonce($nonce, "upsellio_error_logs_export_csv")) {
+        return;
+    }
+
+    $filters = upsellio_get_error_logs_filters_from_request();
+    $logs = upsellio_get_error_logs();
+    $filtered_logs = upsellio_filter_error_logs($logs, $filters);
+    upsellio_output_error_logs_csv($filtered_logs);
+}
+add_action("admin_init", "upsellio_handle_error_logs_admin_actions");
+
+function upsellio_render_error_logs_admin_page()
+{
+    if (!current_user_can("manage_options")) {
+        return;
+    }
+
+    $logs = upsellio_get_error_logs();
+    $filters = upsellio_get_error_logs_filters_from_request();
+    $filtered_logs = upsellio_filter_error_logs($logs, $filters);
+    $filter_preset = (string) ($filters["preset"] ?? "");
+    $filter_type = (string) ($filters["type"] ?? "");
+    $filter_code = (int) ($filters["status_code"] ?? 0);
+    $filter_date_from = (string) ($filters["date_from"] ?? "");
+    $filter_date_to = (string) ($filters["date_to"] ?? "");
+    $clear_url = wp_nonce_url(
+        add_query_arg(["page" => "upsellio-error-logs", "upsellio_error_logs_action" => "clear"], admin_url("tools.php")),
+        "upsellio_error_logs_clear",
+        "_upsellio_nonce"
+    );
+    $export_url = wp_nonce_url(
+        add_query_arg([
+            "page" => "upsellio-error-logs",
+            "upsellio_error_logs_action" => "export_csv",
+            "filter_preset" => $filter_preset,
+            "filter_type" => $filter_type,
+            "filter_code" => $filter_code > 0 ? $filter_code : "",
+            "filter_date_from" => $filter_date_from,
+            "filter_date_to" => $filter_date_to,
+        ], admin_url("tools.php")),
+        "upsellio_error_logs_export_csv",
+        "_upsellio_nonce"
+    );
+    $total_logs = count($logs);
+    $total_filtered_logs = count($filtered_logs);
+    $preset_last_24h_url = esc_url(add_query_arg([
+        "page" => "upsellio-error-logs",
+        "filter_preset" => "last_24h",
+    ], admin_url("tools.php")));
+    $preset_only_5xx_url = esc_url(add_query_arg([
+        "page" => "upsellio-error-logs",
+        "filter_preset" => "only_5xx",
+    ], admin_url("tools.php")));
+    $preset_only_js_url = esc_url(add_query_arg([
+        "page" => "upsellio-error-logs",
+        "filter_preset" => "only_js",
+    ], admin_url("tools.php")));
+    ?>
+    <div class="wrap">
+      <h1>Dziennik błędów Upsellio</h1>
+      <p>Zapisuje błędy HTTP oraz błędy JavaScript z przeglądarek użytkowników (z ograniczeniem duplikatów i limitem rekordów).</p>
+      <p>
+        <strong>Presety:</strong>
+        <a class="button" href="<?php echo $preset_last_24h_url; ?>">Ostatnie 24h</a>
+        <a class="button" href="<?php echo $preset_only_5xx_url; ?>">Tylko 5xx</a>
+        <a class="button" href="<?php echo $preset_only_js_url; ?>">Tylko JS</a>
+      </p>
+      <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:16px 0;">
+        <input type="hidden" name="page" value="upsellio-error-logs" />
+        <input type="hidden" name="filter_preset" value="" />
+        <label>
+          <span style="display:block;margin-bottom:4px;">Typ</span>
+          <select name="filter_type">
+            <option value="">Wszystkie</option>
+            <option value="http" <?php selected($filter_type, "http"); ?>>HTTP</option>
+            <option value="js" <?php selected($filter_type, "js"); ?>>JS</option>
+          </select>
+        </label>
+        <label>
+          <span style="display:block;margin-bottom:4px;">Kod</span>
+          <input type="number" min="0" step="1" name="filter_code" value="<?php echo esc_attr($filter_code > 0 ? (string) $filter_code : ""); ?>" placeholder="np. 404" />
+        </label>
+        <label>
+          <span style="display:block;margin-bottom:4px;">Data od</span>
+          <input type="date" name="filter_date_from" value="<?php echo esc_attr($filter_date_from); ?>" />
+        </label>
+        <label>
+          <span style="display:block;margin-bottom:4px;">Data do</span>
+          <input type="date" name="filter_date_to" value="<?php echo esc_attr($filter_date_to); ?>" />
+        </label>
+        <button type="submit" class="button button-primary">Filtruj</button>
+        <a href="<?php echo esc_url(add_query_arg(["page" => "upsellio-error-logs"], admin_url("tools.php"))); ?>" class="button">Reset</a>
+      </form>
+      <p>
+        <a href="<?php echo esc_url($export_url); ?>" class="button button-primary">Eksport CSV</a>
+        <a href="<?php echo esc_url($clear_url); ?>" class="button">Wyczyść dziennik</a>
+      </p>
+      <p><strong>Wyniki:</strong> <?php echo esc_html((string) $total_filtered_logs); ?> / <?php echo esc_html((string) $total_logs); ?></p>
+      <?php if (isset($_GET["cleared"])) : ?>
+        <div class="notice notice-success is-dismissible"><p>Dziennik błędów został wyczyszczony.</p></div>
+      <?php endif; ?>
+      <table class="widefat striped">
+        <thead>
+          <tr>
+            <th style="width:150px;">Czas</th>
+            <th style="width:80px;">Typ</th>
+            <th style="width:90px;">Kod</th>
+            <th style="width:140px;">Incident ID</th>
+            <th>Wiadomość / URL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php if (empty($filtered_logs)) : ?>
+            <tr><td colspan="5">Brak wpisów.</td></tr>
+          <?php else : ?>
+            <?php foreach ($filtered_logs as $row) : ?>
+              <?php
+              $type = isset($row["type"]) ? (string) $row["type"] : "";
+              $status_code = isset($row["status_code"]) ? (int) $row["status_code"] : 0;
+              $incident_id = isset($row["incident_id"]) ? (string) $row["incident_id"] : "";
+              $message = isset($row["message"]) ? (string) $row["message"] : "";
+              $url = isset($row["url"]) ? (string) $row["url"] : "";
+              $timestamp = isset($row["timestamp"]) ? (string) $row["timestamp"] : "";
+              $context = isset($row["context"]) && is_array($row["context"]) ? (array) $row["context"] : [];
+              ?>
+              <tr>
+                <td><?php echo esc_html($timestamp); ?></td>
+                <td><code><?php echo esc_html($type); ?></code></td>
+                <td><?php echo esc_html($status_code > 0 ? (string) $status_code : "—"); ?></td>
+                <td><code><?php echo esc_html($incident_id !== "" ? $incident_id : "—"); ?></code></td>
+                <td>
+                  <strong><?php echo esc_html($message); ?></strong><br />
+                  <?php if ($url !== "") : ?>
+                    <a href="<?php echo esc_url($url); ?>" target="_blank" rel="noopener"><?php echo esc_html($url); ?></a><br />
+                  <?php endif; ?>
+                  <?php if (!empty($context)) : ?>
+                    <code style="display:block;white-space:pre-wrap;margin-top:4px;"><?php echo esc_html(wp_json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?></code>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </tbody>
+      </table>
+    </div>
+    <?php
+}
 
