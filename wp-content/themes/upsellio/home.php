@@ -25,8 +25,27 @@ get_header();
     background: var(--bg);
   }
   .ups-blog-hero {
+    position: relative;
+    overflow: hidden;
     border-bottom: 1px solid var(--border);
-    background: linear-gradient(180deg, rgba(29, 158, 117, 0.06), rgba(255, 255, 255, 0) 52%);
+    background: var(--bg-soft);
+  }
+  .ups-blog-hero::before {
+    content: "";
+    position: absolute;
+    top: -120px;
+    right: -140px;
+    width: 520px;
+    height: 520px;
+    border-radius: 999px;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(29, 158, 117, 0.12), transparent 68%);
+  }
+  .ups-blog-hero-topline {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--teal);
   }
   .ups-blog-title {
     font-family: var(--font-display);
@@ -42,8 +61,9 @@ get_header();
     margin-bottom: 20px;
     border: 1px solid var(--border);
     border-radius: var(--r-pill);
-    background: var(--surface);
-    padding: 8px 14px;
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    backdrop-filter: blur(6px);
+    padding: 7px 14px 7px 10px;
     font-size: 12px;
     font-weight: 500;
     color: var(--text-2);
@@ -53,6 +73,17 @@ get_header();
     height: 8px;
     border-radius: 999px;
     background: var(--teal);
+    animation: upsBlogDotPulse 1.8s ease infinite;
+  }
+  @keyframes upsBlogDotPulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.45;
+      transform: scale(0.88);
+    }
   }
   .ups-blog-lead {
     margin-top: var(--sp-3);
@@ -80,6 +111,11 @@ get_header();
     display: flex;
     align-items: center;
     gap: 10px;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .ups-blog-search-field:focus-within {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 20%, transparent);
   }
   .ups-blog-search-field input {
     width: 100%;
@@ -93,6 +129,7 @@ get_header();
   .ups-blog-search-note {
     color: var(--text-2);
     font-size: 14px;
+    border-style: dashed;
   }
   .ups-blog-categories {
     border-bottom: 1px solid var(--border);
@@ -100,8 +137,13 @@ get_header();
   }
   .ups-blog-category-list {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
     gap: 10px;
+  }
+  .ups-blog-category-list::-webkit-scrollbar {
+    display: none;
   }
   .ups-blog-tag-filter-wrap {
     margin-top: 12px;
@@ -119,8 +161,13 @@ get_header();
   }
   .ups-blog-tag-filter-list {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
     gap: 8px;
+  }
+  .ups-blog-tag-filter-list::-webkit-scrollbar {
+    display: none;
   }
   .ups-blog-filter-tools {
     margin-top: 14px;
@@ -360,33 +407,43 @@ get_header();
   }
   .ups-blog-newsletter {
     margin-top: 16px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: 16px;
-    background: var(--bg-soft);
-    padding: 12px;
+    background: var(--surface);
+    padding: 14px;
   }
   .ups-blog-newsletter input {
     width: 100%;
-    border: 1px solid var(--border);
+    min-height: 46px;
+    border: 1px solid var(--border-strong);
     border-radius: 12px;
     background: var(--surface);
-    padding: 12px;
+    color: var(--text);
+    padding: 13px 15px;
     outline: none;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .ups-blog-newsletter input:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.13);
   }
   .ups-blog-newsletter button {
     margin-top: 8px;
     width: 100%;
     border: none;
     border-radius: 12px;
-    background: var(--text);
+    min-height: 46px;
+    background: var(--teal);
     color: #fff;
-    padding: 12px;
-    font-size: 14px;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 700;
     cursor: pointer;
-    transition: 0.18s ease;
+    transition: background-color 0.18s ease, transform 0.18s ease;
   }
   .ups-blog-newsletter button:hover {
-    background: var(--teal);
+    background: var(--teal-hover);
+    transform: translateY(-1px);
   }
   .ups-blog-tags {
     margin-top: 14px;
@@ -403,7 +460,7 @@ get_header();
     color: var(--text-2);
   }
   .ups-blog-list-wrap {
-    padding: 52px 0 64px;
+    padding: 64px 0 72px;
   }
   .ups-blog-list-head {
     margin-bottom: 32px;
@@ -511,16 +568,151 @@ get_header();
   .ups-blog-cta {
     border-top: 1px solid var(--border);
     background: var(--bg-soft);
-    padding: var(--sp-8) 0;
+    padding: 72px 0;
+  }
+  .ups-blog-newsletter-band {
+    border-top: 1px solid var(--teal-line);
+    border-bottom: 1px solid var(--teal-line);
+    background: var(--teal-soft);
+    padding: 64px 0;
+  }
+  .ups-blog-newsletter-inner {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    align-items: center;
+  }
+  .ups-blog-newsletter-title {
+    margin-top: 8px;
+    color: var(--teal-dark);
+    font-family: var(--font-display);
+    font-size: clamp(28px, 3.2vw, 40px);
+    line-height: 1.08;
+    letter-spacing: -0.9px;
+    max-width: 680px;
+  }
+  .ups-blog-newsletter-text {
+    margin-top: 12px;
+    max-width: 620px;
+    color: color-mix(in srgb, var(--teal-dark) 82%, white);
+    font-size: 16px;
+    line-height: 1.78;
+  }
+  .ups-blog-newsletter-shell {
+    border: 1px solid var(--border-strong);
+    border-radius: 18px;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    padding: 8px;
+  }
+  .ups-blog-newsletter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ups-blog-newsletter-row input {
+    min-width: 0;
+    flex: 1;
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    outline: none;
+    background: var(--surface);
+    color: var(--text);
+    min-height: 46px;
+    padding: 13px 15px;
+    font-size: 15px;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .ups-blog-newsletter-row input:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.13);
+  }
+  .ups-blog-newsletter-row button {
+    border: none;
+    border-radius: 12px;
+    background: var(--teal);
+    color: #fff;
+    min-height: 46px;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.18s ease, transform 0.18s ease;
+    white-space: nowrap;
+  }
+  .ups-blog-newsletter-row button:hover {
+    background: var(--teal-hover);
+    transform: translateY(-1px);
+  }
+  .ups-blog-newsletter-note {
+    margin-top: 12px;
+    color: color-mix(in srgb, var(--teal-dark) 70%, white);
+    font-size: 12px;
+  }
+  .ups-blog-topics {
+    border-top: 1px solid var(--border);
+    padding: 64px 0;
+  }
+  .ups-blog-topics-head {
+    max-width: 760px;
+  }
+  .ups-blog-topics-title {
+    margin-top: 8px;
+    font-family: var(--font-display);
+    font-size: clamp(28px, 3vw, 40px);
+    line-height: 1.1;
+    letter-spacing: -0.8px;
+  }
+  .ups-blog-topics-grid {
+    margin-top: 28px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .ups-blog-topic-card {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--bg-soft);
+    padding: 16px 12px;
+    text-align: center;
+    transition: 0.18s ease;
+  }
+  .ups-blog-topic-card:hover {
+    border-color: var(--teal);
+    transform: translateY(-2px);
+    background: var(--teal-soft);
+  }
+  .ups-blog-topic-icon {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 10px;
+    border-radius: 12px;
+    border: 1px solid var(--teal-line);
+    background: var(--teal-soft);
+    color: var(--teal-dark);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ups-blog-topic-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .ups-blog-topic-count {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-3);
   }
   .ups-blog-cta-shell {
     border: 1px solid var(--teal-line);
     border-radius: var(--r-xl);
     background: var(--teal-soft);
-    padding: 24px;
+    padding: 30px;
   }
   .ups-blog-cta-title {
-    margin-top: 10px;
+    margin-top: 8px;
     max-width: 860px;
     font-family: var(--font-display);
     font-size: clamp(34px, 3.2vw, 50px);
@@ -529,11 +721,11 @@ get_header();
     color: var(--teal-dark);
   }
   .ups-blog-cta-text {
-    margin-top: 14px;
+    margin-top: 12px;
     max-width: 850px;
     color: color-mix(in srgb, var(--teal-dark) 82%, white);
-    font-size: 16px;
-    line-height: 1.8;
+    font-size: 15px;
+    line-height: 1.78;
   }
   .ups-blog-cta-actions {
     margin-top: var(--sp-3);
@@ -612,6 +804,14 @@ get_header();
     .ups-blog-cta-actions a {
       width: auto;
     }
+    .ups-blog-newsletter-inner {
+      grid-template-columns: 1fr 420px;
+      gap: 40px;
+    }
+    .ups-blog-topics-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
   }
   @media (min-width: 1051px) {
     .ups-blog-featured-grid {
@@ -631,11 +831,130 @@ get_header();
     .ups-blog-cta-shell {
       padding: 34px;
     }
+    .ups-blog-topics-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+  /* Blog layout refresh */
+  .ups-blog-categories {
+    position: sticky;
+    top: 72px;
+    z-index: 40;
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    padding: 14px 0 18px;
+  }
+  .ups-blog-category {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: var(--r-pill);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    min-height: 38px;
+    padding: 8px 13px;
+  }
+  .ups-blog-category-count {
+    border-radius: var(--r-pill);
+    background: color-mix(in srgb, var(--bg-soft) 92%, transparent);
+    border: 1px solid var(--border);
+    color: var(--text-3);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 3px 6px;
+  }
+  .ups-blog-category.active .ups-blog-category-count {
+    border-color: color-mix(in srgb, var(--teal) 20%, transparent);
+    background: rgba(255, 255, 255, 0.48);
+    color: var(--teal-dark);
+  }
+  .ups-blog-card {
+    border-radius: 20px;
+    padding: 18px;
+  }
+  .ups-blog-card.is-wide {
+    grid-column: span 2;
+  }
+  .ups-blog-card-top {
+    margin-bottom: 14px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .ups-blog-card-time {
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--text-3);
+  }
+  .ups-blog-card-category {
+    margin-bottom: 0;
+    border-color: var(--teal-line);
+    color: var(--teal-dark);
+    background: var(--teal-soft);
+  }
+  .ups-blog-card-title {
+    font-size: clamp(21px, 1.8vw, 27px);
+    letter-spacing: -0.6px;
+  }
+  .ups-blog-card-excerpt {
+    margin-top: 12px;
+    font-size: 14px;
+    line-height: 1.7;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .ups-blog-card-footer {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .ups-blog-card-meta {
+    margin-bottom: 0;
+  }
+  .ups-blog-card-link {
+    min-height: 0;
+    white-space: nowrap;
+  }
+  @media (max-width: 1050px) {
+    .ups-blog-categories {
+      position: static;
+      backdrop-filter: none;
+      background: var(--bg);
+    }
+    .ups-blog-card.is-wide {
+      grid-column: span 1;
+    }
+    .ups-blog-newsletter-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .ups-blog-list-wrap {
+      padding: 52px 0 58px;
+    }
+    .ups-blog-newsletter-band,
+    .ups-blog-topics,
+    .ups-blog-cta {
+      padding: 52px 0;
+    }
+    .ups-blog-cta-shell {
+      padding: 24px;
+    }
   }
 </style>
 
 <main class="ups-blog js-ups-blog-root" data-current-category="<?php echo esc_attr($selected_category); ?>" data-current-tags="<?php echo esc_attr(implode(",", $selected_tags)); ?>" data-current-page="<?php echo esc_attr((string) $paged); ?>">
   <section class="ups-blog-hero">
+    <div class="ups-blog-hero-topline"></div>
     <div class="wrap" style="padding: 64px 0 92px;">
       <div style="max-width: 920px;">
         <div class="ups-blog-badge">
@@ -654,7 +973,12 @@ get_header();
 
       <form class="ups-blog-search js-ups-blog-search-form" method="get" action="<?php echo esc_url($blog_index_url); ?>">
         <div class="ups-blog-search-field">
-          <span aria-hidden="true" style="font-size: 14px; color: var(--text-3);">🔎</span>
+          <span aria-hidden="true" style="display:inline-flex;color:var(--text-3);">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.4"></circle>
+              <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
+            </svg>
+          </span>
           <input class="js-ups-blog-search-input" type="text" name="s" placeholder="Szukaj artykułu..." value="<?php echo esc_attr($search_term); ?>" />
           <?php if ($selected_category !== "" && $selected_category !== "all") : ?>
             <input type="hidden" name="category" value="<?php echo esc_attr($selected_category); ?>" />
@@ -672,6 +996,7 @@ get_header();
     <div class="wrap">
       <div class="ups-blog-category-list">
         <?php
+        $all_posts_count = (int) wp_count_posts("post")->publish;
         $all_url = remove_query_arg("category");
         if ($search_term !== "") {
             $all_url = add_query_arg("s", $search_term, $all_url);
@@ -686,6 +1011,7 @@ get_header();
           class="ups-blog-category js-ups-blog-category <?php echo $selected_category === "" || $selected_category === "all" ? "active" : ""; ?>"
         >
           Wszystkie
+          <span class="ups-blog-category-count"><?php echo esc_html((string) $all_posts_count); ?></span>
         </a>
         <?php foreach ($categories as $category) : ?>
           <?php
@@ -704,6 +1030,7 @@ get_header();
             class="ups-blog-category js-ups-blog-category <?php echo $selected_category === $category->slug ? "active" : ""; ?>"
           >
             <?php echo esc_html($category->name); ?>
+            <span class="ups-blog-category-count"><?php echo esc_html((string) $category->count); ?></span>
           </a>
         <?php endforeach; ?>
       </div>
@@ -796,6 +1123,77 @@ get_header();
       <?php endfor; ?>
     </div>
   </div>
+
+  <section class="ups-blog-newsletter-band">
+    <div class="wrap">
+      <div class="ups-blog-newsletter-inner">
+        <div>
+          <div class="eyebrow" style="color: var(--teal-dark); margin-bottom: 0;">Newsletter</div>
+          <h2 class="ups-blog-newsletter-title">Praktyczne materiały o reklamach i sprzedaży</h2>
+          <p class="ups-blog-newsletter-text">
+            Raz na jakiś czas — konkretny materiał: checklista, analiza albo artykuł, który pomaga podejmować lepsze decyzje marketingowe. Bez spamu.
+          </p>
+        </div>
+        <div>
+          <form class="ups-blog-newsletter-shell" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" method="post" data-upsellio-lead-form="1">
+            <input type="hidden" name="action" value="upsellio_submit_lead" />
+            <input type="hidden" name="redirect_url" value="<?php echo esc_url($blog_index_url); ?>" />
+            <input type="hidden" name="lead_form_origin" value="newsletter-band" />
+            <input type="hidden" name="lead_source" value="newsletter-band" />
+            <input type="hidden" name="lead_name" value="Newsletter" />
+            <input type="hidden" name="lead_message" value="Nowa subskrypcja newslettera (band)." />
+            <input type="hidden" name="lead_consent" value="1" />
+            <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
+            <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
+            <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
+            <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
+            <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
+            <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
+            <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
+            <div class="ups-blog-newsletter-row">
+              <input type="email" name="lead_email" placeholder="Twój adres e-mail" required />
+              <button type="submit">Zapisz mnie</button>
+            </div>
+          </form>
+          <div class="ups-blog-newsletter-note">Dołącz do grona czytelników. Wypis jednym kliknięciem.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ups-blog-topics">
+    <div class="wrap">
+      <div class="ups-blog-topics-head">
+        <div class="eyebrow" style="margin-bottom: 0;">Przeglądaj tematy</div>
+        <h2 class="ups-blog-topics-title">Kategorie</h2>
+      </div>
+      <div class="ups-blog-topics-grid">
+        <?php foreach (array_slice($categories, 0, 5) as $topic_category) : ?>
+          <?php
+          $topic_category_url = add_query_arg(
+              [
+                  "category" => $topic_category->slug,
+                  "tags" => implode(",", $selected_tags),
+                  "s" => $search_term,
+              ],
+              $blog_index_url
+          );
+          ?>
+          <a href="<?php echo esc_url($topic_category_url); ?>" data-category="<?php echo esc_attr($topic_category->slug); ?>" class="ups-blog-topic-card js-ups-blog-category">
+            <span class="ups-blog-topic-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <rect x="3" y="11" width="3.5" height="6" rx="1.75" fill="currentColor"></rect>
+                <rect x="8.2" y="7.5" width="3.5" height="9.5" rx="1.75" fill="currentColor"></rect>
+                <rect x="13.4" y="4" width="3.5" height="13" rx="1.75" fill="currentColor"></rect>
+              </svg>
+            </span>
+            <div class="ups-blog-topic-name"><?php echo esc_html($topic_category->name); ?></div>
+            <div class="ups-blog-topic-count"><?php echo esc_html((string) $topic_category->count); ?> artykułów</div>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </section>
 
   <section class="ups-blog-cta">
     <div class="wrap">
