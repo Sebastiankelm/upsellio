@@ -3,39 +3,16 @@ if (!defined("ABSPATH")) {
     exit;
 }
 $primary_navigation_links = function_exists("upsellio_get_primary_navigation_links") ? upsellio_get_primary_navigation_links() : [];
+if (function_exists("upsellio_register_template_seo_head")) {
+    upsellio_register_template_seo_head("audyt_meta");
+}
+$upsellio_css_path = get_template_directory() . "/assets/css/upsellio.css";
+$upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($upsellio_css_path) : "1.0.0";
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
   <meta charset="<?php bloginfo("charset"); ?>" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Darmowy audyt wyników reklam Meta | Upsellio</title>
-  <meta
-    name="description"
-    content="Darmowy audyt wyników reklam Meta dla firm, które chcą wiedzieć, co działa, co przepala budżet i co poprawić, żeby pozyskiwać lepsze leady."
-  />
-  <meta property="og:title" content="Darmowy audyt wyników reklam Meta | Upsellio" />
-  <meta
-    property="og:description"
-    content="Sprawdzę Twoje kampanie Meta Ads i pokażę, co poprawić, żeby zwiększyć skuteczność reklam i jakość zapytań."
-  />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="<?php echo esc_url(home_url("/audyt-meta")); ?>" />
-  <meta name="twitter:card" content="summary_large_image" />
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "ProfessionalService",
-    "name": "Upsellio",
-    "url": "<?php echo esc_url(home_url("/audyt-meta")); ?>",
-    "email": "kontakt@upsellio.pl",
-    "description": "Darmowy audyt wyników reklam Meta dla małych i średnich firm.",
-    "founder": {
-      "@type": "Person",
-      "name": "Sebastian Kelm"
-    }
-  }
-  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -43,8 +20,9 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
     href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap"
     rel="stylesheet"
   />
+  <link rel="stylesheet" href="<?php echo esc_url(get_template_directory_uri() . "/assets/css/upsellio.css?ver=" . rawurlencode($upsellio_css_version)); ?>" />
 
-  <style>
+  <?php if (false) : ?><style>
     :root {
       --bg: #ffffff;
       --bg-soft: #f8f8f6;
@@ -92,28 +70,7 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
 
       --font-display: "Syne", sans-serif;
       --font-body: "DM Sans", sans-serif;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #111110;
-        --bg-soft: #181816;
-        --bg-muted: #212120;
-        --surface: #181816;
-
-        --text: #f1eee8;
-        --text-2: #c4c4bc;
-        --text-3: #8b8b82;
-
-        --border: #2d2d2b;
-        --border-strong: #454540;
-
-        --teal-soft: rgba(29, 158, 117, 0.12);
-        --teal-line: rgba(29, 158, 117, 0.22);
-
-        --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.35);
-        --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.45);
-      }
+      color-scheme: light;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -125,7 +82,9 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
       line-height: 1.65;
       -webkit-font-smoothing: antialiased;
       text-size-adjust: 100%;
+      overflow-x: hidden;
     }
+    body.is-mobile-menu-open { overflow: hidden; }
     img { display: block; max-width: 100%; }
     a { color: inherit; text-decoration: none; }
     button, input, textarea, select { font: inherit; }
@@ -355,7 +314,11 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
       border-top: 1px solid var(--border);
       background: var(--bg);
     }
-    .mobile-menu.open { max-height: 420px; }
+    .mobile-menu.open {
+      max-height: calc(100vh - 72px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
     .mobile-menu a {
       display: flex;
       align-items: center;
@@ -866,7 +829,7 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
       .section { padding: var(--sp-10) 0; }
       .section-sm { padding: var(--sp-7) 0; }
     }
-  </style>
+  </style><?php endif; ?>
   <?php wp_head(); ?>
 </head>
 <body <?php body_class(); ?>>
@@ -891,7 +854,7 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
         <a href="#formularz" class="nav-cta">Darmowy audyt</a>
       </div>
 
-      <button class="hamburger" id="hamburger" aria-label="Otwórz menu">
+      <button class="hamburger" id="hamburger" aria-label="Otwórz menu" aria-controls="mobile-menu" aria-expanded="false" type="button">
         <span></span><span></span><span></span>
       </button>
     </div>
@@ -1194,6 +1157,7 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
         </div>
       </div>
 
+      <?php echo upsellio_get_footer_popular_definitions_html(); ?>
       <?php echo upsellio_get_footer_city_links_html(); ?>
       <div class="footer-copy">© 2025 Upsellio / Sebastian Kelm. Wszelkie prawa zastrzeżone.</div>
     </div>
@@ -1227,17 +1191,48 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
 
       const ham = document.getElementById('hamburger');
       const mob = document.getElementById('mobile-menu');
-      ham.addEventListener('click', function () {
-        ham.classList.toggle('open');
-        mob.classList.toggle('open');
-      });
+      if (ham && mob) {
+        const setMobileMenuState = (isOpen) => {
+          ham.classList.toggle('open', isOpen);
+          mob.classList.toggle('open', isOpen);
+          ham.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+          ham.setAttribute('aria-label', isOpen ? 'Zamknij menu' : 'Otwórz menu');
+          document.body.classList.toggle('is-mobile-menu-open', isOpen);
+        };
 
-      mob.querySelectorAll('a').forEach((a) => {
-        a.addEventListener('click', function () {
-          ham.classList.remove('open');
-          mob.classList.remove('open');
+        setMobileMenuState(false);
+
+        ham.addEventListener('click', function () {
+          const nextState = !ham.classList.contains('open');
+          setMobileMenuState(nextState);
         });
-      });
+
+        mob.querySelectorAll('a').forEach((a) => {
+          a.addEventListener('click', function () {
+            setMobileMenuState(false);
+          });
+        });
+
+        document.addEventListener('click', function (event) {
+          const clickedInsideMenu = mob.contains(event.target);
+          const clickedHamburger = ham.contains(event.target);
+          if (!clickedInsideMenu && !clickedHamburger) {
+            setMobileMenuState(false);
+          }
+        });
+
+        window.addEventListener('keydown', function (event) {
+          if (event.key === 'Escape') {
+            setMobileMenuState(false);
+          }
+        });
+
+        window.addEventListener('resize', function () {
+          if (window.innerWidth >= 761) {
+            setMobileMenuState(false);
+          }
+        });
+      }
 
       document.querySelectorAll('a[href^="#"]').forEach((a) => {
         a.addEventListener('click', function (e) {
