@@ -96,6 +96,118 @@ function upsellio_build_page_tree($pages)
     return $tree;
 }
 
+function upsellio_get_lead_magnet_candidates($limit = 12)
+{
+    $limit = max(1, (int) $limit);
+    $items = [];
+
+    $query = new WP_Query([
+        "post_type" => ["page", "post", "definicja"],
+        "post_status" => "publish",
+        "posts_per_page" => $limit,
+        "meta_key" => "_upsellio_is_lead_magnet",
+        "meta_value" => "1",
+        "orderby" => "menu_order date",
+        "order" => "ASC",
+        "ignore_sticky_posts" => true,
+    ]);
+
+    if (!empty($query->posts)) {
+        foreach ($query->posts as $post) {
+            $post_id = (int) $post->ID;
+            $items[] = [
+                "id" => $post_id,
+                "title" => (string) get_the_title($post_id),
+                "url" => (string) get_permalink($post_id),
+                "excerpt" => (string) get_the_excerpt($post_id),
+            ];
+        }
+    }
+    wp_reset_postdata();
+
+    if (empty($items)) {
+        $fallback_page = get_page_by_path("audyt-meta");
+        if ($fallback_page instanceof WP_Post) {
+            $fallback_id = (int) $fallback_page->ID;
+            $items[] = [
+                "id" => $fallback_id,
+                "title" => (string) get_the_title($fallback_id),
+                "url" => (string) get_permalink($fallback_id),
+                "excerpt" => (string) get_the_excerpt($fallback_id),
+            ];
+        }
+    }
+
+    return array_slice($items, 0, $limit);
+}
+
+function upsellio_get_primary_lead_magnet()
+{
+    $items = upsellio_get_lead_magnet_candidates(1);
+    if (!empty($items)) {
+        return $items[0];
+    }
+
+    return [
+        "id" => 0,
+        "title" => "Darmowy audyt Meta Ads",
+        "url" => home_url("/audyt-meta"),
+        "excerpt" => "Sprawdź, co w kampaniach działa, co przepala budżet i co poprawić, żeby podnieść jakość leadów.",
+    ];
+}
+
+function upsellio_add_lead_magnet_meta_box()
+{
+    $screens = ["page", "post"];
+    if (post_type_exists("definicja")) {
+        $screens[] = "definicja";
+    }
+
+    foreach ($screens as $screen) {
+        add_meta_box(
+            "upsellio_lead_magnet_box",
+            "Upsellio: Lead magnet",
+            "upsellio_render_lead_magnet_meta_box",
+            $screen,
+            "side",
+            "high"
+        );
+    }
+}
+add_action("add_meta_boxes", "upsellio_add_lead_magnet_meta_box");
+
+function upsellio_render_lead_magnet_meta_box($post)
+{
+    $is_marked = (string) get_post_meta((int) $post->ID, "_upsellio_is_lead_magnet", true) === "1";
+    wp_nonce_field("upsellio_lead_magnet_meta_box", "upsellio_lead_magnet_nonce");
+    ?>
+    <label for="upsellio_is_lead_magnet" style="display:flex;gap:8px;align-items:flex-start;">
+      <input type="checkbox" id="upsellio_is_lead_magnet" name="upsellio_is_lead_magnet" value="1" <?php checked($is_marked); ?> />
+      <span>Oznacz ten wpis jako lead magnet (pojawi się w synchronizacji nawigacji).</span>
+    </label>
+    <?php
+}
+
+function upsellio_save_lead_magnet_meta_box($post_id)
+{
+    if (!isset($_POST["upsellio_lead_magnet_nonce"])) {
+        return;
+    }
+    if (!wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["upsellio_lead_magnet_nonce"])), "upsellio_lead_magnet_meta_box")) {
+        return;
+    }
+    if (defined("DOING_AUTOSAVE") && DOING_AUTOSAVE) {
+        return;
+    }
+    if (!current_user_can("edit_post", (int) $post_id)) {
+        return;
+    }
+
+    $is_marked = isset($_POST["upsellio_is_lead_magnet"]) ? "1" : "0";
+    update_post_meta((int) $post_id, "_upsellio_is_lead_magnet", $is_marked);
+}
+add_action("save_post", "upsellio_save_lead_magnet_meta_box");
+
 
 function upsellio_sync_primary_navigation_menu()
 {
@@ -189,6 +301,32 @@ function upsellio_sync_primary_navigation_menu()
         }
     }
 
+    $lead_magnets = upsellio_get_lead_magnet_candidates(20);
+    if (!empty($lead_magnets)) {
+        $lead_magnets_parent_item = wp_update_nav_menu_item($menu_id, 0, [
+            "menu-item-title" => "Lead magnety",
+            "menu-item-url" => "#",
+            "menu-item-type" => "custom",
+            "menu-item-status" => "publish",
+            "menu-item-parent-id" => 0,
+        ]);
+        if (!is_wp_error($lead_magnets_parent_item)) {
+            $created++;
+            foreach ($lead_magnets as $lead_magnet) {
+                $lead_item = wp_update_nav_menu_item($menu_id, 0, [
+                    "menu-item-title" => (string) $lead_magnet["title"],
+                    "menu-item-url" => (string) $lead_magnet["url"],
+                    "menu-item-type" => "custom",
+                    "menu-item-status" => "publish",
+                    "menu-item-parent-id" => (int) $lead_magnets_parent_item,
+                ]);
+                if (!is_wp_error($lead_item)) {
+                    $created++;
+                }
+            }
+        }
+    }
+
     $locations = get_nav_menu_locations();
     $locations["primary"] = $menu_id;
     set_theme_mod("nav_menu_locations", $locations);
@@ -238,7 +376,7 @@ function upsellio_navigation_sync_screen()
     ?>
     <div class="wrap">
       <h1>Synchronizacja nawigacji</h1>
-      <p>Jednym kliknięciem zaktualizujesz menu nawigacji na podstawie wszystkich opublikowanych stron i podstron.</p>
+      <p>Jednym kliknięciem zaktualizujesz menu nawigacji na podstawie wszystkich opublikowanych stron, podstron i oznaczonych lead magnetów.</p>
       <p><a class="button button-primary" href="<?php echo esc_url(upsellio_get_navigation_sync_url()); ?>">Wykonaj szybką aktualizację bazy menu</a></p>
     </div>
     <?php

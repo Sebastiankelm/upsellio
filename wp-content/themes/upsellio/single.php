@@ -22,6 +22,11 @@ if (have_posts()) :
         $content_html = $prepared_content["content"];
         $raw_post_content = (string) get_post_field("post_content", $post_id);
         $has_inline_contact_shortcode = strpos($raw_post_content, "[upsellio_contact_form]") !== false;
+        $lead_magnet = function_exists("upsellio_get_primary_lead_magnet") ? upsellio_get_primary_lead_magnet() : [
+            "title" => "Darmowy audyt Meta Ads",
+            "url" => home_url("/audyt-meta"),
+            "excerpt" => "Sprawdź, co w kampaniach działa, co przepala budżet i co poprawić, żeby podnieść jakość leadów.",
+        ];
 
         $related_ids = upsellio_get_related_post_ids($post_id, 3);
         $related_posts = [];
@@ -607,9 +612,9 @@ if (have_posts()) :
 
                 <div class="ups-post-panel ups-post-lead-magnet">
                   <div class="ups-post-panel-title" style="color:var(--teal-dark);">Lead magnet</div>
-                  <h3>Checklista przed zwiększeniem budżetu reklamowego</h3>
-                  <p>Pobierz materiał i sprawdź, czy Twoje kampanie są gotowe na bezpieczne skalowanie.</p>
-                  <a href="<?php echo esc_url(home_url("/audyt-meta")); ?>">Pobierz checklistę →</a>
+                  <h3><?php echo esc_html((string) ($lead_magnet["title"] ?? "Darmowy audyt Meta Ads")); ?></h3>
+                  <p><?php echo esc_html((string) ($lead_magnet["excerpt"] ?? "Sprawdź materiał lead magnet i przejdź do wdrożenia.")); ?></p>
+                  <a href="<?php echo esc_url((string) ($lead_magnet["url"] ?? home_url("/audyt-meta"))); ?>">Przejdź do lead magnetu →</a>
                 </div>
               </aside>
 
