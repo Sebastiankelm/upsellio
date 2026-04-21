@@ -45,13 +45,13 @@ get_header();
             <?php
         endforeach;
     else :
-        foreach (upsellio_get_cities_dataset() as $city) :
+        if (current_user_can("manage_options")) :
             ?>
-            <a class="miasta-link" href="<?php echo esc_url(home_url("/miasto/" . $city["slug"] . "/")); ?>">
-              <?php echo esc_html("Marketing i strony WWW " . $city["name"]); ?>
-            </a>
+            <div class="miasta-link" style="border-color:#edcccc;background:#fff2f2;color:#b13a3a;">
+              Brak opublikowanych wpisow typu <code>miasto</code>. Seedy sluza tylko do bootstrapu/migracji - opublikuj realne wpisy w CMS.
+            </div>
             <?php
-        endforeach;
+        endif;
     endif;
     ?>
     </div>
