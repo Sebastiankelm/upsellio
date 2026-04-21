@@ -170,7 +170,6 @@ function upsellio_get_footer_city_links_html()
         .upsellio-local-seo{margin-top:32px;padding-top:24px;border-top:1px solid var(--border,#e6e6e1)}
         .upsellio-local-seo-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
         .upsellio-local-seo-title{font-size:13px;font-weight:700;letter-spacing:.3px;color:var(--text-2,#3d3d38)}
-        .upsellio-local-seo-count{font-size:12px;color:var(--text-3,#7c7c74)}
         .upsellio-local-seo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px}
         .upsellio-local-seo-link{font-size:13px;line-height:1.5;color:var(--text-3,#7c7c74);display:inline-block;text-decoration:none}
         .upsellio-local-seo-link:hover{color:var(--teal,#1d9e75)}
@@ -181,10 +180,7 @@ function upsellio_get_footer_city_links_html()
         @media(min-width:861px){.upsellio-local-seo-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
       </style>
       <div class="upsellio-local-seo-head">
-        <div>
-          <div class="upsellio-local-seo-title">Uslugi w najwiekszych miastach Polski</div>
-          <div class="upsellio-local-seo-count"><?php echo esc_html(count($cityLinks)); ?> lokalizacji</div>
-        </div>
+        <div class="upsellio-local-seo-title">Uslugi w najwiekszych miastach Polski</div>
         <?php if (!empty($hiddenLinks)) : ?>
           <button class="upsellio-local-seo-toggle" type="button" data-role="toggle">Pokaz wszystkie miasta</button>
         <?php endif; ?>
@@ -221,6 +217,44 @@ function upsellio_get_footer_city_links_html()
         </script>
       <?php endif; ?>
     </section>
+    <?php
+
+    return ob_get_clean();
+}
+
+function upsellio_get_footer_popular_definitions_html()
+{
+    $popularDefinitions = get_posts([
+        "post_type" => "definicja",
+        "post_status" => "publish",
+        "numberposts" => 12,
+        "orderby" => "date",
+        "order" => "DESC",
+    ]);
+
+    if (empty($popularDefinitions)) {
+        return "";
+    }
+
+    ob_start();
+    ?>
+    <section style="margin-top:28px;padding-top:24px;border-top:1px solid #e6e6e1;">
+      <h3 style="margin:0 0 12px;font-family:Syne,sans-serif;font-size:18px;color:#111110;">Popularne definicje</h3>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;">
+        <?php foreach ($popularDefinitions as $definition) :
+            $term = get_post_meta($definition->ID, "_upsellio_definition_term", true) ?: get_the_title($definition->ID);
+            ?>
+          <a href="<?php echo esc_url(get_permalink($definition->ID)); ?>" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+            <?php echo esc_html($term); ?>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    </section>
+    <style>
+      @media(min-width:861px){
+        footer [style*="grid-template-columns:repeat(2,minmax(0,1fr));"]{grid-template-columns:repeat(4,minmax(0,1fr)) !important}
+      }
+    </style>
     <?php
 
     return ob_get_clean();
