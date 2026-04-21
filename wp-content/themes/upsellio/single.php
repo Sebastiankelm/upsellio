@@ -14,7 +14,7 @@ if (have_posts()) :
         $primary_category = !empty($post_categories) ? $post_categories[0] : null;
         $featured_image = get_the_post_thumbnail_url($post_id, "full");
         $fallback_image = get_post_meta($post_id, "_upsellio_featured_image_url", true);
-        $hero_image = $featured_image ?: ($fallback_image ?: "https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&w=1800&q=80");
+        $hero_image = $featured_image ?: $fallback_image;
 
         $raw_content = apply_filters("the_content", (string) get_post_field("post_content", $post_id));
         $prepared_content = upsellio_prepare_toc_content($raw_content);
@@ -22,11 +22,7 @@ if (have_posts()) :
         $content_html = $prepared_content["content"];
         $raw_post_content = (string) get_post_field("post_content", $post_id);
         $has_inline_contact_shortcode = strpos($raw_post_content, "[upsellio_contact_form]") !== false;
-        $lead_magnet = function_exists("upsellio_get_primary_lead_magnet") ? upsellio_get_primary_lead_magnet() : [
-            "title" => "Darmowy audyt Meta Ads",
-            "url" => home_url("/audyt-meta"),
-            "excerpt" => "Sprawdź, co w kampaniach działa, co przepala budżet i co poprawić, żeby podnieść jakość leadów.",
-        ];
+        $lead_magnet = function_exists("upsellio_get_primary_lead_magnet") ? upsellio_get_primary_lead_magnet() : [];
 
         $related_ids = upsellio_get_related_post_ids($post_id, 3);
         $related_posts = [];
@@ -556,7 +552,7 @@ if (have_posts()) :
 
         <main class="ups-post">
           <section class="ups-post-hero">
-            <img src="<?php echo esc_url($hero_image); ?>" alt="<?php echo esc_attr(get_the_title($post_id)); ?>" class="ups-post-hero-bg" />
+            <img src="<?php echo esc_url($hero_image); ?>" alt="<?php echo esc_attr(get_the_title($post_id)); ?>" class="ups-post-hero-bg" width="1800" height="980" decoding="async" />
             <div class="ups-post-hero-overlay"></div>
             <div class="ups-post-hero-inner">
               <a class="ups-post-back" href="<?php echo esc_url($blog_index_url); ?>">← Wróć do bloga</a>
@@ -610,22 +606,35 @@ if (have_posts()) :
                   </div>
                 <?php endif; ?>
 
-                <div class="ups-post-panel ups-post-lead-magnet">
-                  <div class="ups-post-panel-title" style="color:var(--teal-dark);">Lead magnet</div>
-                  <h3><?php echo esc_html((string) ($lead_magnet["title"] ?? "Darmowy audyt Meta Ads")); ?></h3>
-                  <p><?php echo esc_html((string) ($lead_magnet["excerpt"] ?? "Sprawdź materiał lead magnet i przejdź do wdrożenia.")); ?></p>
-                  <a href="<?php echo esc_url((string) ($lead_magnet["url"] ?? home_url("/audyt-meta"))); ?>">Przejdź do lead magnetu →</a>
-                </div>
+                <?php if (!empty($lead_magnet["url"])) : ?>
+                  <div class="ups-post-panel ups-post-lead-magnet">
+                    <div class="ups-post-panel-title" style="color:var(--teal-dark);">Polecany materiał</div>
+                    <h3><?php echo esc_html((string) ($lead_magnet["title"] ?? "")); ?></h3>
+                    <p><?php echo esc_html((string) ($lead_magnet["excerpt"] ?? "")); ?></p>
+                    <a href="<?php echo esc_url((string) $lead_magnet["url"]); ?>">Przejdź do materiału →</a>
+                  </div>
+                <?php elseif (current_user_can("manage_options")) : ?>
+                  <div class="ups-post-panel ups-post-lead-magnet">
+                    <div class="ups-post-panel-title" style="color:#b13a3a;">Brak lead magnetu</div>
+                    <p>Skonfiguruj i opublikuj co najmniej jeden material typu lead_magnet.</p>
+                  </div>
+                <?php endif; ?>
               </aside>
 
               <div class="ups-post-content-shell">
-                <div class="ups-post-highlight">
-                  <img src="<?php echo esc_url($hero_image); ?>" alt="<?php echo esc_attr(get_the_title($post_id)); ?>" />
-                  <div class="ups-post-highlight-copy">
-                    <small>Kluczowa myśl artykułu</small>
-                    <p>Dobre reklamy nie wystarczą, jeśli reszta procesu sprzedaży nie jest gotowa dowieźć wyniku.</p>
+                <?php if ($hero_image) : ?>
+                  <div class="ups-post-highlight">
+                    <img src="<?php echo esc_url($hero_image); ?>" alt="<?php echo esc_attr(get_the_title($post_id)); ?>" width="1600" height="920" decoding="async" />
+                    <div class="ups-post-highlight-copy">
+                      <small>Kluczowa myśl artykułu</small>
+                      <p>Dobre reklamy nie wystarczą, jeśli reszta procesu sprzedaży nie jest gotowa dowieźć wyniku.</p>
+                    </div>
                   </div>
-                </div>
+                <?php elseif (current_user_can("manage_options")) : ?>
+                  <div class="ups-post-highlight" style="display:block;padding:16px;border:1px solid #edcccc;background:#fff2f2;">
+                    Brak obrazu wyrozniajacego i _upsellio_featured_image_url dla tego wpisu.
+                  </div>
+                <?php endif; ?>
 
                 <article class="ups-post-article">
                   <section class="ups-post-section">
@@ -659,7 +668,7 @@ if (have_posts()) :
                     }
                     ?>
                     <article class="ups-post-related-card">
-                      <img src="<?php echo esc_url($related_img); ?>" alt="<?php echo esc_attr(get_the_title($related_post_id)); ?>" />
+                      <img src="<?php echo esc_url($related_img); ?>" alt="<?php echo esc_attr(get_the_title($related_post_id)); ?>" width="1200" height="760" decoding="async" loading="lazy" />
                       <div class="ups-post-related-copy">
                         <div class="ups-post-related-badge"><?php echo esc_html($related_cat_name); ?></div>
                         <h3 class="ups-post-related-title"><?php echo esc_html(get_the_title($related_post_id)); ?></h3>
