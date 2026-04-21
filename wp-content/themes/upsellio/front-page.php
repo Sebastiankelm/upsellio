@@ -2,40 +2,87 @@
 if (!defined("ABSPATH")) {
     exit;
 }
-$primary_navigation_links = function_exists("upsellio_get_primary_navigation_links") ? upsellio_get_primary_navigation_links() : [];
+
+$front_page_sections = function_exists("upsellio_get_front_page_content_config")
+    ? upsellio_get_front_page_content_config()
+    : [];
+$front_page_issues = function_exists("upsellio_get_front_page_data_issues")
+    ? upsellio_get_front_page_data_issues()
+    : [];
+$front_nav_links = isset($front_page_sections["nav_links"]) && is_array($front_page_sections["nav_links"])
+    ? $front_page_sections["nav_links"]
+    : [];
+$hero_section = isset($front_page_sections["hero"]) && is_array($front_page_sections["hero"])
+    ? $front_page_sections["hero"]
+    : [];
+$faq_items = isset($front_page_sections["faq_items"]) && is_array($front_page_sections["faq_items"])
+    ? $front_page_sections["faq_items"]
+    : [];
+$why_section = isset($front_page_sections["why"]) && is_array($front_page_sections["why"])
+    ? $front_page_sections["why"]
+    : [];
+$services_section = isset($front_page_sections["services"]) && is_array($front_page_sections["services"])
+    ? $front_page_sections["services"]
+    : [];
+$results_section = isset($front_page_sections["results"]) && is_array($front_page_sections["results"])
+    ? $front_page_sections["results"]
+    : [];
+$fit_section = isset($front_page_sections["fit"]) && is_array($front_page_sections["fit"])
+    ? $front_page_sections["fit"]
+    : [];
+$problem_section = isset($front_page_sections["problem"]) && is_array($front_page_sections["problem"])
+    ? $front_page_sections["problem"]
+    : [];
+$process_section = isset($front_page_sections["process"]) && is_array($front_page_sections["process"])
+    ? $front_page_sections["process"]
+    : [];
+$cta_band_section = isset($front_page_sections["cta_band"]) && is_array($front_page_sections["cta_band"])
+    ? $front_page_sections["cta_band"]
+    : [];
+$seo_section = isset($front_page_sections["seo"]) && is_array($front_page_sections["seo"])
+    ? $front_page_sections["seo"]
+    : [];
+$contact_service_options = isset($front_page_sections["contact_service_options"]) && is_array($front_page_sections["contact_service_options"])
+    ? $front_page_sections["contact_service_options"]
+    : [];
+$contact_phone = trim((string) ($front_page_sections["contact_phone"] ?? ""));
+$contact_email = trim((string) ($front_page_sections["contact_email"] ?? ""));
+
+$seo_title = trim((string) ($seo_section["title"] ?? ""));
+$seo_description = trim((string) ($seo_section["description"] ?? ""));
+$seo_og_title = trim((string) ($seo_section["og_title"] ?? ""));
+$seo_og_description = trim((string) ($seo_section["og_description"] ?? ""));
+$seo_og_type = trim((string) ($seo_section["og_type"] ?? "website"));
+$seo_og_url = trim((string) ($seo_section["og_url"] ?? "/"));
+$seo_twitter_card = trim((string) ($seo_section["twitter_card"] ?? "summary_large_image"));
+$seo_schema = [
+    "@context" => "https://schema.org",
+    "@type" => trim((string) ($seo_section["schema_type"] ?? "ProfessionalService")),
+    "name" => trim((string) ($seo_section["schema_name"] ?? get_bloginfo("name"))),
+    "url" => home_url(trim((string) ($seo_section["schema_url"] ?? "/"))),
+    "email" => trim((string) ($seo_section["schema_email"] ?? "")),
+    "description" => trim((string) ($seo_section["schema_description"] ?? "")),
+    "founder" => [
+        "@type" => "Person",
+        "name" => trim((string) ($seo_section["schema_founder_name"] ?? "")),
+    ],
+];
+$upsellio_css_path = get_template_directory() . "/assets/css/upsellio.css";
+$upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($upsellio_css_path) : "1.0.0";
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
   <meta charset="<?php bloginfo("charset"); ?>" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Upsellio — Marketing i strony internetowe dla firm B2B, które chcą sprzedawać więcej</title>
-  <meta
-    name="description"
-    content="Upsellio to Sebastian Kelm — praktyk sprzedaży B2B. Kampanie Meta i Google Ads, strony i sklepy internetowe oraz doradztwo sprzedażowe w ramach współpracy."
-  />
-  <meta property="og:title" content="Upsellio — Marketing i strony dla firm B2B" />
-  <meta
-    property="og:description"
-    content="Pomagam małym i średnim firmom zdobywać klientów i poprawiać sprzedaż dzięki marketingowi, stronom i praktycznemu spojrzeniu na biznes."
-  />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="<?php echo esc_url(home_url("/")); ?>" />
-  <meta name="twitter:card" content="summary_large_image" />
+  <?php if ($seo_title !== "") : ?><title><?php echo esc_html($seo_title); ?></title><?php endif; ?>
+  <?php if ($seo_description !== "") : ?><meta name="description" content="<?php echo esc_attr($seo_description); ?>" /><?php endif; ?>
+  <?php if ($seo_og_title !== "") : ?><meta property="og:title" content="<?php echo esc_attr($seo_og_title); ?>" /><?php endif; ?>
+  <?php if ($seo_og_description !== "") : ?><meta property="og:description" content="<?php echo esc_attr($seo_og_description); ?>" /><?php endif; ?>
+  <meta property="og:type" content="<?php echo esc_attr($seo_og_type !== "" ? $seo_og_type : "website"); ?>" />
+  <meta property="og:url" content="<?php echo esc_url(home_url($seo_og_url !== "" ? $seo_og_url : "/")); ?>" />
+  <meta name="twitter:card" content="<?php echo esc_attr($seo_twitter_card !== "" ? $seo_twitter_card : "summary_large_image"); ?>" />
 
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "ProfessionalService",
-    "name": "Upsellio",
-    "url": "<?php echo esc_url(home_url("/")); ?>",
-    "email": "kontakt@upsellio.pl",
-    "description": "Marketing internetowy, strony internetowe, sklepy online i doradztwo sprzedażowe dla małych i średnich firm.",
-    "founder": {
-      "@type": "Person",
-      "name": "Sebastian Kelm"
-    }
-  }
-  </script>
+  <script type="application/ld+json"><?php echo wp_json_encode($seo_schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -43,8 +90,9 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
     href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap"
     rel="stylesheet"
   />
+  <link rel="stylesheet" href="<?php echo esc_url(get_template_directory_uri() . "/assets/css/upsellio.css?ver=" . rawurlencode($upsellio_css_version)); ?>" />
 
-  <style>
+  <?php if (false) : ?><style>
     :root {
       --bg: #ffffff;
       --bg-soft: #f8f8f6;
@@ -92,28 +140,7 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
 
       --font-display: "Syne", sans-serif;
       --font-body: "DM Sans", sans-serif;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #111110;
-        --bg-soft: #181816;
-        --bg-muted: #212120;
-        --surface: #181816;
-
-        --text: #f1eee8;
-        --text-2: #c4c4bc;
-        --text-3: #8b8b82;
-
-        --border: #2d2d2b;
-        --border-strong: #454540;
-
-        --teal-soft: rgba(29, 158, 117, 0.12);
-        --teal-line: rgba(29, 158, 117, 0.22);
-
-        --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.35);
-        --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.45);
-      }
+      color-scheme: light;
     }
 
     * {
@@ -133,6 +160,10 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
       line-height: 1.65;
       -webkit-font-smoothing: antialiased;
       text-size-adjust: 100%;
+      overflow-x: hidden;
+    }
+    body.is-mobile-menu-open {
+      overflow: hidden;
     }
 
     img {
@@ -434,7 +465,9 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
     }
 
     .mobile-menu.open {
-      max-height: 420px;
+      max-height: calc(100vh - 72px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .mobile-menu a {
@@ -537,6 +570,36 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
     .hero-micro {
       font-size: 12px;
       color: var(--text-3);
+    }
+
+    .hero-trust {
+      margin-top: var(--sp-4);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      color: var(--text-2);
+      font-size: 13px;
+    }
+
+    .hero-trust-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hero-trust-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+      color: var(--teal);
+      font-size: 11px;
+      font-weight: 700;
     }
 
     .hero-aside {
@@ -671,6 +734,45 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
     .service-hero:hover {
       border-color: var(--teal-line);
       box-shadow: var(--shadow-md);
+    }
+
+    .service-check-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.3px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: var(--sp-2);
+    }
+
+    .service-checklist {
+      display: grid;
+      gap: 10px;
+    }
+
+    .service-check {
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      color: var(--text-2);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .service-check-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+      color: var(--teal);
+      font-size: 11px;
+      font-weight: 700;
     }
 
     .service-grid {
@@ -1033,6 +1135,10 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
       color: var(--teal-dark);
     }
 
+    .fit-card .btn {
+      margin-top: var(--sp-4);
+    }
+
     .fit-card.no .fit-item {
       color: var(--text-2);
     }
@@ -1063,6 +1169,10 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
       padding: var(--sp-3) 0;
       font-size: 15px;
       font-weight: 600;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      text-align: left;
       cursor: pointer;
       transition: 0.18s ease;
       user-select: none;
@@ -1240,6 +1350,22 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
 
     .footer-brand {
       max-width: 420px;
+    }
+
+    .footer-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 160px;
+    }
+
+    .footer-col-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 4px;
     }
 
     .footer-links {
@@ -1438,14 +1564,14 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
         align-items: flex-end;
       }
     }
-  </style>
+  </style><?php endif; ?>
   <?php wp_head(); ?>
 </head>
 <body <?php body_class(); ?>>
   <?php wp_body_open(); ?>
   <header class="nav">
     <div class="wrap nav-inner">
-      <a href="#start" class="brand" aria-label="Upsellio — strona główna">
+      <a href="<?php echo esc_url(home_url("/#start")); ?>" class="brand" aria-label="Upsellio — strona główna">
         <div class="brand-mark">U</div>
         <div class="brand-text">
           <div class="brand-name">Upsellio</div>
@@ -1454,78 +1580,108 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
       </a>
 
       <ul class="nav-links">
-        <?php foreach ($primary_navigation_links as $nav_link) : ?>
-          <li><a href="<?php echo esc_url((string) $nav_link["url"]); ?>"><?php echo esc_html((string) $nav_link["title"]); ?></a></li>
+        <?php foreach ($front_nav_links as $front_nav_link) : ?>
+          <?php
+          $nav_title = trim((string) ($front_nav_link["title"] ?? ""));
+          $nav_url = trim((string) ($front_nav_link["url"] ?? ""));
+          if ($nav_title === "" || $nav_url === "") {
+              continue;
+          }
+          ?>
+          <li><a href="<?php echo esc_url(home_url($nav_url)); ?>"><?php echo esc_html($nav_title); ?></a></li>
         <?php endforeach; ?>
       </ul>
 
       <div class="nav-actions">
-        <a href="#kontakt" class="nav-cta">Bezpłatna rozmowa</a>
+        <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="nav-cta">Bezpłatna rozmowa</a>
       </div>
 
-      <button class="hamburger" id="hamburger" aria-label="Otwórz menu">
+      <button class="hamburger" id="hamburger" aria-label="Otwórz menu" aria-controls="mobile-menu" aria-expanded="false" type="button">
         <span></span><span></span><span></span>
       </button>
     </div>
 
-    <div class="mobile-menu" id="mobile-menu">
+    <div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Menu mobilne">
       <div class="wrap">
-        <?php foreach ($primary_navigation_links as $nav_link) : ?>
-          <a href="<?php echo esc_url((string) $nav_link["url"]); ?>"><?php echo esc_html((string) $nav_link["title"]); ?></a>
+        <?php foreach ($front_nav_links as $front_nav_link) : ?>
+          <?php
+          $nav_title = trim((string) ($front_nav_link["title"] ?? ""));
+          $nav_url = trim((string) ($front_nav_link["url"] ?? ""));
+          if ($nav_title === "" || $nav_url === "") {
+              continue;
+          }
+          ?>
+          <a href="<?php echo esc_url(home_url($nav_url)); ?>"><?php echo esc_html($nav_title); ?></a>
         <?php endforeach; ?>
-        <a href="#kontakt">Bezpłatna rozmowa →</a>
+        <a href="<?php echo esc_url(home_url("/#kontakt")); ?>">Bezpłatna rozmowa →</a>
       </div>
     </div>
   </header>
 
   <main>
+    <?php if (!empty($front_page_issues) && current_user_can("manage_options")) : ?>
+      <section class="section-sm">
+        <div class="wrap">
+          <div style="padding:12px 14px;border:1px solid #edcccc;background:#fff2f2;border-radius:10px;color:#b13a3a;font-size:13px;">
+            <strong>Brakujaca konfiguracja dynamiczna:</strong>
+            <ul style="margin:8px 0 0 18px;">
+              <?php foreach ($front_page_issues as $issue) : ?>
+                <li><?php echo esc_html((string) $issue); ?></li>
+              <?php endforeach; ?>
+            </ul>
+          </div>
+        </div>
+      </section>
+    <?php endif; ?>
     <section class="hero s-hero" id="start">
       <div class="wrap hero-grid">
         <div class="hero-copy">
           <div class="hero-pill reveal visible">
             <div class="hero-pill-dot">●</div>
-            <span>Dla <strong>małych i średnich firm B2B</strong>, które chcą poukładać marketing i sprzedaż</span>
+            <span><?php echo esc_html((string) ($hero_section["pill"] ?? "Dla malych i srednich firm B2B")); ?></span>
           </div>
 
-          <h1 class="h1 reveal visible">
-            Pomagam firmom zdobywać klientów i
-            <span class="accent">poprawiać sprzedaż</span>
-            — bez agencyjnego chaosu
-          </h1>
+          <h1 class="h1 reveal visible"><?php echo esc_html((string) ($hero_section["title"] ?? "Marketing internetowy i strony WWW, ktore realnie sprzedaja")); ?></h1>
 
-          <p class="lead reveal visible">
-            Tworzę kampanie i strony, które mają jeden cel:
-            <strong>pomóc Ci zdobywać więcej wartościowych zapytań i sprzedawać skuteczniej.</strong>
-            Do każdej współpracy wnoszę praktyczne doświadczenie sprzedażowe B2B — nie jako osobną usługę, tylko jako realną przewagę tej współpracy.
-          </p>
+          <p class="lead reveal visible"><?php echo esc_html((string) ($hero_section["lead"] ?? "")); ?></p>
 
           <div class="hero-actions reveal visible">
-            <a href="#kontakt" class="btn btn-primary btn-pulse">Umów bezpłatną rozmowę →</a>
-            <a href="#uslugi" class="btn btn-secondary">Zobacz co robię</a>
+            <a href="<?php echo esc_url(home_url((string) ($hero_section["primary_cta_url"] ?? "/#kontakt"))); ?>" class="btn btn-primary btn-pulse"><?php echo esc_html((string) ($hero_section["primary_cta_label"] ?? "Umow bezplatna rozmowe")); ?> →</a>
+            <a href="<?php echo esc_url(home_url((string) ($hero_section["secondary_cta_url"] ?? "/#uslugi"))); ?>" class="btn btn-secondary"><?php echo esc_html((string) ($hero_section["secondary_cta_label"] ?? "Zobacz co robie")); ?></a>
           </div>
 
           <div class="hero-micro reveal visible">
-            Bez zobowiązań. Krótka rozmowa, żeby sprawdzić, czy i jak mogę pomóc.
+            <?php echo esc_html((string) ($hero_section["micro"] ?? "")); ?>
+          </div>
+
+          <div class="hero-trust reveal visible">
+            <?php $hero_trust_items = isset($hero_section["trust_items"]) && is_array($hero_section["trust_items"]) ? $hero_section["trust_items"] : []; ?>
+            <?php foreach ($hero_trust_items as $hero_trust_item) : ?>
+              <?php $hero_trust_item = trim((string) $hero_trust_item); ?>
+              <?php if ($hero_trust_item === "") : ?>
+                <?php continue; ?>
+              <?php endif; ?>
+              <div class="hero-trust-item"><span class="hero-trust-dot">✓</span><?php echo esc_html($hero_trust_item); ?></div>
+            <?php endforeach; ?>
           </div>
         </div>
 
         <aside class="hero-aside">
-          <div class="hero-aside-label">Doświadczenie z praktyki</div>
-
-          <div class="hero-stat">
-            <div class="hero-stat-num">~1 mln PLN</div>
-            <div class="hero-stat-text">miesięcznej sprzedaży handlowej w modelu B2B</div>
-          </div>
-
-          <div class="hero-stat">
-            <div class="hero-stat-num">10 lat</div>
-            <div class="hero-stat-text">w sprzedaży, zarządzaniu, analizie i marketingu</div>
-          </div>
-
-          <div class="hero-stat">
-            <div class="hero-stat-num">15 osób</div>
-            <div class="hero-stat-text">zbudowany i prowadzony dział sprzedaży</div>
-          </div>
+          <div class="hero-aside-label"><?php echo esc_html((string) ($hero_section["aside_label"] ?? "")); ?></div>
+          <?php $hero_aside_stats = isset($hero_section["aside_stats"]) && is_array($hero_section["aside_stats"]) ? $hero_section["aside_stats"] : []; ?>
+          <?php foreach ($hero_aside_stats as $hero_aside_stat) : ?>
+            <?php
+            $hero_stat_number = trim((string) ($hero_aside_stat["number"] ?? ""));
+            $hero_stat_text = trim((string) ($hero_aside_stat["text"] ?? ""));
+            if ($hero_stat_number === "" || $hero_stat_text === "") {
+                continue;
+            }
+            ?>
+            <div class="hero-stat">
+              <div class="hero-stat-num"><?php echo esc_html($hero_stat_number); ?></div>
+              <div class="hero-stat-text"><?php echo esc_html($hero_stat_text); ?></div>
+            </div>
+          <?php endforeach; ?>
         </aside>
       </div>
     </section>
@@ -1533,55 +1689,48 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
     <section class="section section-border" id="dlaczego">
       <div class="wrap split">
         <div class="content">
-          <div class="eyebrow reveal">Dlaczego to działa</div>
-          <h2 class="h2 reveal d1">Łączę rzeczy, które <span class="accent">rzadko idą razem</span></h2>
-          <p class="body reveal d2" style="margin-top: 18px;">
-            Większość agencji robi reklamy. Większość freelancerów robi strony.
-            Mało kto rozumie przy tym, jak naprawdę wygląda sprzedaż B2B od środka
-            i gdzie firmy realnie tracą klientów, marżę albo skuteczność działań.
-          </p>
+          <div class="eyebrow reveal"><?php echo esc_html((string) ($why_section["eyebrow"] ?? "Dlaczego to dziala")); ?></div>
+          <h2 class="h2 reveal d1"><?php echo esc_html((string) ($why_section["title"] ?? "")); ?></h2>
+          <p class="body reveal d2" style="margin-top: 18px;"><?php echo esc_html((string) ($why_section["lead"] ?? "")); ?></p>
         </div>
 
         <div class="stack-cards">
-          <div class="feature-row reveal">
-            <div class="feature-icon">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <rect x="2" y="10" width="3" height="6" rx="1.5" fill="currentColor"/>
-                <rect x="7.5" y="6" width="3" height="10" rx="1.5" fill="currentColor"/>
-                <rect x="13" y="2" width="3" height="14" rx="1.5" fill="currentColor"/>
-              </svg>
+          <?php $why_features = isset($why_section["features"]) && is_array($why_section["features"]) ? $why_section["features"] : []; ?>
+          <?php if (!empty($why_features)) : ?>
+            <?php foreach ($why_features as $why_feature_index => $why_feature) : ?>
+              <?php
+              $feature_title = trim((string) ($why_feature["title"] ?? ""));
+              $feature_desc = trim((string) ($why_feature["description"] ?? ""));
+              if ($feature_title === "" || $feature_desc === "") {
+                  continue;
+              }
+              $feature_delay_class = "";
+              if ($why_feature_index % 3 === 1) {
+                  $feature_delay_class = " d1";
+              } elseif ($why_feature_index % 3 === 2) {
+                  $feature_delay_class = " d2";
+              }
+              ?>
+              <div class="feature-row reveal<?php echo esc_attr($feature_delay_class); ?>">
+                <div class="feature-icon">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <circle cx="9" cy="9" r="8" stroke="currentColor" stroke-width="1.4"/>
+                    <path d="M5.2 9.1l2.2 2.2 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <div class="feature-title"><?php echo esc_html($feature_title); ?></div>
+                  <div class="feature-desc"><?php echo esc_html($feature_desc); ?></div>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          <?php elseif (current_user_can("manage_options")) : ?>
+            <div class="feature-row reveal">
+              <div>
+                <div class="feature-desc">Brak danych sekcji "why.features" w konfiguracji.</div>
+              </div>
             </div>
-            <div>
-              <div class="feature-title">Marketing nastawiony na wynik</div>
-              <div class="feature-desc">Kampanie Meta i Google Ads optymalizowane pod klientów i zapytania, a nie pod ładne statystyki.</div>
-            </div>
-          </div>
-
-          <div class="feature-row reveal d1">
-            <div class="feature-icon">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <rect x="2" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M6 15h6M9 13v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <div>
-              <div class="feature-title">Strony i sklepy, które sprzedają</div>
-              <div class="feature-desc">Nie tylko estetyczne. Zaprojektowane tak, żeby użytkownik wiedział co zrobić i dlaczego właśnie u Ciebie.</div>
-            </div>
-          </div>
-
-          <div class="feature-row reveal d2">
-            <div class="feature-icon">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <circle cx="9" cy="6" r="3.5" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M3 15c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              </svg>
-            </div>
-            <div>
-              <div class="feature-title">Praktyk sprzedaży B2B</div>
-              <div class="feature-desc">To doświadczenie zmienia jakość współpracy, bo szybciej widać problem głębiej niż tylko w reklamie czy stronie.</div>
-            </div>
-          </div>
+          <?php endif; ?>
         </div>
       </div>
     </section>
@@ -1589,20 +1738,30 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
     <section class="section bg-soft section-border" id="problem">
       <div class="wrap">
         <div class="content">
-          <div class="eyebrow reveal">Problem</div>
-          <h2 class="h2 reveal d1">Technicznie poprawne działania, które <span class="accent">nie przynoszą klientów</span></h2>
-          <p class="body reveal d2" style="margin-top: 18px;">
-            Kampania może być ustawiona poprawnie i nadal nie dowozić.
-            Strona może wyglądać dobrze i nie generować zapytań.
-            Zwykle problem leży głębiej — w komunikacie, ofercie, lejku albo sposobie, w jaki firma pracuje z ruchem i sprzedażą.
-          </p>
+          <div class="eyebrow reveal"><?php echo esc_html((string) ($problem_section["eyebrow"] ?? "Problem")); ?></div>
+          <h2 class="h2 reveal d1"><?php echo esc_html((string) ($problem_section["title"] ?? "")); ?></h2>
+          <p class="body reveal d2" style="margin-top: 18px;"><?php echo esc_html((string) ($problem_section["lead"] ?? "")); ?></p>
         </div>
 
         <div class="problem-grid">
-          <div class="problem-card reveal">Płacisz za reklamy, ale mało wartościowych klientów się odzywa</div>
-          <div class="problem-card reveal d1">Strona wygląda profesjonalnie, ale nie generuje zapytań</div>
-          <div class="problem-card reveal d2">Sklep ma ruch, ale konwersja jest zbyt niska</div>
-          <div class="problem-card reveal d3">Nie wiesz, co faktycznie działa, a co jest stratą budżetu</div>
+          <?php $problem_items = isset($problem_section["items"]) && is_array($problem_section["items"]) ? $problem_section["items"] : []; ?>
+          <?php foreach ($problem_items as $problem_item_index => $problem_item) : ?>
+            <?php
+            $problem_item = trim((string) $problem_item);
+            if ($problem_item === "") {
+                continue;
+            }
+            $problem_delay_class = "";
+            if ($problem_item_index % 4 === 1) {
+                $problem_delay_class = " d1";
+            } elseif ($problem_item_index % 4 === 2) {
+                $problem_delay_class = " d2";
+            } elseif ($problem_item_index % 4 === 3) {
+                $problem_delay_class = " d3";
+            }
+            ?>
+            <div class="problem-card reveal<?php echo esc_attr($problem_delay_class); ?>"><?php echo esc_html($problem_item); ?></div>
+          <?php endforeach; ?>
         </div>
       </div>
     </section>
@@ -1610,73 +1769,69 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
     <section class="section section-border" id="uslugi">
       <div class="wrap">
         <div class="content">
-          <div class="eyebrow reveal">Usługi</div>
-          <h2 class="h2 reveal d1">Co konkretnie <span class="accent">dostajesz</span></h2>
-          <p class="body reveal d2" style="margin-top: 18px;">
-            Pracujesz bezpośrednio ze mną. Bez pośredników, bez przekazywania projektu dalej, bez rozmytej odpowiedzialności.
-          </p>
+          <div class="eyebrow reveal"><?php echo esc_html((string) ($services_section["eyebrow"] ?? "Uslugi")); ?></div>
+          <h2 class="h2 reveal d1"><?php echo esc_html((string) ($services_section["title"] ?? "")); ?></h2>
+          <p class="body reveal d2" style="margin-top: 18px;"><?php echo esc_html((string) ($services_section["lead"] ?? "")); ?></p>
         </div>
 
+        <?php $services_primary = isset($services_section["primary_service"]) && is_array($services_section["primary_service"]) ? $services_section["primary_service"] : []; ?>
         <div class="service-hero reveal" style="margin-top: 40px;">
           <div>
             <div class="service-top">
-              <div class="h3">Marketing — Meta i Google Ads</div>
-              <span class="badge badge-green">Główna usługa</span>
+              <div class="h3"><?php echo esc_html((string) ($services_primary["title"] ?? "")); ?></div>
+              <span class="badge badge-green"><?php echo esc_html((string) ($services_primary["badge"] ?? "Glowna usluga")); ?></span>
             </div>
-            <p class="body">
-              Kampanie reklamowe zoptymalizowane pod pozyskiwanie wartościowych klientów, nie pod puste statystyki.
-              Analizuję dane, testuję, wyciągam wnioski i jasno komunikuję, co robię i dlaczego.
-            </p>
+            <p class="body"><?php echo esc_html((string) ($services_primary["description"] ?? "")); ?></p>
           </div>
 
           <div>
-            <div class="chips">
-              <span class="chip">Meta Ads</span>
-              <span class="chip">Google Ads</span>
-              <span class="chip">Analiza i raportowanie</span>
-              <span class="chip">Optymalizacja budżetu</span>
-              <span class="chip">Lepsza jakość leadów</span>
+            <div class="service-check-title"><?php echo esc_html((string) ($services_primary["checklist_title"] ?? "W ramach tej uslugi")); ?></div>
+            <div class="service-checklist">
+              <?php $services_primary_checklist = isset($services_primary["checklist"]) && is_array($services_primary["checklist"]) ? $services_primary["checklist"] : []; ?>
+              <?php foreach ($services_primary_checklist as $services_primary_checklist_item) : ?>
+                <?php $services_primary_checklist_item = trim((string) $services_primary_checklist_item); ?>
+                <?php if ($services_primary_checklist_item === "") : ?>
+                  <?php continue; ?>
+                <?php endif; ?>
+                <div class="service-check"><span class="service-check-icon">✓</span><span><?php echo esc_html($services_primary_checklist_item); ?></span></div>
+              <?php endforeach; ?>
             </div>
+            <a href="<?php echo esc_url(home_url((string) ($services_primary["cta_url"] ?? "/#kontakt"))); ?>" class="btn btn-primary" style="margin-top: var(--sp-3);"><?php echo esc_html((string) ($services_primary["cta_label"] ?? "Zapytaj o kampanie")); ?> →</a>
           </div>
         </div>
 
         <div class="service-grid">
-          <div class="service-card reveal">
-            <div class="service-top">
-              <div class="h3">Strony i sklepy internetowe</div>
-              <span class="badge badge-gray">Usługa</span>
+          <?php $services_cards = isset($services_section["cards"]) && is_array($services_section["cards"]) ? $services_section["cards"] : []; ?>
+          <?php foreach ($services_cards as $services_card_index => $services_card) : ?>
+            <?php
+            $services_card_title = trim((string) ($services_card["title"] ?? ""));
+            $services_card_description = trim((string) ($services_card["description"] ?? ""));
+            if ($services_card_title === "" || $services_card_description === "") {
+                continue;
+            }
+            $services_card_delay_class = $services_card_index % 3 === 1 ? " d1" : ($services_card_index % 3 === 2 ? " d2" : "");
+            ?>
+            <div class="service-card reveal<?php echo esc_attr($services_card_delay_class); ?>">
+              <div class="service-top">
+                <div class="h3"><?php echo esc_html($services_card_title); ?></div>
+                <span class="badge badge-gray"><?php echo esc_html((string) ($services_card["badge"] ?? "Usluga")); ?></span>
+              </div>
+              <p class="body"><?php echo esc_html($services_card_description); ?></p>
+              <?php $services_card_chips = isset($services_card["chips"]) && is_array($services_card["chips"]) ? $services_card["chips"] : []; ?>
+              <div class="chips">
+                <?php foreach ($services_card_chips as $services_card_chip) : ?>
+                  <?php $services_card_chip = trim((string) $services_card_chip); ?>
+                  <?php if ($services_card_chip === "") : ?>
+                    <?php continue; ?>
+                  <?php endif; ?>
+                  <span class="chip"><?php echo esc_html($services_card_chip); ?></span>
+                <?php endforeach; ?>
+              </div>
             </div>
-            <p class="body">
-              Projektuję i wdrażam strony oraz sklepy z myślą o konwersji.
-              Każdy projekt zaczyna się od celu biznesowego i komunikatu, a nie od przypadkowego szablonu.
-            </p>
-            <div class="chips">
-              <span class="chip">Landing page</span>
-              <span class="chip">Strony firmowe</span>
-              <span class="chip">WooCommerce</span>
-              <span class="chip">Shopify</span>
-              <span class="chip">UX pod konwersję</span>
-            </div>
-          </div>
-
-          <div class="service-card reveal d1">
-            <div class="service-top">
-              <div class="h3">Rozwiązania webowe i automatyzacje</div>
-              <span class="badge badge-gray">Dodatkowo</span>
-            </div>
-            <p class="body">
-              Dla firm, które potrzebują czegoś więcej niż standardowej strony:
-              prostych aplikacji webowych, systemów wewnętrznych i automatyzacji procesów.
-            </p>
-            <div class="chips">
-              <span class="chip">Aplikacje webowe</span>
-              <span class="chip">Systemy wewnętrzne</span>
-              <span class="chip">Automatyzacje</span>
-              <span class="chip">Integracje</span>
-            </div>
-          </div>
+          <?php endforeach; ?>
         </div>
 
+        <?php $services_bonus = isset($services_section["bonus"]) && is_array($services_section["bonus"]) ? $services_section["bonus"] : []; ?>
         <div class="bonus reveal d2">
           <div class="bonus-head">
             <div class="bonus-icon">
@@ -1684,22 +1839,21 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
                 <path d="M9 2L11.5 7H17L12.5 10.5L14 16L9 12.5L4 16L5.5 10.5L1 7H6.5L9 2Z" fill="white"/>
               </svg>
             </div>
-            <div class="bonus-title">Doradztwo sprzedażowe — w ramach każdej współpracy</div>
-            <div class="bonus-tag">W cenie</div>
+            <div class="bonus-title"><?php echo esc_html((string) ($services_bonus["title"] ?? "")); ?></div>
+            <div class="bonus-tag"><?php echo esc_html((string) ($services_bonus["tag"] ?? "W cenie")); ?></div>
           </div>
 
-          <div class="bonus-body">
-            Przez lata pracowałem jako handlowiec i dyrektor sprzedaży B2B.
-            Tę wiedzę wnosisz do każdego projektu — nie jako osobny produkt, tylko jako realną przewagę współpracy.
-            Dzięki temu kampania i strona są lepiej osadzone w tym, jak naprawdę wygląda Twoja sprzedaż, marża i proces podejmowania decyzji po stronie klienta.
-          </div>
+          <div class="bonus-body"><?php echo esc_html((string) ($services_bonus["body"] ?? "")); ?></div>
 
           <div class="bonus-chips">
-            <span class="bonus-chip">Audyt procesów sprzedaży</span>
-            <span class="bonus-chip">Analiza danych sprzedażowych</span>
-            <span class="bonus-chip">Wąskie gardła</span>
-            <span class="bonus-chip">Optymalizacja kosztowa</span>
-            <span class="bonus-chip">Lepsze decyzje marketingowe</span>
+            <?php $services_bonus_chips = isset($services_bonus["chips"]) && is_array($services_bonus["chips"]) ? $services_bonus["chips"] : []; ?>
+            <?php foreach ($services_bonus_chips as $services_bonus_chip) : ?>
+              <?php $services_bonus_chip = trim((string) $services_bonus_chip); ?>
+              <?php if ($services_bonus_chip === "") : ?>
+                <?php continue; ?>
+              <?php endif; ?>
+              <span class="bonus-chip"><?php echo esc_html($services_bonus_chip); ?></span>
+            <?php endforeach; ?>
           </div>
         </div>
       </div>
@@ -1709,10 +1863,10 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
       <div class="wrap">
         <div class="cta-band reveal">
           <div>
-            <h3>Nie wiesz, od czego zacząć?</h3>
-            <p>Powiedz mi w kilku słowach o swojej firmie. Powiem wprost, co moim zdaniem najbardziej blokuje wzrost i od czego warto zacząć.</p>
+            <h3><?php echo esc_html((string) ($cta_band_section["title"] ?? "")); ?></h3>
+            <p><?php echo esc_html((string) ($cta_band_section["text"] ?? "")); ?></p>
           </div>
-          <a href="#kontakt" class="btn btn-primary">Umów rozmowę →</a>
+          <a href="<?php echo esc_url(home_url((string) ($cta_band_section["cta_url"] ?? "/#kontakt"))); ?>" class="btn btn-primary"><?php echo esc_html((string) ($cta_band_section["cta_label"] ?? "Umow bezplatna rozmowe")); ?> →</a>
         </div>
       </div>
     </section>
@@ -1720,56 +1874,38 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
     <section class="section section-border" id="jak-dzialam">
       <div class="wrap">
         <div class="content">
-          <div class="eyebrow reveal">Jak działam</div>
-          <h2 class="h2 reveal d1">Nie zaczynam od <span class="accent">ustawiania kampanii</span></h2>
-          <p class="body reveal d2" style="margin-top: 18px;">
-            Zaczynam od zrozumienia, co dziś blokuje wzrost i które działanie da najlepszy efekt przy danym budżecie, ofercie i sposobie sprzedaży.
-          </p>
+          <div class="eyebrow reveal"><?php echo esc_html((string) ($process_section["eyebrow"] ?? "Jak dzialam")); ?></div>
+          <h2 class="h2 reveal d1"><?php echo esc_html((string) ($process_section["title"] ?? "")); ?></h2>
+          <p class="body reveal d2" style="margin-top: 18px;"><?php echo esc_html((string) ($process_section["lead"] ?? "")); ?></p>
         </div>
 
         <div class="steps" style="margin-top: 40px;">
-          <div class="step reveal">
-            <div class="step-num">01</div>
-            <div>
-              <div class="step-title">Poznaję firmę i diagnozuję problem</div>
-              <div class="step-desc">
-                Krótka rozmowa bez zobowiązań. Chcę zrozumieć, co dziś realnie hamuje wzrost:
-                oferta, komunikacja, lejek, strona, dane czy sam proces sprzedaży.
+          <?php $process_steps = isset($process_section["steps"]) && is_array($process_section["steps"]) ? $process_section["steps"] : []; ?>
+          <?php foreach ($process_steps as $process_step_index => $process_step) : ?>
+            <?php
+            $process_step_number = trim((string) ($process_step["number"] ?? ""));
+            $process_step_title = trim((string) ($process_step["title"] ?? ""));
+            $process_step_description = trim((string) ($process_step["description"] ?? ""));
+            if ($process_step_number === "" || $process_step_title === "" || $process_step_description === "") {
+                continue;
+            }
+            $process_delay_class = "";
+            if ($process_step_index % 4 === 1) {
+                $process_delay_class = " d1";
+            } elseif ($process_step_index % 4 === 2) {
+                $process_delay_class = " d2";
+            } elseif ($process_step_index % 4 === 3) {
+                $process_delay_class = " d3";
+            }
+            ?>
+            <div class="step reveal<?php echo esc_attr($process_delay_class); ?>">
+              <div class="step-num"><?php echo esc_html($process_step_number); ?></div>
+              <div>
+                <div class="step-title"><?php echo esc_html($process_step_title); ?></div>
+                <div class="step-desc"><?php echo esc_html($process_step_description); ?></div>
               </div>
             </div>
-          </div>
-
-          <div class="step reveal d1">
-            <div class="step-num">02</div>
-            <div>
-              <div class="step-title">Wybieram najlepszą drogę — nie najdroższą</div>
-              <div class="step-desc">
-                Nie wciskam z góry konkretnej usługi. Propozycja wychodzi z rozmowy i potrzeb firmy —
-                czasem to kampania, czasem landing page, a czasem poprawa tego, co już działa.
-              </div>
-            </div>
-          </div>
-
-          <div class="step reveal d2">
-            <div class="step-num">03</div>
-            <div>
-              <div class="step-title">Wdrażam i jestem w stałym kontakcie</div>
-              <div class="step-desc">
-                Pracujesz bezpośrednio ze mną. Wiesz, co robię, dlaczego to robię i jakie są efekty.
-                Bez ciszy, bez chaosu i bez sytuacji, w której nie wiadomo, kto odpowiada za wynik.
-              </div>
-            </div>
-          </div>
-
-          <div class="step reveal d3">
-            <div class="step-num">04</div>
-            <div>
-              <div class="step-title">Optymalizuję i patrzę szerzej na sprzedaż</div>
-              <div class="step-desc">
-                Analizuję liczby i poprawiam działania. Do tego aktywnie dzielę się obserwacjami dotyczącymi sprzedaży, procesu i miejsca, w którym firma traci potencjał.
-              </div>
-            </div>
-          </div>
+          <?php endforeach; ?>
         </div>
       </div>
     </section>
@@ -1777,60 +1913,56 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
     <section class="section bg-soft section-border" id="wyniki">
       <div class="wrap">
         <div class="content">
-          <div class="eyebrow reveal">Doświadczenie i wyniki</div>
-          <h2 class="h2 reveal d1">Moje podejście opiera się na <span class="accent">praktyce, nie teorii</span></h2>
-          <p class="body reveal d2" style="margin-top: 18px;">
-            Nie opieram komunikacji na samych hasłach. Przez lata pracowałem na wynikach sprzedażowych, marży, procesach, zespołach i danych.
-          </p>
+          <div class="eyebrow reveal"><?php echo esc_html((string) ($results_section["eyebrow"] ?? "Doswiadczenie i wyniki")); ?></div>
+          <h2 class="h2 reveal d1"><?php echo esc_html((string) ($results_section["title"] ?? "")); ?></h2>
+          <p class="body reveal d2" style="margin-top: 18px;"><?php echo esc_html((string) ($results_section["lead"] ?? "")); ?></p>
         </div>
 
         <div class="stats-grid">
-          <div class="stat-card reveal">
-            <div class="stat-num">~1 mln</div>
-            <div class="stat-text">miesięcznej sprzedaży handlowej w modelu B2B</div>
-          </div>
-          <div class="stat-card reveal d1">
-            <div class="stat-num">~500k</div>
-            <div class="stat-text">miesięcznego obrotu sklepu zbudowanego od zera</div>
-          </div>
-          <div class="stat-card reveal d2">
-            <div class="stat-num">3×</div>
-            <div class="stat-text">wyższa marża sklepu niż w klasycznym kanale handlowym</div>
-          </div>
-          <div class="stat-card reveal d3">
-            <div class="stat-num">15 os.</div>
-            <div class="stat-text">zbudowany i zarządzany dział sprzedaży</div>
-          </div>
+          <?php $results_stats = isset($results_section["stats"]) && is_array($results_section["stats"]) ? $results_section["stats"] : []; ?>
+          <?php foreach ($results_stats as $results_stat_index => $results_stat) : ?>
+            <?php
+            $results_stat_number = trim((string) ($results_stat["number"] ?? ""));
+            $results_stat_text = trim((string) ($results_stat["text"] ?? ""));
+            if ($results_stat_number === "" || $results_stat_text === "") {
+                continue;
+            }
+            $results_stat_delay_class = "";
+            if ($results_stat_index % 4 === 1) {
+                $results_stat_delay_class = " d1";
+            } elseif ($results_stat_index % 4 === 2) {
+                $results_stat_delay_class = " d2";
+            } elseif ($results_stat_index % 4 === 3) {
+                $results_stat_delay_class = " d3";
+            }
+            ?>
+            <div class="stat-card reveal<?php echo esc_attr($results_stat_delay_class); ?>">
+              <div class="stat-num"><?php echo esc_html($results_stat_number); ?></div>
+              <div class="stat-text"><?php echo esc_html($results_stat_text); ?></div>
+            </div>
+          <?php endforeach; ?>
         </div>
 
         <div class="cases">
-          <div class="case reveal">
-            <div class="case-tag">Sprzedaż B2B</div>
-            <div class="case-title">Budowa sprzedaży do poziomu ok. 1 mln PLN miesięcznie</div>
-            <div class="case-body">
-              W praktyce oznaczało to nie tylko samo sprzedawanie, ale także pracę na procesie, lejku, segmentacji klientów i sposobie prowadzenia działań handlowych.
+          <?php $results_cases = isset($results_section["cases"]) && is_array($results_section["cases"]) ? $results_section["cases"] : []; ?>
+          <?php foreach ($results_cases as $results_case_index => $results_case) : ?>
+            <?php
+            $results_case_tag = trim((string) ($results_case["tag"] ?? ""));
+            $results_case_title = trim((string) ($results_case["title"] ?? ""));
+            $results_case_body = trim((string) ($results_case["body"] ?? ""));
+            $results_case_result = trim((string) ($results_case["result"] ?? ""));
+            if ($results_case_tag === "" || $results_case_title === "" || $results_case_body === "" || $results_case_result === "") {
+                continue;
+            }
+            $results_case_delay_class = $results_case_index % 3 === 1 ? " d1" : ($results_case_index % 3 === 2 ? " d2" : "");
+            ?>
+            <div class="case reveal<?php echo esc_attr($results_case_delay_class); ?>">
+              <div class="case-tag"><?php echo esc_html($results_case_tag); ?></div>
+              <div class="case-title"><?php echo esc_html($results_case_title); ?></div>
+              <div class="case-body"><?php echo esc_html($results_case_body); ?></div>
+              <div class="case-result"><?php echo esc_html($results_case_result); ?></div>
             </div>
-            <div class="case-result">Efekt: ok. 1 mln PLN / mies. sprzedaży</div>
-          </div>
-
-          <div class="case reveal d1">
-            <div class="case-tag">E-commerce</div>
-            <div class="case-title">Sklep internetowy z wyższą marżą niż tradycyjna sprzedaż</div>
-            <div class="case-body">
-              Stworzyłem sklep od zera dla produktu sprzedawanego wcześniej głównie przez handlowców.
-              Po kilku latach sklep generował znaczący obrót przy dużo lepszej marży.
-            </div>
-            <div class="case-result">Efekt: ok. 500k PLN / mies. i 3× wyższa marża</div>
-          </div>
-
-          <div class="case reveal d2">
-            <div class="case-tag">Zarządzanie sprzedażą</div>
-            <div class="case-title">Budowa 15-osobowego działu i systemu mierzenia efektywności</div>
-            <div class="case-body">
-              Rekrutacja, onboarding, procesy, analiza wyników, optymalizacja kosztów i stałe poprawianie skuteczności pracy zespołu.
-            </div>
-            <div class="case-result">Efekt: poukładany dział z procesem i mierzalnością</div>
-          </div>
+          <?php endforeach; ?>
         </div>
       </div>
     </section>
@@ -1838,29 +1970,37 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
     <section class="section section-border" id="dla-kogo">
       <div class="wrap">
         <div class="content">
-          <div class="eyebrow reveal">Dla kogo</div>
-          <h2 class="h2 reveal d1">Sprawdź, czy <span class="accent">do siebie pasujemy</span></h2>
+          <div class="eyebrow reveal"><?php echo esc_html((string) ($fit_section["eyebrow"] ?? "Dla kogo")); ?></div>
+          <h2 class="h2 reveal d1"><?php echo esc_html((string) ($fit_section["title"] ?? "")); ?></h2>
         </div>
 
         <div class="fit-grid" style="margin-top: 40px;">
           <div class="fit-card yes reveal">
-            <div class="fit-label">Dobry fit, jeśli:</div>
+            <div class="fit-label"><?php echo esc_html((string) ($fit_section["good_label"] ?? "Dobry fit, jesli:")); ?></div>
             <div class="fit-list">
-              <div class="fit-item"><span class="fit-icon">✓</span>Prowadzisz małą lub średnią firmę B2B lub usługową</div>
-              <div class="fit-item"><span class="fit-icon">✓</span>Chcesz rozumieć, co dzieje się w marketingu i dlaczego</div>
-              <div class="fit-item"><span class="fit-icon">✓</span>Zależy Ci na partnerze, a nie tylko na wykonawcy</div>
-              <div class="fit-item"><span class="fit-icon">✓</span>Masz reklamy lub stronę, ale wyniki Cię rozczarowują</div>
-              <div class="fit-item"><span class="fit-icon">✓</span>Prowadzisz e-commerce i chcesz poprawić marżę lub konwersję</div>
+              <?php $fit_good_items = isset($fit_section["good_items"]) && is_array($fit_section["good_items"]) ? $fit_section["good_items"] : []; ?>
+              <?php foreach ($fit_good_items as $fit_good_item) : ?>
+                <?php $fit_good_item = trim((string) $fit_good_item); ?>
+                <?php if ($fit_good_item === "") : ?>
+                  <?php continue; ?>
+                <?php endif; ?>
+                <div class="fit-item"><span class="fit-icon">✓</span><?php echo esc_html($fit_good_item); ?></div>
+              <?php endforeach; ?>
             </div>
+            <a href="<?php echo esc_url(home_url((string) ($fit_section["good_cta_url"] ?? "/#kontakt"))); ?>" class="btn btn-primary"><?php echo esc_html((string) ($fit_section["good_cta_label"] ?? "Umow bezplatna rozmowe")); ?> →</a>
           </div>
 
           <div class="fit-card no reveal d1">
-            <div class="fit-label">Mniejszy fit, jeśli:</div>
+            <div class="fit-label"><?php echo esc_html((string) ($fit_section["bad_label"] ?? "Mniejszy fit, jesli:")); ?></div>
             <div class="fit-list">
-              <div class="fit-item"><span class="fit-icon">—</span>Szukasz wyłącznie najtańszej opcji na rynku</div>
-              <div class="fit-item"><span class="fit-icon">—</span>Potrzebujesz dużego zespołu wielu specjalistów naraz</div>
-              <div class="fit-item"><span class="fit-icon">—</span>Nie masz przestrzeni na rozmowę o celach i danych</div>
-              <div class="fit-item"><span class="fit-icon">—</span>Oczekujesz gwarantowanych wyników bez udziału po swojej stronie</div>
+              <?php $fit_bad_items = isset($fit_section["bad_items"]) && is_array($fit_section["bad_items"]) ? $fit_section["bad_items"] : []; ?>
+              <?php foreach ($fit_bad_items as $fit_bad_item) : ?>
+                <?php $fit_bad_item = trim((string) $fit_bad_item); ?>
+                <?php if ($fit_bad_item === "") : ?>
+                  <?php continue; ?>
+                <?php endif; ?>
+                <div class="fit-item"><span class="fit-icon">—</span><?php echo esc_html($fit_bad_item); ?></div>
+              <?php endforeach; ?>
             </div>
           </div>
         </div>
@@ -1871,69 +2011,40 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
       <div class="wrap">
         <div class="content">
           <div class="eyebrow reveal">FAQ</div>
-          <h2 class="h2 reveal d1">Odpowiedzi na <span class="accent">najczęstsze pytania</span></h2>
+          <h2 class="h2 reveal d1">Najczęstsze <span class="accent">pytania</span></h2>
         </div>
 
         <div class="faq" style="margin-top: 40px;">
-          <div class="faq-item reveal">
-            <div class="faq-q">
-              <span>Co zyskuję, współpracując bezpośrednio z Tobą, a nie z agencją?</span>
-              <span class="faq-icon">+</span>
+          <?php if (!empty($faq_items)) : ?>
+            <?php foreach ($faq_items as $faq_index => $faq_item) : ?>
+              <?php
+              $question = trim((string) ($faq_item["question"] ?? ""));
+              $answer = trim((string) ($faq_item["answer"] ?? ""));
+              if ($question === "" || $answer === "") {
+                  continue;
+              }
+              $delay_class = "";
+              if ($faq_index % 4 === 1) {
+                  $delay_class = " d1";
+              } elseif ($faq_index % 4 === 2) {
+                  $delay_class = " d2";
+              } elseif ($faq_index % 4 === 3) {
+                  $delay_class = " d3";
+              }
+              ?>
+              <div class="faq-item reveal<?php echo esc_attr($delay_class); ?>">
+                <button class="faq-q" type="button">
+                  <span><?php echo esc_html($question); ?></span>
+                  <span class="faq-icon">+</span>
+                </button>
+                <div class="faq-a"><?php echo esc_html($answer); ?></div>
+              </div>
+            <?php endforeach; ?>
+          <?php else : ?>
+            <div class="faq-item reveal">
+              <div class="faq-a">Brak danych FAQ. Uzupelnij konfiguracje w panelu: Wyglad -> Konfiguracja dynamiczna.</div>
             </div>
-            <div class="faq-a">
-              Rozmawiasz z osobą, która faktycznie robi robotę. Masz bezpośredni kontakt, większą przejrzystość i kogoś, kto patrzy na Twój biznes szerzej niż tylko przez pryzmat jednej usługi.
-            </div>
-          </div>
-
-          <div class="faq-item reveal d1">
-            <div class="faq-q">
-              <span>Co obejmuje wsparcie biznesowe i sprzedażowe w ramach współpracy?</span>
-              <span class="faq-icon">+</span>
-            </div>
-            <div class="faq-a">
-              Patrzę szerzej na Twój biznes: analizuję dane sprzedażowe, wskazuję miejsca utraty klientów lub marży i pomagam poukładać proces. To nie jest sztuczny upsell — tylko mój naturalny sposób pracy.
-            </div>
-          </div>
-
-          <div class="faq-item reveal d2">
-            <div class="faq-q">
-              <span>Dla jakich firm to rozwiązanie działa najlepiej?</span>
-              <span class="faq-icon">+</span>
-            </div>
-            <div class="faq-a">
-              Najlepiej sprawdza się przy małych i średnich firmach B2B, usługowych oraz e-commerce, które chcą poprawić skuteczność marketingu i sprzedaży bez budowania od razu dużych struktur.
-            </div>
-          </div>
-
-          <div class="faq-item reveal d3">
-            <div class="faq-q">
-              <span>Jak wygląda bezpłatna rozmowa wstępna?</span>
-              <span class="faq-icon">+</span>
-            </div>
-            <div class="faq-a">
-              To krótka rozmowa przez Google Meet lub telefon. Opowiadasz o swojej sytuacji, a ja mówię szczerze, co widzę i czy jestem właściwą osobą do pomocy.
-            </div>
-          </div>
-
-          <div class="faq-item reveal">
-            <div class="faq-q">
-              <span>Czy musisz mieć gotowy brief lub materiały?</span>
-              <span class="faq-icon">+</span>
-            </div>
-            <div class="faq-a">
-              Nie. Możemy zacząć od zera. Pomagam zebrać informacje, uporządkować ofertę i przygotować sensowny kierunek działań.
-            </div>
-          </div>
-
-          <div class="faq-item reveal d1">
-            <div class="faq-q">
-              <span>Ile trwa realizacja i jak wygląda wycena?</span>
-              <span class="faq-icon">+</span>
-            </div>
-            <div class="faq-a">
-              Kampanie można uruchomić relatywnie szybko. Strony i sklepy zwykle zajmują od 2 do 6 tygodni w zależności od zakresu. Wycena jest indywidualna, bo ma wynikać z realnych potrzeb firmy.
-            </div>
-          </div>
+          <?php endif; ?>
         </div>
       </div>
     </section>
@@ -1944,9 +2055,7 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
           <div class="form-head">
             <div class="eyebrow">Kontakt</div>
             <h2 class="h2">Umów <span class="accent">bezpłatną rozmowę</span></h2>
-            <p class="body" style="margin-top: 18px;">
-              Napisz kilka słów o swojej firmie i tym, co chcesz poprawić lub osiągnąć. Odpowiem osobiście.
-            </p>
+            <p class="body" style="margin-top: 18px;">Napisz kilka słów o firmie i tym, co chcesz poprawić. Odpiszę do końca dnia roboczego — osobiście, nie bot.</p>
           </div>
 
           <?php $ups_form_status = isset($_GET["ups_lead_status"]) ? sanitize_text_field(wp_unslash($_GET["ups_lead_status"])) : ""; ?>
@@ -1970,31 +2079,33 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
             <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
             <div class="form-grid">
               <div class="field">
-                <label for="fname">Imię i firma *</label>
-                <input class="input" type="text" id="fname" name="lead_name" placeholder="np. Marek, firma XYZ" required />
+                <label for="fname">Imię i nazwa firmy *</label>
+                <input class="input" type="text" id="fname" name="lead_name" placeholder="np. Marek Kowalski, firma XYZ" required />
                 <span class="field-error" id="fname-err">Podaj imię i nazwę firmy</span>
               </div>
 
               <div class="field">
-                <label for="femail">E-mail *</label>
-                <input class="input" type="email" id="femail" name="lead_email" placeholder="adres@firma.pl" required />
+                <label for="femail">E-mail służbowy *</label>
+                <input class="input" type="email" id="femail" name="lead_email" placeholder="adres@twojafirma.pl" required />
                 <span class="field-error" id="femail-err">Podaj poprawny adres e-mail</span>
               </div>
 
               <div class="field">
                 <label for="fphone">Telefon (opcjonalnie)</label>
-                <input class="input" type="tel" id="fphone" name="lead_phone" placeholder="+48 600 000 000" />
+                <input class="input" type="tel" id="fphone" name="lead_phone" placeholder="+48 600 000 000" autocomplete="tel" />
               </div>
 
               <div class="field">
                 <label for="fservice">Czego szukasz?</label>
                 <select class="select" id="fservice" name="lead_service">
                   <option value="">— wybierz —</option>
-                  <option>Kampanie Meta / Google Ads</option>
-                  <option>Strona lub sklep internetowy</option>
-                  <option>Aplikacja lub automatyzacja</option>
-                  <option>Doradztwo sprzedażowe</option>
-                  <option>Nie wiem — chcę porozmawiać</option>
+                  <?php foreach ($contact_service_options as $service_option) : ?>
+                    <?php $service_option = trim((string) $service_option); ?>
+                    <?php if ($service_option === "") : ?>
+                      <?php continue; ?>
+                    <?php endif; ?>
+                    <option><?php echo esc_html($service_option); ?></option>
+                  <?php endforeach; ?>
                 </select>
               </div>
 
@@ -2012,7 +2123,7 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
             </div>
 
             <button type="submit" class="btn btn-primary submit" id="submit-btn">Wyślij i umów rozmowę →</button>
-            <p class="form-note">Odpowiadam osobiście — lead zapisuje się automatycznie w CRM.</p>
+            <p class="form-note">Dane przekazane w formularzu są poufne i służą wyłącznie do kontaktu.</p>
           </form>
 
           <div class="form-alt">
@@ -2020,18 +2131,22 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path d="M7 1a6 6 0 100 12A6 6 0 007 1zM7 4v3.5l2 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/>
               </svg>
-              Odpowiedź zwykle tego samego dnia roboczego
+              Odpowiem do końca dnia roboczego
             </div>
             <div class="form-alt-item">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path d="M2 4.5C2 3.12 3.12 2 4.5 2h5C10.88 2 12 3.12 12 4.5v5C12 10.88 10.88 12 9.5 12h-5C3.12 12 2 10.88 2 9.5v-5z" stroke="currentColor" stroke-width="1.2" fill="none"/>
                 <path d="M5 7l1.5 1.5L9 5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              Bez zobowiązań i bez ciśnienia
+              Bez ciśnienia — sprawdzimy czy możemy razem działać
             </div>
             <div class="form-alt-item">
               Wolisz zadzwonić?
-              <a href="tel:+48000000000">+48 000 000 000</a>
+              <?php if ($contact_phone !== "") : ?>
+                <a href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a>
+              <?php else : ?>
+                <span>Brak numeru telefonu w konfiguracji.</span>
+              <?php endif; ?>
             </div>
           </div>
         </div>
@@ -2051,164 +2166,47 @@ $primary_navigation_links = function_exists("upsellio_get_primary_navigation_lin
             </div>
           </div>
           <div class="footer-sub">
-            Marketing · Strony · Sklepy · Doradztwo sprzedażowe<br />
-            Podejście oparte na praktyce sprzedażowej, nie tylko na narzędziach.
+            Upsellio — Sebastian Kelm<br />
+            Marketing internetowy i strony WWW dla firm B2B
           </div>
         </div>
 
-        <div class="footer-links">
-          <a href="mailto:kontakt@upsellio.pl">kontakt@upsellio.pl</a>
-          <a href="https://linkedin.com/in/sebastiankelm" target="_blank" rel="noopener">LinkedIn</a>
-          <a href="#uslugi">Usługi</a>
-          <a href="<?php echo esc_url(home_url("/definicje/")); ?>">Wiedza</a>
+        <div class="footer-col">
+          <div class="footer-col-label">Usługi</div>
+          <a href="#uslugi">Meta Ads i Google Ads</a>
+          <a href="#uslugi">Strony internetowe</a>
+          <a href="#uslugi">Sklepy internetowe</a>
+          <a href="#uslugi">Doradztwo sprzedażowe</a>
+        </div>
+
+        <div class="footer-col">
+          <div class="footer-col-label">Nawigacja</div>
           <a href="#jak-dzialam">Jak działam</a>
+          <a href="#wyniki">Wyniki</a>
+          <a href="#faq">FAQ</a>
+          <a href="<?php echo esc_url(home_url("/blog")); ?>">Blog</a>
+        </div>
+
+        <div class="footer-col footer-links">
+          <div class="footer-col-label">Kontakt</div>
+          <?php if ($contact_email !== "") : ?>
+            <a href="<?php echo esc_url("mailto:" . $contact_email); ?>"><?php echo esc_html($contact_email); ?></a>
+          <?php endif; ?>
+          <?php if ($contact_phone !== "") : ?>
+            <a href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a>
+          <?php endif; ?>
+          <a href="https://linkedin.com/in/sebastiankelm" target="_blank" rel="noopener">LinkedIn</a>
+          <a href="#kontakt">Bezpłatna rozmowa</a>
         </div>
       </div>
 
+      <?php echo upsellio_get_footer_popular_definitions_html(); ?>
       <?php echo upsellio_get_footer_city_links_html(); ?>
-      <div class="footer-copy">© 2025 Upsellio / Sebastian Kelm. Wszelkie prawa zastrzeżone.</div>
+      <div class="footer-copy">© 2025 Upsellio / Sebastian Kelm. Wszelkie prawa zastrzeżone. · <a href="<?php echo esc_url(home_url("/polityka-prywatnosci")); ?>" style="color:inherit;">Polityka prywatności</a></div>
     </div>
   </footer>
 
   <button class="scroll-top" id="scroll-top" aria-label="Wróć na górę">↑</button>
-
-  <script>
-    (function () {
-      const reveals = document.querySelectorAll(".reveal");
-      const eyebrows = document.querySelectorAll(".eyebrow");
-      const topBtn = document.getElementById("scroll-top");
-
-      function onScroll() {
-        const vh = window.innerHeight;
-
-        reveals.forEach((el) => {
-          if (el.getBoundingClientRect().top < vh * 0.9) {
-            el.classList.add("visible");
-          }
-        });
-
-        eyebrows.forEach((el) => {
-          if (el.getBoundingClientRect().top < vh * 0.9) {
-            el.classList.add("vis");
-          }
-        });
-
-        if (window.scrollY > 450) topBtn.classList.add("visible");
-        else topBtn.classList.remove("visible");
-      }
-
-      window.addEventListener("scroll", onScroll, { passive: true });
-      setTimeout(onScroll, 120);
-
-      topBtn.addEventListener("click", function () {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      });
-
-      const ham = document.getElementById("hamburger");
-      const mob = document.getElementById("mobile-menu");
-
-      ham.addEventListener("click", function () {
-        ham.classList.toggle("open");
-        mob.classList.toggle("open");
-      });
-
-      mob.querySelectorAll("a").forEach((a) => {
-        a.addEventListener("click", function () {
-          ham.classList.remove("open");
-          mob.classList.remove("open");
-        });
-      });
-
-      document.querySelectorAll('a[href^="#"]').forEach((a) => {
-        a.addEventListener("click", function (e) {
-          const id = a.getAttribute("href").slice(1);
-          if (!id) return;
-          const target = document.getElementById(id);
-          if (!target) return;
-          e.preventDefault();
-          const offset = target.getBoundingClientRect().top + window.scrollY - 72;
-          window.scrollTo({ top: offset, behavior: "smooth" });
-        });
-      });
-
-      document.querySelectorAll(".faq-item").forEach((item) => {
-        const q = item.querySelector(".faq-q");
-        q.addEventListener("click", function () {
-          const isOpen = item.classList.contains("open");
-          document.querySelectorAll(".faq-item").forEach((i) => i.classList.remove("open"));
-          if (!isOpen) item.classList.add("open");
-        });
-      });
-
-      const form = document.getElementById("contact-form");
-      const submitBtn = document.getElementById("submit-btn");
-      const isAjaxManaged = Boolean(window.upsellioData && window.upsellioData.ajaxUrl);
-
-      function validateEmail(v) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-      }
-
-      function setError(inputId, errId, show) {
-        const input = document.getElementById(inputId);
-        const err = document.getElementById(errId);
-        if (show) {
-          input.classList.add("error");
-          err.classList.add("show");
-        } else {
-          input.classList.remove("error");
-          err.classList.remove("show");
-        }
-        return !show;
-      }
-
-      if (!isAjaxManaged) {
-      if (form.dataset.upsellioServerForm === "1") return;
-
-      form.addEventListener("submit", function (e) {
-          e.preventDefault();
-
-          const name = document.getElementById("fname").value.trim();
-          const email = document.getElementById("femail").value.trim();
-          const msg = document.getElementById("fmsg").value.trim();
-
-          let ok = true;
-          ok = setError("fname", "fname-err", name.length < 2) && ok;
-          ok = setError("femail", "femail-err", !validateEmail(email)) && ok;
-          ok = setError("fmsg", "fmsg-err", msg.length < 10) && ok;
-
-          if (!ok) return;
-
-          submitBtn.textContent = "Wysyłanie...";
-          submitBtn.disabled = true;
-
-          setTimeout(function () {
-            submitBtn.textContent = "Wysłano! Odezwę się wkrótce ✓";
-            submitBtn.style.background = "var(--teal-dark)";
-
-            setTimeout(function () {
-              submitBtn.textContent = "Wyślij i umów rozmowę →";
-              submitBtn.style.background = "";
-              submitBtn.disabled = false;
-              form.reset();
-            }, 4500);
-          }, 700);
-        });
-
-        ["fname", "femail", "fmsg"].forEach((id) => {
-          const errId = id + "-err";
-          document.getElementById(id).addEventListener("input", function () {
-            if (this.classList.contains("error")) {
-              if (id === "femail") {
-                setError(id, errId, !validateEmail(this.value.trim()));
-              } else {
-                setError(id, errId, this.value.trim().length < (id === "fmsg" ? 10 : 2));
-              }
-            }
-          });
-        });
-      }
-    })();
-  </script>
   <?php wp_footer(); ?>
 </body>
 </html>
