@@ -27,35 +27,7 @@ if (!defined("ABSPATH")) {
       </div>
     </div>
 
-    <?php
-    $popular_definitions = get_posts([
-        "post_type" => "definicja",
-        "post_status" => "publish",
-        "numberposts" => 12,
-        "orderby" => "date",
-        "order" => "DESC",
-    ]);
-    if (!empty($popular_definitions)) :
-        ?>
-      <section style="margin-top:28px;padding-top:24px;border-top:1px solid #e6e6e1;">
-        <h3 style="margin:0 0 12px;font-family:Syne,sans-serif;font-size:18px;color:#111110;">Popularne definicje</h3>
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;">
-          <?php foreach ($popular_definitions as $definition) :
-              $term = get_post_meta($definition->ID, "_upsellio_definition_term", true) ?: get_the_title($definition->ID);
-              ?>
-            <a href="<?php echo esc_url(get_permalink($definition->ID)); ?>" style="font-size:13px;line-height:1.5;color:#7c7c74;">
-              <?php echo esc_html($term); ?>
-            </a>
-          <?php endforeach; ?>
-        </div>
-      </section>
-      <style>
-        @media(min-width:861px){
-          footer [style*="grid-template-columns:repeat(2,minmax(0,1fr));"]{grid-template-columns:repeat(4,minmax(0,1fr)) !important}
-        }
-      </style>
-    <?php endif; ?>
-
+    <?php echo upsellio_get_footer_popular_definitions_html(); ?>
     <?php echo upsellio_get_footer_city_links_html(); ?>
 
     <div style="margin-top:22px;padding-top:14px;border-top:1px solid #e6e6e1;font-size:12px;color:#7c7c74;text-align:center;">
@@ -63,25 +35,6 @@ if (!defined("ABSPATH")) {
     </div>
   </div>
 </footer>
-<script>
-  (function () {
-    const ham = document.getElementById("hamburger");
-    const mob = document.getElementById("mobile-menu");
-    if (!ham || !mob) return;
-
-    ham.addEventListener("click", function () {
-      ham.classList.toggle("open");
-      mob.classList.toggle("open");
-    });
-
-    mob.querySelectorAll("a").forEach((a) => {
-      a.addEventListener("click", function () {
-        ham.classList.remove("open");
-        mob.classList.remove("open");
-      });
-    });
-  })();
-</script>
 <?php wp_footer(); ?>
 </body>
 </html>
