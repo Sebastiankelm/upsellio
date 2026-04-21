@@ -57,54 +57,404 @@
     });
   });
 
+  const blogRoot = document.querySelector(".js-ups-blog-root");
+  if (blogRoot && window.upsellioData?.ajaxUrl && window.upsellioData?.blogNonce) {
+    const dynamicContainer = blogRoot.querySelector(".js-ups-blog-dynamic");
+    const searchInput = blogRoot.querySelector(".js-ups-blog-search-input");
+    const searchForm = blogRoot.querySelector(".js-ups-blog-search-form");
+    const activeFiltersContainer = blogRoot.querySelector(".js-ups-blog-active-filters");
+    const clearFiltersButton = blogRoot.querySelector(".js-ups-blog-clear-filters");
+    const filterNote = blogRoot.querySelector(".js-ups-blog-filter-note");
+
+    const setActiveCategory = (category) => {
+      blogRoot.querySelectorAll(".js-ups-blog-category").forEach((item) => {
+        const itemCategory = item.dataset.category || "";
+        item.classList.toggle("active", itemCategory === (category || ""));
+      });
+    };
+    const setActiveTags = (tags) => {
+      blogRoot.querySelectorAll(".js-ups-blog-tag").forEach((item) => {
+        const itemTag = item.dataset.tag || "";
+        if (!itemTag) {
+          item.classList.toggle("active", tags.length === 0);
+        } else {
+          item.classList.toggle("active", tags.includes(itemTag));
+        }
+      });
+    };
+    const parseTags = (rawTags) => {
+      if (!rawTags) return [];
+      return String(rawTags)
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+        .slice(0, 3);
+    };
+    const getSelectedTags = () => parseTags(blogRoot.dataset.currentTags || "");
+    const setFilterNoteError = (showError) => {
+      if (!filterNote) return;
+      filterNote.classList.toggle("error", showError);
+      filterNote.textContent = showError
+        ? "Limit osiągnięty: możesz wybrać maksymalnie 3 tagi."
+        : "Możesz wybrać maksymalnie 3 tagi jednocześnie.";
+    };
+    const getCategoryLabel = (categorySlug) => {
+      const selected = blogRoot.querySelector(`.js-ups-blog-category[data-category="${categorySlug}"]`);
+      return selected ? selected.textContent.trim() : categorySlug;
+    };
+    const getTagLabel = (tagSlug) => {
+      const selected = blogRoot.querySelector(`.js-ups-blog-tag[data-tag="${tagSlug}"]`);
+      if (!selected) return tagSlug;
+      return selected.textContent.trim().replace(/^#/, "");
+    };
+    const renderActiveBadges = () => {
+      if (!activeFiltersContainer) return;
+      const currentCategory = blogRoot.dataset.currentCategory || "";
+      const currentTags = getSelectedTags();
+      const badges = [];
+
+      if (currentCategory) {
+        badges.push(
+          `<span class="ups-blog-active-badge">Kategoria: ${getCategoryLabel(currentCategory)}
+            <button type="button" class="ups-blog-active-remove js-ups-blog-remove-category" aria-label="Usuń filtr kategorii">×</button>
+          </span>`
+        );
+      }
+
+      currentTags.forEach((tagSlug) => {
+        badges.push(
+          `<span class="ups-blog-active-badge">Tag: #${getTagLabel(tagSlug)}
+            <button type="button" data-tag="${tagSlug}" class="ups-blog-active-remove js-ups-blog-remove-tag" aria-label="Usuń filtr tagu">×</button>
+          </span>`
+        );
+      });
+
+      activeFiltersContainer.innerHTML = badges.join("");
+    };
+
+    const setLoading = (isLoading) => {
+      if (!dynamicContainer) return;
+      dynamicContainer.classList.toggle("is-loading", isLoading);
+    };
+
+    const buildUrl = (category, tags, search, paged) => {
+      const url = new URL(window.upsellioData.blogIndexUrl, window.location.origin);
+      if (category) url.searchParams.set("category", category);
+      if (tags.length) url.searchParams.set("tags", tags.join(","));
+      if (search) url.searchParams.set("s", search);
+      if (paged > 1) url.searchParams.set("paged", String(paged));
+      return url;
+    };
+
+    const fetchBlogContent = async ({ category = "", tags = [], paged = 1, pushState = true } = {}) => {
+      const search = (searchInput?.value || "").trim();
+      const payload = new FormData();
+      payload.append("action", "upsellio_filter_blog_posts");
+      payload.append("nonce", window.upsellioData.blogNonce);
+      payload.append("category", category);
+      payload.append("tags", tags.join(","));
+      payload.append("search", search);
+      payload.append("paged", String(paged));
+
+      setLoading(true);
+      try {
+        const response = await fetch(window.upsellioData.ajaxUrl, {
+          method: "POST",
+          body: payload,
+          credentials: "same-origin",
+        });
+        const result = await response.json();
+        if (!result?.success || !dynamicContainer) return;
+
+        dynamicContainer.innerHTML = result.data.html;
+        blogRoot.dataset.currentCategory = category;
+        blogRoot.dataset.currentTags = tags.join(",");
+        blogRoot.dataset.currentPage = String(paged);
+        setActiveCategory(category);
+        setActiveTags(tags);
+        renderActiveBadges();
+        setFilterNoteError(false);
+
+        if (pushState) {
+          const nextUrl = buildUrl(category, tags, search, paged);
+          window.history.pushState(
+            { category, tags, paged, search },
+            "",
+            `${nextUrl.pathname}${nextUrl.search}`
+          );
+        }
+      } catch (error) {
+        // No-op fallback: if AJAX fails, links/forms still work with full reload.
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    blogRoot.addEventListener("click", (event) => {
+      const categoryLink = event.target.closest(".js-ups-blog-category");
+      if (categoryLink) {
+        event.preventDefault();
+        const selectedCategory = categoryLink.dataset.category || "";
+        const currentTags = getSelectedTags();
+        fetchBlogContent({ category: selectedCategory, tags: currentTags, paged: 1 });
+        return;
+      }
+
+      const tagLink = event.target.closest(".js-ups-blog-tag");
+      if (tagLink) {
+        event.preventDefault();
+        const selectedTag = tagLink.dataset.tag || "";
+        const currentCategory = blogRoot.dataset.currentCategory || "";
+        const currentTags = getSelectedTags();
+        let nextTags = [];
+
+        if (!selectedTag) {
+          nextTags = [];
+        } else if (currentTags.includes(selectedTag)) {
+          nextTags = currentTags.filter((tag) => tag !== selectedTag);
+        } else if (currentTags.length >= 3) {
+          setFilterNoteError(true);
+          return;
+        } else {
+          nextTags = [...currentTags, selectedTag];
+        }
+
+        fetchBlogContent({ category: currentCategory, tags: nextTags, paged: 1 });
+        return;
+      }
+
+      const removeCategoryButton = event.target.closest(".js-ups-blog-remove-category");
+      if (removeCategoryButton) {
+        event.preventDefault();
+        fetchBlogContent({ category: "", tags: getSelectedTags(), paged: 1 });
+        return;
+      }
+
+      const removeTagButton = event.target.closest(".js-ups-blog-remove-tag");
+      if (removeTagButton) {
+        event.preventDefault();
+        const removedTag = removeTagButton.dataset.tag || "";
+        const nextTags = getSelectedTags().filter((tag) => tag !== removedTag);
+        fetchBlogContent({
+          category: blogRoot.dataset.currentCategory || "",
+          tags: nextTags,
+          paged: 1,
+        });
+        return;
+      }
+
+      const paginationLink = event.target.closest(".ups-blog-pagination a");
+      if (paginationLink) {
+        event.preventDefault();
+        const paginationUrl = new URL(paginationLink.href);
+        const pagedParam = Number.parseInt(paginationUrl.searchParams.get("paged") || "1", 10);
+        const currentCategory = blogRoot.dataset.currentCategory || "";
+        const currentTags = getSelectedTags();
+        fetchBlogContent({
+          category: currentCategory,
+          tags: currentTags,
+          paged: Number.isNaN(pagedParam) ? 1 : Math.max(1, pagedParam),
+        });
+      }
+    });
+
+    if (clearFiltersButton) {
+      clearFiltersButton.addEventListener("click", () => {
+        if (searchInput) searchInput.value = "";
+        fetchBlogContent({ category: "", tags: [], paged: 1 });
+      });
+    }
+
+    if (searchForm) {
+      searchForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const currentCategory = blogRoot.dataset.currentCategory || "";
+        const currentTags = getSelectedTags();
+        fetchBlogContent({ category: currentCategory, tags: currentTags, paged: 1 });
+      });
+    }
+
+    window.addEventListener("popstate", () => {
+      const currentUrl = new URL(window.location.href);
+      const category = currentUrl.searchParams.get("category") || "";
+      const rawTags = currentUrl.searchParams.get("tags") || currentUrl.searchParams.get("tag") || "";
+      const tags = parseTags(rawTags);
+      const search = currentUrl.searchParams.get("s") || "";
+      const pagedParam = Number.parseInt(currentUrl.searchParams.get("paged") || "1", 10);
+      if (searchInput) searchInput.value = search;
+      fetchBlogContent({
+        category,
+        tags,
+        paged: Number.isNaN(pagedParam) ? 1 : Math.max(1, pagedParam),
+        pushState: false,
+      });
+    });
+
+    setActiveCategory(blogRoot.dataset.currentCategory || "");
+    setActiveTags(getSelectedTags());
+    renderActiveBadges();
+  }
+
+  function getStoredAttribution() {
+    try {
+      const raw = window.sessionStorage.getItem("upsellioAttribution");
+      return raw ? JSON.parse(raw) : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function saveAttribution(value) {
+    try {
+      window.sessionStorage.setItem("upsellioAttribution", JSON.stringify(value));
+    } catch (error) {
+      // noop
+    }
+  }
+
+  const currentUrl = new URL(window.location.href);
+  const rememberedAttribution = getStoredAttribution();
+  const attribution = {
+    source: currentUrl.searchParams.get("utm_source") || rememberedAttribution.source || "",
+    medium: currentUrl.searchParams.get("utm_medium") || rememberedAttribution.medium || "",
+    campaign: currentUrl.searchParams.get("utm_campaign") || rememberedAttribution.campaign || "",
+    landing: window.location.href,
+    referrer: document.referrer || rememberedAttribution.referrer || "",
+  };
+  saveAttribution(attribution);
+
+  document.querySelectorAll('form[data-upsellio-lead-form="1"]').forEach((leadForm) => {
+    const sourceInput = leadForm.querySelector('[data-ups-utm="source"]');
+    const mediumInput = leadForm.querySelector('[data-ups-utm="medium"]');
+    const campaignInput = leadForm.querySelector('[data-ups-utm="campaign"]');
+    const landingInput = leadForm.querySelector('[data-ups-context="landing"]');
+    const referrerInput = leadForm.querySelector('[data-ups-context="referrer"]');
+    if (sourceInput) sourceInput.value = attribution.source;
+    if (mediumInput) mediumInput.value = attribution.medium;
+    if (campaignInput) campaignInput.value = attribution.campaign;
+    if (landingInput) landingInput.value = attribution.landing;
+    if (referrerInput) referrerInput.value = attribution.referrer;
+  });
+
+  function trackContactClick(type, target) {
+    if (!window.upsellioData?.ajaxUrl || !window.upsellioData?.contactNonce) return;
+    const body = new URLSearchParams();
+    body.append("action", "upsellio_track_contact_click");
+    body.append("nonce", window.upsellioData.contactNonce);
+    body.append("contact_type", type);
+    body.append("target", target);
+    body.append("landing_url", window.location.href);
+    body.append("referrer", document.referrer || "");
+
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(window.upsellioData.ajaxUrl, body);
+      return;
+    }
+
+    fetch(window.upsellioData.ajaxUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body: body.toString(),
+      keepalive: true,
+      credentials: "same-origin",
+    }).catch(() => {
+      // noop
+    });
+  }
+
+  document.querySelectorAll('a[href^="mailto:"]').forEach((link) => {
+    link.addEventListener("click", () => trackContactClick("mailto", link.getAttribute("href") || ""));
+  });
+
+  document.querySelectorAll('a[href^="tel:"]').forEach((link) => {
+    link.addEventListener("click", () => trackContactClick("tel", link.getAttribute("href") || ""));
+  });
+
   const form = document.getElementById("contact-form") || document.getElementById("audit-form");
   const submitBtn = document.getElementById("submit-btn");
-  if (!form || !submitBtn) return;
-
-  function validateEmail(value) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-  }
-
-  function setError(inputId, errId, show) {
-    const input = document.getElementById(inputId);
-    const err = document.getElementById(errId);
-    if (!input || !err) return !show;
-    if (show) {
-      input.classList.add("error");
-      err.classList.add("show");
-    } else {
-      input.classList.remove("error");
-      err.classList.remove("show");
+  if (form && submitBtn) {
+    function validateEmail(value) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
     }
-    return !show;
+
+    function setError(inputId, errId, show) {
+      const input = document.getElementById(inputId);
+      const err = document.getElementById(errId);
+      if (!input || !err) return !show;
+      if (show) {
+        input.classList.add("error");
+        err.classList.add("show");
+      } else {
+        input.classList.remove("error");
+        err.classList.remove("show");
+      }
+      return !show;
+    }
+
+    if (form.dataset.upsellioServerForm === "1") return;
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = (document.getElementById("fname")?.value || "").trim();
+      const email = (document.getElementById("femail")?.value || "").trim();
+      const msg = (document.getElementById("fmsg")?.value || "").trim();
+      const phone = (document.getElementById("fphone")?.value || "").trim();
+      const service = (document.getElementById("fservice")?.value || "").trim();
+      const budget = (document.getElementById("fbudget")?.value || "").trim();
+      const goal = (document.getElementById("fgoal")?.value || "").trim();
+
+      let ok = true;
+      ok = setError("fname", "fname-err", name.length < 2) && ok;
+      ok = setError("femail", "femail-err", !validateEmail(email)) && ok;
+      ok = setError("fmsg", "fmsg-err", msg.length < 10) && ok;
+      if (!ok) return;
+
+      const defaultText = submitBtn.textContent;
+      submitBtn.textContent = "Wysyłanie...";
+      submitBtn.disabled = true;
+      try {
+        const payload = new FormData();
+        payload.append("action", "upsellio_submit_contact_form");
+        payload.append("nonce", window.upsellioData?.contactNonce || "");
+        payload.append("name", name);
+        payload.append("email", email);
+        payload.append("message", msg);
+        payload.append("phone", phone);
+        payload.append("service", service);
+        payload.append("budget", budget);
+        payload.append("goal", goal);
+        payload.append("source", window.location.href);
+        payload.append("website", "");
+
+        const response = await fetch(window.upsellioData?.ajaxUrl || "/wp-admin/admin-ajax.php", {
+          method: "POST",
+          body: payload,
+          credentials: "same-origin",
+        });
+        const result = await response.json();
+
+        if (!response.ok || !result?.success) {
+          throw new Error(result?.data?.message || "Nie udało się wysłać formularza.");
+        }
+
+        submitBtn.textContent = "Wysłano! Odezwę się wkrótce ✓";
+        submitBtn.style.background = "var(--teal-dark)";
+        setTimeout(() => {
+          submitBtn.textContent = defaultText;
+          submitBtn.style.background = "";
+          submitBtn.disabled = false;
+          form.reset();
+        }, 3200);
+      } catch (error) {
+        submitBtn.textContent = error.message || "Błąd wysyłki. Spróbuj ponownie.";
+        submitBtn.style.background = "#d94c4c";
+        setTimeout(() => {
+          submitBtn.textContent = defaultText;
+          submitBtn.style.background = "";
+          submitBtn.disabled = false;
+        }, 3500);
+      }
+    });
   }
-
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const name = (document.getElementById("fname")?.value || "").trim();
-    const email = (document.getElementById("femail")?.value || "").trim();
-    const msg = (document.getElementById("fmsg")?.value || "").trim();
-
-    let ok = true;
-    ok = setError("fname", "fname-err", name.length < 2) && ok;
-    ok = setError("femail", "femail-err", !validateEmail(email)) && ok;
-    ok = setError("fmsg", "fmsg-err", msg.length < 10) && ok;
-    if (!ok) return;
-
-    const defaultText = submitBtn.textContent;
-    submitBtn.textContent = "Wysyłanie...";
-    submitBtn.disabled = true;
-
-    setTimeout(() => {
-      submitBtn.textContent = "Wysłano! Odezwę się wkrótce ✓";
-      submitBtn.style.background = "var(--teal-dark)";
-      setTimeout(() => {
-        submitBtn.textContent = defaultText;
-        submitBtn.style.background = "";
-        submitBtn.disabled = false;
-        form.reset();
-      }, 4000);
-    }, 600);
-  });
 })();
 

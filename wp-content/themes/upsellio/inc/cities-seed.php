@@ -171,14 +171,14 @@ function upsellio_get_footer_city_links_html()
         .upsellio-local-seo-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
         .upsellio-local-seo-title{font-size:13px;font-weight:700;letter-spacing:.3px;color:var(--text-2,#3d3d38)}
         .upsellio-local-seo-count{font-size:12px;color:var(--text-3,#7c7c74)}
-        .upsellio-local-seo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 18px}
+        .upsellio-local-seo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px}
         .upsellio-local-seo-link{font-size:13px;line-height:1.5;color:var(--text-3,#7c7c74);display:inline-block;text-decoration:none}
         .upsellio-local-seo-link:hover{color:var(--teal,#1d9e75)}
         .upsellio-local-seo-more{overflow:hidden;max-height:0;opacity:0;transition:max-height .45s ease, opacity .25s ease}
         .upsellio-local-seo-more.is-open{opacity:1;max-height:2200px;margin-top:14px}
         .upsellio-local-seo-toggle{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border-strong,#c9c9c3);border-radius:999px;background:transparent;color:var(--text-2,#3d3d38);cursor:pointer;font-size:12px}
         .upsellio-local-seo-toggle:hover{border-color:var(--teal,#1d9e75);color:var(--teal,#1d9e75)}
-        @media(max-width:860px){.upsellio-local-seo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(min-width:861px){.upsellio-local-seo-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
       </style>
       <div class="upsellio-local-seo-head">
         <div>

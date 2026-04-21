@@ -3,44 +3,19 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
-function upsellio_estimated_read_time($post_id)
-{
-    $content = wp_strip_all_tags(get_post_field("post_content", $post_id));
-    $word_count = str_word_count($content);
-    $minutes = max(1, (int) ceil($word_count / 220));
-
-    return sprintf(__("%d min czytania", "upsellio"), $minutes);
-}
-
 $paged = max(1, (int) get_query_var("paged"), (int) get_query_var("page"));
 $selected_category = isset($_GET["category"]) ? sanitize_title(wp_unslash($_GET["category"])) : "";
+$selected_tags = [];
+if (isset($_GET["tags"])) {
+    $selected_tags = upsellio_parse_tag_filters(wp_unslash($_GET["tags"]));
+} elseif (isset($_GET["tag"])) {
+    // Legacy fallback for existing links.
+    $selected_tags = upsellio_parse_tag_filters(wp_unslash($_GET["tag"]));
+}
 $search_term = isset($_GET["s"]) ? sanitize_text_field(wp_unslash($_GET["s"])) : "";
-$blog_page_id = (int) get_option("page_for_posts");
-$blog_index_url = $blog_page_id ? get_permalink($blog_page_id) : home_url("/");
-if (!$blog_index_url) {
-    $blog_index_url = home_url("/");
-}
-
-$query_args = [
-    "post_type" => "post",
-    "post_status" => "publish",
-    "posts_per_page" => 7,
-    "paged" => $paged,
-];
-
-if ($selected_category !== "" && $selected_category !== "all") {
-    $query_args["category_name"] = $selected_category;
-}
-
-if ($search_term !== "") {
-    $query_args["s"] = $search_term;
-}
-
-$blog_query = new WP_Query($query_args);
-$posts = $blog_query->posts;
-$featured_post = $posts ? $posts[0] : null;
-$regular_posts = count($posts) > 1 ? array_slice($posts, 1) : [];
+$blog_index_url = upsellio_get_blog_index_url();
 $categories = get_categories(["hide_empty" => true]);
+$tags = get_tags(["hide_empty" => true]);
 
 get_header();
 ?>
@@ -55,7 +30,7 @@ get_header();
   }
   .ups-blog-title {
     font-family: var(--font-display);
-    font-size: clamp(38px, 5vw, 64px);
+    font-size: clamp(32px, 9vw, 64px);
     font-weight: 800;
     line-height: 0.98;
     letter-spacing: -2px;
@@ -82,15 +57,15 @@ get_header();
   .ups-blog-lead {
     margin-top: var(--sp-3);
     max-width: 780px;
-    font-size: 18px;
-    line-height: 1.8;
+    font-size: 17px;
+    line-height: 1.72;
     color: var(--text-2);
   }
   .ups-blog-search {
     margin-top: var(--sp-5);
     display: grid;
     gap: 12px;
-    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-columns: 1fr;
     max-width: 980px;
   }
   .ups-blog-search-field,
@@ -112,7 +87,8 @@ get_header();
     outline: none;
     background: transparent;
     color: var(--text);
-    font-size: 15px;
+    min-height: 46px;
+    font-size: 16px;
   }
   .ups-blog-search-note {
     color: var(--text-2);
@@ -127,10 +103,91 @@ get_header();
     flex-wrap: wrap;
     gap: 10px;
   }
+  .ups-blog-tag-filter-wrap {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  .ups-blog-tag-filter-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-3);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .ups-blog-tag-filter-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ups-blog-filter-tools {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .ups-blog-active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ups-blog-active-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--teal-line);
+    border-radius: var(--r-pill);
+    background: var(--teal-soft);
+    padding: 6px 10px;
+    color: var(--teal-dark);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .ups-blog-active-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    border: 1px solid var(--teal-line);
+    background: rgba(255, 255, 255, 0.65);
+    color: var(--teal-dark);
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .ups-blog-clear-filters {
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    padding: 7px 12px;
+    color: var(--text-2);
+    font-size: 12px;
+    font-weight: 600;
+    transition: 0.18s ease;
+  }
+  .ups-blog-clear-filters:hover {
+    border-color: var(--teal);
+    color: var(--teal);
+  }
+  .ups-blog-filter-note {
+    margin-top: 8px;
+    color: var(--text-3);
+    font-size: 12px;
+  }
+  .ups-blog-filter-note.error {
+    color: #c14b4b;
+  }
   .ups-blog-category {
     border: 1px solid var(--border);
     border-radius: var(--r-pill);
-    padding: 8px 14px;
+    padding: 10px 14px;
+    min-height: 42px;
     font-size: 13px;
     font-weight: 500;
     color: var(--text-2);
@@ -153,7 +210,7 @@ get_header();
   }
   .ups-blog-featured-grid {
     display: grid;
-    grid-template-columns: 1.25fr 0.75fr;
+    grid-template-columns: 1fr;
     gap: 24px;
   }
   .ups-blog-featured-card {
@@ -170,13 +227,13 @@ get_header();
   }
   .ups-blog-featured-main {
     display: grid;
-    grid-template-columns: 1.05fr 0.95fr;
+    grid-template-columns: 1fr;
   }
   .ups-blog-featured-cover {
     position: relative;
     min-height: 320px;
     background: linear-gradient(135deg, #dff5ee, #f7faf9);
-    padding: 32px;
+    padding: 24px;
   }
   .ups-blog-featured-cover::after {
     content: "";
@@ -226,7 +283,7 @@ get_header();
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 32px;
+    padding: 24px;
   }
   .ups-blog-featured-meta {
     margin-bottom: 12px;
@@ -244,12 +301,16 @@ get_header();
     flex-wrap: wrap;
     gap: 12px;
   }
+  .ups-blog-actions a {
+    width: 100%;
+  }
   .ups-blog-btn-primary,
   .ups-blog-btn-secondary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: var(--r-md);
+    min-height: 46px;
     font-size: 14px;
     transition: 0.18s ease;
   }
@@ -365,7 +426,7 @@ get_header();
   .ups-blog-grid {
     display: grid;
     gap: 16px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
   .ups-blog-card {
     display: flex;
@@ -373,7 +434,7 @@ get_header();
     border: 1px solid var(--border);
     border-radius: 24px;
     background: var(--surface);
-    padding: 24px;
+    padding: 20px;
     box-shadow: var(--shadow-sm);
     transition: 0.2s ease;
   }
@@ -415,6 +476,9 @@ get_header();
     color: var(--text-3);
   }
   .ups-blog-card-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     color: var(--teal);
     font-size: 14px;
     font-weight: 700;
@@ -453,7 +517,7 @@ get_header();
     border: 1px solid var(--teal-line);
     border-radius: var(--r-xl);
     background: var(--teal-soft);
-    padding: 34px;
+    padding: 24px;
   }
   .ups-blog-cta-title {
     margin-top: 10px;
@@ -477,6 +541,9 @@ get_header();
     flex-wrap: wrap;
     gap: 12px;
   }
+  .ups-blog-cta-actions a {
+    width: 100%;
+  }
   .ups-blog-empty {
     border: 1px solid var(--border);
     border-radius: var(--r-lg);
@@ -484,36 +551,90 @@ get_header();
     color: var(--text-2);
     background: var(--surface);
   }
-  @media (max-width: 1050px) {
-    .ups-blog-featured-grid,
-    .ups-blog-featured-main {
-      grid-template-columns: 1fr;
+  .js-ups-blog-dynamic {
+    position: relative;
+  }
+  .js-ups-blog-dynamic.is-loading {
+    pointer-events: none;
+  }
+  .ups-blog-skeleton {
+    display: none;
+    margin-top: 28px;
+  }
+  .js-ups-blog-dynamic.is-loading + .ups-blog-skeleton {
+    display: block;
+  }
+  .ups-blog-skeleton-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 1fr;
+  }
+  .ups-blog-skeleton-card {
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    background: var(--surface);
+    padding: 24px;
+  }
+  .ups-blog-skeleton-bar {
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ecece8 25%, #f7f7f5 50%, #ecece8 75%);
+    background-size: 200% 100%;
+    animation: upsBlogSkeleton 1.3s linear infinite;
+  }
+  @keyframes upsBlogSkeleton {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+  }
+  .ups-blog-list-meta {
+    display: none;
+  }
+  @media (min-width: 761px) {
+    .ups-blog-lead {
+      font-size: 18px;
+      line-height: 1.8;
+    }
+    .ups-blog-search {
+      grid-template-columns: minmax(0, 1fr) 320px;
+    }
+    .ups-blog-search-field input {
+      font-size: 15px;
     }
     .ups-blog-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-  }
-  @media (max-width: 760px) {
-    .ups-blog-search {
-      grid-template-columns: 1fr;
-    }
-    .ups-blog-grid {
-      grid-template-columns: 1fr;
+    .ups-blog-skeleton-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .ups-blog-list-meta {
-      display: none;
+      display: block;
+    }
+    .ups-blog-actions a,
+    .ups-blog-cta-actions a {
+      width: auto;
+    }
+  }
+  @media (min-width: 1051px) {
+    .ups-blog-featured-grid {
+      grid-template-columns: 1.25fr 0.75fr;
+    }
+    .ups-blog-featured-main {
+      grid-template-columns: 1.05fr 0.95fr;
+    }
+    .ups-blog-grid,
+    .ups-blog-skeleton-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
     .ups-blog-featured-cover,
     .ups-blog-featured-text {
-      padding: 24px;
+      padding: 32px;
     }
     .ups-blog-cta-shell {
-      padding: 24px;
+      padding: 34px;
     }
   }
 </style>
 
-<main class="ups-blog">
+<main class="ups-blog js-ups-blog-root" data-current-category="<?php echo esc_attr($selected_category); ?>" data-current-tags="<?php echo esc_attr(implode(",", $selected_tags)); ?>" data-current-page="<?php echo esc_attr((string) $paged); ?>">
   <section class="ups-blog-hero">
     <div class="wrap" style="padding: 64px 0 92px;">
       <div style="max-width: 920px;">
@@ -531,12 +652,15 @@ get_header();
         </p>
       </div>
 
-      <form class="ups-blog-search" method="get" action="<?php echo esc_url($blog_index_url); ?>">
+      <form class="ups-blog-search js-ups-blog-search-form" method="get" action="<?php echo esc_url($blog_index_url); ?>">
         <div class="ups-blog-search-field">
           <span aria-hidden="true" style="font-size: 14px; color: var(--text-3);">🔎</span>
-          <input type="text" name="s" placeholder="Szukaj artykułu..." value="<?php echo esc_attr($search_term); ?>" />
+          <input class="js-ups-blog-search-input" type="text" name="s" placeholder="Szukaj artykułu..." value="<?php echo esc_attr($search_term); ?>" />
           <?php if ($selected_category !== "" && $selected_category !== "all") : ?>
             <input type="hidden" name="category" value="<?php echo esc_attr($selected_category); ?>" />
+          <?php endif; ?>
+          <?php if (!empty($selected_tags)) : ?>
+            <input type="hidden" name="tags" value="<?php echo esc_attr(implode(",", $selected_tags)); ?>" />
           <?php endif; ?>
         </div>
         <div class="ups-blog-search-note">Najnowsze wpisy, checklisty i analizy praktyczne</div>
@@ -549,9 +673,18 @@ get_header();
       <div class="ups-blog-category-list">
         <?php
         $all_url = remove_query_arg("category");
-        $all_url = add_query_arg("s", $search_term, $all_url);
+        if ($search_term !== "") {
+            $all_url = add_query_arg("s", $search_term, $all_url);
+        }
+        if (!empty($selected_tags)) {
+            $all_url = add_query_arg("tags", implode(",", $selected_tags), $all_url);
+        }
         ?>
-        <a href="<?php echo esc_url($all_url); ?>" class="ups-blog-category <?php echo $selected_category === "" || $selected_category === "all" ? "active" : ""; ?>">
+        <a
+          href="<?php echo esc_url($all_url); ?>"
+          data-category=""
+          class="ups-blog-category js-ups-blog-category <?php echo $selected_category === "" || $selected_category === "all" ? "active" : ""; ?>"
+        >
           Wszystkie
         </a>
         <?php foreach ($categories as $category) : ?>
@@ -559,6 +692,7 @@ get_header();
           $category_url = add_query_arg(
               [
                   "category" => $category->slug,
+                  "tags" => implode(",", $selected_tags),
                   "s" => $search_term,
               ],
               $blog_index_url
@@ -566,144 +700,102 @@ get_header();
           ?>
           <a
             href="<?php echo esc_url($category_url); ?>"
-            class="ups-blog-category <?php echo $selected_category === $category->slug ? "active" : ""; ?>"
+            data-category="<?php echo esc_attr($category->slug); ?>"
+            class="ups-blog-category js-ups-blog-category <?php echo $selected_category === $category->slug ? "active" : ""; ?>"
           >
             <?php echo esc_html($category->name); ?>
           </a>
         <?php endforeach; ?>
       </div>
-    </div>
-  </section>
-
-  <section class="ups-blog-featured-wrap">
-    <div class="wrap ups-blog-featured-grid">
-      <?php if ($featured_post) : ?>
-        <?php
-        $featured_categories = get_the_category($featured_post->ID);
-        $featured_category = !empty($featured_categories) ? $featured_categories[0] : null;
-        ?>
-        <article class="ups-blog-featured-card">
-          <div class="ups-blog-featured-main">
-            <div class="ups-blog-featured-cover">
-              <div class="ups-blog-featured-content">
-                <div class="ups-blog-featured-label">Wyróżniony wpis</div>
-                <div class="ups-blog-featured-title-shell">
-                  <?php if ($featured_category) : ?>
-                    <div class="ups-blog-featured-category"><?php echo esc_html($featured_category->name); ?></div>
-                  <?php endif; ?>
-                  <h2 class="ups-blog-featured-title"><?php echo esc_html(get_the_title($featured_post)); ?></h2>
-                </div>
-              </div>
-            </div>
-            <div class="ups-blog-featured-text">
-              <div>
-                <div class="ups-blog-featured-meta">
-                  <?php echo esc_html(get_the_date("j F Y", $featured_post)); ?> · <?php echo esc_html(upsellio_estimated_read_time($featured_post->ID)); ?>
-                </div>
-                <p class="ups-blog-featured-excerpt"><?php echo esc_html(get_the_excerpt($featured_post)); ?></p>
-              </div>
-              <div class="ups-blog-actions">
-                <a href="<?php echo esc_url(get_permalink($featured_post)); ?>" class="ups-blog-btn-primary">Czytaj artykuł →</a>
-                <?php if ($featured_category) : ?>
-                  <a href="<?php echo esc_url(get_category_link($featured_category)); ?>" class="ups-blog-btn-secondary">
-                    Zobacz wszystkie <?php echo esc_html($featured_category->name); ?>
-                  </a>
-                <?php endif; ?>
-              </div>
-            </div>
-          </div>
-        </article>
-      <?php else : ?>
-        <div class="ups-blog-empty">
-          Brak wpisów do wyświetlenia. Dodaj pierwszy artykuł, a sekcja wyróżnionego wpisu pojawi się automatycznie.
-        </div>
-      <?php endif; ?>
-
-      <aside class="ups-blog-side">
-        <div class="ups-blog-panel">
-          <div class="eyebrow" style="margin-bottom: 0;">Newsletter / lead magnet</div>
-          <h3 class="ups-blog-panel-title">Chcesz praktyczne materiały o reklamach i sprzedaży?</h3>
-          <p class="ups-blog-panel-text">
-            Raz na jakiś czas wyślę Ci konkretny materiał: checklistę, analizę albo wpis, który pomaga podejmować lepsze decyzje marketingowe.
-          </p>
-          <form class="ups-blog-newsletter" action="#" method="post">
-            <input type="email" placeholder="Twój e-mail" />
-            <button type="submit">Zapisz mnie</button>
-          </form>
-        </div>
-
-        <div class="ups-blog-panel">
-          <div class="eyebrow" style="margin-bottom: 0;">Popularne tematy</div>
-          <div class="ups-blog-tags">
-            <?php foreach (array_slice($categories, 0, 8) as $tag_category) : ?>
-              <span class="ups-blog-tag"><?php echo esc_html($tag_category->name); ?></span>
-            <?php endforeach; ?>
-          </div>
-        </div>
-      </aside>
-    </div>
-  </section>
-
-  <section>
-    <div class="wrap ups-blog-list-wrap">
-      <div class="ups-blog-list-head">
-        <div>
-          <div class="eyebrow" style="margin-bottom: 0;">Najnowsze wpisy</div>
-          <h2 class="ups-blog-list-title">Wszystkie artykuły</h2>
-        </div>
-        <div class="ups-blog-list-meta">
-          <?php echo esc_html((string) $blog_query->found_posts); ?> wpisów · sortowanie: najnowsze
+      <div class="ups-blog-tag-filter-wrap">
+        <div class="ups-blog-tag-filter-label">Tagi:</div>
+        <div class="ups-blog-tag-filter-list">
+          <?php
+          $all_tags_url = remove_query_arg(["tag", "tags"]);
+          if ($search_term !== "") {
+              $all_tags_url = add_query_arg("s", $search_term, $all_tags_url);
+          }
+          if ($selected_category !== "") {
+              $all_tags_url = add_query_arg("category", $selected_category, $all_tags_url);
+          }
+          ?>
+          <a
+            href="<?php echo esc_url($all_tags_url); ?>"
+            data-tag=""
+            class="ups-blog-category js-ups-blog-tag <?php echo empty($selected_tags) ? "active" : ""; ?>"
+          >
+            Wszystkie tagi
+          </a>
+          <?php foreach (array_slice($tags, 0, 12) as $tag) : ?>
+            <?php
+            $tag_url = add_query_arg(
+                [
+                    "category" => $selected_category,
+                    "tags" => $tag->slug,
+                    "s" => $search_term,
+                ],
+                $blog_index_url
+            );
+            ?>
+            <a
+              href="<?php echo esc_url($tag_url); ?>"
+              data-tag="<?php echo esc_attr($tag->slug); ?>"
+              class="ups-blog-category js-ups-blog-tag <?php echo in_array($tag->slug, $selected_tags, true) ? "active" : ""; ?>"
+            >
+              #<?php echo esc_html($tag->name); ?>
+            </a>
+          <?php endforeach; ?>
         </div>
       </div>
-
-      <?php if (!empty($regular_posts)) : ?>
-        <div class="ups-blog-grid">
-          <?php foreach ($regular_posts as $post_item) : ?>
+      <div class="ups-blog-filter-tools">
+        <div class="ups-blog-active-filters js-ups-blog-active-filters">
+          <?php if ($selected_category !== "") : ?>
             <?php
-            $post_categories = get_the_category($post_item->ID);
-            $post_category_name = !empty($post_categories) ? $post_categories[0]->name : "Artykuł";
+            $selected_category_obj = get_category_by_slug($selected_category);
+            $selected_category_name = $selected_category_obj ? $selected_category_obj->name : $selected_category;
             ?>
-            <article class="ups-blog-card">
-              <div class="ups-blog-card-category"><?php echo esc_html($post_category_name); ?></div>
-              <h3 class="ups-blog-card-title"><?php echo esc_html(get_the_title($post_item)); ?></h3>
-              <p class="ups-blog-card-excerpt"><?php echo esc_html(get_the_excerpt($post_item)); ?></p>
-              <div class="ups-blog-card-footer">
-                <div class="ups-blog-card-meta">
-                  <?php echo esc_html(upsellio_estimated_read_time($post_item->ID)); ?> · <?php echo esc_html(get_the_date("j F Y", $post_item)); ?>
-                </div>
-                <a class="ups-blog-card-link" href="<?php echo esc_url(get_permalink($post_item)); ?>">Czytaj dalej →</a>
-              </div>
-            </article>
-          <?php endforeach; ?>
+            <span class="ups-blog-active-badge">
+              Kategoria: <?php echo esc_html($selected_category_name); ?>
+              <button type="button" class="ups-blog-active-remove js-ups-blog-remove-category" aria-label="Usuń filtr kategorii">×</button>
+            </span>
+          <?php endif; ?>
+          <?php if (!empty($selected_tags)) : ?>
+            <?php foreach ($selected_tags as $selected_tag_slug) : ?>
+              <?php
+              $selected_tag_obj = get_term_by("slug", $selected_tag_slug, "post_tag");
+              $selected_tag_name = $selected_tag_obj ? $selected_tag_obj->name : $selected_tag_slug;
+              ?>
+              <span class="ups-blog-active-badge">
+                Tag: #<?php echo esc_html($selected_tag_name); ?>
+                <button type="button" data-tag="<?php echo esc_attr($selected_tag_slug); ?>" class="ups-blog-active-remove js-ups-blog-remove-tag" aria-label="Usuń filtr tagu">×</button>
+              </span>
+            <?php endforeach; ?>
+          <?php endif; ?>
         </div>
-      <?php elseif (!$featured_post) : ?>
-        <div class="ups-blog-empty">Nie znaleziono wpisów pasujących do aktualnego filtrowania.</div>
-      <?php endif; ?>
-
-      <?php
-      $pagination = paginate_links([
-          "base" => str_replace(999999999, "%#%", esc_url(get_pagenum_link(999999999))),
-          "format" => "?paged=%#%",
-          "current" => $paged,
-          "total" => $blog_query->max_num_pages,
-          "type" => "array",
-          "prev_text" => "← Poprzednia",
-          "next_text" => "Następna →",
-      ]);
-      ?>
-      <?php if (!empty($pagination)) : ?>
-        <div class="ups-blog-pagination">
-          <?php foreach ($pagination as $page_link) : ?>
-            <?php
-            $is_current = strpos($page_link, "current") !== false;
-            $class_name = $is_current ? "ups-blog-page-link current" : "ups-blog-page-link";
-            ?>
-            <span class="<?php echo esc_attr($class_name); ?>"><?php echo wp_kses_post($page_link); ?></span>
-          <?php endforeach; ?>
-        </div>
-      <?php endif; ?>
+        <button type="button" class="ups-blog-clear-filters js-ups-blog-clear-filters">Wyczyść wszystko</button>
+      </div>
+      <div class="ups-blog-filter-note js-ups-blog-filter-note">
+        Możesz wybrać maksymalnie 3 tagi jednocześnie.
+      </div>
     </div>
   </section>
+
+  <div class="js-ups-blog-dynamic">
+    <?php echo upsellio_render_blog_dynamic_content($selected_category, $selected_tags, $search_term, $paged); ?>
+  </div>
+  <div class="ups-blog-skeleton js-ups-blog-skeleton" aria-hidden="true">
+    <div class="wrap ups-blog-skeleton-grid">
+      <?php for ($index = 0; $index < 6; $index++) : ?>
+        <div class="ups-blog-skeleton-card">
+          <div class="ups-blog-skeleton-bar" style="height: 24px; width: 36%;"></div>
+          <div class="ups-blog-skeleton-bar" style="height: 18px; width: 100%; margin-top: 16px;"></div>
+          <div class="ups-blog-skeleton-bar" style="height: 18px; width: 85%; margin-top: 10px;"></div>
+          <div class="ups-blog-skeleton-bar" style="height: 12px; width: 60%; margin-top: 26px;"></div>
+          <div class="ups-blog-skeleton-bar" style="height: 14px; width: 42%; margin-top: 14px;"></div>
+        </div>
+      <?php endfor; ?>
+    </div>
+  </div>
 
   <section class="ups-blog-cta">
     <div class="wrap">
@@ -722,6 +814,5 @@ get_header();
   </section>
 </main>
 <?php
-wp_reset_postdata();
 get_footer();
 ?>

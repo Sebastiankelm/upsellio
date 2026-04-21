@@ -2,6 +2,7 @@
 if (!defined("ABSPATH")) {
     exit;
 }
+$primary_navigation_links = function_exists("upsellio_get_primary_navigation_links") ? upsellio_get_primary_navigation_links() : [];
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
@@ -131,6 +132,7 @@ if (!defined("ABSPATH")) {
       color: var(--text);
       line-height: 1.65;
       -webkit-font-smoothing: antialiased;
+      text-size-adjust: 100%;
     }
 
     img {
@@ -243,6 +245,7 @@ if (!defined("ABSPATH")) {
       align-items: center;
       justify-content: center;
       gap: 8px;
+      min-height: 46px;
       border-radius: var(--r-md);
       border: none;
       cursor: pointer;
@@ -359,6 +362,8 @@ if (!defined("ABSPATH")) {
       transition: 0.18s ease;
     }
 
+    .nav-links a.active,
+    .nav-links a[aria-current="page"],
     .nav-links a:hover {
       color: var(--text);
       border-bottom-color: var(--teal);
@@ -371,6 +376,10 @@ if (!defined("ABSPATH")) {
     }
 
     .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
       background: var(--teal);
       color: #fff;
       padding: 10px 18px;
@@ -429,7 +438,9 @@ if (!defined("ABSPATH")) {
     }
 
     .mobile-menu a {
-      display: block;
+      display: flex;
+      align-items: center;
+      min-height: 48px;
       padding: 15px 0;
       border-bottom: 1px solid var(--border);
       color: var(--text-2);
@@ -517,6 +528,10 @@ if (!defined("ABSPATH")) {
       flex-wrap: wrap;
       gap: var(--sp-2);
       margin-bottom: var(--sp-2);
+    }
+
+    .hero-actions .btn {
+      width: 100%;
     }
 
     .hero-micro {
@@ -1131,11 +1146,13 @@ if (!defined("ABSPATH")) {
     .textarea,
     .select {
       width: 100%;
+      min-height: 46px;
       border: 1px solid var(--border-strong);
       background: var(--surface);
       color: var(--text);
       border-radius: var(--r-md);
       padding: 13px 15px;
+      font-size: 16px;
       outline: none;
       transition: 0.18s ease;
     }
@@ -1296,42 +1313,112 @@ if (!defined("ABSPATH")) {
     .d2 { transition-delay: 0.16s; }
     .d3 { transition-delay: 0.24s; }
 
-    @media (max-width: 980px) {
-      .hero-grid,
-      .split,
-      .service-hero {
-        grid-template-columns: 1fr;
-      }
-
-      .hero-aside {
-        display: none;
-      }
+    .wrap {
+      width: min(var(--container), calc(100% - 32px));
     }
 
-    @media (max-width: 760px) {
+    .nav-links,
+    .nav-actions {
+      display: none;
+    }
+
+    .hamburger {
+      display: flex;
+    }
+
+    .mobile-menu {
+      display: block;
+    }
+
+    .section {
+      padding: var(--sp-8) 0;
+    }
+
+    .section-sm {
+      padding: var(--sp-6) 0;
+    }
+
+    .hero-grid,
+    .split,
+    .service-hero,
+    .problem-grid,
+    .service-grid,
+    .stats-grid,
+    .fit-grid,
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-aside {
+      display: none;
+    }
+
+    .cta-band,
+    .footer-inner {
+      flex-direction: column;
+    }
+
+    .footer-links {
+      align-items: flex-start;
+    }
+
+    .form-shell,
+    .bonus,
+    .service-hero {
+      padding: var(--sp-4);
+    }
+
+    .hero-copy .lead {
+      font-size: 17px;
+    }
+
+    @media (min-width: 761px) {
       .wrap {
-        width: min(var(--container), calc(100% - 32px));
+        width: min(var(--container), calc(100% - 48px));
       }
 
       .nav-links,
       .nav-actions {
-        display: none;
-      }
-
-      .hamburger {
         display: flex;
       }
 
+      .hamburger,
       .mobile-menu {
-        display: block;
+        display: none;
       }
 
+      .hero-actions .btn {
+        width: auto;
+      }
+
+      .input,
+      .textarea,
+      .select {
+        font-size: 15px;
+      }
+    }
+
+    @media (min-width: 981px) {
       .section {
-        padding: var(--sp-8) 0;
+        padding: var(--sp-12) 0;
       }
 
       .section-sm {
-        padding: var(--sp-6) 0;
+        padding: var(--sp-8) 0;
+      }
+
+      .hero-grid,
+      .split,
+      .service-hero {
+        grid-template-columns: minmax(0, 1fr) 420px;
+      }
+
+      .split {
+        grid-template-columns: 320px minmax(0, 1fr);
+      }
+
+      .hero-aside {
+        display: block;
       }
 
       .problem-grid,
@@ -1339,26 +1426,16 @@ if (!defined("ABSPATH")) {
       .stats-grid,
       .fit-grid,
       .form-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
       }
 
       .cta-band,
       .footer-inner {
-        flex-direction: column;
+        flex-direction: row;
       }
 
       .footer-links {
-        align-items: flex-start;
-      }
-
-      .form-shell,
-      .bonus,
-      .service-hero {
-        padding: var(--sp-4);
-      }
-
-      .hero-copy .lead {
-        font-size: 17px;
+        align-items: flex-end;
       }
     }
   </style>
@@ -1377,10 +1454,9 @@ if (!defined("ABSPATH")) {
       </a>
 
       <ul class="nav-links">
-        <li><a href="#uslugi">Usługi</a></li>
-        <li><a href="#jak-dzialam">Jak działam</a></li>
-        <li><a href="#wyniki">Wyniki</a></li>
-        <li><a href="#faq">FAQ</a></li>
+        <?php foreach ($primary_navigation_links as $nav_link) : ?>
+          <li><a href="<?php echo esc_url((string) $nav_link["url"]); ?>"><?php echo esc_html((string) $nav_link["title"]); ?></a></li>
+        <?php endforeach; ?>
       </ul>
 
       <div class="nav-actions">
@@ -1394,10 +1470,9 @@ if (!defined("ABSPATH")) {
 
     <div class="mobile-menu" id="mobile-menu">
       <div class="wrap">
-        <a href="#uslugi">Usługi</a>
-        <a href="#jak-dzialam">Jak działam</a>
-        <a href="#wyniki">Wyniki</a>
-        <a href="#faq">FAQ</a>
+        <?php foreach ($primary_navigation_links as $nav_link) : ?>
+          <a href="<?php echo esc_url((string) $nav_link["url"]); ?>"><?php echo esc_html((string) $nav_link["title"]); ?></a>
+        <?php endforeach; ?>
         <a href="#kontakt">Bezpłatna rozmowa →</a>
       </div>
     </div>
@@ -1874,28 +1949,46 @@ if (!defined("ABSPATH")) {
             </p>
           </div>
 
-          <form id="contact-form" novalidate>
+          <?php $ups_form_status = isset($_GET["ups_lead_status"]) ? sanitize_text_field(wp_unslash($_GET["ups_lead_status"])) : ""; ?>
+          <?php if ($ups_form_status === "success") : ?>
+            <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #c3eddd;background:#e8f8f2;border-radius:10px;color:#085041;font-size:13px;">Dziękuję! Wiadomość została zapisana i odezwę się możliwie szybko.</div>
+          <?php elseif ($ups_form_status === "error") : ?>
+            <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #edcccc;background:#fff2f2;border-radius:10px;color:#b13a3a;font-size:13px;">Nie udało się wysłać formularza. Sprawdź pola i spróbuj ponownie.</div>
+          <?php endif; ?>
+
+          <form id="contact-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" novalidate data-upsellio-lead-form="1" data-upsellio-server-form="1">
+            <input type="hidden" name="action" value="upsellio_submit_lead" />
+            <input type="hidden" name="redirect_url" value="<?php echo esc_url(home_url("/#kontakt")); ?>" />
+            <input type="hidden" name="lead_form_origin" value="contact-form" />
+            <input type="hidden" name="lead_source" value="contact-form" />
+            <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
+            <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
+            <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
+            <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
+            <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
+            <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
+            <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
             <div class="form-grid">
               <div class="field">
                 <label for="fname">Imię i firma *</label>
-                <input class="input" type="text" id="fname" name="name" placeholder="np. Marek, firma XYZ" required />
+                <input class="input" type="text" id="fname" name="lead_name" placeholder="np. Marek, firma XYZ" required />
                 <span class="field-error" id="fname-err">Podaj imię i nazwę firmy</span>
               </div>
 
               <div class="field">
                 <label for="femail">E-mail *</label>
-                <input class="input" type="email" id="femail" name="email" placeholder="adres@firma.pl" required />
+                <input class="input" type="email" id="femail" name="lead_email" placeholder="adres@firma.pl" required />
                 <span class="field-error" id="femail-err">Podaj poprawny adres e-mail</span>
               </div>
 
               <div class="field">
                 <label for="fphone">Telefon (opcjonalnie)</label>
-                <input class="input" type="tel" id="fphone" name="phone" placeholder="+48 600 000 000" />
+                <input class="input" type="tel" id="fphone" name="lead_phone" placeholder="+48 600 000 000" />
               </div>
 
               <div class="field">
                 <label for="fservice">Czego szukasz?</label>
-                <select class="select" id="fservice" name="service">
+                <select class="select" id="fservice" name="lead_service">
                   <option value="">— wybierz —</option>
                   <option>Kampanie Meta / Google Ads</option>
                   <option>Strona lub sklep internetowy</option>
@@ -1907,13 +2000,19 @@ if (!defined("ABSPATH")) {
 
               <div class="field full">
                 <label for="fmsg">Co chcesz poprawić lub osiągnąć? *</label>
-                <textarea class="textarea" id="fmsg" name="message" placeholder="np. reklamy nie przynoszą wartościowych klientów, chcę nowy sklep nastawiony na konwersję, chcę poukładać sprzedaż..." required></textarea>
+                <textarea class="textarea" id="fmsg" name="lead_message" placeholder="np. reklamy nie przynoszą wartościowych klientów, chcę nowy sklep nastawiony na konwersję, chcę poukładać sprzedaż..." required></textarea>
                 <span class="field-error" id="fmsg-err">Opisz w kilku słowach swoją sytuację</span>
+              </div>
+              <div class="field full">
+                <label style="display:flex;gap:8px;align-items:flex-start;">
+                  <input type="checkbox" name="lead_consent" value="1" required style="margin-top:3px;" />
+                  <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
+                </label>
               </div>
             </div>
 
             <button type="submit" class="btn btn-primary submit" id="submit-btn">Wyślij i umów rozmowę →</button>
-            <p class="form-note">Odpowiadam osobiście — nie bot, nie asystent. Tu warto później podpiąć realną wysyłkę formularza.</p>
+            <p class="form-note">Odpowiadam osobiście — lead zapisuje się automatycznie w CRM.</p>
           </form>
 
           <div class="form-alt">
@@ -1961,6 +2060,7 @@ if (!defined("ABSPATH")) {
           <a href="mailto:kontakt@upsellio.pl">kontakt@upsellio.pl</a>
           <a href="https://linkedin.com/in/sebastiankelm" target="_blank" rel="noopener">LinkedIn</a>
           <a href="#uslugi">Usługi</a>
+          <a href="<?php echo esc_url(home_url("/definicje/")); ?>">Wiedza</a>
           <a href="#jak-dzialam">Jak działam</a>
         </div>
       </div>
@@ -2042,6 +2142,7 @@ if (!defined("ABSPATH")) {
 
       const form = document.getElementById("contact-form");
       const submitBtn = document.getElementById("submit-btn");
+      const isAjaxManaged = Boolean(window.upsellioData && window.upsellioData.ajaxUrl);
 
       function validateEmail(v) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -2060,48 +2161,52 @@ if (!defined("ABSPATH")) {
         return !show;
       }
 
+      if (!isAjaxManaged) {
+      if (form.dataset.upsellioServerForm === "1") return;
+
       form.addEventListener("submit", function (e) {
-        e.preventDefault();
+          e.preventDefault();
 
-        const name = document.getElementById("fname").value.trim();
-        const email = document.getElementById("femail").value.trim();
-        const msg = document.getElementById("fmsg").value.trim();
+          const name = document.getElementById("fname").value.trim();
+          const email = document.getElementById("femail").value.trim();
+          const msg = document.getElementById("fmsg").value.trim();
 
-        let ok = true;
-        ok = setError("fname", "fname-err", name.length < 2) && ok;
-        ok = setError("femail", "femail-err", !validateEmail(email)) && ok;
-        ok = setError("fmsg", "fmsg-err", msg.length < 10) && ok;
+          let ok = true;
+          ok = setError("fname", "fname-err", name.length < 2) && ok;
+          ok = setError("femail", "femail-err", !validateEmail(email)) && ok;
+          ok = setError("fmsg", "fmsg-err", msg.length < 10) && ok;
 
-        if (!ok) return;
+          if (!ok) return;
 
-        submitBtn.textContent = "Wysyłanie...";
-        submitBtn.disabled = true;
-
-        setTimeout(function () {
-          submitBtn.textContent = "Wysłano! Odezwę się wkrótce ✓";
-          submitBtn.style.background = "var(--teal-dark)";
+          submitBtn.textContent = "Wysyłanie...";
+          submitBtn.disabled = true;
 
           setTimeout(function () {
-            submitBtn.textContent = "Wyślij i umów rozmowę →";
-            submitBtn.style.background = "";
-            submitBtn.disabled = false;
-            form.reset();
-          }, 4500);
-        }, 700);
-      });
+            submitBtn.textContent = "Wysłano! Odezwę się wkrótce ✓";
+            submitBtn.style.background = "var(--teal-dark)";
 
-      ["fname", "femail", "fmsg"].forEach((id) => {
-        const errId = id + "-err";
-        document.getElementById(id).addEventListener("input", function () {
-          if (this.classList.contains("error")) {
-            if (id === "femail") {
-              setError(id, errId, !validateEmail(this.value.trim()));
-            } else {
-              setError(id, errId, this.value.trim().length < (id === "fmsg" ? 10 : 2));
-            }
-          }
+            setTimeout(function () {
+              submitBtn.textContent = "Wyślij i umów rozmowę →";
+              submitBtn.style.background = "";
+              submitBtn.disabled = false;
+              form.reset();
+            }, 4500);
+          }, 700);
         });
-      });
+
+        ["fname", "femail", "fmsg"].forEach((id) => {
+          const errId = id + "-err";
+          document.getElementById(id).addEventListener("input", function () {
+            if (this.classList.contains("error")) {
+              if (id === "femail") {
+                setError(id, errId, !validateEmail(this.value.trim()));
+              } else {
+                setError(id, errId, this.value.trim().length < (id === "fmsg" ? 10 : 2));
+              }
+            }
+          });
+        });
+      }
     })();
   </script>
   <?php wp_footer(); ?>

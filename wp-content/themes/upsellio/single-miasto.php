@@ -20,14 +20,14 @@ while (have_posts()) :
     $related = upsellio_get_city_nearby_links(get_post_meta($postId, "_upsellio_city_slug", true), 6);
     ?>
     <style>
-      .city-wrap{width:min(1180px,calc(100% - 48px));margin:0 auto}
+      .city-wrap{width:min(1180px,calc(100% - 32px));margin:0 auto}
       .city-hero{padding:72px 0 48px;border-bottom:1px solid var(--border,#e6e6e1);background:radial-gradient(circle at top right,rgba(29,158,117,.08),transparent 32%),var(--bg-soft,#f8f8f6)}
       .city-breadcrumbs{font-size:12px;color:var(--text-3,#7c7c74);margin-bottom:14px}
       .city-h1{font-family:var(--font-display, "Syne", sans-serif);font-weight:800;font-size:clamp(36px,5vw,62px);line-height:1.02;letter-spacing:-1.5px}
       .city-lead{margin-top:18px;font-size:18px;line-height:1.8;color:var(--text-2,#3d3d38);max-width:860px}
       .city-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
       .city-pill{font-size:12px;border:1px solid var(--border-strong,#c9c9c3);border-radius:999px;padding:6px 12px;background:var(--surface,#fff)}
-      .city-main{padding:56px 0 72px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:34px}
+      .city-main{padding:56px 0 72px;display:grid;grid-template-columns:1fr;gap:34px}
       .city-content{line-height:1.8;color:#262624;padding:26px;border:1px solid var(--border,#e6e6e1);border-radius:18px;background:var(--surface,#fff)}
       .city-content h2,.city-content h3{font-family:var(--font-display, "Syne", sans-serif);line-height:1.2;color:#111110}
       .city-content h2{font-size:32px;margin:0 0 16px}
@@ -35,7 +35,7 @@ while (have_posts()) :
       .city-content p{margin:0 0 14px}
       .city-content ul{margin:0 0 16px 20px}
       .city-content li{margin:0 0 8px}
-      .city-side-card{border:1px solid var(--border,#e6e6e1);border-radius:18px;padding:22px;background:var(--surface,#fff);position:sticky;top:96px}
+      .city-side-card{border:1px solid var(--border,#e6e6e1);border-radius:18px;padding:22px;background:var(--surface,#fff);position:static;top:96px}
       .city-side-title{font-family:var(--font-display, "Syne", sans-serif);font-size:22px;margin-bottom:10px}
       .city-side-list{display:grid;gap:8px;margin-top:14px}
       .city-side-link{font-size:14px;color:#5f5f58}
@@ -49,8 +49,8 @@ while (have_posts()) :
       .city-band{margin-top:26px;padding:24px;border-radius:16px;background:var(--teal-soft,#e8f8f2);border:1px solid var(--teal-line,#c3eddd)}
       .city-band h2{font-size:26px;margin:0 0 8px}
       .city-band p{margin:0;color:#085041}
-      @media(max-width:960px){.city-main{grid-template-columns:1fr}.city-side-card{position:static}}
-      @media(max-width:760px){.city-wrap{width:min(1180px,calc(100% - 32px))}}
+      @media(min-width:761px){.city-wrap{width:min(1180px,calc(100% - 48px))}}
+      @media(min-width:961px){.city-main{grid-template-columns:minmax(0,1fr) 340px}.city-side-card{position:sticky}}
     </style>
 
     <main>

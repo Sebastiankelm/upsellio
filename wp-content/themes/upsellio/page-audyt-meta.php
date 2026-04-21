@@ -2,6 +2,7 @@
 if (!defined("ABSPATH")) {
     exit;
 }
+$primary_navigation_links = function_exists("upsellio_get_primary_navigation_links") ? upsellio_get_primary_navigation_links() : [];
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
@@ -123,6 +124,7 @@ if (!defined("ABSPATH")) {
       color: var(--text);
       line-height: 1.65;
       -webkit-font-smoothing: antialiased;
+      text-size-adjust: 100%;
     }
     img { display: block; max-width: 100%; }
     a { color: inherit; text-decoration: none; }
@@ -196,6 +198,7 @@ if (!defined("ABSPATH")) {
       align-items: center;
       justify-content: center;
       gap: 8px;
+      min-height: 46px;
       border-radius: var(--r-md);
       border: none;
       cursor: pointer;
@@ -299,12 +302,18 @@ if (!defined("ABSPATH")) {
       padding: 4px 0;
       transition: 0.18s ease;
     }
+    .nav-links a.active,
+    .nav-links a[aria-current="page"],
     .nav-links a:hover {
       color: var(--text);
       border-bottom-color: var(--teal);
     }
     .nav-actions { display: flex; align-items: center; gap: var(--sp-2); }
     .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
       background: var(--teal);
       color: #fff;
       padding: 10px 18px;
@@ -348,7 +357,9 @@ if (!defined("ABSPATH")) {
     }
     .mobile-menu.open { max-height: 420px; }
     .mobile-menu a {
-      display: block;
+      display: flex;
+      align-items: center;
+      min-height: 48px;
       padding: 15px 0;
       border-bottom: 1px solid var(--border);
       color: var(--text-2);
@@ -425,6 +436,10 @@ if (!defined("ABSPATH")) {
       flex-wrap: wrap;
       gap: var(--sp-2);
       margin-bottom: var(--sp-2);
+    }
+
+    .hero-actions .btn {
+      width: 100%;
     }
     .hero-micro {
       font-size: 12px;
@@ -508,11 +523,13 @@ if (!defined("ABSPATH")) {
     .textarea,
     .select {
       width: 100%;
+      min-height: 46px;
       border: 1px solid var(--border-strong);
       background: var(--surface);
       color: var(--text);
       border-radius: var(--r-md);
       padding: 13px 15px;
+      font-size: 16px;
       outline: none;
       transition: 0.18s ease;
     }
@@ -803,29 +820,51 @@ if (!defined("ABSPATH")) {
     .d2 { transition-delay: 0.16s; }
     .d3 { transition-delay: 0.24s; }
 
-    @media (max-width: 980px) {
-      .hero-grid,
-      .split { grid-template-columns: 1fr; }
+    .wrap { width: min(var(--container), calc(100% - 32px)); }
+    .nav-links,
+    .nav-actions { display: none; }
+    .hamburger { display: flex; }
+    .mobile-menu { display: block; }
+    .hero-grid,
+    .split,
+    .cards-grid,
+    .audit-list { grid-template-columns: 1fr; }
+    .cta-band,
+    .footer-inner { flex-direction: column; }
+    .footer-links { align-items: flex-start; }
+    .hero-grid { padding: var(--sp-8) 0 var(--sp-7); }
+    .section { padding: var(--sp-8) 0; }
+    .section-sm { padding: var(--sp-6) 0; }
+    .hero-form,
+    .card,
+    .step,
+    .cta-band { padding: var(--sp-4); }
+
+    @media (min-width: 761px) {
+      .wrap { width: min(var(--container), calc(100% - 48px)); }
+      .nav-links,
+      .nav-actions { display: flex; }
+      .hamburger,
+      .mobile-menu { display: none; }
+      .hero-actions .btn { width: auto; }
+      .input,
+      .textarea,
+      .select { font-size: 15px; }
     }
 
-    @media (max-width: 760px) {
-      .wrap { width: min(var(--container), calc(100% - 32px)); }
-      .nav-links,
-      .nav-actions { display: none; }
-      .hamburger { display: flex; }
-      .mobile-menu { display: block; }
+    @media (min-width: 981px) {
+      .hero-grid {
+        grid-template-columns: minmax(0, 1fr) 420px;
+        padding: var(--sp-10) 0;
+      }
+      .split { grid-template-columns: 320px minmax(0, 1fr); }
       .cards-grid,
-      .audit-list { grid-template-columns: 1fr; }
+      .audit-list { grid-template-columns: 1fr 1fr; }
       .cta-band,
-      .footer-inner { flex-direction: column; }
-      .footer-links { align-items: flex-start; }
-      .hero-grid { padding: var(--sp-8) 0 var(--sp-7); }
-      .section { padding: var(--sp-8) 0; }
-      .section-sm { padding: var(--sp-6) 0; }
-      .hero-form,
-      .card,
-      .step,
-      .cta-band { padding: var(--sp-4); }
+      .footer-inner { flex-direction: row; }
+      .footer-links { align-items: flex-end; }
+      .section { padding: var(--sp-10) 0; }
+      .section-sm { padding: var(--sp-7) 0; }
     }
   </style>
   <?php wp_head(); ?>
@@ -843,9 +882,9 @@ if (!defined("ABSPATH")) {
       </a>
 
       <ul class="nav-links">
-        <li><a href="#co-sprawdze">Co sprawdzę</a></li>
-        <li><a href="#jak-to-dziala">Jak to działa</a></li>
-        <li><a href="#faq">FAQ</a></li>
+        <?php foreach ($primary_navigation_links as $nav_link) : ?>
+          <li><a href="<?php echo esc_url((string) $nav_link["url"]); ?>"><?php echo esc_html((string) $nav_link["title"]); ?></a></li>
+        <?php endforeach; ?>
       </ul>
 
       <div class="nav-actions">
@@ -859,9 +898,9 @@ if (!defined("ABSPATH")) {
 
     <div class="mobile-menu" id="mobile-menu">
       <div class="wrap">
-        <a href="#co-sprawdze">Co sprawdzę</a>
-        <a href="#jak-to-dziala">Jak to działa</a>
-        <a href="#faq">FAQ</a>
+        <?php foreach ($primary_navigation_links as $nav_link) : ?>
+          <a href="<?php echo esc_url((string) $nav_link["url"]); ?>"><?php echo esc_html((string) $nav_link["title"]); ?></a>
+        <?php endforeach; ?>
         <a href="#formularz">Darmowy audyt →</a>
       </div>
     </div>
@@ -907,22 +946,41 @@ if (!defined("ABSPATH")) {
             Wypełnij krótki formularz. Odezwę się i powiem, czego potrzebuję do szybkiej analizy Twoich reklam Meta.
           </div>
 
-          <form id="audit-form" novalidate>
+          <?php $ups_form_status = isset($_GET["ups_lead_status"]) ? sanitize_text_field(wp_unslash($_GET["ups_lead_status"])) : ""; ?>
+          <?php if ($ups_form_status === "success") : ?>
+            <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #c3eddd;background:#e8f8f2;border-radius:10px;color:#085041;font-size:13px;">Dziękuję! Zgłoszenie zostało zapisane i wrócę z odpowiedzią.</div>
+          <?php elseif ($ups_form_status === "error") : ?>
+            <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #edcccc;background:#fff2f2;border-radius:10px;color:#b13a3a;font-size:13px;">Nie udało się wysłać zgłoszenia. Uzupełnij pola i spróbuj ponownie.</div>
+          <?php endif; ?>
+
+          <form id="audit-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" novalidate data-upsellio-lead-form="1" data-upsellio-server-form="1">
+            <input type="hidden" name="action" value="upsellio_submit_lead" />
+            <input type="hidden" name="redirect_url" value="<?php echo esc_url(home_url("/audyt-meta/")); ?>" />
+            <input type="hidden" name="lead_form_origin" value="audit-form" />
+            <input type="hidden" name="lead_source" value="audit-form" />
+            <input type="hidden" name="lead_service" value="Audyt Meta Ads" />
+            <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
+            <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
+            <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
+            <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
+            <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
+            <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
+            <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
             <div class="field">
               <label for="fname">Imię i firma *</label>
-              <input class="input" type="text" id="fname" name="name" placeholder="np. Marek, firma XYZ" required />
+              <input class="input" type="text" id="fname" name="lead_name" placeholder="np. Marek, firma XYZ" required />
               <span class="field-error" id="fname-err">Podaj imię i nazwę firmy</span>
             </div>
 
             <div class="field">
               <label for="femail">E-mail *</label>
-              <input class="input" type="email" id="femail" name="email" placeholder="adres@firma.pl" required />
+              <input class="input" type="email" id="femail" name="lead_email" placeholder="adres@firma.pl" required />
               <span class="field-error" id="femail-err">Podaj poprawny adres e-mail</span>
             </div>
 
             <div class="field">
               <label for="fbudget">Miesięczny budżet reklam Meta</label>
-              <select class="select" id="fbudget" name="budget">
+              <select class="select" id="fbudget" name="lead_budget">
                 <option value="">— wybierz —</option>
                 <option>poniżej 2 000 zł</option>
                 <option>2 000 – 5 000 zł</option>
@@ -933,7 +991,7 @@ if (!defined("ABSPATH")) {
 
             <div class="field">
               <label for="fgoal">Cel kampanii</label>
-              <select class="select" id="fgoal" name="goal">
+              <select class="select" id="fgoal" name="lead_goal">
                 <option value="">— wybierz —</option>
                 <option>Lead generation</option>
                 <option>Sprzedaż w sklepie</option>
@@ -945,12 +1003,19 @@ if (!defined("ABSPATH")) {
 
             <div class="field">
               <label for="fmsg">Co dziś najbardziej Cię niepokoi? *</label>
-              <textarea class="textarea" id="fmsg" name="message" placeholder="np. reklamy mają kliknięcia, ale mało wartościowych zapytań / koszt leada jest za wysoki / nie wiem, czy kampanie są dobrze prowadzone" required></textarea>
+              <textarea class="textarea" id="fmsg" name="lead_message" placeholder="np. reklamy mają kliknięcia, ale mało wartościowych zapytań / koszt leada jest za wysoki / nie wiem, czy kampanie są dobrze prowadzone" required></textarea>
               <span class="field-error" id="fmsg-err">Opisz w kilku słowach swoją sytuację</span>
             </div>
 
+            <div class="field">
+              <label style="display:flex;gap:8px;align-items:flex-start;">
+                <input type="checkbox" name="lead_consent" value="1" required style="margin-top:3px;" />
+                <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
+              </label>
+            </div>
+
             <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;justify-content:center;">Wyślij zgłoszenie →</button>
-            <p class="form-note">To mockup formularza — później warto go podpiąć do maila, CRM albo webhooka.</p>
+            <p class="form-note">Formularz zapisuje zgłoszenie w CRM i uruchamia automatyczny follow-up.</p>
           </form>
         </aside>
       </div>
@@ -1197,6 +1262,7 @@ if (!defined("ABSPATH")) {
 
       const form = document.getElementById('audit-form');
       const submitBtn = document.getElementById('submit-btn');
+      const isAjaxManaged = Boolean(window.upsellioData && window.upsellioData.ajaxUrl);
 
       function validateEmail(v) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -1215,48 +1281,52 @@ if (!defined("ABSPATH")) {
         return !show;
       }
 
+      if (!isAjaxManaged) {
+      if (form.dataset.upsellioServerForm === "1") return;
+
       form.addEventListener('submit', function (e) {
-        e.preventDefault();
+          e.preventDefault();
 
-        const name = document.getElementById('fname').value.trim();
-        const email = document.getElementById('femail').value.trim();
-        const msg = document.getElementById('fmsg').value.trim();
+          const name = document.getElementById('fname').value.trim();
+          const email = document.getElementById('femail').value.trim();
+          const msg = document.getElementById('fmsg').value.trim();
 
-        let ok = true;
-        ok = setError('fname', 'fname-err', name.length < 2) && ok;
-        ok = setError('femail', 'femail-err', !validateEmail(email)) && ok;
-        ok = setError('fmsg', 'fmsg-err', msg.length < 10) && ok;
+          let ok = true;
+          ok = setError('fname', 'fname-err', name.length < 2) && ok;
+          ok = setError('femail', 'femail-err', !validateEmail(email)) && ok;
+          ok = setError('fmsg', 'fmsg-err', msg.length < 10) && ok;
 
-        if (!ok) return;
+          if (!ok) return;
 
-        submitBtn.textContent = 'Wysyłanie...';
-        submitBtn.disabled = true;
-
-        setTimeout(function () {
-          submitBtn.textContent = 'Wysłano! Odezwę się wkrótce ✓';
-          submitBtn.style.background = 'var(--teal-dark)';
+          submitBtn.textContent = 'Wysyłanie...';
+          submitBtn.disabled = true;
 
           setTimeout(function () {
-            submitBtn.textContent = 'Wyślij zgłoszenie →';
-            submitBtn.style.background = '';
-            submitBtn.disabled = false;
-            form.reset();
-          }, 4500);
-        }, 700);
-      });
+            submitBtn.textContent = 'Wysłano! Odezwę się wkrótce ✓';
+            submitBtn.style.background = 'var(--teal-dark)';
 
-      ['fname', 'femail', 'fmsg'].forEach((id) => {
-        const errId = id + '-err';
-        document.getElementById(id).addEventListener('input', function () {
-          if (this.classList.contains('error')) {
-            if (id === 'femail') {
-              setError(id, errId, !validateEmail(this.value.trim()));
-            } else {
-              setError(id, errId, this.value.trim().length < (id === 'fmsg' ? 10 : 2));
-            }
-          }
+            setTimeout(function () {
+              submitBtn.textContent = 'Wyślij zgłoszenie →';
+              submitBtn.style.background = '';
+              submitBtn.disabled = false;
+              form.reset();
+            }, 4500);
+          }, 700);
         });
-      });
+
+        ['fname', 'femail', 'fmsg'].forEach((id) => {
+          const errId = id + '-err';
+          document.getElementById(id).addEventListener('input', function () {
+            if (this.classList.contains('error')) {
+              if (id === 'femail') {
+                setError(id, errId, !validateEmail(this.value.trim()));
+              } else {
+                setError(id, errId, this.value.trim().length < (id === 'fmsg' ? 10 : 2));
+              }
+            }
+          });
+        });
+      }
     })();
   </script>
   <?php wp_footer(); ?>
