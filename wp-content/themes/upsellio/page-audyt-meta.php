@@ -1,0 +1,1265 @@
+<?php
+if (!defined("ABSPATH")) {
+    exit;
+}
+?><!DOCTYPE html>
+<html <?php language_attributes(); ?>>
+<head>
+  <meta charset="<?php bloginfo("charset"); ?>" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Darmowy audyt wyników reklam Meta | Upsellio</title>
+  <meta
+    name="description"
+    content="Darmowy audyt wyników reklam Meta dla firm, które chcą wiedzieć, co działa, co przepala budżet i co poprawić, żeby pozyskiwać lepsze leady."
+  />
+  <meta property="og:title" content="Darmowy audyt wyników reklam Meta | Upsellio" />
+  <meta
+    property="og:description"
+    content="Sprawdzę Twoje kampanie Meta Ads i pokażę, co poprawić, żeby zwiększyć skuteczność reklam i jakość zapytań."
+  />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="<?php echo esc_url(home_url("/audyt-meta")); ?>" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    "name": "Upsellio",
+    "url": "<?php echo esc_url(home_url("/audyt-meta")); ?>",
+    "email": "kontakt@upsellio.pl",
+    "description": "Darmowy audyt wyników reklam Meta dla małych i średnich firm.",
+    "founder": {
+      "@type": "Person",
+      "name": "Sebastian Kelm"
+    }
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-soft: #f8f8f6;
+      --bg-muted: #f1f1ee;
+      --surface: #ffffff;
+
+      --text: #111110;
+      --text-2: #3d3d38;
+      --text-3: #7c7c74;
+
+      --border: #e6e6e1;
+      --border-strong: #c9c9c3;
+
+      --teal: #1d9e75;
+      --teal-hover: #17885f;
+      --teal-dark: #085041;
+      --teal-soft: #e8f8f2;
+      --teal-line: #c3eddd;
+
+      --danger: #d94c4c;
+
+      --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.04);
+
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 18px;
+      --r-xl: 28px;
+      --r-pill: 999px;
+
+      --sp-1: 8px;
+      --sp-2: 16px;
+      --sp-3: 24px;
+      --sp-4: 32px;
+      --sp-5: 40px;
+      --sp-6: 48px;
+      --sp-7: 56px;
+      --sp-8: 64px;
+      --sp-10: 80px;
+      --sp-12: 96px;
+      --sp-14: 120px;
+
+      --container: 1180px;
+      --content: 760px;
+
+      --font-display: "Syne", sans-serif;
+      --font-body: "DM Sans", sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111110;
+        --bg-soft: #181816;
+        --bg-muted: #212120;
+        --surface: #181816;
+
+        --text: #f1eee8;
+        --text-2: #c4c4bc;
+        --text-3: #8b8b82;
+
+        --border: #2d2d2b;
+        --border-strong: #454540;
+
+        --teal-soft: rgba(29, 158, 117, 0.12);
+        --teal-line: rgba(29, 158, 117, 0.22);
+
+        --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.35);
+        --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.45);
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+    button, input, textarea, select { font: inherit; }
+
+    .wrap {
+      width: min(var(--container), calc(100% - 48px));
+      margin: 0 auto;
+    }
+
+    .content { width: min(var(--content), 100%); }
+    .section { padding: var(--sp-10) 0; }
+    .section-sm { padding: var(--sp-7) 0; }
+    .section-border { border-bottom: 1px solid var(--border); }
+    .bg-soft { background: var(--bg-soft); }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: var(--sp-3);
+    }
+    .eyebrow::before {
+      content: "";
+      width: 22px;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--teal);
+    }
+
+    .h1 {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(38px, 5vw, 64px);
+      line-height: 1.02;
+      letter-spacing: -2px;
+    }
+    .h2 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: clamp(28px, 3.4vw, 42px);
+      line-height: 1.08;
+      letter-spacing: -1px;
+    }
+    .h3 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+    .lead {
+      font-size: 18px;
+      line-height: 1.8;
+      color: var(--text-2);
+    }
+    .body {
+      font-size: 15px;
+      line-height: 1.75;
+      color: var(--text-2);
+    }
+    .accent { color: var(--teal); }
+    .muted { color: var(--text-3); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: var(--r-md);
+      border: none;
+      cursor: pointer;
+      transition: 0.18s ease;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--teal);
+      color: #fff;
+      padding: 15px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 0 0 0 rgba(29, 158, 117, 0.38);
+      animation: pulse 2.8s ease 2.5s infinite;
+    }
+    .btn-primary:hover {
+      background: var(--teal-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(29, 158, 117, 0.28);
+      animation: none;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      padding: 15px 24px;
+      font-size: 15px;
+      font-weight: 500;
+      border: 1px solid var(--border-strong);
+    }
+    .btn-secondary:hover {
+      border-color: var(--teal);
+      color: var(--teal);
+      transform: translateY(-2px);
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(29,158,117,0.36); }
+      70% { box-shadow: 0 0 0 12px rgba(29,158,117,0); }
+      100% { box-shadow: 0 0 0 0 rgba(29,158,117,0); }
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: color-mix(in srgb, var(--bg) 90%, transparent);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-3);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 15px;
+      box-shadow: var(--shadow-sm);
+    }
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.05;
+    }
+    .brand-name {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 3px;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 34px;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: 14px;
+      color: var(--text-2);
+      border-bottom: 2px solid transparent;
+      padding: 4px 0;
+      transition: 0.18s ease;
+    }
+    .nav-links a:hover {
+      color: var(--text);
+      border-bottom-color: var(--teal);
+    }
+    .nav-actions { display: flex; align-items: center; gap: var(--sp-2); }
+    .nav-cta {
+      background: var(--teal);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: var(--r-md);
+      font-size: 14px;
+      font-weight: 600;
+      transition: 0.18s ease;
+    }
+    .nav-cta:hover {
+      background: var(--teal-hover);
+      transform: translateY(-1px);
+    }
+
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .hamburger span {
+      width: 22px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: 0.25s ease;
+    }
+    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .mobile-menu {
+      display: none;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease;
+      border-top: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .mobile-menu.open { max-height: 420px; }
+    .mobile-menu a {
+      display: block;
+      padding: 15px 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      font-size: 15px;
+    }
+    .mobile-menu a:last-child {
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+      background:
+        radial-gradient(circle at top right, rgba(29,158,117,0.08), transparent 32%),
+        var(--bg);
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 3px;
+      background: var(--teal);
+      transform-origin: left;
+      animation: grow 0.9s cubic-bezier(.16,1,.3,1) .2s both;
+    }
+    @keyframes grow {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      gap: var(--sp-10);
+      align-items: center;
+      padding: var(--sp-12) 0 var(--sp-10);
+    }
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-soft);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--r-pill);
+      padding: 8px 16px 8px 8px;
+      margin-bottom: var(--sp-4);
+    }
+    .hero-pill-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+      color: var(--teal);
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .hero-pill span {
+      font-size: 13px;
+      color: var(--text-2);
+    }
+    .hero-copy .h1 { margin-bottom: var(--sp-4); }
+    .hero-copy .lead {
+      max-width: 700px;
+      margin-bottom: var(--sp-5);
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--sp-2);
+      margin-bottom: var(--sp-2);
+    }
+    .hero-micro {
+      font-size: 12px;
+      color: var(--text-3);
+      margin-bottom: var(--sp-5);
+    }
+    .hero-points {
+      display: grid;
+      gap: 12px;
+      max-width: 720px;
+    }
+    .hero-point {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-2);
+    }
+    .hero-point strong { color: var(--text); }
+    .hero-check {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+      color: var(--teal);
+      margin-top: 1px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .hero-form {
+      background: linear-gradient(180deg, var(--bg-soft), var(--surface));
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--teal);
+      border-radius: var(--r-xl);
+      padding: var(--sp-5);
+      box-shadow: var(--shadow-md);
+    }
+    .hero-form-badge {
+      display: inline-flex;
+      margin-bottom: var(--sp-2);
+      padding: 4px 10px;
+      border-radius: var(--r-pill);
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .hero-form-title {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.05;
+      margin-bottom: 10px;
+    }
+    .hero-form-sub {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-2);
+      margin-bottom: var(--sp-4);
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: var(--sp-3);
+    }
+    .field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+    .input,
+    .textarea,
+    .select {
+      width: 100%;
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: var(--r-md);
+      padding: 13px 15px;
+      outline: none;
+      transition: 0.18s ease;
+    }
+    .textarea {
+      min-height: 110px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+    .input::placeholder,
+    .textarea::placeholder { color: var(--text-3); }
+    .input:focus,
+    .textarea:focus,
+    .select:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(29,158,117,0.13);
+    }
+    .input.error,
+    .textarea.error { border-color: var(--danger); }
+    .field-error {
+      display: none;
+      font-size: 12px;
+      color: var(--danger);
+    }
+    .field-error.show { display: block; }
+    .form-note {
+      margin-top: var(--sp-2);
+      font-size: 12px;
+      color: var(--text-3);
+      text-align: center;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap: var(--sp-10);
+      align-items: start;
+    }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--sp-4);
+      margin-top: var(--sp-5);
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: var(--sp-5);
+      box-shadow: var(--shadow-sm);
+      transition: 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: var(--teal-line);
+      box-shadow: var(--shadow-md);
+    }
+    .card-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+      color: var(--teal);
+      margin-bottom: var(--sp-3);
+    }
+    .card .h3 { margin-bottom: 10px; }
+
+    .steps {
+      display: grid;
+      gap: var(--sp-3);
+      margin-top: var(--sp-5);
+      max-width: 900px;
+    }
+    .step {
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+      gap: var(--sp-4);
+      padding: var(--sp-4);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      background: var(--surface);
+      transition: 0.2s ease;
+    }
+    .step:hover {
+      transform: translateX(6px);
+      border-color: var(--teal-line);
+    }
+    .step-num {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 36px;
+      line-height: 1;
+      color: var(--border-strong);
+    }
+    .step:hover .step-num { color: var(--teal); }
+    .step-title {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .step-desc {
+      font-size: 14px;
+      line-height: 1.75;
+      color: var(--text-2);
+    }
+
+    .audit-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--sp-3);
+      margin-top: var(--sp-5);
+    }
+    .audit-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: var(--sp-4);
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      transition: 0.2s ease;
+    }
+    .audit-item:hover {
+      border-color: var(--teal-line);
+      transform: translateY(-2px);
+    }
+    .audit-check {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 1px;
+    }
+
+    .faq {
+      max-width: 900px;
+      margin-top: var(--sp-5);
+    }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--sp-3);
+      padding: var(--sp-3) 0;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.18s ease;
+      user-select: none;
+    }
+    .faq-q:hover { color: var(--teal); }
+    .faq-icon {
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--border-strong);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      font-size: 16px;
+      color: var(--text-3);
+      transition: 0.25s ease;
+    }
+    .faq-item.open .faq-icon {
+      transform: rotate(45deg);
+      background: var(--teal-soft);
+      border-color: var(--teal-line);
+      color: var(--teal);
+    }
+    .faq-a {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s ease, padding 0.25s ease;
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--text-2);
+    }
+    .faq-item.open .faq-a {
+      max-height: 320px;
+      padding-bottom: var(--sp-3);
+    }
+
+    .cta-band {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-5);
+      flex-wrap: wrap;
+      padding: var(--sp-6);
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+      border-radius: var(--r-xl);
+    }
+    .cta-band h3 {
+      font-family: var(--font-display);
+      font-size: 24px;
+      line-height: 1.1;
+      color: var(--teal-dark);
+      margin-bottom: 6px;
+    }
+    .cta-band p {
+      font-size: 15px;
+      color: var(--teal-dark);
+      line-height: 1.7;
+      max-width: 640px;
+    }
+
+    .footer {
+      padding: var(--sp-8) 0 var(--sp-5);
+      border-top: 1px solid var(--border);
+    }
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--sp-5);
+      flex-wrap: wrap;
+    }
+    .footer-brand { max-width: 420px; }
+    .footer-links {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      align-items: flex-end;
+    }
+    .footer-links a {
+      font-size: 14px;
+      color: var(--text-3);
+      transition: 0.18s ease;
+    }
+    .footer-links a:hover { color: var(--teal); }
+    .footer-copy {
+      margin-top: var(--sp-5);
+      padding-top: var(--sp-3);
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-3);
+      text-align: center;
+    }
+
+    .scroll-top {
+      position: fixed;
+      right: 28px;
+      bottom: 28px;
+      z-index: 50;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: none;
+      background: var(--teal);
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: 0.25s ease;
+      box-shadow: var(--shadow-md);
+    }
+    .scroll-top.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .scroll-top:hover { background: var(--teal-dark); }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.65s cubic-bezier(.16,1,.3,1), transform 0.65s cubic-bezier(.16,1,.3,1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .d1 { transition-delay: 0.08s; }
+    .d2 { transition-delay: 0.16s; }
+    .d3 { transition-delay: 0.24s; }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .split { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      .wrap { width: min(var(--container), calc(100% - 32px)); }
+      .nav-links,
+      .nav-actions { display: none; }
+      .hamburger { display: flex; }
+      .mobile-menu { display: block; }
+      .cards-grid,
+      .audit-list { grid-template-columns: 1fr; }
+      .cta-band,
+      .footer-inner { flex-direction: column; }
+      .footer-links { align-items: flex-start; }
+      .hero-grid { padding: var(--sp-8) 0 var(--sp-7); }
+      .section { padding: var(--sp-8) 0; }
+      .section-sm { padding: var(--sp-6) 0; }
+      .hero-form,
+      .card,
+      .step,
+      .cta-band { padding: var(--sp-4); }
+    }
+  </style>
+  <?php wp_head(); ?>
+</head>
+<body <?php body_class(); ?>>
+  <?php wp_body_open(); ?>
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a href="#start" class="brand" aria-label="Upsellio — strona główna">
+        <div class="brand-mark">U</div>
+        <div class="brand-text">
+          <div class="brand-name">Upsellio</div>
+          <div class="brand-sub">by Sebastian Kelm</div>
+        </div>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#co-sprawdze">Co sprawdzę</a></li>
+        <li><a href="#jak-to-dziala">Jak to działa</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="#formularz" class="nav-cta">Darmowy audyt</a>
+      </div>
+
+      <button class="hamburger" id="hamburger" aria-label="Otwórz menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <div class="mobile-menu" id="mobile-menu">
+      <div class="wrap">
+        <a href="#co-sprawdze">Co sprawdzę</a>
+        <a href="#jak-to-dziala">Jak to działa</a>
+        <a href="#faq">FAQ</a>
+        <a href="#formularz">Darmowy audyt →</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="start">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <div class="hero-pill reveal visible">
+            <div class="hero-pill-dot">M</div>
+            <span>Dla firm, które chcą wiedzieć, czy ich <strong>reklamy Meta naprawdę dowożą wynik</strong></span>
+          </div>
+
+          <h1 class="h1 reveal visible">
+            Darmowy audyt <span class="accent">wyników reklam Meta</span>
+          </h1>
+
+          <p class="lead reveal visible">
+            Sprawdzę Twoje kampanie Meta Ads i pokażę Ci, <strong>co działa, co przepala budżet i co warto poprawić</strong>, żeby pozyskiwać lepsze leady lub sprzedawać skuteczniej.
+          </p>
+
+          <div class="hero-actions reveal visible">
+            <a href="#formularz" class="btn btn-primary">Zamów darmowy audyt →</a>
+            <a href="#co-sprawdze" class="btn btn-secondary">Zobacz co sprawdzę</a>
+          </div>
+
+          <div class="hero-micro reveal visible">
+            Bez zobowiązań. Bez wciskania współpracy. Dostajesz konkretne wnioski i rekomendacje.
+          </div>
+
+          <div class="hero-points reveal visible">
+            <div class="hero-point"><span class="hero-check">✓</span><span><strong>Nie tylko analiza reklam</strong> — patrzę też na jakość ruchu, komunikat i sens lejka.</span></div>
+            <div class="hero-point"><span class="hero-check">✓</span><span><strong>Praktyczne spojrzenie sprzedażowe</strong> — nie oceniam kampanii wyłącznie po kliknięciach i CTR.</span></div>
+            <div class="hero-point"><span class="hero-check">✓</span><span><strong>Wynik audytu</strong> dostaniesz w prostym, zrozumiałym języku — bez agencyjnego bełkotu.</span></div>
+          </div>
+        </div>
+
+        <aside class="hero-form reveal visible" id="formularz">
+          <div class="hero-form-badge">Darmowy audyt</div>
+          <div class="hero-form-title">Zgłoś kampanie do sprawdzenia</div>
+          <div class="hero-form-sub">
+            Wypełnij krótki formularz. Odezwę się i powiem, czego potrzebuję do szybkiej analizy Twoich reklam Meta.
+          </div>
+
+          <form id="audit-form" novalidate>
+            <div class="field">
+              <label for="fname">Imię i firma *</label>
+              <input class="input" type="text" id="fname" name="name" placeholder="np. Marek, firma XYZ" required />
+              <span class="field-error" id="fname-err">Podaj imię i nazwę firmy</span>
+            </div>
+
+            <div class="field">
+              <label for="femail">E-mail *</label>
+              <input class="input" type="email" id="femail" name="email" placeholder="adres@firma.pl" required />
+              <span class="field-error" id="femail-err">Podaj poprawny adres e-mail</span>
+            </div>
+
+            <div class="field">
+              <label for="fbudget">Miesięczny budżet reklam Meta</label>
+              <select class="select" id="fbudget" name="budget">
+                <option value="">— wybierz —</option>
+                <option>poniżej 2 000 zł</option>
+                <option>2 000 – 5 000 zł</option>
+                <option>5 000 – 15 000 zł</option>
+                <option>15 000 zł +</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="fgoal">Cel kampanii</label>
+              <select class="select" id="fgoal" name="goal">
+                <option value="">— wybierz —</option>
+                <option>Lead generation</option>
+                <option>Sprzedaż w sklepie</option>
+                <option>Ruch na stronę</option>
+                <option>Remarketing</option>
+                <option>Nie jestem pewien</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="fmsg">Co dziś najbardziej Cię niepokoi? *</label>
+              <textarea class="textarea" id="fmsg" name="message" placeholder="np. reklamy mają kliknięcia, ale mało wartościowych zapytań / koszt leada jest za wysoki / nie wiem, czy kampanie są dobrze prowadzone" required></textarea>
+              <span class="field-error" id="fmsg-err">Opisz w kilku słowach swoją sytuację</span>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;justify-content:center;">Wyślij zgłoszenie →</button>
+            <p class="form-note">To mockup formularza — później warto go podpiąć do maila, CRM albo webhooka.</p>
+          </form>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section section-border" id="co-sprawdze">
+      <div class="wrap split">
+        <div class="content">
+          <div class="eyebrow reveal">Co sprawdzę</div>
+          <h2 class="h2 reveal d1">Audyt nie kończy się na <span class="accent">„reklamy są dobrze ustawione”</span></h2>
+          <p class="body reveal d2" style="margin-top:18px;">
+            Patrzę na kampanie szerzej: wynik, koszt, jakość ruchu, sens kreacji, komunikatu i to, czy reklamy faktycznie prowadzą do zapytań albo sprzedaży.
+          </p>
+        </div>
+
+        <div class="cards-grid">
+          <div class="card reveal">
+            <div class="card-icon">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="10" width="3" height="6" rx="1.5" fill="currentColor"/><rect x="7.5" y="6" width="3" height="10" rx="1.5" fill="currentColor"/><rect x="13" y="2" width="3" height="14" rx="1.5" fill="currentColor"/></svg>
+            </div>
+            <div class="h3">Wyniki i opłacalność</div>
+            <p class="body">Sprawdzę najważniejsze wskaźniki i ocenię, czy kampanie naprawdę pracują na sensowny wynik biznesowy.</p>
+          </div>
+
+          <div class="card reveal d1">
+            <div class="card-icon">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9h12M9 3v12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <div class="h3">Strukturę kampanii</div>
+            <p class="body">Zobaczę, czy konto reklamowe jest poukładane sensownie i czy struktura kampanii pomaga, a nie utrudnia optymalizację.</p>
+          </div>
+
+          <div class="card reveal d2">
+            <div class="card-icon">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 15h6M9 13v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <div class="h3">Kreacje i komunikat</div>
+            <p class="body">Ocenię, czy reklamy przyciągają właściwe osoby i czy komunikat nie obiecuje czegoś, czego strona potem nie dowozi.</p>
+          </div>
+
+          <div class="card reveal d3">
+            <div class="card-icon">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 15c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <div class="h3">Jakość leadów / ruchu</div>
+            <p class="body">Nie tylko ile przyszło kontaktów, ale czy to byli właściwi ludzie i czy reklamy nie generują pustych wejść.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="wrap">
+        <div class="audit-list">
+          <div class="audit-item reveal"><span class="audit-check">✓</span><span>Czy kampanie mają sensowny cel i odpowiednie eventy</span></div>
+          <div class="audit-item reveal d1"><span class="audit-check">✓</span><span>Czy budżet jest rozłożony logicznie, a nie chaotycznie</span></div>
+          <div class="audit-item reveal d2"><span class="audit-check">✓</span><span>Czy kreacje i teksty przyciągają właściwe osoby</span></div>
+          <div class="audit-item reveal d3"><span class="audit-check">✓</span><span>Czy problem leży w reklamie, czy może już na stronie / w lejku</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section bg-soft section-border" id="jak-to-dziala">
+      <div class="wrap">
+        <div class="content">
+          <div class="eyebrow reveal">Jak to działa</div>
+          <h2 class="h2 reveal d1">Prosty proces, <span class="accent">bez niepotrzebnego tarcia</span></h2>
+          <p class="body reveal d2" style="margin-top:18px;">
+            Chcę, żeby zgłoszenie było szybkie, a odpowiedź konkretna. Bez rozbudowanego briefu i bez formularza na 20 pól.
+          </p>
+        </div>
+
+        <div class="steps">
+          <div class="step reveal">
+            <div class="step-num">01</div>
+            <div>
+              <div class="step-title">Wysyłasz zgłoszenie</div>
+              <div class="step-desc">Opisujesz w kilku słowach, co Cię niepokoi i jaki masz cel reklamowy. To wystarczy na start.</div>
+            </div>
+          </div>
+
+          <div class="step reveal d1">
+            <div class="step-num">02</div>
+            <div>
+              <div class="step-title">Wracam z informacją, czego potrzebuję do analizy</div>
+              <div class="step-desc">Jeśli temat ma sens, napiszę, co warto mi udostępnić do szybkiego audytu: np. screeny z wyników, dostęp tylko do odczytu albo kilka danych o kampanii.</div>
+            </div>
+          </div>
+
+          <div class="step reveal d2">
+            <div class="step-num">03</div>
+            <div>
+              <div class="step-title">Dostajesz konkretne wnioski</div>
+              <div class="step-desc">Powiem wprost, co wygląda dobrze, co budzi zastrzeżenia i od czego zacząłbym poprawki. Bez lania wody i bez sztucznego straszenia.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-border">
+      <div class="wrap">
+        <div class="cta-band reveal">
+          <div>
+            <h3>Masz wrażenie, że reklamy „coś robią”, ale nie wiesz czy dobrze?</h3>
+            <p>To najczęstsza sytuacja. Audyt ma dać Ci jasność: zostawić, poprawić czy przebudować podejście.</p>
+          </div>
+          <a href="#formularz" class="btn btn-primary">Chcę darmowy audyt →</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section bg-soft" id="faq">
+      <div class="wrap">
+        <div class="content">
+          <div class="eyebrow reveal">FAQ</div>
+          <h2 class="h2 reveal d1">Najczęstsze <span class="accent">pytania</span></h2>
+        </div>
+
+        <div class="faq">
+          <div class="faq-item reveal">
+            <div class="faq-q">
+              <span>Czy ten audyt naprawdę jest darmowy?</span>
+              <span class="faq-icon">+</span>
+            </div>
+            <div class="faq-a">Tak. To darmowa analiza wstępna, która ma dać Ci jasność, czy kampanie idą w dobrym kierunku i gdzie widać największe ryzyko albo potencjał poprawy.</div>
+          </div>
+
+          <div class="faq-item reveal d1">
+            <div class="faq-q">
+              <span>Czy muszę od razu dawać pełen dostęp do konta reklamowego?</span>
+              <span class="faq-icon">+</span>
+            </div>
+            <div class="faq-a">Nie. Na start wystarczy zgłoszenie i krótki opis sytuacji. Jeśli będzie sens i chęć pójścia dalej, dam Ci znać, jakie dane będą potrzebne do sensownej oceny.</div>
+          </div>
+
+          <div class="faq-item reveal d2">
+            <div class="faq-q">
+              <span>Dla kogo ten audyt ma największy sens?</span>
+              <span class="faq-icon">+</span>
+            </div>
+            <div class="faq-a">Najbardziej dla firm, które już reklamują się na Meta lub planują zwiększać budżet, ale nie mają pewności, czy kampanie są prowadzone dobrze i czy przynoszą właściwy efekt.</div>
+          </div>
+
+          <div class="faq-item reveal d3">
+            <div class="faq-q">
+              <span>Czy po audycie będziesz próbował od razu sprzedać współpracę?</span>
+              <span class="faq-icon">+</span>
+            </div>
+            <div class="faq-a">Nie taki jest cel tej strony. Najpierw masz dostać wartość i wnioski. Jeśli później uznasz, że chcesz iść dalej, wtedy dopiero możemy o tym rozmawiać.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="brand">
+            <div class="brand-mark">U</div>
+            <div class="brand-text">
+              <div class="brand-name">Upsellio</div>
+              <div class="brand-sub">by Sebastian Kelm</div>
+            </div>
+          </div>
+          <div class="muted" style="margin-top:12px;font-size:13px;line-height:1.6;">
+            Darmowy audyt wyników reklam Meta dla firm, które chcą lepiej rozumieć, co działa i co poprawić.
+          </div>
+        </div>
+
+        <div class="footer-links">
+          <a href="mailto:kontakt@upsellio.pl">kontakt@upsellio.pl</a>
+          <a href="https://linkedin.com/in/sebastiankelm" target="_blank" rel="noopener">LinkedIn</a>
+          <a href="#co-sprawdze">Co sprawdzę</a>
+          <a href="#jak-to-dziala">Jak to działa</a>
+        </div>
+      </div>
+
+      <?php echo upsellio_get_footer_city_links_html(); ?>
+      <div class="footer-copy">© 2025 Upsellio / Sebastian Kelm. Wszelkie prawa zastrzeżone.</div>
+    </div>
+  </footer>
+
+  <button class="scroll-top" id="scroll-top" aria-label="Wróć na górę">↑</button>
+
+  <script>
+    (function () {
+      const reveals = document.querySelectorAll('.reveal');
+      const topBtn = document.getElementById('scroll-top');
+
+      function onScroll() {
+        const vh = window.innerHeight;
+        reveals.forEach((el) => {
+          if (el.getBoundingClientRect().top < vh * 0.9) {
+            el.classList.add('visible');
+          }
+        });
+
+        if (window.scrollY > 450) topBtn.classList.add('visible');
+        else topBtn.classList.remove('visible');
+      }
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      setTimeout(onScroll, 120);
+
+      topBtn.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      const ham = document.getElementById('hamburger');
+      const mob = document.getElementById('mobile-menu');
+      ham.addEventListener('click', function () {
+        ham.classList.toggle('open');
+        mob.classList.toggle('open');
+      });
+
+      mob.querySelectorAll('a').forEach((a) => {
+        a.addEventListener('click', function () {
+          ham.classList.remove('open');
+          mob.classList.remove('open');
+        });
+      });
+
+      document.querySelectorAll('a[href^="#"]').forEach((a) => {
+        a.addEventListener('click', function (e) {
+          const id = a.getAttribute('href').slice(1);
+          if (!id) return;
+          const target = document.getElementById(id);
+          if (!target) return;
+          e.preventDefault();
+          const offset = target.getBoundingClientRect().top + window.scrollY - 72;
+          window.scrollTo({ top: offset, behavior: 'smooth' });
+        });
+      });
+
+      document.querySelectorAll('.faq-item').forEach((item) => {
+        const q = item.querySelector('.faq-q');
+        q.addEventListener('click', function () {
+          const isOpen = item.classList.contains('open');
+          document.querySelectorAll('.faq-item').forEach((i) => i.classList.remove('open'));
+          if (!isOpen) item.classList.add('open');
+        });
+      });
+
+      const form = document.getElementById('audit-form');
+      const submitBtn = document.getElementById('submit-btn');
+
+      function validateEmail(v) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+      }
+
+      function setError(inputId, errId, show) {
+        const input = document.getElementById(inputId);
+        const err = document.getElementById(errId);
+        if (show) {
+          input.classList.add('error');
+          err.classList.add('show');
+        } else {
+          input.classList.remove('error');
+          err.classList.remove('show');
+        }
+        return !show;
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const name = document.getElementById('fname').value.trim();
+        const email = document.getElementById('femail').value.trim();
+        const msg = document.getElementById('fmsg').value.trim();
+
+        let ok = true;
+        ok = setError('fname', 'fname-err', name.length < 2) && ok;
+        ok = setError('femail', 'femail-err', !validateEmail(email)) && ok;
+        ok = setError('fmsg', 'fmsg-err', msg.length < 10) && ok;
+
+        if (!ok) return;
+
+        submitBtn.textContent = 'Wysyłanie...';
+        submitBtn.disabled = true;
+
+        setTimeout(function () {
+          submitBtn.textContent = 'Wysłano! Odezwę się wkrótce ✓';
+          submitBtn.style.background = 'var(--teal-dark)';
+
+          setTimeout(function () {
+            submitBtn.textContent = 'Wyślij zgłoszenie →';
+            submitBtn.style.background = '';
+            submitBtn.disabled = false;
+            form.reset();
+          }, 4500);
+        }, 700);
+      });
+
+      ['fname', 'femail', 'fmsg'].forEach((id) => {
+        const errId = id + '-err';
+        document.getElementById(id).addEventListener('input', function () {
+          if (this.classList.contains('error')) {
+            if (id === 'femail') {
+              setError(id, errId, !validateEmail(this.value.trim()));
+            } else {
+              setError(id, errId, this.value.trim().length < (id === 'fmsg' ? 10 : 2));
+            }
+          }
+        });
+      });
+    })();
+  </script>
+  <?php wp_footer(); ?>
+</body>
+</html>
+
