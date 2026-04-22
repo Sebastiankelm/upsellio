@@ -131,17 +131,17 @@
     });
   }
 
-  document.querySelectorAll('a[href^="#"]').forEach((link) => {
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest('a[href^="#"]');
+    if (!link) return;
     const href = link.getAttribute("href") || "";
     if (href === "#" || href.length < 2) return;
-    link.addEventListener("click", (event) => {
-      const id = href.slice(1);
-      const target = id ? document.getElementById(id) : null;
-      if (!target) return;
-      event.preventDefault();
-      const offset = target.getBoundingClientRect().top + window.scrollY - getNavOffset(8);
-      window.scrollTo({ top: Math.max(0, offset), behavior: prefersReducedMotion ? "auto" : "smooth" });
-    });
+    const id = href.slice(1);
+    const target = id ? document.getElementById(id) : null;
+    if (!target) return;
+    event.preventDefault();
+    const offset = target.getBoundingClientRect().top + window.scrollY - getNavOffset(8);
+    window.scrollTo({ top: Math.max(0, offset), behavior: prefersReducedMotion ? "auto" : "smooth" });
   });
 
   function initScrollSpy() {
