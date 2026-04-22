@@ -67,7 +67,7 @@ function upsellio_get_theme_config_defaults()
         ],
         "front_page_sections" => [
             "seo" => [
-                "title" => "Upsellio | Marketing i strony WWW dla firm B2B",
+                "title" => "Upsellio | Marketing B2B i strony WWW, ktore sprzedaja",
                 "description" => "Meta Ads, Google Ads i strony WWW dla firm B2B. Ponad 10 lat praktyki i nacisk na jakosc leadow oraz wzrost sprzedazy.",
                 "og_title" => "Upsellio - Marketing internetowy i strony WWW dla firm B2B",
                 "og_description" => "Kampanie Meta Ads i Google Ads, strony i sklepy internetowe. 10 lat praktyki w sprzedazy B2B. Bezplatna rozmowa wstepna.",
