@@ -198,13 +198,13 @@ get_header();
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
+    width: 24px;
+    height: 24px;
     border-radius: 999px;
     border: 1px solid var(--teal-line);
     background: rgba(255, 255, 255, 0.65);
     color: var(--teal-dark);
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1;
     cursor: pointer;
   }

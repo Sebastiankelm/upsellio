@@ -1,4 +1,8 @@
 <?php
+/*
+Template Name: Upsellio - Lead Magnety
+Template Post Type: page
+*/
 if (!defined("ABSPATH")) {
     exit;
 }

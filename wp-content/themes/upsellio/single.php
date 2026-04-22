@@ -13,8 +13,11 @@ if (have_posts()) :
         $post_categories = get_the_category($post_id);
         $primary_category = !empty($post_categories) ? $post_categories[0] : null;
         $featured_image = get_the_post_thumbnail_url($post_id, "full");
+        $featured_image_id = get_post_thumbnail_id($post_id);
         $fallback_image = get_post_meta($post_id, "_upsellio_featured_image_url", true);
         $hero_image = $featured_image ?: $fallback_image;
+        $hero_image_srcset = $featured_image_id ? wp_get_attachment_image_srcset($featured_image_id, "full") : "";
+        $hero_image_sizes = $featured_image_id ? "(max-width: 760px) 100vw, (max-width: 1200px) 92vw, 1200px" : "";
 
         $raw_content = apply_filters("the_content", (string) get_post_field("post_content", $post_id));
         $prepared_content = upsellio_prepare_toc_content($raw_content);
@@ -47,14 +50,6 @@ if (have_posts()) :
             overflow: hidden;
             border-bottom: 1px solid var(--border);
             background: #080d0c;
-          }
-          .ups-post-hero-bg {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.4;
           }
           .ups-post-hero-overlay {
             position: absolute;
@@ -514,7 +509,74 @@ if (have_posts()) :
             font-size: 14px;
             font-weight: 700;
           }
-          @media (min-width: 861px) {
+          @media (max-width: 760px) {
+            .ups-post-hero-inner {
+              padding: 46px 0 56px;
+            }
+            .ups-post-title {
+              font-size: clamp(30px, 11vw, 44px);
+              line-height: 1.02;
+              letter-spacing: -0.045em;
+            }
+            .ups-post-lead {
+              margin-top: 16px;
+              font-size: 16px;
+              line-height: 1.65;
+            }
+            .ups-post-author-row {
+              margin-top: 26px;
+              padding-top: 16px;
+              grid-template-columns: 1fr;
+              gap: 12px;
+            }
+            .ups-post-main-inner {
+              padding: 38px 0 54px;
+              gap: 24px;
+            }
+            .ups-post-panel,
+            .ups-post-highlight-copy,
+            .ups-post-section,
+            .ups-inline-links,
+            .ups-inline-contact,
+            .ups-post-related-copy {
+              padding: 16px;
+            }
+            .ups-post-highlight img {
+              height: 220px;
+            }
+            .ups-post-highlight-copy p {
+              font-size: clamp(24px, 7.2vw, 32px);
+              line-height: 1.12;
+            }
+            .ups-post-section h2 {
+              font-size: clamp(26px, 8vw, 34px);
+              line-height: 1.12;
+            }
+            .ups-post-section h3 {
+              font-size: clamp(22px, 6.8vw, 28px);
+              line-height: 1.14;
+            }
+            .ups-post-section p,
+            .ups-post-section li {
+              font-size: 16px;
+              line-height: 1.72;
+            }
+            .ups-post-section blockquote {
+              padding: 14px 16px;
+              font-size: 16px;
+              line-height: 1.65;
+            }
+            .ups-inline-contact-head h3 {
+              font-size: clamp(24px, 8vw, 30px);
+            }
+            .ups-post-related {
+              padding: 42px 0 56px;
+            }
+            .ups-post-related-title {
+              font-size: clamp(24px, 7.5vw, 32px);
+            }
+          }
+          @media (min-width: 761px) {
             .ups-post-hero-inner,
             .ups-post-main-inner,
             .ups-post-related-inner {
@@ -528,7 +590,7 @@ if (have_posts()) :
               width: fit-content;
             }
           }
-          @media (min-width: 1081px) {
+          @media (min-width: 981px) {
             .ups-post-main-inner {
               grid-template-columns: 250px minmax(0, 1fr);
             }
@@ -552,7 +614,6 @@ if (have_posts()) :
 
         <main class="ups-post">
           <section class="ups-post-hero">
-            <img src="<?php echo esc_url($hero_image); ?>" alt="<?php echo esc_attr(get_the_title($post_id)); ?>" class="ups-post-hero-bg" width="1800" height="980" decoding="async" />
             <div class="ups-post-hero-overlay"></div>
             <div class="ups-post-hero-inner">
               <a class="ups-post-back" href="<?php echo esc_url($blog_index_url); ?>">← Wróć do bloga</a>
@@ -624,7 +685,14 @@ if (have_posts()) :
               <div class="ups-post-content-shell">
                 <?php if ($hero_image) : ?>
                   <div class="ups-post-highlight">
-                    <img src="<?php echo esc_url($hero_image); ?>" alt="<?php echo esc_attr(get_the_title($post_id)); ?>" width="1600" height="920" decoding="async" />
+                    <img
+                      src="<?php echo esc_url($hero_image); ?>"
+                      alt="<?php echo esc_attr(get_the_title($post_id)); ?>"
+                      width="1600"
+                      height="920"
+                      decoding="async"
+                      <?php if ($hero_image_srcset !== "") : ?>srcset="<?php echo esc_attr($hero_image_srcset); ?>" sizes="<?php echo esc_attr($hero_image_sizes); ?>"<?php endif; ?>
+                    />
                     <div class="ups-post-highlight-copy">
                       <small>Kluczowa myśl artykułu</small>
                       <p>Dobre reklamy nie wystarczą, jeśli reszta procesu sprzedaży nie jest gotowa dowieźć wyniku.</p>

@@ -28,6 +28,12 @@ $metrics = function_exists("upsellio_parse_metrics_lines") ? upsellio_parse_metr
 $custom_html = (string) get_post_meta($post_id, "_ups_port_custom_html", true);
 $custom_css = (string) get_post_meta($post_id, "_ups_port_custom_css", true);
 $custom_js = (string) get_post_meta($post_id, "_ups_port_custom_js", true);
+$custom_payload = function_exists("upsellio_prepare_custom_embed_payload")
+    ? upsellio_prepare_custom_embed_payload($custom_html, $custom_css, $custom_js)
+    : ["html" => $custom_html, "css" => $custom_css, "js" => $custom_js];
+$custom_html = (string) ($custom_payload["html"] ?? "");
+$custom_css = (string) ($custom_payload["css"] ?? "");
+$custom_js = (string) ($custom_payload["js"] ?? "");
 $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? upsellio_get_portfolio_page_url() : home_url("/portfolio/");
 ?>
 <style>
@@ -91,8 +97,8 @@ $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? upsellio_g
   .ports-side-link { display:inline-flex; align-items:center; justify-content:center; min-height:42px; border-radius:10px; font-size:14px; font-weight:700; }
   .ports-side-link.secondary { border:1px solid #d8dfda; background:#fff; color:#4c534d; }
   .ports-side-link.secondary:hover { border-color:#1d9e75; color:#1d9e75; }
-  @media (min-width:760px){ .ports-wrap{width:min(1060px, calc(100% - 48px));} }
-  @media (min-width:992px){ .ports-layout{grid-template-columns:1.18fr .82fr;} }
+  @media (min-width:761px){ .ports-wrap{width:min(1060px, calc(100% - 48px));} }
+  @media (min-width:981px){ .ports-layout{grid-template-columns:1.18fr .82fr;} }
 </style>
 
 <main class="ports-page">
@@ -209,15 +215,15 @@ $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? upsellio_g
           <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
           <div class="field">
             <label for="ports-name">Imię i firma *</label>
-            <input id="ports-name" name="lead_name" type="text" required />
+            <input id="ports-name" name="lead_name" type="text" autocomplete="name organization" inputmode="text" required />
           </div>
           <div class="field">
             <label for="ports-email">E-mail *</label>
-            <input id="ports-email" name="lead_email" type="email" required />
+            <input id="ports-email" name="lead_email" type="email" autocomplete="email" inputmode="email" required />
           </div>
           <div class="field">
             <label for="ports-phone">Telefon</label>
-            <input id="ports-phone" name="lead_phone" type="text" />
+            <input id="ports-phone" name="lead_phone" type="tel" autocomplete="tel" inputmode="tel" />
           </div>
           <div class="field">
             <label for="ports-message">Krótko opisz cel projektu *</label>
@@ -244,22 +250,5 @@ $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? upsellio_g
     </div>
   </section>
 </main>
-<script>
-  (function () {
-    const root = document.querySelector("[data-live-preview='1']");
-    if (!root) return;
-    const buttons = Array.from(root.querySelectorAll("[data-preview-device]"));
-    const frameWrap = root.querySelector("[data-preview-frame-wrap]");
-    if (!buttons.length || !frameWrap) return;
-    buttons.forEach((button) => {
-      button.addEventListener("click", function () {
-        const device = this.getAttribute("data-preview-device");
-        buttons.forEach((item) => item.classList.remove("is-active"));
-        this.classList.add("is-active");
-        frameWrap.classList.toggle("is-mobile", device === "mobile");
-      });
-    });
-  })();
-</script>
 <?php
 get_footer();

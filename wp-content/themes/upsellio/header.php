@@ -11,16 +11,26 @@ if (!$blog_index_url) {
 $is_blog_context = is_home() || is_singular("post") || is_category() || is_tag() || is_search() || is_page_template("page-blog.php");
 $is_definitions_context = is_post_type_archive("definicja") || is_singular("definicja");
 $is_cities_context = is_post_type_archive("miasto") || is_singular("miasto");
-$is_portfolio_context = is_page("portfolio") || is_page_template("page-portfolio.php") || is_singular("portfolio");
-$is_marketing_portfolio_context = is_page("portfolio-marketingowe") || is_page_template("page-portfolio-marketingowe.php") || is_singular("marketing_portfolio");
-$is_lead_magnets_context = is_page("lead-magnety") || is_page_template("page-lead-magnety.php") || is_singular("lead_magnet");
-$is_contact_context = is_page("kontakt") || is_page_template("page-kontakt.php");
+$is_portfolio_context = function_exists("upsellio_is_portfolio_page_context")
+    ? upsellio_is_portfolio_page_context()
+    : (is_page("portfolio") || is_page_template("page-portfolio.php") || is_singular("portfolio"));
+$is_marketing_portfolio_context = function_exists("upsellio_is_marketing_portfolio_page_context")
+    ? upsellio_is_marketing_portfolio_page_context()
+    : (is_page("portfolio-marketingowe") || is_page_template("page-portfolio-marketingowe.php") || is_singular("marketing_portfolio"));
+$is_lead_magnets_context = function_exists("upsellio_is_lead_magnets_page_context")
+    ? upsellio_is_lead_magnets_page_context()
+    : (is_page("lead-magnety") || is_page_template("page-lead-magnety.php") || is_singular("lead_magnet"));
+$is_contact_context = function_exists("upsellio_is_contact_page_context")
+    ? upsellio_is_contact_page_context()
+    : (is_page("kontakt") || is_page_template("page-kontakt.php"));
 $primary_navigation_links = function_exists("upsellio_get_primary_navigation_links") ? upsellio_get_primary_navigation_links() : [];
 $current_request_uri = isset($_SERVER["REQUEST_URI"]) ? (string) wp_unslash($_SERVER["REQUEST_URI"]) : "/";
 $current_url = home_url($current_request_uri);
 $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? (string) upsellio_get_portfolio_page_url() : home_url("/portfolio/");
 $marketing_portfolio_url = function_exists("upsellio_get_marketing_portfolio_page_url") ? (string) upsellio_get_marketing_portfolio_page_url() : home_url("/portfolio-marketingowe/");
 $lead_magnets_url = function_exists("upsellio_get_lead_magnets_page_url") ? (string) upsellio_get_lead_magnets_page_url() : home_url("/lead-magnety/");
+$contact_url = function_exists("upsellio_get_contact_page_url") ? (string) upsellio_get_contact_page_url() : home_url("/kontakt/");
+$brand_logo_url = get_template_directory_uri() . "/assets/images/upsellio-logo.png";
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
@@ -36,11 +46,7 @@ $lead_magnets_url = function_exists("upsellio_get_lead_magnets_page_url") ? (str
 <header class="nav">
   <div class="wrap nav-inner">
     <a href="<?php echo esc_url(home_url("/")); ?>" class="brand" aria-label="Upsellio — strona główna">
-      <div class="brand-mark">U</div>
-      <div class="brand-text">
-        <div class="brand-name">Upsellio</div>
-        <div class="brand-sub">by Sebastian Kelm</div>
-      </div>
+      <img src="<?php echo esc_url($brand_logo_url); ?>" alt="Upsellio" class="brand-logo" decoding="async" />
     </a>
 
     <ul class="nav-links">
@@ -67,7 +73,7 @@ $lead_magnets_url = function_exists("upsellio_get_lead_magnets_page_url") ? (str
             $is_active = untrailingslashit($nav_url) === untrailingslashit($lead_magnets_url);
         }
         if (!$is_active && $is_contact_context) {
-            $is_active = untrailingslashit($nav_url) === untrailingslashit(home_url("/kontakt/"));
+            $is_active = untrailingslashit($nav_url) === untrailingslashit($contact_url);
         }
         ?>
         <li>
@@ -79,7 +85,7 @@ $lead_magnets_url = function_exists("upsellio_get_lead_magnets_page_url") ? (str
     </ul>
 
     <div class="nav-actions">
-      <a href="<?php echo esc_url(home_url("/kontakt/")); ?>" class="nav-cta">Bezpłatna rozmowa</a>
+      <a href="<?php echo esc_url($contact_url); ?>" class="nav-cta">Bezpłatna rozmowa</a>
     </div>
 
     <button class="hamburger" id="hamburger" aria-label="Otwórz menu" aria-controls="mobile-menu" aria-expanded="false" type="button">
@@ -91,7 +97,7 @@ $lead_magnets_url = function_exists("upsellio_get_lead_magnets_page_url") ? (str
       <?php foreach ($primary_navigation_links as $nav_link) : ?>
         <a href="<?php echo esc_url((string) $nav_link["url"]); ?>"><?php echo esc_html((string) $nav_link["title"]); ?></a>
       <?php endforeach; ?>
-      <a href="<?php echo esc_url(home_url("/kontakt/")); ?>">Bezpłatna rozmowa →</a>
+      <a href="<?php echo esc_url($contact_url); ?>">Bezpłatna rozmowa →</a>
     </div>
   </div>
 </header>

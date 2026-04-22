@@ -309,10 +309,10 @@ function upsellio_crm_send_emails($lead_id, $name, $email, $message)
 
 function upsellio_crm_handle_lead_submission()
 {
-    $redirectUrl = isset($_POST["redirect_url"]) ? esc_url_raw(wp_unslash($_POST["redirect_url"])) : home_url("/");
-    if ($redirectUrl === "") {
-        $redirectUrl = home_url("/");
-    }
+    $rawRedirectUrl = isset($_POST["redirect_url"]) ? wp_unslash($_POST["redirect_url"]) : "";
+    $redirectUrl = function_exists("upsellio_normalize_internal_redirect_url")
+        ? upsellio_normalize_internal_redirect_url((string) $rawRedirectUrl, home_url("/"))
+        : home_url("/");
 
     if (!isset($_POST["upsellio_lead_form_nonce"]) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["upsellio_lead_form_nonce"])), "upsellio_unified_lead_form")) {
         wp_safe_redirect(add_query_arg("ups_lead_status", "error", $redirectUrl));

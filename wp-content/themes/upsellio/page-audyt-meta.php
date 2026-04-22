@@ -648,6 +648,10 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       align-items: center;
       gap: var(--sp-3);
       padding: var(--sp-3) 0;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      text-align: left;
       font-size: 15px;
       font-weight: 600;
       cursor: pointer;
@@ -1098,34 +1102,34 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
 
         <div class="faq">
           <div class="faq-item reveal">
-            <div class="faq-q">
+            <button class="faq-q" type="button">
               <span>Czy ten audyt naprawdę jest darmowy?</span>
               <span class="faq-icon">+</span>
-            </div>
+            </button>
             <div class="faq-a">Tak. To darmowa analiza wstępna, która ma dać Ci jasność, czy kampanie idą w dobrym kierunku i gdzie widać największe ryzyko albo potencjał poprawy.</div>
           </div>
 
           <div class="faq-item reveal d1">
-            <div class="faq-q">
+            <button class="faq-q" type="button">
               <span>Czy muszę od razu dawać pełen dostęp do konta reklamowego?</span>
               <span class="faq-icon">+</span>
-            </div>
+            </button>
             <div class="faq-a">Nie. Na start wystarczy zgłoszenie i krótki opis sytuacji. Jeśli będzie sens i chęć pójścia dalej, dam Ci znać, jakie dane będą potrzebne do sensownej oceny.</div>
           </div>
 
           <div class="faq-item reveal d2">
-            <div class="faq-q">
+            <button class="faq-q" type="button">
               <span>Dla kogo ten audyt ma największy sens?</span>
               <span class="faq-icon">+</span>
-            </div>
+            </button>
             <div class="faq-a">Najbardziej dla firm, które już reklamują się na Meta lub planują zwiększać budżet, ale nie mają pewności, czy kampanie są prowadzone dobrze i czy przynoszą właściwy efekt.</div>
           </div>
 
           <div class="faq-item reveal d3">
-            <div class="faq-q">
+            <button class="faq-q" type="button">
               <span>Czy po audycie będziesz próbował od razu sprzedać współpracę?</span>
               <span class="faq-icon">+</span>
-            </div>
+            </button>
             <div class="faq-a">Nie taki jest cel tej strony. Najpierw masz dostać wartość i wnioski. Jeśli później uznasz, że chcesz iść dalej, wtedy dopiero możemy o tym rozmawiać.</div>
           </div>
         </div>
@@ -1165,165 +1169,6 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
 
   <button class="scroll-top" id="scroll-top" aria-label="Wróć na górę">↑</button>
 
-  <script>
-    (function () {
-      const reveals = document.querySelectorAll('.reveal');
-      const topBtn = document.getElementById('scroll-top');
-
-      function onScroll() {
-        const vh = window.innerHeight;
-        reveals.forEach((el) => {
-          if (el.getBoundingClientRect().top < vh * 0.9) {
-            el.classList.add('visible');
-          }
-        });
-
-        if (window.scrollY > 450) topBtn.classList.add('visible');
-        else topBtn.classList.remove('visible');
-      }
-
-      window.addEventListener('scroll', onScroll, { passive: true });
-      setTimeout(onScroll, 120);
-
-      topBtn.addEventListener('click', function () {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-
-      const ham = document.getElementById('hamburger');
-      const mob = document.getElementById('mobile-menu');
-      if (ham && mob) {
-        const setMobileMenuState = (isOpen) => {
-          ham.classList.toggle('open', isOpen);
-          mob.classList.toggle('open', isOpen);
-          ham.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-          ham.setAttribute('aria-label', isOpen ? 'Zamknij menu' : 'Otwórz menu');
-          document.body.classList.toggle('is-mobile-menu-open', isOpen);
-        };
-
-        setMobileMenuState(false);
-
-        ham.addEventListener('click', function () {
-          const nextState = !ham.classList.contains('open');
-          setMobileMenuState(nextState);
-        });
-
-        mob.querySelectorAll('a').forEach((a) => {
-          a.addEventListener('click', function () {
-            setMobileMenuState(false);
-          });
-        });
-
-        document.addEventListener('click', function (event) {
-          const clickedInsideMenu = mob.contains(event.target);
-          const clickedHamburger = ham.contains(event.target);
-          if (!clickedInsideMenu && !clickedHamburger) {
-            setMobileMenuState(false);
-          }
-        });
-
-        window.addEventListener('keydown', function (event) {
-          if (event.key === 'Escape') {
-            setMobileMenuState(false);
-          }
-        });
-
-        window.addEventListener('resize', function () {
-          if (window.innerWidth >= 761) {
-            setMobileMenuState(false);
-          }
-        });
-      }
-
-      document.querySelectorAll('a[href^="#"]').forEach((a) => {
-        a.addEventListener('click', function (e) {
-          const id = a.getAttribute('href').slice(1);
-          if (!id) return;
-          const target = document.getElementById(id);
-          if (!target) return;
-          e.preventDefault();
-          const offset = target.getBoundingClientRect().top + window.scrollY - 72;
-          window.scrollTo({ top: offset, behavior: 'smooth' });
-        });
-      });
-
-      document.querySelectorAll('.faq-item').forEach((item) => {
-        const q = item.querySelector('.faq-q');
-        q.addEventListener('click', function () {
-          const isOpen = item.classList.contains('open');
-          document.querySelectorAll('.faq-item').forEach((i) => i.classList.remove('open'));
-          if (!isOpen) item.classList.add('open');
-        });
-      });
-
-      const form = document.getElementById('audit-form');
-      const submitBtn = document.getElementById('submit-btn');
-      const isAjaxManaged = Boolean(window.upsellioData && window.upsellioData.ajaxUrl);
-
-      function validateEmail(v) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-      }
-
-      function setError(inputId, errId, show) {
-        const input = document.getElementById(inputId);
-        const err = document.getElementById(errId);
-        if (show) {
-          input.classList.add('error');
-          err.classList.add('show');
-        } else {
-          input.classList.remove('error');
-          err.classList.remove('show');
-        }
-        return !show;
-      }
-
-      if (!isAjaxManaged) {
-      if (form.dataset.upsellioServerForm === "1") return;
-
-      form.addEventListener('submit', function (e) {
-          e.preventDefault();
-
-          const name = document.getElementById('fname').value.trim();
-          const email = document.getElementById('femail').value.trim();
-          const msg = document.getElementById('fmsg').value.trim();
-
-          let ok = true;
-          ok = setError('fname', 'fname-err', name.length < 2) && ok;
-          ok = setError('femail', 'femail-err', !validateEmail(email)) && ok;
-          ok = setError('fmsg', 'fmsg-err', msg.length < 10) && ok;
-
-          if (!ok) return;
-
-          submitBtn.textContent = 'Wysyłanie...';
-          submitBtn.disabled = true;
-
-          setTimeout(function () {
-            submitBtn.textContent = 'Wysłano! Odezwę się wkrótce ✓';
-            submitBtn.style.background = 'var(--teal-dark)';
-
-            setTimeout(function () {
-              submitBtn.textContent = 'Wyślij zgłoszenie →';
-              submitBtn.style.background = '';
-              submitBtn.disabled = false;
-              form.reset();
-            }, 4500);
-          }, 700);
-        });
-
-        ['fname', 'femail', 'fmsg'].forEach((id) => {
-          const errId = id + '-err';
-          document.getElementById(id).addEventListener('input', function () {
-            if (this.classList.contains('error')) {
-              if (id === 'femail') {
-                setError(id, errId, !validateEmail(this.value.trim()));
-              } else {
-                setError(id, errId, this.value.trim().length < (id === 'fmsg' ? 10 : 2));
-              }
-            }
-          });
-        });
-      }
-    })();
-  </script>
   <?php wp_footer(); ?>
 </body>
 </html>

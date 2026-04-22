@@ -1,4 +1,8 @@
 <?php
+/*
+Template Name: Upsellio - Portfolio Marketingowe
+Template Post Type: page
+*/
 if (!defined("ABSPATH")) {
     exit;
 }

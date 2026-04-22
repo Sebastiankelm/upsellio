@@ -189,10 +189,19 @@ add_shortcode("upsellio_contact_form", "upsellio_contact_form_shortcode");
 
 function upsellio_handle_lead_form_submission()
 {
-    $redirect_url = isset($_POST["redirect_url"]) ? esc_url_raw(wp_unslash($_POST["redirect_url"])) : home_url("/");
+    $raw_redirect = isset($_POST["redirect_url"]) ? wp_unslash($_POST["redirect_url"]) : "";
+    $redirect_url = function_exists("upsellio_normalize_internal_redirect_url")
+        ? upsellio_normalize_internal_redirect_url((string) $raw_redirect, home_url("/"))
+        : home_url("/");
 
-    if (!isset($_POST["upsellio_lead_form_nonce"]) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["upsellio_lead_form_nonce"])), "upsellio_lead_form_action")) {
+    if (!isset($_POST["upsellio_lead_form_nonce"]) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["upsellio_lead_form_nonce"])), "upsellio_unified_lead_form")) {
         wp_safe_redirect(add_query_arg("ups_lead_status", "error", $redirect_url));
+        exit;
+    }
+
+    $honeypot = isset($_POST["lead_website"]) ? sanitize_text_field(wp_unslash($_POST["lead_website"])) : "";
+    if ($honeypot !== "") {
+        wp_safe_redirect(add_query_arg("ups_lead_status", "success", $redirect_url));
         exit;
     }
 
@@ -200,8 +209,9 @@ function upsellio_handle_lead_form_submission()
     $email = isset($_POST["lead_email"]) ? sanitize_email(wp_unslash($_POST["lead_email"])) : "";
     $phone = isset($_POST["lead_phone"]) ? sanitize_text_field(wp_unslash($_POST["lead_phone"])) : "";
     $message = isset($_POST["lead_message"]) ? sanitize_textarea_field(wp_unslash($_POST["lead_message"])) : "";
+    $consent = isset($_POST["lead_consent"]) ? sanitize_text_field(wp_unslash($_POST["lead_consent"])) : "";
 
-    if ($name === "" || !is_email($email) || $message === "") {
+    if ($name === "" || !is_email($email) || $message === "" || $consent !== "1") {
         wp_safe_redirect(add_query_arg("ups_lead_status", "error", $redirect_url));
         exit;
     }
@@ -297,6 +307,45 @@ function upsellio_blog_generator_menu()
     );
 }
 add_action("admin_menu", "upsellio_blog_generator_menu");
+
+function upsellio_blog_tool_add_post_row_action($actions, $post)
+{
+    if (!($post instanceof WP_Post) || $post->post_type !== "post") {
+        return $actions;
+    }
+
+    $post_id = (int) $post->ID;
+    if ($post_id <= 0 || !current_user_can("edit_post", $post_id)) {
+        return $actions;
+    }
+
+    $sbt_quick_edit_url = add_query_arg(
+        [
+            "page" => "upsellio-seo-blog-tool",
+            "quick_edit_post_id" => $post_id,
+        ],
+        admin_url("edit.php")
+    );
+
+    $sbt_action = '<a href="' . esc_url($sbt_quick_edit_url) . '">Edytuj SBT</a>';
+    $updated_actions = [];
+    $inserted = false;
+
+    foreach ((array) $actions as $action_key => $action_markup) {
+        $updated_actions[$action_key] = $action_markup;
+        if ($action_key === "edit") {
+            $updated_actions["upsellio_sbt_edit"] = $sbt_action;
+            $inserted = true;
+        }
+    }
+
+    if (!$inserted) {
+        $updated_actions["upsellio_sbt_edit"] = $sbt_action;
+    }
+
+    return $updated_actions;
+}
+add_filter("post_row_actions", "upsellio_blog_tool_add_post_row_action", 10, 2);
 
 function upsellio_blog_tool_get_gsc_credentials()
 {

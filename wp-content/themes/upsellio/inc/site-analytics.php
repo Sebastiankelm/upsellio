@@ -276,35 +276,166 @@ function upsellio_get_gsc_credentials()
     }
 
     return [
-        "client_id" => (string) ($credentials["client_id"] ?? ""),
-        "client_secret" => (string) ($credentials["client_secret"] ?? ""),
-        "refresh_token" => (string) ($credentials["refresh_token"] ?? ""),
-        "property" => (string) ($credentials["property"] ?? ""),
+        "client_id" => trim((string) ($credentials["client_id"] ?? "")),
+        "client_secret" => trim((string) ($credentials["client_secret"] ?? "")),
+        "refresh_token" => trim((string) ($credentials["refresh_token"] ?? "")),
+        "property" => trim((string) ($credentials["property"] ?? "")),
     ];
+}
+
+function upsellio_normalize_oauth_credential($value)
+{
+    return preg_replace("/\s+/", "", trim((string) $value));
+}
+
+function upsellio_gsc_debug_logs_option_key()
+{
+    return "upsellio_gsc_debug_logs";
+}
+
+function upsellio_gsc_debug_trace_id()
+{
+    if (function_exists("wp_generate_uuid4")) {
+        return "gsc_" . wp_generate_uuid4();
+    }
+    return "gsc_" . uniqid("", true);
+}
+
+function upsellio_gsc_truncate($value, $max_length = 1200)
+{
+    $value = (string) $value;
+    if (strlen($value) <= $max_length) {
+        return $value;
+    }
+    return substr($value, 0, $max_length) . "...[truncated]";
+}
+
+function upsellio_gsc_mask_value($value, $prefix = 6, $suffix = 4)
+{
+    $value = (string) $value;
+    $length = strlen($value);
+    if ($length === 0) {
+        return "";
+    }
+    if ($length <= ($prefix + $suffix)) {
+        return str_repeat("*", $length);
+    }
+    return substr($value, 0, $prefix) . str_repeat("*", max(4, $length - ($prefix + $suffix))) . substr($value, -$suffix);
+}
+
+function upsellio_gsc_redact_sensitive_fields($value)
+{
+    $sensitive_keys = ["client_secret", "refresh_token", "access_token", "authorization", "id_token"];
+    if (!is_array($value)) {
+        return $value;
+    }
+
+    $redacted = [];
+    foreach ($value as $key => $item) {
+        $normalized_key = strtolower((string) $key);
+        if (in_array($normalized_key, $sensitive_keys, true) && is_string($item)) {
+            $redacted[$key] = upsellio_gsc_mask_value($item);
+            continue;
+        }
+
+        if (is_array($item)) {
+            $redacted[$key] = upsellio_gsc_redact_sensitive_fields($item);
+            continue;
+        }
+        $redacted[$key] = $item;
+    }
+
+    return $redacted;
+}
+
+function upsellio_gsc_log($event, $data = [], $trace_id = "")
+{
+    $logs = get_option(upsellio_gsc_debug_logs_option_key(), []);
+    if (!is_array($logs)) {
+        $logs = [];
+    }
+
+    $entry = [
+        "time" => wp_date("Y-m-d H:i:s"),
+        "event" => sanitize_text_field((string) $event),
+        "trace_id" => sanitize_text_field((string) $trace_id),
+        "data" => upsellio_gsc_redact_sensitive_fields(is_array($data) ? $data : ["value" => (string) $data]),
+    ];
+
+    $logs[] = $entry;
+    if (count($logs) > 250) {
+        $logs = array_slice($logs, -250, 250, false);
+    }
+
+    update_option(upsellio_gsc_debug_logs_option_key(), $logs, false);
+}
+
+function upsellio_gsc_get_logs()
+{
+    $logs = get_option(upsellio_gsc_debug_logs_option_key(), []);
+    return is_array($logs) ? $logs : [];
 }
 
 function upsellio_save_gsc_credentials($client_id, $client_secret, $refresh_token, $property)
 {
+    $existing = upsellio_get_gsc_credentials();
     $payload = [
-        "client_id" => sanitize_text_field((string) $client_id),
-        "client_secret" => sanitize_text_field((string) $client_secret),
-        "refresh_token" => sanitize_text_field((string) $refresh_token),
+        "client_id" => upsellio_normalize_oauth_credential($client_id),
+        "client_secret" => upsellio_normalize_oauth_credential($client_secret),
+        "refresh_token" => upsellio_normalize_oauth_credential($refresh_token),
         "property" => sanitize_text_field((string) $property),
     ];
+
+    if (
+        $existing["client_id"] !== $payload["client_id"] ||
+        $existing["client_secret"] !== $payload["client_secret"] ||
+        $existing["refresh_token"] !== $payload["refresh_token"]
+    ) {
+        delete_transient("upsellio_gsc_access_token");
+        delete_transient(upsellio_gsc_access_token_transient_key($existing));
+        delete_transient(upsellio_gsc_access_token_transient_key($payload));
+    }
+
     update_option("upsellio_gsc_credentials", $payload, false);
 }
 
-function upsellio_gsc_get_access_token($credentials)
+function upsellio_gsc_access_token_transient_key($credentials)
 {
-    $cached_token = get_transient("upsellio_gsc_access_token");
+    $client_id = (string) ($credentials["client_id"] ?? "");
+    $refresh_token = (string) ($credentials["refresh_token"] ?? "");
+    $fingerprint = md5($client_id . "|" . $refresh_token);
+    return "upsellio_gsc_access_token_" . $fingerprint;
+}
+
+function upsellio_gsc_get_access_token($credentials, $trace_id = "")
+{
+    $transient_key = upsellio_gsc_access_token_transient_key($credentials);
+    $cached_token = get_transient($transient_key);
     if (is_string($cached_token) && $cached_token !== "") {
+        upsellio_gsc_log("oauth.access_token.cache_hit", [
+            "transient_key" => $transient_key,
+            "access_token_preview" => upsellio_gsc_mask_value($cached_token),
+        ], $trace_id);
         return $cached_token;
     }
 
     $client_id = (string) ($credentials["client_id"] ?? "");
     $client_secret = (string) ($credentials["client_secret"] ?? "");
     $refresh_token = (string) ($credentials["refresh_token"] ?? "");
+
+    upsellio_gsc_log("oauth.access_token.request_started", [
+        "transient_key" => $transient_key,
+        "client_id" => $client_id,
+        "client_secret_preview" => upsellio_gsc_mask_value($client_secret),
+        "refresh_token_preview" => upsellio_gsc_mask_value($refresh_token),
+    ], $trace_id);
+
     if ($client_id === "" || $client_secret === "" || $refresh_token === "") {
+        upsellio_gsc_log("oauth.access_token.missing_credentials", [
+            "has_client_id" => $client_id !== "",
+            "has_client_secret" => $client_secret !== "",
+            "has_refresh_token" => $refresh_token !== "",
+        ], $trace_id);
         return new WP_Error("upsellio_gsc_missing_credentials", "Brakuje danych OAuth do Google Search Console.");
     }
 
@@ -318,32 +449,197 @@ function upsellio_gsc_get_access_token($credentials)
         ],
     ]);
     if (is_wp_error($response)) {
+        upsellio_gsc_log("oauth.access_token.http_wp_error", [
+            "message" => $response->get_error_message(),
+        ], $trace_id);
         return $response;
     }
 
-    $body = json_decode((string) wp_remote_retrieve_body($response), true);
+    $status = (int) wp_remote_retrieve_response_code($response);
+    $raw_body = (string) wp_remote_retrieve_body($response);
+    $body = json_decode($raw_body, true);
+    upsellio_gsc_log("oauth.access_token.http_response", [
+        "status" => $status,
+        "body" => is_array($body) ? $body : upsellio_gsc_truncate($raw_body),
+    ], $trace_id);
+
+    if ($status >= 400) {
+        $error = is_array($body) ? (string) ($body["error"] ?? "") : "";
+        $error_description = is_array($body) ? (string) ($body["error_description"] ?? "") : "";
+        $details = trim($error . ($error_description !== "" ? ": " . $error_description : ""));
+        if ($details === "") {
+            $details = "Nie udało się odświeżyć tokena OAuth.";
+        }
+        upsellio_gsc_log("oauth.access_token.http_error", [
+            "status" => $status,
+            "error" => $error,
+            "error_description" => $error_description,
+            "details" => $details,
+        ], $trace_id);
+        return new WP_Error(
+            "upsellio_gsc_token_http_error",
+            "OAuth token error (HTTP " . $status . "): " . $details . ". Sprawdź czy refresh token pochodzi z tego samego OAuth Client ID i aktualnego Client Secret."
+        );
+    }
+
     $access_token = is_array($body) ? (string) ($body["access_token"] ?? "") : "";
     $expires_in = is_array($body) ? (int) ($body["expires_in"] ?? 3600) : 3600;
     if ($access_token === "") {
-        $error_description = is_array($body) ? (string) ($body["error_description"] ?? "Nie udało się pobrać access tokena.") : "Nie udało się pobrać access tokena.";
-        return new WP_Error("upsellio_gsc_token_error", $error_description);
+        $error = is_array($body) ? (string) ($body["error"] ?? "") : "";
+        $error_description = is_array($body) ? (string) ($body["error_description"] ?? "") : "";
+        $details = trim($error . ($error_description !== "" ? ": " . $error_description : ""));
+        if ($details === "") {
+            $details = "Nie udało się pobrać access tokena.";
+        }
+        upsellio_gsc_log("oauth.access_token.empty_token_error", [
+            "details" => $details,
+            "raw_body" => is_array($body) ? $body : upsellio_gsc_truncate($raw_body),
+        ], $trace_id);
+        return new WP_Error("upsellio_gsc_token_error", $details);
     }
 
-    set_transient("upsellio_gsc_access_token", $access_token, max(300, $expires_in - 120));
+    set_transient($transient_key, $access_token, max(300, $expires_in - 120));
+    upsellio_gsc_log("oauth.access_token.saved_to_cache", [
+        "transient_key" => $transient_key,
+        "expires_in" => $expires_in,
+        "access_token_preview" => upsellio_gsc_mask_value($access_token),
+    ], $trace_id);
 
     return $access_token;
 }
 
-function upsellio_gsc_fetch_rows($credentials, $days = 30)
+function upsellio_gsc_extract_error_message($body, $fallback_message)
 {
-    $access_token = upsellio_gsc_get_access_token($credentials);
+    if (is_array($body) && isset($body["error"])) {
+        if (is_array($body["error"]) && isset($body["error"]["message"])) {
+            return (string) $body["error"]["message"];
+        }
+        if (is_string($body["error"])) {
+            return (string) $body["error"];
+        }
+    }
+
+    if (is_array($body) && isset($body["error_description"]) && is_string($body["error_description"])) {
+        return (string) $body["error_description"];
+    }
+
+    return (string) $fallback_message;
+}
+
+function upsellio_gsc_has_property_access($property, $site_entries)
+{
+    $property = trim((string) $property);
+    if ($property === "") {
+        return false;
+    }
+
+    $property_with_slash = preg_match("/^https?:\/\/.+\/$/", $property) ? $property : $property . "/";
+    foreach ($site_entries as $entry) {
+        $site_url = (string) ($entry["siteUrl"] ?? "");
+        if ($site_url === "") {
+            continue;
+        }
+        if ($site_url === $property || $site_url === $property_with_slash) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function upsellio_gsc_fetch_rows($credentials, $days = 30, $trace_id = "")
+{
+    upsellio_gsc_log("gsc.sync.started", [
+        "days" => (int) $days,
+        "property" => (string) ($credentials["property"] ?? ""),
+        "client_id" => (string) ($credentials["client_id"] ?? ""),
+    ], $trace_id);
+
+    $access_token = upsellio_gsc_get_access_token($credentials, $trace_id);
     if (is_wp_error($access_token)) {
+        upsellio_gsc_log("gsc.sync.access_token_error", [
+            "message" => $access_token->get_error_message(),
+        ], $trace_id);
         return $access_token;
     }
 
     $property = (string) ($credentials["property"] ?? "");
     if ($property === "") {
         return new WP_Error("upsellio_gsc_missing_property", "Uzupełnij property URL (np. https://twojadomena.pl/ lub sc-domain:twojadomena.pl).");
+    }
+
+    $token_transient_key = upsellio_gsc_access_token_transient_key($credentials);
+    $sites_response = null;
+    for ($attempt = 0; $attempt < 2; $attempt++) {
+        upsellio_gsc_log("gsc.sites_list.request", [
+            "attempt" => $attempt + 1,
+            "endpoint" => "https://searchconsole.googleapis.com/webmasters/v3/sites",
+            "token_preview" => upsellio_gsc_mask_value($access_token),
+        ], $trace_id);
+        $sites_response = wp_remote_get("https://searchconsole.googleapis.com/webmasters/v3/sites", [
+            "timeout" => 25,
+            "headers" => [
+                "Authorization" => "Bearer " . $access_token,
+                "Content-Type" => "application/json",
+            ],
+        ]);
+        if (is_wp_error($sites_response)) {
+            return $sites_response;
+        }
+
+        $sites_status = (int) wp_remote_retrieve_response_code($sites_response);
+        $sites_raw_body = (string) wp_remote_retrieve_body($sites_response);
+        $sites_decoded = json_decode($sites_raw_body, true);
+        upsellio_gsc_log("gsc.sites_list.response", [
+            "attempt" => $attempt + 1,
+            "status" => $sites_status,
+            "body" => is_array($sites_decoded) ? $sites_decoded : upsellio_gsc_truncate($sites_raw_body),
+        ], $trace_id);
+
+        if ($sites_status !== 401) {
+            break;
+        }
+
+        delete_transient($token_transient_key);
+        upsellio_gsc_log("gsc.sites_list.retry_after_401", [
+            "attempt" => $attempt + 1,
+            "transient_key_deleted" => $token_transient_key,
+        ], $trace_id);
+        $access_token = upsellio_gsc_get_access_token($credentials, $trace_id);
+        if (is_wp_error($access_token)) {
+            return $access_token;
+        }
+    }
+
+    $sites_status = (int) wp_remote_retrieve_response_code($sites_response);
+    $sites_body = json_decode((string) wp_remote_retrieve_body($sites_response), true);
+    if ($sites_status >= 400) {
+        $error_message = upsellio_gsc_extract_error_message($sites_body, "Błąd autoryzacji Google Search Console.");
+        upsellio_gsc_log("gsc.sites_list.error", [
+            "status" => $sites_status,
+            "message" => $error_message,
+        ], $trace_id);
+        return new WP_Error("upsellio_gsc_sites_error", $error_message);
+    }
+
+    $site_entries = is_array($sites_body) && isset($sites_body["siteEntry"]) && is_array($sites_body["siteEntry"]) ? $sites_body["siteEntry"] : [];
+    $site_urls = array_map(function ($entry) {
+        return (string) ($entry["siteUrl"] ?? "");
+    }, $site_entries);
+    upsellio_gsc_log("gsc.sites_list.property_check", [
+        "property" => $property,
+        "available_sites_count" => count($site_urls),
+        "available_sites" => array_slice($site_urls, 0, 50),
+    ], $trace_id);
+
+    if (!upsellio_gsc_has_property_access($property, $site_entries)) {
+        upsellio_gsc_log("gsc.sites_list.property_access_denied", [
+            "property" => $property,
+        ], $trace_id);
+        return new WP_Error(
+            "upsellio_gsc_property_access_error",
+            "Konto OAuth nie ma dostępu do podanego GSC Property. Użyj dokładnie wartości z Search Console (np. sc-domain:twojadomena.pl lub pełny URL property)."
+        );
     }
 
     $end_date = wp_date("Y-m-d");
@@ -362,29 +658,71 @@ function upsellio_gsc_fetch_rows($credentials, $days = 30)
             "startRow" => $start_row,
             "dataState" => "final",
         ];
-        $response = wp_remote_post($endpoint, [
-            "timeout" => 35,
-            "headers" => [
-                "Authorization" => "Bearer " . $access_token,
-                "Content-Type" => "application/json",
-            ],
-            "body" => wp_json_encode($request_body),
-        ]);
-        if (is_wp_error($response)) {
-            return $response;
+        $response = null;
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            upsellio_gsc_log("gsc.search_analytics.request", [
+                "page" => $page + 1,
+                "attempt" => $attempt + 1,
+                "endpoint" => $endpoint,
+                "request_body" => $request_body,
+                "token_preview" => upsellio_gsc_mask_value($access_token),
+            ], $trace_id);
+            $response = wp_remote_post($endpoint, [
+                "timeout" => 35,
+                "headers" => [
+                    "Authorization" => "Bearer " . $access_token,
+                    "Content-Type" => "application/json",
+                ],
+                "body" => wp_json_encode($request_body),
+            ]);
+            if (is_wp_error($response)) {
+                return $response;
+            }
+
+            $status = (int) wp_remote_retrieve_response_code($response);
+            $raw_body = (string) wp_remote_retrieve_body($response);
+            $decoded_body = json_decode($raw_body, true);
+            upsellio_gsc_log("gsc.search_analytics.response", [
+                "page" => $page + 1,
+                "attempt" => $attempt + 1,
+                "status" => $status,
+                "body" => is_array($decoded_body) ? $decoded_body : upsellio_gsc_truncate($raw_body),
+            ], $trace_id);
+            if ($status !== 401) {
+                break;
+            }
+
+            delete_transient($token_transient_key);
+            upsellio_gsc_log("gsc.search_analytics.retry_after_401", [
+                "page" => $page + 1,
+                "attempt" => $attempt + 1,
+                "transient_key_deleted" => $token_transient_key,
+            ], $trace_id);
+            $access_token = upsellio_gsc_get_access_token($credentials, $trace_id);
+            if (is_wp_error($access_token)) {
+                return $access_token;
+            }
         }
 
         $status = (int) wp_remote_retrieve_response_code($response);
         $body = json_decode((string) wp_remote_retrieve_body($response), true);
         if ($status >= 400) {
-            $error_message = "Błąd API Google Search Console.";
-            if (is_array($body) && isset($body["error"]["message"])) {
-                $error_message = (string) $body["error"]["message"];
-            }
+            $error_message = upsellio_gsc_extract_error_message($body, "Błąd API Google Search Console.");
+            upsellio_gsc_log("gsc.search_analytics.error", [
+                "page" => $page + 1,
+                "status" => $status,
+                "message" => $error_message,
+            ], $trace_id);
             return new WP_Error("upsellio_gsc_api_error", $error_message);
         }
 
         $batch_rows = is_array($body) && isset($body["rows"]) && is_array($body["rows"]) ? $body["rows"] : [];
+        upsellio_gsc_log("gsc.search_analytics.batch_processed", [
+            "page" => $page + 1,
+            "batch_rows" => count($batch_rows),
+            "aggregated_rows" => count($rows) + count($batch_rows),
+            "start_row" => $start_row,
+        ], $trace_id);
         foreach ($batch_rows as $row) {
             $keys = isset($row["keys"]) && is_array($row["keys"]) ? $row["keys"] : [];
             $keyword = sanitize_text_field((string) ($keys[0] ?? ""));
@@ -416,7 +754,12 @@ function upsellio_gsc_fetch_rows($credentials, $days = 30)
         $start_row += $row_limit;
     }
 
-    return array_slice($rows, 0, 100000);
+    $final_rows = array_slice($rows, 0, 100000);
+    upsellio_gsc_log("gsc.sync.finished", [
+        "total_rows" => count($final_rows),
+    ], $trace_id);
+
+    return $final_rows;
 }
 
 function upsellio_handle_gsc_sync_submit()
@@ -437,17 +780,30 @@ function upsellio_handle_gsc_sync_submit()
     $property = isset($_POST["gsc_property"]) ? wp_unslash($_POST["gsc_property"]) : "";
     $sync_days = isset($_POST["gsc_sync_days"]) ? (int) $_POST["gsc_sync_days"] : 30;
     $sync_days = in_array($sync_days, [7, 14, 30, 60, 90], true) ? $sync_days : 30;
+    $trace_id = upsellio_gsc_debug_trace_id();
+
+    upsellio_gsc_log("gsc.sync.form_submit", [
+        "trace_id" => $trace_id,
+        "sync_days" => $sync_days,
+        "property_input" => (string) $property,
+        "client_id_input" => (string) $client_id,
+    ], $trace_id);
 
     upsellio_save_gsc_credentials($client_id, $client_secret, $refresh_token, $property);
     $credentials = upsellio_get_gsc_credentials();
-    $rows = upsellio_gsc_fetch_rows($credentials, $sync_days);
+    $rows = upsellio_gsc_fetch_rows($credentials, $sync_days, $trace_id);
 
     if (is_wp_error($rows)) {
+        upsellio_gsc_log("gsc.sync.failed", [
+            "trace_id" => $trace_id,
+            "error_message" => $rows->get_error_message(),
+        ], $trace_id);
         wp_safe_redirect(
             add_query_arg(
                 [
                     "page" => "upsellio-site-analytics",
                     "upsellio_gsc_error" => rawurlencode($rows->get_error_message()),
+                    "upsellio_gsc_trace_id" => rawurlencode($trace_id),
                 ],
                 admin_url("edit.php")
             )
@@ -458,12 +814,17 @@ function upsellio_handle_gsc_sync_submit()
     update_option("upsellio_keyword_metrics_rows", $rows, false);
     update_option("upsellio_keyword_metrics_source", "gsc_live", false);
     update_option("upsellio_keyword_metrics_last_sync", wp_date("Y-m-d H:i:s"), false);
+    upsellio_gsc_log("gsc.sync.success", [
+        "trace_id" => $trace_id,
+        "rows_count" => count($rows),
+    ], $trace_id);
 
     wp_safe_redirect(
         add_query_arg(
             [
                 "page" => "upsellio-site-analytics",
                 "upsellio_gsc_synced" => (string) count($rows),
+                "upsellio_gsc_trace_id" => rawurlencode($trace_id),
             ],
             admin_url("edit.php")
         )
@@ -471,6 +832,32 @@ function upsellio_handle_gsc_sync_submit()
     exit;
 }
 add_action("admin_init", "upsellio_handle_gsc_sync_submit");
+
+function upsellio_handle_gsc_logs_clear_submit()
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+
+    if (!isset($_POST["upsellio_gsc_logs_clear_submit"])) {
+        return;
+    }
+
+    check_admin_referer("upsellio_gsc_logs_clear_action", "upsellio_gsc_logs_clear_nonce");
+    delete_option(upsellio_gsc_debug_logs_option_key());
+
+    wp_safe_redirect(
+        add_query_arg(
+            [
+                "page" => "upsellio-site-analytics",
+                "upsellio_gsc_logs_cleared" => "1",
+            ],
+            admin_url("edit.php")
+        )
+    );
+    exit;
+}
+add_action("admin_init", "upsellio_handle_gsc_logs_clear_submit");
 
 function upsellio_get_leads_for_post_url($post_url, $from_date)
 {
@@ -739,6 +1126,7 @@ function upsellio_render_site_analytics_page()
     });
     $priority_rows = array_slice($priority_rows, 0, 10);
     $gsc_credentials = upsellio_get_gsc_credentials();
+    $gsc_debug_logs = upsellio_gsc_get_logs();
     $keyword_source = (string) get_option("upsellio_keyword_metrics_source", "csv_import");
     $last_sync = (string) get_option("upsellio_keyword_metrics_last_sync", "");
     $source_label = $keyword_source === "gsc_live" ? "Google Search Console (live sync)" : "Ręczny import CSV";
@@ -1001,6 +1389,12 @@ function upsellio_render_site_analytics_page()
           <?php if (isset($_GET["upsellio_gsc_synced"])) : ?>
             <div class="notice notice-success inline"><p>Zsynchronizowano live dane z GSC: <?php echo esc_html((string) ((int) $_GET["upsellio_gsc_synced"])); ?> rekordów.</p></div>
           <?php endif; ?>
+          <?php if (isset($_GET["upsellio_gsc_trace_id"])) : ?>
+            <div class="notice notice-info inline"><p>Trace ID synchronizacji: <code><?php echo esc_html(rawurldecode((string) $_GET["upsellio_gsc_trace_id"])); ?></code></p></div>
+          <?php endif; ?>
+          <?php if (isset($_GET["upsellio_gsc_logs_cleared"])) : ?>
+            <div class="notice notice-success inline"><p>Logi debug GSC zostały wyczyszczone.</p></div>
+          <?php endif; ?>
           <?php if (isset($_GET["upsellio_gsc_error"])) : ?>
             <div class="notice notice-error inline"><p>Błąd GSC: <?php echo esc_html(rawurldecode((string) $_GET["upsellio_gsc_error"])); ?></p></div>
           <?php endif; ?>
@@ -1043,6 +1437,36 @@ function upsellio_render_site_analytics_page()
               API GSC jest darmowe. Wymaga jednorazowego przygotowania OAuth i dostępu do property w Search Console.
             </p>
           </form>
+          <hr />
+          <h3 style="margin-bottom:8px;">Logi debug autoryzacji GSC</h3>
+          <p style="font-size:12px;color:#5f6368;margin-top:0;">
+            Logi pokazują pełny przebieg OAuth i zapytań GSC (sekrety są maskowane). Najnowsze wpisy są na górze.
+          </p>
+          <form method="post" style="margin:8px 0 12px;">
+            <?php wp_nonce_field("upsellio_gsc_logs_clear_action", "upsellio_gsc_logs_clear_nonce"); ?>
+            <input type="hidden" name="upsellio_gsc_logs_clear_submit" value="1" />
+            <button type="submit" class="button">Wyczyść logi debug</button>
+          </form>
+          <?php if (empty($gsc_debug_logs)) : ?>
+            <p>Brak logów debug. Uruchom synchronizację, aby wygenerować ślad autoryzacji.</p>
+          <?php else : ?>
+            <textarea rows="18" class="large-text code" readonly><?php
+            $debug_lines = [];
+            $logs_for_display = array_reverse($gsc_debug_logs);
+            foreach ($logs_for_display as $entry) {
+                $time = (string) ($entry["time"] ?? "");
+                $trace = (string) ($entry["trace_id"] ?? "");
+                $event = (string) ($entry["event"] ?? "");
+                $payload = isset($entry["data"]) && is_array($entry["data"]) ? $entry["data"] : [];
+                $payload_json = wp_json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                if (!is_string($payload_json)) {
+                    $payload_json = "{}";
+                }
+                $debug_lines[] = "[" . $time . "] [" . ($trace !== "" ? $trace : "-") . "] " . $event . " => " . $payload_json;
+            }
+            echo esc_textarea(implode("\n", $debug_lines));
+            ?></textarea>
+          <?php endif; ?>
         </div>
 
         <div class="ups-import-box">

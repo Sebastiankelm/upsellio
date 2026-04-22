@@ -22,6 +22,12 @@ $image = (string) get_post_meta($post_id, "_ups_lm_image", true);
 $custom_html = (string) get_post_meta($post_id, "_ups_lm_custom_html", true);
 $custom_css = (string) get_post_meta($post_id, "_ups_lm_custom_css", true);
 $custom_js = (string) get_post_meta($post_id, "_ups_lm_custom_js", true);
+$custom_payload = function_exists("upsellio_prepare_custom_embed_payload")
+    ? upsellio_prepare_custom_embed_payload($custom_html, $custom_css, $custom_js)
+    : ["html" => $custom_html, "css" => $custom_css, "js" => $custom_js];
+$custom_html = (string) ($custom_payload["html"] ?? "");
+$custom_css = (string) ($custom_payload["css"] ?? "");
+$custom_js = (string) ($custom_payload["js"] ?? "");
 ?>
 <style>
   .lms-page { background:#f6f7f5; color:#101312; }
@@ -61,8 +67,8 @@ $custom_js = (string) get_post_meta($post_id, "_ups_lm_custom_js", true);
   .lms-submit { width:100%; margin-top:4px; min-height:46px; border:none; border-radius:12px; background:#1d9e75; color:#fff; font-size:15px; font-weight:700; cursor:pointer; transition:background .18s,transform .18s; }
   .lms-submit:hover { background:#17885f; transform:translateY(-1px); }
   .lms-custom-block { margin-top:16px; border:1px solid #dce6e0; border-radius:18px; padding:14px; background:#fafdfb; }
-  @media (min-width:760px){ .lms-wrap{width:min(1050px, calc(100% - 48px));} }
-  @media (min-width:992px){ .lms-layout{grid-template-columns:1.18fr .82fr;} }
+  @media (min-width:761px){ .lms-wrap{width:min(1050px, calc(100% - 48px));} }
+  @media (min-width:981px){ .lms-layout{grid-template-columns:1.18fr .82fr;} }
 </style>
 
 <main class="lms-page">
@@ -118,15 +124,15 @@ $custom_js = (string) get_post_meta($post_id, "_ups_lm_custom_js", true);
           <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
           <div class="field">
             <label for="lms-name">Imię i firma *</label>
-            <input id="lms-name" name="lead_name" type="text" required />
+            <input id="lms-name" name="lead_name" type="text" autocomplete="name organization" inputmode="text" required />
           </div>
           <div class="field">
             <label for="lms-email">E-mail *</label>
-            <input id="lms-email" name="lead_email" type="email" required />
+            <input id="lms-email" name="lead_email" type="email" autocomplete="email" inputmode="email" required />
           </div>
           <div class="field">
             <label for="lms-phone">Telefon</label>
-            <input id="lms-phone" name="lead_phone" type="text" />
+            <input id="lms-phone" name="lead_phone" type="tel" autocomplete="tel" inputmode="tel" />
           </div>
           <div class="field">
             <label for="lms-message">W czym potrzebujesz wsparcia? *</label>

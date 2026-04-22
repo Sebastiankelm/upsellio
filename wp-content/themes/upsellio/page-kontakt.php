@@ -1,4 +1,8 @@
 <?php
+/*
+Template Name: Upsellio - Kontakt
+Template Post Type: page
+*/
 if (!defined("ABSPATH")) {
     exit;
 }
@@ -11,7 +15,9 @@ $front_page_sections = function_exists("upsellio_get_front_page_content_config")
 $contact_service_options = isset($front_page_sections["contact_service_options"]) && is_array($front_page_sections["contact_service_options"])
     ? $front_page_sections["contact_service_options"]
     : [];
-$contact_phone = trim((string) ($front_page_sections["contact_phone"] ?? ""));
+$contact_phone = function_exists("upsellio_get_contact_phone")
+    ? upsellio_get_contact_phone()
+    : trim((string) ($front_page_sections["contact_phone"] ?? ""));
 $contact_email = trim((string) ($front_page_sections["contact_email"] ?? "kontakt@upsellio.pl"));
 $contact_page_url = home_url("/kontakt/");
 ?>
@@ -90,11 +96,7 @@ $contact_page_url = home_url("/kontakt/");
         <div class="contact-card-label">Telefon</div>
         <h2 class="contact-card-title">Szybka rozmowa</h2>
         <p class="contact-card-copy">Masz pilny temat? Zadzwoń, a jeśli nie odbiorę, wrócę z kontaktem możliwie szybko.</p>
-        <?php if ($contact_phone !== "") : ?>
-          <a class="contact-card-link" href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a>
-        <?php else : ?>
-          <span class="contact-card-link">Numer telefonu w konfiguracji strony.</span>
-        <?php endif; ?>
+        <a class="contact-card-link" href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a>
       </article>
       <article class="contact-card reveal d2">
         <div class="contact-card-label">Lead generation</div>
@@ -147,7 +149,7 @@ $contact_page_url = home_url("/kontakt/");
             </div>
             <div class="field">
               <label for="fphone">Telefon (opcjonalnie)</label>
-              <input class="input" type="tel" id="fphone" name="lead_phone" placeholder="+48 600 000 000" autocomplete="tel" />
+              <input class="input" type="tel" id="fphone" name="lead_phone" placeholder="+48 575 522 595" autocomplete="tel" />
             </div>
             <div class="field">
               <label for="fservice">Zakres wsparcia</label>

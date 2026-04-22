@@ -28,6 +28,12 @@ $kpis = function_exists("upsellio_parse_marketing_kpi_lines") ? upsellio_parse_m
 $custom_html = (string) get_post_meta($post_id, "_ups_mport_custom_html", true);
 $custom_css = (string) get_post_meta($post_id, "_ups_mport_custom_css", true);
 $custom_js = (string) get_post_meta($post_id, "_ups_mport_custom_js", true);
+$custom_payload = function_exists("upsellio_prepare_custom_embed_payload")
+    ? upsellio_prepare_custom_embed_payload($custom_html, $custom_css, $custom_js)
+    : ["html" => $custom_html, "css" => $custom_css, "js" => $custom_js];
+$custom_html = (string) ($custom_payload["html"] ?? "");
+$custom_css = (string) ($custom_payload["css"] ?? "");
+$custom_js = (string) ($custom_payload["js"] ?? "");
 $list_url = function_exists("upsellio_get_marketing_portfolio_page_url") ? upsellio_get_marketing_portfolio_page_url() : home_url("/portfolio-marketingowe/");
 $seo_payload = function_exists("upsellio_get_marketing_portfolio_seo_payload") ? upsellio_get_marketing_portfolio_seo_payload($post_id) : [];
 $canonical_url = trim((string) ($seo_payload["canonical"] ?? ""));
@@ -101,8 +107,8 @@ if ($image !== "") {
   .mps-custom{margin-top:20px;padding:16px;border:1px solid #dce7e1;border-radius:14px;background:#f8fcfa}
   .mps-form input,.mps-form textarea{width:100%;border:1px solid #c8c8c2;border-radius:12px;padding:11px 12px;font-size:14px;margin-bottom:10px}
   .mps-form textarea{min-height:96px;resize:vertical}
-  @media(max-width:900px){.mps-kpi-grid{grid-template-columns:1fr 1fr}.mps-content{grid-template-columns:1fr}}
-  @media(max-width:640px){.mps-wrap{padding:0 24px}.mps-kpi-grid{grid-template-columns:1fr}}
+  @media(max-width:980px){.mps-kpi-grid{grid-template-columns:1fr 1fr}.mps-content{grid-template-columns:1fr}}
+  @media(max-width:760px){.mps-wrap{padding:0 24px}.mps-kpi-grid{grid-template-columns:1fr}}
 </style>
 
 <main class="mps">
@@ -192,9 +198,9 @@ if ($image !== "") {
             <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
             <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
             <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
-            <input type="text" name="lead_name" placeholder="Imię i firma *" required />
-            <input type="email" name="lead_email" placeholder="E-mail *" required />
-            <input type="text" name="lead_phone" placeholder="Telefon" />
+            <input type="text" name="lead_name" placeholder="Imię i firma *" autocomplete="name organization" inputmode="text" required />
+            <input type="email" name="lead_email" placeholder="E-mail *" autocomplete="email" inputmode="email" required />
+            <input type="tel" name="lead_phone" placeholder="Telefon" autocomplete="tel" inputmode="tel" />
             <textarea name="lead_message" required>Chcę omówić podobny case marketingowy jak: <?php echo esc_textarea($title); ?>.</textarea>
             <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;margin:6px 0 10px;"><input type="checkbox" name="lead_consent" value="1" required />Wyrażam zgodę na kontakt w sprawie zapytania.</label>
             <button class="btn" type="submit">Wyślij zapytanie</button>

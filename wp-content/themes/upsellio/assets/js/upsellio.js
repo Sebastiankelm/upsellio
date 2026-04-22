@@ -6,6 +6,11 @@
   const ham = document.getElementById("hamburger");
   const mob = document.getElementById("mobile-menu");
 
+  function getNavOffset(extra = 0) {
+    const navHeight = nav ? Math.ceil(nav.getBoundingClientRect().height) : 72;
+    return navHeight + extra;
+  }
+
   function revealElement(el) {
     if (!el.classList.contains("visible")) el.classList.add("visible");
   }
@@ -61,12 +66,28 @@
   }
 
   if (ham && mob) {
+    let wasOpen = false;
+    const getMenuFocusable = () =>
+      Array.from(mob.querySelectorAll("a, button, [tabindex]:not([tabindex='-1'])")).filter(
+        (element) => !element.hasAttribute("disabled")
+      );
+
     const setMobileMenuState = (isOpen) => {
       ham.classList.toggle("open", isOpen);
       mob.classList.toggle("open", isOpen);
       ham.setAttribute("aria-expanded", isOpen ? "true" : "false");
       ham.setAttribute("aria-label", isOpen ? "Zamknij menu" : "Otwórz menu");
       document.body.classList.toggle("is-mobile-menu-open", isOpen);
+
+      if (isOpen) {
+        const [firstFocusable] = getMenuFocusable();
+        if (firstFocusable) {
+          window.requestAnimationFrame(() => firstFocusable.focus());
+        }
+      } else if (wasOpen) {
+        window.requestAnimationFrame(() => ham.focus());
+      }
+      wasOpen = isOpen;
     };
 
     setMobileMenuState(false);
@@ -91,6 +112,21 @@
     window.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         setMobileMenuState(false);
+        return;
+      }
+      if (event.key !== "Tab" || !ham.classList.contains("open")) return;
+      const focusable = getMenuFocusable();
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
       }
     });
   }
@@ -103,7 +139,7 @@
       const target = id ? document.getElementById(id) : null;
       if (!target) return;
       event.preventDefault();
-      const offset = target.getBoundingClientRect().top + window.scrollY - 72;
+      const offset = target.getBoundingClientRect().top + window.scrollY - getNavOffset(8);
       window.scrollTo({ top: Math.max(0, offset), behavior: prefersReducedMotion ? "auto" : "smooth" });
     });
   });
@@ -206,6 +242,28 @@
   initScrollSpy();
   initFaq();
 
+  function initLivePreviewSwitchers() {
+    const previewRoots = Array.from(document.querySelectorAll("[data-live-preview='1']"));
+    if (!previewRoots.length) return;
+
+    previewRoots.forEach((root) => {
+      const buttons = Array.from(root.querySelectorAll("[data-preview-device]"));
+      const frameWrap = root.querySelector("[data-preview-frame-wrap]");
+      if (!buttons.length || !frameWrap) return;
+
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const device = button.getAttribute("data-preview-device");
+          buttons.forEach((item) => item.classList.remove("is-active"));
+          button.classList.add("is-active");
+          frameWrap.classList.toggle("is-mobile", device === "mobile");
+        });
+      });
+    });
+  }
+
+  initLivePreviewSwitchers();
+
   const blogRoot = document.querySelector(".js-ups-blog-root");
   if (blogRoot && window.upsellioData?.ajaxUrl && window.upsellioData?.blogNonce) {
     const dynamicContainer = blogRoot.querySelector(".js-ups-blog-dynamic");
@@ -298,8 +356,8 @@
     const scrollToResults = () => {
       const resultsSection = blogRoot.querySelector(".ups-blog-list-wrap");
       if (!resultsSection) return;
-      const top = resultsSection.getBoundingClientRect().top + window.scrollY - 138;
-      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      const top = resultsSection.getBoundingClientRect().top + window.scrollY - getNavOffset(56);
+      window.scrollTo({ top: Math.max(0, top), behavior: prefersReducedMotion ? "auto" : "smooth" });
     };
 
     const fetchBlogContent = async ({
