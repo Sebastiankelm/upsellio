@@ -4967,6 +4967,80 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       box-shadow: 0 18px 34px rgba(17, 17, 16, 0.12);
     }
 
+    /* Semrush-like composition without changing brand style */
+    .home-semrush-flow .section {
+      padding: clamp(56px, 7vw, 88px) 0;
+    }
+
+    .home-semrush-flow .section-sm {
+      padding: clamp(34px, 4.8vw, 56px) 0;
+    }
+
+    .home-semrush-flow .hero {
+      padding-top: clamp(46px, 6.5vw, 80px);
+      padding-bottom: clamp(48px, 6.2vw, 78px);
+    }
+
+    .home-semrush-flow .hero-copy .h1 {
+      max-width: 18ch;
+      margin-bottom: clamp(16px, 2.2vw, 24px);
+    }
+
+    .home-semrush-flow .hero-copy .lead {
+      max-width: 56ch;
+      margin-bottom: clamp(18px, 2.6vw, 30px);
+    }
+
+    .home-semrush-flow .hero-actions {
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .home-semrush-flow .hero-actions .btn {
+      width: auto;
+      min-height: 48px;
+    }
+
+    .home-semrush-flow .hero-actions .btn-primary {
+      padding: 15px 30px;
+      font-weight: 700;
+      box-shadow: 0 10px 24px rgba(29, 158, 117, 0.24);
+      animation-duration: 3.4s;
+    }
+
+    .home-semrush-flow .hero-actions .btn-secondary {
+      padding: 14px 20px;
+      border-color: color-mix(in srgb, var(--border-strong) 80%, var(--teal) 20%);
+      color: var(--text-2);
+      background: color-mix(in srgb, #fff 92%, var(--teal-soft) 8%);
+    }
+
+    .home-semrush-flow .hero-actions .btn-secondary:hover {
+      color: var(--text);
+      border-color: var(--teal);
+      background: #fff;
+    }
+
+    .home-semrush-flow .hero-aside {
+      border-radius: 22px;
+      padding: clamp(18px, 2.4vw, 28px);
+    }
+
+    @media (min-width: 981px) {
+      .home-semrush-flow .hero-grid {
+        grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr);
+        gap: clamp(24px, 3.2vw, 42px);
+        align-items: start;
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .home-semrush-flow .hero-grid {
+        grid-template-columns: minmax(0, 1.7fr) minmax(340px, 1fr);
+      }
+    }
+
     @media (max-width: 760px) {
       .home-semrush-flow .btn,
       .home-semrush-flow .home-structure-toggle-btn,
@@ -4991,6 +5065,10 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       .home-semrush-flow .case-portfolio-layout,
       .home-semrush-flow .contact-strategy-layout {
         overflow-x: clip;
+      }
+
+      .home-semrush-flow .hero-actions .btn {
+        width: 100%;
       }
     }
   </style><?php endif; ?>
