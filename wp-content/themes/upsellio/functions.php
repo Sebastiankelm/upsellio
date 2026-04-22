@@ -313,9 +313,9 @@ function upsellio_serve_technical_seo_files()
     }
 
     $request_uri = isset($_SERVER["REQUEST_URI"]) ? (string) $_SERVER["REQUEST_URI"] : "/";
-    $request_path = trim((string) wp_parse_url($request_uri, PHP_URL_PATH));
+    $request_path = (string) wp_parse_url($request_uri, PHP_URL_PATH);
     if ($request_path === "") {
-        return;
+        $request_path = "/";
     }
 
     if ($request_path === "/robots.txt") {
@@ -348,7 +348,10 @@ function upsellio_serve_technical_seo_files_early($wp)
     }
 
     $request_uri = isset($_SERVER["REQUEST_URI"]) ? (string) $_SERVER["REQUEST_URI"] : "/";
-    $request_path = trim((string) wp_parse_url($request_uri, PHP_URL_PATH));
+    $request_path = (string) wp_parse_url($request_uri, PHP_URL_PATH);
+    if ($request_path === "") {
+        $request_path = "/";
+    }
     if ($request_path === "/robots.txt") {
         status_header(200);
         header("Content-Type: text/plain; charset=UTF-8");
@@ -1459,10 +1462,12 @@ function upsellio_front_page_document_title($title)
         : [];
     $seo = isset($sections["seo"]) && is_array($sections["seo"]) ? $sections["seo"] : [];
     $configured = trim((string) ($seo["title"] ?? ""));
-    $fallback = "Upsellio | Marketing i strony WWW dla firm B2B";
+    $fallback = "Upsellio | Marketing B2B i strony WWW, ktore sprzedaja";
     $resolved = $configured !== "" ? $configured : $fallback;
+    $min_length = 50;
     $max_length = 60;
-    if (upsellio_strlen($resolved) > $max_length) {
+    $resolved_length = upsellio_strlen($resolved);
+    if ($resolved_length < $min_length || $resolved_length > $max_length) {
         return $fallback;
     }
 
