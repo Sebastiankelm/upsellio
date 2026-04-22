@@ -4895,6 +4895,104 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
         grid-template-columns: repeat(4, minmax(0, 1fr));
       }
     }
+
+    .home-semrush-flow .section {
+      scroll-margin-top: 110px;
+    }
+
+    .home-structure-toggle {
+      margin-top: 0;
+      padding-top: 0;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .home-structure-toggle-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .home-structure-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 48px;
+      padding: 0 20px;
+      border-radius: var(--r-pill);
+      border: 1px solid var(--border-strong);
+      background: #fff;
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.24s ease, box-shadow 0.24s ease, border-color 0.24s ease;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+    }
+
+    .home-structure-toggle-btn:hover {
+      transform: translateY(-2px);
+      border-color: var(--teal);
+      box-shadow: 0 14px 30px rgba(29, 158, 117, 0.16);
+    }
+
+    body.js-home-curated .home-semrush-flow .js-home-optional-section {
+      display: none;
+    }
+
+    body.js-home-curated.home-all-sections-visible .home-semrush-flow .js-home-optional-section {
+      display: block;
+    }
+
+    body.js-home-curated .home-semrush-flow .hero-trust-item:nth-child(n + 4),
+    body.js-home-curated .home-semrush-flow .why-one-results .why-one-panel:nth-child(n + 3),
+    body.js-home-curated .home-semrush-flow .service-what-item:nth-child(n + 4) {
+      display: none;
+    }
+
+    body.js-home-curated.home-all-sections-visible .home-semrush-flow .hero-trust-item:nth-child(n + 4),
+    body.js-home-curated.home-all-sections-visible .home-semrush-flow .why-one-results .why-one-panel:nth-child(n + 3),
+    body.js-home-curated.home-all-sections-visible .home-semrush-flow .service-what-item:nth-child(n + 4) {
+      display: block;
+    }
+
+    [data-interactive-card] {
+      transform: perspective(900px) rotateX(var(--interactive-ry, 0deg)) rotateY(var(--interactive-rx, 0deg)) translateY(0);
+      transform-style: preserve-3d;
+      transition: transform 0.35s ease, box-shadow 0.35s ease;
+      will-change: transform;
+    }
+
+    [data-interactive-card]:hover {
+      box-shadow: 0 18px 34px rgba(17, 17, 16, 0.12);
+    }
+
+    @media (max-width: 760px) {
+      .home-semrush-flow .btn,
+      .home-semrush-flow .home-structure-toggle-btn,
+      .home-semrush-flow button,
+      .home-semrush-flow a[role="button"],
+      .home-semrush-flow .nav a,
+      .home-semrush-flow .mobile-menu a {
+        min-height: 44px;
+      }
+
+      .home-semrush-flow .lead,
+      .home-semrush-flow .body,
+      .home-semrush-flow p,
+      .home-semrush-flow li,
+      .home-semrush-flow a,
+      .home-semrush-flow span {
+        font-size: max(16px, 1rem);
+      }
+
+      .home-semrush-flow .hero-system,
+      .home-semrush-flow .service-meta-layout,
+      .home-semrush-flow .case-portfolio-layout,
+      .home-semrush-flow .contact-strategy-layout {
+        overflow-x: clip;
+      }
+    }
   </style><?php endif; ?>
   <?php wp_head(); ?>
 </head>
@@ -4945,7 +5043,7 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
     </div>
   </header>
 
-  <main>
+  <main class="home-semrush-flow" data-home-curated="1">
     <?php if (!empty($front_page_issues) && current_user_can("manage_options")) : ?>
       <section class="section-sm">
         <div class="wrap">
@@ -5234,7 +5332,15 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       </div>
     </section>
 
-    <section class="section bg-soft section-border" id="problem">
+    <section class="section-sm home-structure-toggle">
+      <div class="wrap home-structure-toggle-wrap">
+        <button class="home-structure-toggle-btn" id="home-structure-toggle-btn" type="button" aria-expanded="false" aria-controls="problem jak-dzialam wyniki dla-kogo faq">
+          Pokaz pelny widok strony
+        </button>
+      </div>
+    </section>
+
+    <section class="section bg-soft section-border js-home-optional-section" id="problem">
       <div class="wrap">
         <div class="content">
           <div class="eyebrow reveal"><?php echo esc_html((string) ($problem_section["eyebrow"] ?? "Problem")); ?></div>
@@ -5556,7 +5662,7 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       </div>
     </section>
 
-    <section class="section section-border" id="jak-dzialam">
+    <section class="section section-border js-home-optional-section" id="jak-dzialam">
       <div class="wrap">
         <div class="content">
           <div class="eyebrow reveal"><?php echo esc_html((string) ($process_section["eyebrow"] ?? "Jak dzialam")); ?></div>
@@ -5658,7 +5764,7 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       </div>
     </section>
 
-    <section class="section bg-soft section-border" id="wyniki">
+    <section class="section bg-soft section-border js-home-optional-section" id="wyniki">
       <div class="wrap">
         <div class="content">
           <div class="eyebrow reveal">Case study</div>
@@ -5754,7 +5860,7 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       </div>
     </section>
 
-    <section class="section section-border" id="dla-kogo">
+    <section class="section section-border js-home-optional-section" id="dla-kogo">
       <div class="wrap">
         <div class="content">
           <div class="eyebrow reveal"><?php echo esc_html((string) ($fit_section["eyebrow"] ?? "Dla kogo")); ?></div>
@@ -5794,7 +5900,7 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       </div>
     </section>
 
-    <section class="section bg-soft section-border" id="faq">
+    <section class="section bg-soft section-border js-home-optional-section" id="faq">
       <div class="wrap">
         <div class="content">
           <div class="eyebrow reveal">FAQ</div>
@@ -5989,6 +6095,105 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
 
   <script>
     var upsellioReducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var upsellioIntervalRegistry = [];
+
+    function upsellioStartInterval(callback, delay) {
+      if (typeof callback !== "function") return null;
+      var state = { callback: callback, delay: delay, timer: null };
+      function run() {
+        if (document.hidden) return;
+        callback();
+      }
+      state.timer = setInterval(run, delay);
+      upsellioIntervalRegistry.push(state);
+      return state;
+    }
+
+    document.addEventListener("visibilitychange", function () {
+      if (!upsellioIntervalRegistry.length) return;
+      if (document.hidden) {
+        upsellioIntervalRegistry.forEach(function (item) {
+          if (!item || item.timer === null) return;
+          clearInterval(item.timer);
+          item.timer = null;
+        });
+        return;
+      }
+      upsellioIntervalRegistry.forEach(function (item) {
+        if (!item || item.timer !== null) return;
+        item.timer = setInterval(function () {
+          if (document.hidden) return;
+          item.callback();
+        }, item.delay);
+      });
+    });
+
+    (function () {
+      var curatedRoot = document.querySelector("[data-home-curated='1']");
+      if (!curatedRoot) return;
+      document.body.classList.add("js-home-curated");
+
+      var optionalSections = Array.prototype.slice.call(curatedRoot.querySelectorAll(".js-home-optional-section"));
+      var toggleButton = document.getElementById("home-structure-toggle-btn");
+      var isExpanded = false;
+
+      function setExpanded(nextState, withScroll) {
+        isExpanded = !!nextState;
+        document.body.classList.toggle("home-all-sections-visible", isExpanded);
+        if (toggleButton) {
+          toggleButton.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+          toggleButton.textContent = isExpanded ? "Pokaz mniej sekcji" : "Pokaz pelny widok strony";
+        }
+        if (withScroll && toggleButton) {
+          var offset = Math.max(0, toggleButton.getBoundingClientRect().top + window.scrollY - 120);
+          window.scrollTo({ top: offset, behavior: upsellioReducedMotion ? "auto" : "smooth" });
+        }
+      }
+
+      if (toggleButton) {
+        toggleButton.addEventListener("click", function () {
+          setExpanded(!isExpanded, true);
+        });
+      }
+
+      function ensureSectionVisibleByHash(hash) {
+        if (!hash || hash.length < 2) return;
+        var target = document.getElementById(hash.replace("#", ""));
+        if (!target) return;
+        var isOptional = optionalSections.indexOf(target) > -1;
+        if (isOptional && !isExpanded) setExpanded(true, false);
+      }
+
+      ensureSectionVisibleByHash(window.location.hash);
+
+      document.addEventListener("click", function (event) {
+        var anchor = event.target.closest('a[href^="#"]');
+        if (!anchor) return;
+        ensureSectionVisibleByHash(anchor.getAttribute("href") || "");
+      });
+
+      if (!upsellioReducedMotion && !window.matchMedia("(max-width: 980px)").matches) {
+        var interactiveCards = Array.prototype.slice.call(document.querySelectorAll(
+          ".hero-system-core, .hero-kpi-block, .why-one-panel, .service-meta-panel, .case-panel"
+        ));
+        interactiveCards.forEach(function (card) {
+          card.setAttribute("data-interactive-card", "1");
+          card.addEventListener("mousemove", function (event) {
+            var rect = card.getBoundingClientRect();
+            var cx = rect.left + (rect.width / 2);
+            var cy = rect.top + (rect.height / 2);
+            var dx = (event.clientX - cx) / rect.width;
+            var dy = (event.clientY - cy) / rect.height;
+            card.style.setProperty("--interactive-rx", (dx * 4).toFixed(2) + "deg");
+            card.style.setProperty("--interactive-ry", (-dy * 4).toFixed(2) + "deg");
+          });
+          card.addEventListener("mouseleave", function () {
+            card.style.setProperty("--interactive-rx", "0deg");
+            card.style.setProperty("--interactive-ry", "0deg");
+          });
+        });
+      }
+    })();
 
     (function () {
       var heroSystem = document.getElementById("hero-system");
@@ -6054,11 +6259,11 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
 
       if (upsellioReducedMotion || window.matchMedia("(max-width: 760px)").matches) return;
 
-      setInterval(randomizeSparks, 3600);
-      setInterval(pulseProgress, 4200);
-      setInterval(rotatePipeline, 3400);
-      setInterval(pulseGrowth, 3900);
-      setInterval(pulseChaos, 4300);
+      upsellioStartInterval(randomizeSparks, 3600);
+      upsellioStartInterval(pulseProgress, 4200);
+      upsellioStartInterval(rotatePipeline, 3400);
+      upsellioStartInterval(pulseGrowth, 3900);
+      upsellioStartInterval(pulseChaos, 4300);
     })();
 
     (function () {
@@ -6139,13 +6344,13 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       pulseKpis();
       animateLines(16, 72, 8);
 
-      if (upsellioReducedMotion) return;
+      if (upsellioReducedMotion || window.matchMedia("(max-width: 760px)").matches) return;
 
-      setInterval(rotateFlow, 3200);
-      setInterval(rotateUx, 3800);
-      setInterval(pulseFunnel, 3600);
-      setInterval(pulseKpis, 4300);
-      setInterval(function () { animateLines(16, 72, 8); }, 4000);
+      upsellioStartInterval(rotateFlow, 3200);
+      upsellioStartInterval(rotateUx, 3800);
+      upsellioStartInterval(pulseFunnel, 3600);
+      upsellioStartInterval(pulseKpis, 4300);
+      upsellioStartInterval(function () { animateLines(16, 72, 8); }, 4000);
     })();
 
     (function () {
@@ -6172,8 +6377,8 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       }
 
       pulseSnapshot();
-      if (upsellioReducedMotion) return;
-      setInterval(pulseSnapshot, 4200);
+      if (upsellioReducedMotion || window.matchMedia("(max-width: 760px)").matches) return;
+      upsellioStartInterval(pulseSnapshot, 4200);
     })();
 
     (function () {
@@ -6258,15 +6463,15 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       animateBarGroups(lineGroups, 16, 72, 7);
       animateBarGroups(revenueGroups, 18, 92, 9);
 
-      if (upsellioReducedMotion) return;
+      if (upsellioReducedMotion || window.matchMedia("(max-width: 760px)").matches) return;
 
-      setInterval(rotateProcess, 3400);
-      setInterval(rotateGuarantees, 3800);
-      setInterval(rotatePrinciples, 4200);
-      setInterval(pulseFunnel, 3600);
-      setInterval(pulseWhyKpis, 4400);
-      setInterval(function () { animateBarGroups(lineGroups, 16, 72, 7); }, 4000);
-      setInterval(function () { animateBarGroups(revenueGroups, 18, 92, 9); }, 4200);
+      upsellioStartInterval(rotateProcess, 3400);
+      upsellioStartInterval(rotateGuarantees, 3800);
+      upsellioStartInterval(rotatePrinciples, 4200);
+      upsellioStartInterval(pulseFunnel, 3600);
+      upsellioStartInterval(pulseWhyKpis, 4400);
+      upsellioStartInterval(function () { animateBarGroups(lineGroups, 16, 72, 7); }, 4000);
+      upsellioStartInterval(function () { animateBarGroups(revenueGroups, 18, 92, 9); }, 4200);
     })();
 
     (function () {
@@ -6311,11 +6516,11 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       animateProcessLines();
       pulseImpacts();
 
-      if (upsellioReducedMotion) return;
+      if (upsellioReducedMotion || window.matchMedia("(max-width: 760px)").matches) return;
 
-      setInterval(rotateProcessSteps, 3600);
-      setInterval(animateProcessLines, 4000);
-      setInterval(pulseImpacts, 4600);
+      upsellioStartInterval(rotateProcessSteps, 3600);
+      upsellioStartInterval(animateProcessLines, 4000);
+      upsellioStartInterval(pulseImpacts, 4600);
     })();
 
     (function () {
@@ -6377,12 +6582,12 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       rotateKpis();
       pulseValues();
 
-      if (upsellioReducedMotion) return;
+      if (upsellioReducedMotion || window.matchMedia("(max-width: 760px)").matches) return;
 
-      setInterval(animateBars, 3900);
-      setInterval(animateLines, 3700);
-      setInterval(rotateKpis, 3400);
-      setInterval(pulseValues, 4500);
+      upsellioStartInterval(animateBars, 3900);
+      upsellioStartInterval(animateLines, 3700);
+      upsellioStartInterval(rotateKpis, 3400);
+      upsellioStartInterval(pulseValues, 4500);
     })();
 
     (function () {
@@ -6424,11 +6629,11 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       rotateProofs();
       animateContactLines();
 
-      if (upsellioReducedMotion) return;
+      if (upsellioReducedMotion || window.matchMedia("(max-width: 760px)").matches) return;
 
-      setInterval(rotateFlow, 3400);
-      setInterval(rotateProofs, 4200);
-      setInterval(animateContactLines, 3900);
+      upsellioStartInterval(rotateFlow, 3400);
+      upsellioStartInterval(rotateProofs, 4200);
+      upsellioStartInterval(animateContactLines, 3900);
     })();
   </script>
 
