@@ -57,11 +57,16 @@ $brand_logo_url = get_template_directory_uri() . "/assets/images/upsellio-logo.p
 
 $seo_title = trim((string) ($seo_section["title"] ?? ""));
 $seo_description = trim((string) ($seo_section["description"] ?? ""));
+if (function_exists("upsellio_limit_meta_description")) {
+    $seo_description = upsellio_limit_meta_description($seo_description, 130);
+}
 $seo_og_title = trim((string) ($seo_section["og_title"] ?? ""));
 $seo_og_description = trim((string) ($seo_section["og_description"] ?? ""));
 $seo_og_type = trim((string) ($seo_section["og_type"] ?? "website"));
 $seo_og_url = trim((string) ($seo_section["og_url"] ?? "/"));
 $seo_twitter_card = trim((string) ($seo_section["twitter_card"] ?? "summary_large_image"));
+$seo_og_image = get_template_directory_uri() . "/assets/images/upsellio-logo.png";
+$seo_site_name = "Upsellio";
 $seo_schema = [
     "@context" => "https://schema.org",
     "@type" => trim((string) ($seo_section["schema_type"] ?? "ProfessionalService")),
@@ -81,13 +86,17 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
 <head>
   <meta charset="<?php bloginfo("charset"); ?>" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <?php if ($seo_title !== "") : ?><title><?php echo esc_html($seo_title); ?></title><?php endif; ?>
   <?php if ($seo_description !== "") : ?><meta name="description" content="<?php echo esc_attr($seo_description); ?>" /><?php endif; ?>
   <?php if ($seo_og_title !== "") : ?><meta property="og:title" content="<?php echo esc_attr($seo_og_title); ?>" /><?php endif; ?>
   <?php if ($seo_og_description !== "") : ?><meta property="og:description" content="<?php echo esc_attr($seo_og_description); ?>" /><?php endif; ?>
   <meta property="og:type" content="<?php echo esc_attr($seo_og_type !== "" ? $seo_og_type : "website"); ?>" />
   <meta property="og:url" content="<?php echo esc_url(home_url($seo_og_url !== "" ? $seo_og_url : "/")); ?>" />
+  <meta property="og:site_name" content="<?php echo esc_attr($seo_site_name); ?>" />
+  <meta property="og:image" content="<?php echo esc_url($seo_og_image); ?>" />
   <meta name="twitter:card" content="<?php echo esc_attr($seo_twitter_card !== "" ? $seo_twitter_card : "summary_large_image"); ?>" />
+  <meta name="twitter:title" content="<?php echo esc_attr($seo_og_title !== "" ? $seo_og_title : $seo_title); ?>" />
+  <meta name="twitter:description" content="<?php echo esc_attr($seo_og_description !== "" ? $seo_og_description : $seo_description); ?>" />
+  <meta name="twitter:image" content="<?php echo esc_url($seo_og_image); ?>" />
 
   <script type="application/ld+json"><?php echo wp_json_encode($seo_schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
 
@@ -6043,7 +6052,7 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       pulseGrowth();
       pulseChaos();
 
-      if (upsellioReducedMotion) return;
+      if (upsellioReducedMotion || window.matchMedia("(max-width: 760px)").matches) return;
 
       setInterval(randomizeSparks, 3600);
       setInterval(pulseProgress, 4200);

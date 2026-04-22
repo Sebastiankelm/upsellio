@@ -1154,8 +1154,8 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
         </div>
 
         <div class="footer-links">
-          <a href="mailto:kontakt@upsellio.pl">kontakt@upsellio.pl</a>
-          <a href="https://linkedin.com/in/sebastiankelm" target="_blank" rel="noopener">LinkedIn</a>
+          <a href="<?php echo esc_url(function_exists("upsellio_get_mailto_href") ? upsellio_get_mailto_href("kontakt@upsellio.pl") : "mailto:kontakt@upsellio.pl"); ?>"><?php echo esc_html(function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address("kontakt@upsellio.pl") : "kontakt@upsellio.pl"); ?></a>
+          <a href="https://www.linkedin.com/in/sebastiankelm/" target="_blank" rel="noopener">LinkedIn</a>
           <a href="#co-sprawdze">Co sprawdzę</a>
           <a href="#jak-to-dziala">Jak to działa</a>
         </div>

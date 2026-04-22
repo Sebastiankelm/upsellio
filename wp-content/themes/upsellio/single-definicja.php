@@ -28,6 +28,8 @@ while (have_posts()) :
         : "+48 575 522 595";
     $contactPhoneHref = preg_replace("/\s+/", "", $contactPhone);
     $contactEmail = "kontakt@upsellio.pl";
+    $contactEmailHref = function_exists("upsellio_get_mailto_href") ? upsellio_get_mailto_href($contactEmail) : ("mailto:" . $contactEmail);
+    $contactEmailDisplay = function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address($contactEmail) : $contactEmail;
     $seed = abs(crc32($slug . "|" . $term));
     $articleHtml = apply_filters("the_content", get_the_content());
 
@@ -312,7 +314,7 @@ while (have_posts()) :
           <p>Chcesz wdrozyc <?php echo esc_html($term); ?> w praktyce? Opisz krotko sytuacje, przygotuje rekomendacje.</p>
           <div class="definition-contact-links">
             <a href="<?php echo esc_url("tel:" . $contactPhoneHref); ?>">Telefon: <?php echo esc_html($contactPhone); ?></a>
-            <a href="<?php echo esc_url("mailto:" . $contactEmail); ?>">E-mail: <?php echo esc_html($contactEmail); ?></a>
+            <a href="<?php echo esc_url($contactEmailHref); ?>">E-mail: <?php echo esc_html($contactEmailDisplay); ?></a>
           </div>
           <form class="definition-contact-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-upsellio-lead-form="1" data-upsellio-server-form="1">
             <input type="hidden" name="action" value="upsellio_submit_lead" />

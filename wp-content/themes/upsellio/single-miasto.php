@@ -29,6 +29,8 @@ while (have_posts()) :
     if ($contactEmail === "") {
         $contactEmail = "kontakt@upsellio.pl";
     }
+    $contactEmailHref = function_exists("upsellio_get_mailto_href") ? upsellio_get_mailto_href($contactEmail) : ("mailto:" . $contactEmail);
+    $contactEmailDisplay = function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address($contactEmail) : $contactEmail;
     $phoneHref = preg_replace("/[^0-9+]/", "", $contactPhone);
     $ctaSeed = abs(crc32($citySlug . "|" . $cityName));
 
@@ -291,7 +293,7 @@ while (have_posts()) :
               <?php if ($contactPhone !== "" && $phoneHref !== "") : ?>
                 <a href="<?php echo esc_url("tel:" . $phoneHref); ?>">Zadzwon: <?php echo esc_html($contactPhone); ?></a>
               <?php endif; ?>
-              <a href="<?php echo esc_url("mailto:" . $contactEmail); ?>">Napisz: <?php echo esc_html($contactEmail); ?></a>
+              <a href="<?php echo esc_url($contactEmailHref); ?>">Napisz: <?php echo esc_html($contactEmailDisplay); ?></a>
             </div>
             <form method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-upsellio-lead-form="1" data-upsellio-server-form="1">
               <input type="hidden" name="action" value="upsellio_submit_lead" />
@@ -379,7 +381,7 @@ while (have_posts()) :
               <?php if ($contactPhone !== "" && $phoneHref !== "") : ?>
                 <a href="<?php echo esc_url("tel:" . $phoneHref); ?>">Telefon: <?php echo esc_html($contactPhone); ?></a>
               <?php endif; ?>
-              <a href="<?php echo esc_url("mailto:" . $contactEmail); ?>">E-mail: <?php echo esc_html($contactEmail); ?></a>
+              <a href="<?php echo esc_url($contactEmailHref); ?>">E-mail: <?php echo esc_html($contactEmailDisplay); ?></a>
             </div>
           </div>
         </aside>

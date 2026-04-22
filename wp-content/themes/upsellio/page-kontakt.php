@@ -20,6 +20,8 @@ $contact_phone = function_exists("upsellio_get_contact_phone")
     : trim((string) ($front_page_sections["contact_phone"] ?? ""));
 $contact_email = trim((string) ($front_page_sections["contact_email"] ?? "kontakt@upsellio.pl"));
 $contact_page_url = home_url("/kontakt/");
+$contact_email_href = function_exists("upsellio_get_mailto_href") ? upsellio_get_mailto_href($contact_email) : ("mailto:" . $contact_email);
+$contact_email_display = function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address($contact_email) : $contact_email;
 ?>
 <style>
   .contact-page { background:#fff; }
@@ -90,7 +92,7 @@ $contact_page_url = home_url("/kontakt/");
         <div class="contact-card-label">E-mail</div>
         <h2 class="contact-card-title">Napisz wiadomość</h2>
         <p class="contact-card-copy">Jeśli wolisz klasyczny kontakt, napisz bezpośrednio na skrzynkę. Każda wiadomość trafia do mnie.</p>
-        <a class="contact-card-link" href="<?php echo esc_url("mailto:" . $contact_email); ?>"><?php echo esc_html($contact_email); ?></a>
+        <a class="contact-card-link" href="<?php echo esc_url($contact_email_href); ?>"><?php echo esc_html($contact_email_display); ?></a>
       </article>
       <article class="contact-card reveal d1">
         <div class="contact-card-label">Telefon</div>
@@ -184,7 +186,7 @@ $contact_page_url = home_url("/kontakt/");
         <div class="contact-form-alt">
           <div>✓ Lead trafia od razu do CRM i dostaje priorytet kontaktu.</div>
           <div>✓ Źródło ruchu (UTM) zapisuje się automatycznie dla lepszej analityki leadów.</div>
-          <div>✓ Jeśli wygodniej, napisz bezpośrednio: <a href="<?php echo esc_url("mailto:" . $contact_email); ?>" style="color:var(--teal);font-weight:700;"><?php echo esc_html($contact_email); ?></a></div>
+          <div>✓ Jeśli wygodniej, napisz bezpośrednio: <a href="<?php echo esc_url($contact_email_href); ?>" style="color:var(--teal);font-weight:700;"><?php echo esc_html($contact_email_display); ?></a></div>
         </div>
       </div>
     </div>
