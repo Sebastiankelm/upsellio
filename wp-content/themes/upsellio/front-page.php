@@ -57,11 +57,23 @@ $brand_logo_url = get_template_directory_uri() . "/assets/images/upsellio-logo.p
 
 $seo_title = trim((string) ($seo_section["title"] ?? ""));
 $seo_description = trim((string) ($seo_section["description"] ?? ""));
+if ($seo_title === "") {
+    $seo_title = "Marketing B2B | Meta Ads, Google Ads i strony internetowe - Upsellio";
+}
+if ($seo_description === "") {
+    $seo_description = "Kampanie Meta Ads i Google Ads oraz strony internetowe dla firm B2B. Zwieksz sprzedaz i pozyskuj klientow dzieki sprawdzonemu systemowi marketingowemu.";
+}
 if (function_exists("upsellio_limit_meta_description")) {
     $seo_description = upsellio_limit_meta_description($seo_description, 130);
 }
 $seo_og_title = trim((string) ($seo_section["og_title"] ?? ""));
 $seo_og_description = trim((string) ($seo_section["og_description"] ?? ""));
+if ($seo_og_title === "") {
+    $seo_og_title = $seo_title;
+}
+if ($seo_og_description === "") {
+    $seo_og_description = $seo_description;
+}
 $seo_og_type = trim((string) ($seo_section["og_type"] ?? "website"));
 $seo_og_url = trim((string) ($seo_section["og_url"] ?? "/"));
 $seo_twitter_card = trim((string) ($seo_section["twitter_card"] ?? "summary_large_image"));
@@ -86,6 +98,7 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
 <head>
   <meta charset="<?php bloginfo("charset"); ?>" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <?php if ($seo_title !== "") : ?><title><?php echo esc_html($seo_title); ?></title><?php endif; ?>
   <?php if ($seo_description !== "") : ?><meta name="description" content="<?php echo esc_attr($seo_description); ?>" /><?php endif; ?>
   <?php if ($seo_og_title !== "") : ?><meta property="og:title" content="<?php echo esc_attr($seo_og_title); ?>" /><?php endif; ?>
   <?php if ($seo_og_description !== "") : ?><meta property="og:description" content="<?php echo esc_attr($seo_og_description); ?>" /><?php endif; ?>
@@ -366,6 +379,8 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       height: 62px;
       width: auto;
       max-width: min(72vw, 420px);
+      mix-blend-mode: screen;
+      isolation: isolate;
     }
 
     .nav-links {
@@ -1168,6 +1183,495 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
     @keyframes heroPulse {
       0%,100% { box-shadow: var(--shadow-sm); transform: scale(1); }
       50% { box-shadow: 0 10px 24px rgba(29,158,117,.18); transform: scale(1.015); }
+    }
+
+    .hero-wrap {
+      padding: var(--sp-10) 0;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--sp-8);
+      align-items: start;
+    }
+
+    .hero-h1 {
+      margin-bottom: var(--sp-4);
+    }
+
+    .hero-lead {
+      max-width: 640px;
+      margin-bottom: var(--sp-5);
+    }
+
+    .hero-micro {
+      font-size: 13px;
+      color: var(--text-3);
+      margin-top: 10px;
+    }
+
+    .aside-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 14px;
+    }
+
+    .aside-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .stat-block {
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 14px;
+    }
+
+    .stat-num {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 24px;
+      line-height: 1.1;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    .stat-num.teal {
+      color: var(--teal);
+    }
+
+    .stat-lbl {
+      font-size: 12px;
+      color: var(--text-3);
+      line-height: 1.45;
+    }
+
+    .pipeline {
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      background: var(--bg-soft);
+      padding: 10px 12px;
+    }
+
+    .pipeline-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 8px;
+    }
+
+    .pipeline-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-2);
+    }
+
+    .pipeline-row:last-child {
+      border-bottom: none;
+    }
+
+    .pipeline-row b {
+      color: var(--teal-dark);
+      font-weight: 700;
+    }
+
+    .why-nums {
+      background: linear-gradient(145deg,#1a2420,#0e1a15);
+      border-radius: var(--r-xl);
+      padding: var(--sp-5);
+      color: #fff;
+      box-shadow: var(--shadow-md);
+      max-width: 440px;
+    }
+
+    .why-nums-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: var(--sp-3);
+    }
+
+    .why-stat {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .why-stat:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .why-stat-num {
+      font-family: var(--font-display);
+      font-size: 30px;
+      color: var(--teal);
+      line-height: 1;
+    }
+
+    .why-stat-text {
+      font-size: 14px;
+      color: rgba(255,255,255,.72);
+      line-height: 1.6;
+    }
+
+    .service-badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: var(--r-pill);
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .3px;
+      margin-bottom: var(--sp-3);
+    }
+
+    .check-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      margin-top: 1px;
+      background: var(--teal-soft);
+      border: 1px solid var(--teal-line);
+      color: var(--teal);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .case-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--sp-8);
+      margin-top: var(--sp-5);
+    }
+
+    .chart-panel {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbf9 100%);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: clamp(16px, 2.2vw, 24px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .cp-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cp-head span:first-child {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .45px;
+      text-transform: uppercase;
+      color: var(--text-2);
+    }
+
+    .chart-panel .live-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 0 0 rgba(29, 158, 117, .35);
+      animation: cpPulse 2.1s ease infinite;
+      flex-shrink: 0;
+    }
+
+    .cp-kpis {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .cp-kpi {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+      padding: 12px;
+      display: grid;
+      gap: 6px;
+      min-height: 96px;
+      align-content: start;
+      box-shadow: 0 6px 16px rgba(17, 17, 16, 0.04);
+      transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .cp-kpi:hover {
+      transform: translateY(-2px);
+      border-color: var(--teal-line);
+      box-shadow: 0 10px 20px rgba(17, 17, 16, 0.08);
+    }
+
+    .cp-kpi-num {
+      font-family: var(--font-display);
+      font-size: clamp(24px, 4vw, 32px);
+      line-height: 1;
+      letter-spacing: -.5px;
+      color: var(--text);
+    }
+
+    .cp-kpi-lbl {
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--text-3);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .35px;
+    }
+
+    .cp-kpi:nth-child(1) .cp-kpi-num,
+    .cp-kpi:nth-child(3) .cp-kpi-num,
+    .cp-kpi:nth-child(4) .cp-kpi-num {
+      color: var(--teal-dark);
+    }
+
+    .cp-kpi:nth-child(2) .cp-kpi-num {
+      color: var(--danger);
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: var(--sp-4) 0;
+    }
+
+    .results-table th,
+    .results-table td {
+      padding: 12px 14px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    .results-table th {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      background: var(--bg-soft);
+    }
+
+    .results-table .col-after {
+      font-weight: 700;
+      color: var(--teal);
+    }
+
+    .badge-pos,
+    .badge-neg {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .badge-pos {
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+    }
+
+    .badge-neg {
+      background: #fce8e8;
+      color: var(--danger);
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--sp-3);
+      margin-top: var(--sp-5);
+    }
+
+    .metric-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: clamp(16px, 2vw, 22px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .metric-card.dark {
+      background: #0f1815;
+      border-color: #1d3b31;
+      color: #eaf5f0;
+    }
+
+    .mc-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .35px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 10px;
+    }
+
+    .metric-card.dark .mc-label {
+      color: #b7d7ca;
+    }
+
+    .mc-num {
+      font-family: var(--font-display);
+      font-size: clamp(30px, 4.8vw, 44px);
+      line-height: 1;
+      letter-spacing: -1px;
+      color: var(--text);
+    }
+
+    .mc-num.teal {
+      color: var(--teal-dark);
+    }
+
+    .mc-num.red {
+      color: var(--danger);
+    }
+
+    .mc-change {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 10px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .mc-change.up {
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+    }
+
+    .mc-change.dn {
+      background: #fdecec;
+      color: var(--danger);
+    }
+
+    .mc-sub {
+      margin-top: 9px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--text-3);
+    }
+
+    .funnel {
+      display: grid;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .funnel-row {
+      display: grid;
+      grid-template-columns: minmax(68px, 84px) minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .f-lbl {
+      font-size: 12px;
+      font-weight: 700;
+      color: #d7eee4;
+    }
+
+    .f-track {
+      position: relative;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(156, 211, 188, 0.2);
+    }
+
+    .f-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      transform-origin: left center;
+      background: linear-gradient(90deg, #7fd2b2, #24a574);
+      border-radius: 999px;
+      width: 100%;
+      transition: transform .45s ease;
+    }
+
+    .f-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: #effbf5;
+      white-space: nowrap;
+    }
+
+    .fit-items {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    @media (min-width: 980px) {
+      .hero-wrap {
+        grid-template-columns: minmax(0, 1fr) 400px;
+      }
+    }
+
+    @media (min-width: 900px) {
+      .split {
+        grid-template-columns: 380px minmax(0, 1fr);
+        gap: var(--sp-8);
+      }
+    }
+
+    @media (min-width: 880px) {
+      .case-grid {
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+      }
+
+      .chart-panel {
+        position: sticky;
+        top: 110px;
+      }
+    }
+
+    @media (min-width: 900px) {
+      .metrics-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: stretch;
+      }
+
+      .metrics-grid .metric-card.dark {
+        grid-column: span 1;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .cp-kpis {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @keyframes cpPulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(29, 158, 117, .35);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(29, 158, 117, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(29, 158, 117, 0);
+      }
     }
 
     .split {
@@ -2839,6 +3343,66 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       color: var(--teal-dark);
       line-height: 1.7;
       max-width: 640px;
+    }
+
+    .cta-dark {
+      background: linear-gradient(145deg, #1a2420, #0e1a15);
+      padding: var(--sp-12) 0;
+    }
+
+    .cta-dark-inner {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--sp-5);
+    }
+
+    .cta-dark h2 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: clamp(28px, 4vw, 42px);
+      line-height: 1.1;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+
+    .cta-dark p {
+      font-size: 16px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.7;
+    }
+
+    .btn-white {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      background: #fff;
+      color: var(--teal-dark);
+      font-size: 15px;
+      font-weight: 700;
+      padding: 15px 30px;
+      border-radius: var(--r-md);
+      white-space: nowrap;
+      transition: 0.2s ease;
+    }
+
+    .btn-white:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+    }
+
+    .btn-white svg {
+      transition: transform 0.2s;
+    }
+
+    .btn-white:hover svg {
+      transform: translateX(4px);
+    }
+
+    @media (min-width: 860px) {
+      .cta-dark-inner {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+      }
     }
 
     .industry-strip {
@@ -4977,18 +5541,18 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
     }
 
     .home-semrush-flow .hero {
-      padding-top: clamp(46px, 6.5vw, 80px);
-      padding-bottom: clamp(48px, 6.2vw, 78px);
+      padding-top: clamp(30px, 5vw, 62px);
+      padding-bottom: clamp(34px, 5vw, 62px);
     }
 
     .home-semrush-flow .hero-copy .h1 {
-      max-width: 18ch;
-      margin-bottom: clamp(16px, 2.2vw, 24px);
+      max-width: 15ch;
+      margin-bottom: clamp(12px, 1.8vw, 20px);
     }
 
     .home-semrush-flow .hero-copy .lead {
-      max-width: 56ch;
-      margin-bottom: clamp(18px, 2.6vw, 30px);
+      max-width: 48ch;
+      margin-bottom: clamp(12px, 2.2vw, 24px);
     }
 
     .home-semrush-flow .hero-actions {
@@ -5020,6 +5584,37 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       color: var(--text);
       border-color: var(--teal);
       background: #fff;
+    }
+
+    .home-semrush-flow .hero-fast-lane {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .home-semrush-flow .hero-fast-lane a {
+      display: inline-flex;
+      align-items: center;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text-2);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .home-semrush-flow .hero-fast-lane a:hover {
+      border-color: var(--teal);
+      color: var(--text);
+    }
+
+    .home-semrush-flow .section-cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: clamp(16px, 2.5vw, 24px);
     }
 
     .home-semrush-flow .hero-aside {
@@ -5070,6 +5665,19 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       .home-semrush-flow .hero-actions .btn {
         width: 100%;
       }
+
+      .home-semrush-flow .hero {
+        padding-top: 24px;
+        padding-bottom: 26px;
+      }
+
+      .home-semrush-flow .hero-copy .h1 {
+        max-width: 12ch;
+      }
+
+      .home-semrush-flow .hero-copy .lead {
+        max-width: 34ch;
+      }
     }
   </style><?php endif; ?>
   <?php wp_head(); ?>
@@ -5117,613 +5725,182 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
           <a href="<?php echo esc_url($nav_url); ?>"><?php echo esc_html($nav_title); ?></a>
         <?php endforeach; ?>
         <a href="<?php echo esc_url(home_url("/#kontakt")); ?>">Bezpłatna rozmowa →</a>
+        <a href="<?php echo esc_url(home_url("/#kontakt")); ?>">Przejdz od razu do formularza ↓</a>
       </div>
     </div>
   </header>
 
   <main class="home-semrush-flow" data-home-curated="1">
-    <?php if (!empty($front_page_issues) && current_user_can("manage_options")) : ?>
-      <section class="section-sm">
-        <div class="wrap">
-          <div style="padding:12px 14px;border:1px solid #edcccc;background:#fff2f2;border-radius:10px;color:#b13a3a;font-size:13px;">
-            <strong>Brakujaca konfiguracja dynamiczna:</strong>
-            <ul style="margin:8px 0 0 18px;">
-              <?php foreach ($front_page_issues as $issue) : ?>
-                <li><?php echo esc_html((string) $issue); ?></li>
-              <?php endforeach; ?>
-            </ul>
-          </div>
-        </div>
-      </section>
-    <?php endif; ?>
-    <section class="hero s-hero" id="start">
-      <div class="wrap hero-grid">
+    <section class="hero" id="start">
+      <div class="wrap hero-wrap">
         <div class="hero-copy">
-          <div class="hero-pill reveal visible">
+          <div class="hero-pill reveal in d1">
             <div class="hero-pill-dot">●</div>
-            <span><?php echo esc_html((string) ($hero_section["pill"] ?? "Dla malych i srednich firm B2B")); ?></span>
+            <span>Marketing internetowy B2B, który zamienia ruch w klientów</span>
           </div>
-
-          <h1 class="h1 reveal visible"><?php echo esc_html((string) ($hero_section["title"] ?? "Marketing internetowy i strony WWW, ktore realnie sprzedaja")); ?></h1>
-
-          <p class="lead reveal visible"><?php echo esc_html((string) ($hero_section["lead"] ?? "")); ?></p>
-
-          <div class="hero-actions reveal visible">
-            <a href="<?php echo esc_url(home_url((string) ($hero_section["primary_cta_url"] ?? "/#kontakt"))); ?>" class="btn btn-primary btn-pulse"><?php echo esc_html((string) ($hero_section["primary_cta_label"] ?? "Umow bezplatna rozmowe")); ?> →</a>
-            <a href="<?php echo esc_url(home_url((string) ($hero_section["secondary_cta_url"] ?? "/#uslugi"))); ?>" class="btn btn-secondary"><?php echo esc_html((string) ($hero_section["secondary_cta_label"] ?? "Zobacz co robie")); ?></a>
+          <h1 class="h1 hero-h1 reveal in d1">
+            Masz ruch, nie masz klientów?
+          </h1>
+          <p class="lead hero-lead reveal in d2">
+            Kampanie Meta Ads, Google Ads i strony internetowe powinny sprzedawać. Jeśli generują kliknięcia, ale nie przynoszą zapytań - tracisz pieniądze każdego dnia.
+          </p>
+          <p class="body reveal in d2" style="margin-top:10px;max-width:58ch">
+            Buduję system marketingowy dla firm B2B, który łączy ruch, konwersję i sprzedaż oraz zamienia odwiedzających w realnych klientów.
+          </p>
+          <div class="hero-actions reveal in d3">
+            <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn btn-primary">Sprawdzę Twoją stronę</a>
+            <a href="<?php echo esc_url(home_url("/#system")); ?>" class="btn btn-secondary">Zobacz jak działa system</a>
           </div>
-
-          <div class="hero-micro reveal visible">
-            <?php echo esc_html((string) ($hero_section["micro"] ?? "")); ?>
-          </div>
-
-          <div class="hero-trust reveal visible">
-            <?php $hero_trust_items = isset($hero_section["trust_items"]) && is_array($hero_section["trust_items"]) ? $hero_section["trust_items"] : []; ?>
-            <?php foreach ($hero_trust_items as $hero_trust_item) : ?>
-              <?php $hero_trust_item = trim((string) $hero_trust_item); ?>
-              <?php if ($hero_trust_item === "") : ?>
-                <?php continue; ?>
-              <?php endif; ?>
-              <div class="hero-trust-item"><span class="hero-trust-dot">✓</span><?php echo esc_html($hero_trust_item); ?></div>
-            <?php endforeach; ?>
+          <p class="hero-micro reveal in d3">Bezpłatna analiza • konkretne wnioski • bez zobowiązań</p>
+          <div class="hero-fast-lane reveal in d3">
+            <a href="<?php echo esc_url(home_url("/#kontakt")); ?>">Szybki kontakt</a>
+            <a href="<?php echo esc_url(home_url("/#case-study")); ?>">Zobacz wyniki</a>
+            <a href="<?php echo esc_url(home_url("/#faq")); ?>">Najczęstsze pytania</a>
           </div>
         </div>
 
-        <?php
-        $hero_aside_stats = isset($hero_section["aside_stats"]) && is_array($hero_section["aside_stats"]) ? $hero_section["aside_stats"] : [];
-        $hero_stat_1 = $hero_aside_stats[0] ?? ["number" => "128", "text" => "Leady / miesiac"];
-        $hero_stat_2 = $hero_aside_stats[1] ?? ["number" => "82%", "text" => "Jakosc leadow"];
-        $hero_stat_3 = $hero_aside_stats[2] ?? ["number" => "37 zl", "text" => "Koszt / lead"];
-        ?>
-        <aside class="hero-aside" id="hero-system">
-          <div class="hero-aside-label"><?php echo esc_html((string) ($hero_section["aside_label"] ?? "System pozyskiwania leadow B2B")); ?></div>
-          <div class="hero-system">
-            <div class="hero-system-head">
-              <div>
-                <div class="hero-system-side-title">Od chaosu w marketingu</div>
-                <div class="hero-system-side-sub">Rozproszone dzialania</div>
-              </div>
-              <div>
-                <div class="hero-system-side-title">Do przewidywalnego wzrostu</div>
-                <div class="hero-system-side-sub">Uporzadkowany system</div>
-              </div>
+        <aside class="hero-aside reveal in d2">
+          <div class="aside-label">Co ma znaczenie na stronie</div>
+          <div class="aside-stats">
+            <div class="stat-block">
+              <div class="stat-num teal">Jasny przekaz</div>
+              <div class="stat-lbl">Odwiedzający w kilka sekund wie, czym się zajmujesz</div>
             </div>
-            <div class="hero-system-top">
-              <div class="hero-channel-stack">
-                <article class="hero-channel-card">
-                  <div class="hero-channel-head"><span>Meta Ads</span><span>+24%</span></div>
-                  <div class="hero-channel-metric">Kampanie leadowe</div>
-                  <div class="hero-spark" data-hero-spark><span style="height:24%"></span><span style="height:36%"></span><span style="height:45%"></span><span style="height:38%"></span><span style="height:58%"></span><span style="height:74%"></span></div>
-                </article>
-                <article class="hero-channel-card">
-                  <div class="hero-channel-head"><span>Google Ads</span><span>+18%</span></div>
-                  <div class="hero-channel-metric">Ruch o wysokiej intencji</div>
-                  <div class="hero-spark" data-hero-spark><span style="height:18%"></span><span style="height:27%"></span><span style="height:29%"></span><span style="height:46%"></span><span style="height:64%"></span><span style="height:70%"></span></div>
-                </article>
-                <article class="hero-channel-card">
-                  <div class="hero-channel-head"><span>LinkedIn Ads</span><span>+12%</span></div>
-                  <div class="hero-channel-metric">Dotarcie do decydentow</div>
-                  <div class="hero-spark" data-hero-spark><span style="height:22%"></span><span style="height:31%"></span><span style="height:42%"></span><span style="height:39%"></span><span style="height:52%"></span><span style="height:68%"></span></div>
-                </article>
-                <article class="hero-channel-card">
-                  <div class="hero-channel-head"><span>E-mail / Outreach</span><span>+17%</span></div>
-                  <div class="hero-channel-metric">Follow-up i sekwencje</div>
-                  <div class="hero-spark" data-hero-spark><span style="height:20%"></span><span style="height:28%"></span><span style="height:35%"></span><span style="height:44%"></span><span style="height:52%"></span><span style="height:66%"></span></div>
-                </article>
-              </div>
-
-              <article class="hero-system-core">
-                <div class="hero-core-nav">
-                  <span class="is-active">Oferta</span><span>Case studies</span><span>O mnie</span><span>Proces</span>
-                </div>
-                <div class="hero-core-main">
-                  <div>
-                    <div class="hero-core-title">Skuteczny marketing. <span class="accent">Wiecej leadow.</span></div>
-                    <p class="hero-core-lead">Pomagam firmom B2B systematycznie pozyskiwac wartosciowe leady i zamieniac je w klientow.</p>
-                    <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="hero-core-btn">Umow konsultacje</a>
-                  </div>
-                  <div class="hero-core-form">
-                    <div class="hero-core-field"></div>
-                    <div class="hero-core-field"></div>
-                    <div class="hero-core-field"></div>
-                    <div class="hero-core-submit"></div>
-                  </div>
-                </div>
-                <div class="hero-core-grid">
-                  <div>Strategia oparta na danych</div>
-                  <div>Skuteczne kampanie performance</div>
-                  <div>Konwersja strony i oferty</div>
-                  <div>Leady gotowe do rozmowy</div>
-                </div>
-              </article>
-
-              <div class="hero-kpi-stack">
-                <article class="hero-kpi-block">
-                  <div class="hero-kpi-label">Leady i konwersja</div>
-                  <div class="hero-kpi-mini-grid">
-                    <div class="hero-kpi-mini-card">
-                      <div class="hero-kpi-label"><?php echo esc_html((string) ($hero_stat_1["text"] ?? "Leady")); ?></div>
-                      <div class="hero-kpi-row"><div class="hero-kpi-value" data-hero-kpi-value><?php echo esc_html((string) ($hero_stat_1["number"] ?? "142")); ?></div><div class="hero-kpi-change">+25%</div></div>
-                      <div class="hero-kpi-progress"><i data-hero-kpi-progress style="width:74%"></i></div>
-                    </div>
-                    <div class="hero-kpi-mini-card">
-                      <div class="hero-kpi-label">Konwersja</div>
-                      <div class="hero-kpi-row"><div class="hero-kpi-value" data-hero-kpi-value><?php echo esc_html((string) ($hero_stat_2["number"] ?? "6,42%")); ?></div><div class="hero-kpi-change">+18%</div></div>
-                      <div class="hero-kpi-progress"><i data-hero-kpi-progress style="width:66%"></i></div>
-                    </div>
-                  </div>
-                </article>
-                <article class="hero-pipeline-box">
-                  <div class="hero-pipeline-title">Pipeline sprzedazy</div>
-                  <div class="hero-pipeline-row"><span>Nowe szanse</span><b>142</b></div>
-                  <div class="hero-pipeline-row"><span>Kwalifikacja</span><b>64</b></div>
-                  <div class="hero-pipeline-row"><span>Oferta</span><b>28</b></div>
-                  <div class="hero-pipeline-row"><span>Negocjacje</span><b>11</b></div>
-                  <div class="hero-pipeline-row"><span>Zamkniete</span><b>7</b></div>
-                </article>
-              </div>
+            <div class="stat-block">
+              <div class="stat-num teal">Mocne CTA</div>
+              <div class="stat-lbl">Wiadomo, jaki jest kolejny krok po wejściu</div>
             </div>
-
-            <div class="hero-system-pipe" data-hero-pipe>
-              <div class="hero-pipe-step is-active">Wejscie<br />Ruch</div>
-              <div class="hero-pipe-step">Zaangazowanie<br />Strona</div>
-              <div class="hero-pipe-step">Konwersja<br />Lead</div>
-              <div class="hero-pipe-step">Kwalifikacja<br />Jakosc</div>
-              <div class="hero-pipe-step">Sprzedaz<br />Wynik</div>
+            <div class="stat-block">
+              <div class="stat-num">Korzyści</div>
+              <div class="stat-lbl">Oferta mówi językiem korzyści, nie narzędzi</div>
             </div>
-
-            <div class="hero-system-bottom">
-              <div>
-                <article class="hero-chaos-note">
-                  <strong>Brak spojnosci = brak wzrostu</strong>
-                  <div class="hero-chaos-note-grid">
-                    <span>Rozproszone zrodla i priorytety.</span>
-                    <span>Niska konwersja ruchu na ofercie.</span>
-                    <span>Nieprzewidywalne wyniki i decyzje.</span>
-                  </div>
-                </article>
-                <article class="hero-analytics-strip" style="margin-top:8px;">
-                  <div class="hero-analytics-title">Analityka i optymalizacja</div>
-                  <div class="hero-analytics-grid">
-                    <div class="hero-analytics-cell"><div class="k">Koszt / lead</div><div class="v">37 zl</div><div class="d">-16%</div></div>
-                    <div class="hero-analytics-cell"><div class="k">Wsp. konwersji</div><div class="v">6,42%</div><div class="d">+18%</div></div>
-                    <div class="hero-analytics-cell"><div class="k">ROAS</div><div class="v">4,21</div><div class="d">+27%</div></div>
-                    <div class="hero-analytics-cell"><div class="k">Przychody</div><div class="v">+67%</div><div class="d">Wzrost</div></div>
-                  </div>
-                </article>
-              </div>
-
-              <div class="hero-optimization-node">Optymalizacja na danych</div>
-
-              <article class="hero-growth-panel">
-                <div class="hero-growth-meta"><div class="k">Wzrost przychodow</div><div class="v">+35%</div></div>
-                <div class="hero-growth-chart">
-                  <div class="hero-growth-line" data-hero-growth-line>
-                    <span style="height:18%"></span><span style="height:24%"></span><span style="height:28%"></span><span style="height:32%"></span><span style="height:38%"></span><span style="height:44%"></span><span style="height:52%"></span><span style="height:58%"></span>
-                  </div>
-                </div>
-              </article>
+            <div class="stat-block">
+              <div class="stat-num">Zaufanie</div>
+              <div class="stat-lbl">Liczby, opinie i proces obniżają opór</div>
             </div>
+          </div>
+          <div class="pipeline">
+            <div class="pipeline-title">Checklista konwersji</div>
+            <div class="pipeline-row"><span>Jasny przekaz</span><b>Tak</b></div>
+            <div class="pipeline-row"><span>Korzyści dla odbiorcy</span><b>Tak</b></div>
+            <div class="pipeline-row"><span>Widoczne CTA</span><b>Tak</b></div>
+            <div class="pipeline-row"><span>Dowody zaufania</span><b>Tak</b></div>
           </div>
         </aside>
       </div>
     </section>
 
-    <section class="section section-border" id="dlaczego">
+    <section class="section section-border bg-soft" id="problem">
       <div class="wrap">
-        <div class="content why-intro-block">
-          <div class="eyebrow reveal"><?php echo esc_html((string) ($why_section["eyebrow"] ?? "Dlaczego to dziala")); ?></div>
-          <h2 class="h2 reveal d1"><?php echo esc_html((string) ($why_section["title"] ?? "")); ?></h2>
-          <p class="body reveal d2" style="margin-top: 18px;"><?php echo esc_html((string) ($why_section["lead"] ?? "")); ?></p>
+        <div style="max-width:720px">
+          <div class="eyebrow reveal">Problem</div>
+          <h2 class="h2 reveal d1">Dlaczego marketing nie przynosi klientów?</h2>
+          <p class="body reveal d2" style="margin-top:18px">Większość firm traci budżet nie przez brak reklam, ale przez brak systemu, który zamienia ruch w klientów.</p>
         </div>
+        <div class="problem-grid" style="margin-top:var(--sp-4)">
+          <div class="problem-card reveal">Masz ruch, ale brak zapytań</div>
+          <div class="problem-card reveal d1">Reklamy generują kliknięcia bez efektu</div>
+          <div class="problem-card reveal d2">Strona nie prowadzi do decyzji</div>
+          <div class="problem-card reveal d3">Brak spójnej strategii marketingowej</div>
+        </div>
+        <div class="section-cta-row reveal d3">
+          <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn btn-primary btn-sm">Sprawdźmy, co blokuje zapytania →</a>
+          <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn btn-secondary btn-sm">Przejdź do formularza</a>
+        </div>
+      </div>
+    </section>
 
-        <div class="why-trust-visual reveal d1" id="why-trust-visual">
-          <div class="why-horizontal-block why-contact-block">
-            <h3 class="why-one-heading">Jeden punkt kontaktu. <span class="accent">Od wyzwania do mierzalnego wzrostu.</span></h3>
-            <p class="why-one-sub">Bez posrednikow. Bez chaosu. Skupienie na tym, co daje wynik.</p>
-
-            <div class="why-one-process" data-why-one-process>
-              <article class="why-one-step is-active">
-                <div class="why-one-step-num">1. Wyzwanie</div>
-                <div class="why-one-step-title">Diagnoza sytuacji</div>
-                <div class="why-one-step-text">Rozmawiamy o celach i problemach, ktore blokuja wzrost.</div>
-                <div class="why-one-step-list"><span>Niska jakosc leadow</span><span>Wysoki koszt pozyskania</span><span>Niska konwersja strony</span></div>
-              </article>
-              <article class="why-one-step">
-                <div class="why-one-step-num">2. Strategia</div>
-                <div class="why-one-step-title">Plan dzialan pod cel</div>
-                <div class="why-one-step-text">Analiza danych i roadmapa na wzrost leadow i sprzedazy.</div>
-                <div class="why-one-step-list"><span>Audyt i analiza</span><span>Plan kampanii i lejka</span><span>Strategia strony</span></div>
-              </article>
-              <article class="why-one-center">
-                <div class="why-one-avatar">
-                  <b>U</b>
-                  <strong>Sebastian Kelm</strong>
-                  <span>Jeden punkt kontaktu</span>
-                </div>
-              </article>
-              <article class="why-one-step">
-                <div class="why-one-step-num">3. Wdrozenie</div>
-                <div class="why-one-step-title">Realizacja od A do Z</div>
-                <div class="why-one-step-text">Kampanie, strona i automatyzacja wdrazane jako jeden system.</div>
-                <div class="why-one-step-list"><span>Meta Ads / Google Ads</span><span>Strony i landing page</span><span>Analityka i optymalizacja</span></div>
-              </article>
-              <article class="why-one-step">
-                <div class="why-one-step-num">4. Mierzalny wynik</div>
-                <div class="why-one-step-title">Leady i przychody</div>
-                <div class="why-one-step-text">Wiecej wartosciowych leadow i przewidywalny wzrost sprzedazy.</div>
-                <div class="why-one-step-list"><span>Lepsza jakosc leadow</span><span>Wyzsza konwersja</span><span>Wzrost przychodow</span></div>
-              </article>
-            </div>
-
-            <div class="why-one-guarantees" data-why-one-guarantees>
-              <div class="why-one-guarantee is-active"><i></i><span>Bez agencji</span></div>
-              <div class="why-one-guarantee"><i></i><span>Bez posrednikow</span></div>
-              <div class="why-one-guarantee"><i></i><span>Bez zbednych kosztow</span></div>
-              <div class="why-one-guarantee"><i></i><span>Pelna transparentnosc</span></div>
-            </div>
+    <section class="section section-border" id="case-study">
+      <div class="wrap">
+        <div style="max-width:780px">
+          <div class="eyebrow reveal">Efekty współpracy</div>
+          <h2 class="h2 reveal d1">Liczby zamiast słów</h2>
+        </div>
+        <div class="case-grid">
+          <div class="reveal">
+            <div class="case-tag">Przed współpracą</div>
+            <div class="case-title">Ruch był, ale nie było wyników sprzedażowych</div>
+            <table class="results-table">
+              <thead><tr><th>Metryka</th><th>Wynik</th></tr></thead>
+              <tbody>
+                <tr><td>Wejścia miesięcznie</td><td>18 500</td></tr>
+                <tr><td>Konwersja strony</td><td>0,6%</td></tr>
+                <tr><td>Koszt pozyskania klienta</td><td>wysoki</td></tr>
+              </tbody>
+            </table>
           </div>
-
-          <div class="why-horizontal-block why-results-block">
-            <div class="why-one-results">
-              <article class="why-one-panel">
-                <div class="why-one-panel-title">Lejek sprzedazowy</div>
-                <div class="why-one-funnel-row"><div class="why-one-funnel-bar"><i data-why-one-funnel-bar style="width:86%"></i></div><b>23 810</b></div>
-                <div class="why-one-funnel-row"><div class="why-one-funnel-bar"><i data-why-one-funnel-bar style="width:58%"></i></div><b>362</b></div>
-                <div class="why-one-funnel-row"><div class="why-one-funnel-bar"><i data-why-one-funnel-bar style="width:35%"></i></div><b>148</b></div>
-                <div class="why-one-funnel-row"><div class="why-one-funnel-bar"><i data-why-one-funnel-bar style="width:16%"></i></div><b>64</b></div>
-              </article>
-
-              <article class="why-one-panel">
-                <div class="why-one-panel-title">Wyniki mierzone w liczbach</div>
-                <div class="why-one-kpi-grid">
-                  <div class="why-one-kpi"><div class="k">Liczba leadow</div><div class="v" data-why-one-leads>362</div><div class="d">+28%</div><div class="why-one-line" data-why-one-line><i style="height:18%"></i><i style="height:24%"></i><i style="height:31%"></i><i style="height:38%"></i><i style="height:51%"></i></div></div>
-                  <div class="why-one-kpi"><div class="k">Koszt / lead</div><div class="v" data-why-one-cpl>37,21</div><div class="d">-18%</div><div class="why-one-line" data-why-one-line><i style="height:52%"></i><i style="height:46%"></i><i style="height:36%"></i><i style="height:29%"></i><i style="height:22%"></i></div></div>
-                  <div class="why-one-kpi"><div class="k">Wsp. konwersji</div><div class="v" data-why-one-conv>6,42%</div><div class="d">+18%</div><div class="why-one-line" data-why-one-line><i style="height:16%"></i><i style="height:24%"></i><i style="height:32%"></i><i style="height:41%"></i><i style="height:48%"></i></div></div>
-                  <div class="why-one-kpi"><div class="k">ROAS</div><div class="v" data-why-one-roas>4,87</div><div class="d">+25%</div><div class="why-one-line" data-why-one-line><i style="height:14%"></i><i style="height:23%"></i><i style="height:30%"></i><i style="height:39%"></i><i style="height:56%"></i></div></div>
-                </div>
-              </article>
-
-              <article class="why-one-panel">
-                <div class="why-one-panel-title">Przychody (PLN)</div>
-                <div class="why-one-growth-badge" data-why-one-growth>+68%</div>
-                <div class="why-one-revenue-chart" data-why-one-revenue>
-                  <i style="height:22%"></i><i style="height:31%"></i><i style="height:35%"></i><i style="height:44%"></i><i style="height:61%"></i><i style="height:76%"></i>
-                </div>
-                <div class="why-one-impact-list">
-                  <span>Wyzsza jakosc leadow</span>
-                  <span>Nizszy koszt pozyskania</span>
-                  <span>Wiecej zamknietych transakcji</span>
-                  <span>Przewidywalne przychody</span>
-                </div>
-              </article>
-            </div>
-
-            <div class="why-one-principles" data-why-one-principles>
-              <div class="why-one-principle is-active"><i></i><span>Strategia oparta na danych, nie na domyslach.</span></div>
-              <div class="why-one-principle"><i></i><span>Testujemy, mierzymy i stale optymalizujemy.</span></div>
-              <div class="why-one-principle"><i></i><span>Transparentne zasady wspolpracy i raportowania.</span></div>
-              <div class="why-one-principle"><i></i><span>Skupienie na leadach, marzy i przychodzie.</span></div>
+          <div class="reveal d1">
+            <div class="chart-panel">
+              <div class="cp-head"><span>Po wdrożeniu systemu</span><span class="live-dot"></span></div>
+              <div class="cp-kpis">
+                <div class="cp-kpi"><div class="cp-kpi-num">128 000</div><div class="cp-kpi-lbl">wejść miesięcznie</div></div>
+                <div class="cp-kpi"><div class="cp-kpi-num">2,3%</div><div class="cp-kpi-lbl">konwersja</div></div>
+                <div class="cp-kpi"><div class="cp-kpi-num">stabilnie</div><div class="cp-kpi-lbl">napływ zapytań</div></div>
+                <div class="cp-kpi"><div class="cp-kpi-num">niżej</div><div class="cp-kpi-lbl">koszt pozyskania</div></div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section-sm home-structure-toggle">
-      <div class="wrap home-structure-toggle-wrap">
-        <button class="home-structure-toggle-btn" id="home-structure-toggle-btn" type="button" aria-expanded="false" aria-controls="problem jak-dzialam wyniki dla-kogo faq">
-          Pokaz pelny widok strony
-        </button>
-      </div>
-    </section>
-
-    <section class="section bg-soft section-border js-home-optional-section" id="problem">
+    <section class="section section-border bg-soft" id="system">
       <div class="wrap">
-        <div class="content">
-          <div class="eyebrow reveal"><?php echo esc_html((string) ($problem_section["eyebrow"] ?? "Problem")); ?></div>
-          <h2 class="h2 reveal d1"><?php echo esc_html((string) ($problem_section["title"] ?? "")); ?></h2>
-          <p class="body reveal d2" style="margin-top: 18px;"><?php echo esc_html((string) ($problem_section["lead"] ?? "")); ?></p>
+        <div style="max-width:820px">
+          <div class="eyebrow reveal">System</div>
+          <h2 class="h2 reveal d1">Jak działa skuteczny marketing B2B?</h2>
+          <p class="body reveal d2" style="margin-top:18px">Skuteczny marketing internetowy to nie pojedyncze działania. To system, który łączy ruch, konwersję i sprzedaż.</p>
         </div>
-
-        <div class="problem-grid">
-          <?php $problem_items = isset($problem_section["items"]) && is_array($problem_section["items"]) ? $problem_section["items"] : []; ?>
-          <?php foreach ($problem_items as $problem_item_index => $problem_item) : ?>
-            <?php
-            $problem_item = trim((string) $problem_item);
-            if ($problem_item === "") {
-                continue;
-            }
-            $problem_delay_class = "";
-            if ($problem_item_index % 4 === 1) {
-                $problem_delay_class = " d1";
-            } elseif ($problem_item_index % 4 === 2) {
-                $problem_delay_class = " d2";
-            } elseif ($problem_item_index % 4 === 3) {
-                $problem_delay_class = " d3";
-            }
-            ?>
-            <div class="problem-card reveal<?php echo esc_attr($problem_delay_class); ?>"><?php echo esc_html($problem_item); ?></div>
-          <?php endforeach; ?>
+        <div class="service-grid" style="margin-top:var(--sp-5)">
+          <article class="service-card reveal">
+            <h3 class="h3" style="margin-bottom:10px">Meta Ads</h3>
+            <p class="body">Pozyskiwanie nowych klientów i budowanie zainteresowania ofertą.</p>
+          </article>
+          <article class="service-card reveal d1">
+            <h3 class="h3" style="margin-bottom:10px">Google Ads</h3>
+            <p class="body">Docieranie do klientów, którzy aktywnie szukają Twojej usługi lub produktu.</p>
+          </article>
+          <article class="service-card reveal d2">
+            <h3 class="h3" style="margin-bottom:10px">Strony internetowe</h3>
+            <p class="body">Optymalizacja konwersji - zamiana ruchu w zapytania i sprzedaż.</p>
+          </article>
         </div>
+        <p class="body reveal d3" style="margin-top:22px;font-weight:700;color:var(--teal-dark)">Ruch → Strona → Klient</p>
       </div>
     </section>
 
     <section class="section section-border" id="uslugi">
       <div class="wrap">
-        <div class="content">
-          <div class="eyebrow reveal"><?php echo esc_html((string) ($services_section["eyebrow"] ?? "Uslugi")); ?></div>
-          <h2 class="h2 reveal d1"><?php echo esc_html((string) ($services_section["title"] ?? "")); ?></h2>
-          <p class="body reveal d2" style="margin-top: 18px;"><?php echo esc_html((string) ($services_section["lead"] ?? "")); ?></p>
+        <div style="max-width:720px">
+          <div class="eyebrow reveal">Oferta</div>
+          <h2 class="h2 reveal d1">Co mogę dla Ciebie zrobić?</h2>
+          <p class="body reveal d2" style="margin-top:18px">Pomagam firmom B2B zwiększać sprzedaż poprzez:</p>
+          <ul class="fit-items reveal d2" style="margin-top:18px;max-width:680px">
+            <li class="fit-item"><span class="fit-icon">✓</span><span>kampanie Meta Ads dla firm</span></li>
+            <li class="fit-item"><span class="fit-icon">✓</span><span>kampanie Google Ads dla firm</span></li>
+            <li class="fit-item"><span class="fit-icon">✓</span><span>strony internetowe dla firm i sklepy online</span></li>
+            <li class="fit-item"><span class="fit-icon">✓</span><span>optymalizację konwersji i procesu sprzedaży online</span></li>
+          </ul>
+          <p class="body reveal d3" style="margin-top:18px;max-width:680px">Każdy element działa jako część jednego systemu marketingowego.</p>
         </div>
-
-        <?php $services_primary = isset($services_section["primary_service"]) && is_array($services_section["primary_service"]) ? $services_section["primary_service"] : []; ?>
-        <div class="service-hero reveal" style="margin-top: 40px;">
-          <div class="service-offer-layout">
-            <div class="service-offer-main">
-              <div class="service-top">
-                <div class="h3"><?php echo esc_html((string) ($services_primary["title"] ?? "")); ?></div>
-                <span class="badge badge-green"><?php echo esc_html((string) ($services_primary["badge"] ?? "Glowna usluga")); ?></span>
-              </div>
-              <p class="body"><?php echo esc_html((string) ($services_primary["description"] ?? "")); ?></p>
-              <div class="service-check-title"><?php echo esc_html((string) ($services_primary["checklist_title"] ?? "W ramach tej uslugi")); ?></div>
-              <div class="service-checklist">
-                <?php $services_primary_checklist = isset($services_primary["checklist"]) && is_array($services_primary["checklist"]) ? $services_primary["checklist"] : []; ?>
-                <?php foreach ($services_primary_checklist as $services_primary_checklist_item) : ?>
-                  <?php $services_primary_checklist_item = trim((string) $services_primary_checklist_item); ?>
-                  <?php if ($services_primary_checklist_item === "") : ?>
-                    <?php continue; ?>
-                  <?php endif; ?>
-                  <div class="service-check"><span class="service-check-icon">✓</span><span><?php echo esc_html($services_primary_checklist_item); ?></span></div>
-                <?php endforeach; ?>
-              </div>
-              <a href="<?php echo esc_url(home_url((string) ($services_primary["cta_url"] ?? "/#kontakt"))); ?>" class="btn btn-primary" style="margin-top: var(--sp-3);"><?php echo esc_html((string) ($services_primary["cta_label"] ?? "Zapytaj o kampanie")); ?> →</a>
-            </div>
-
-            <aside class="service-seo-block">
-              <div class="service-seo-title">Sekcja SEO / tresc ekspercka</div>
-              <details class="service-seo-item" open>
-                <summary>Co zyskujesz poza kampania Meta?</summary>
-                <p>Oprocz kampanii performance dostajesz strukture tresci pod SEO, mapowanie intencji, plan podstron i sekcji sprzedazowych, aby ruch organiczny rowniez dowozil leady.</p>
-              </details>
-              <details class="service-seo-item">
-                <summary>Jak wyglada ukrywanie/rozwijanie tresci?</summary>
-                <p>Stosujemy rozwijane bloki FAQ i sekcje kontekstowe, ktore porzadkuja informacje dla uzytkownika, a jednoczesnie rozszerzaja pokrycie fraz kluczowych.</p>
-              </details>
-              <details class="service-seo-item">
-                <summary>Efekt biznesowy SEO + Ads</summary>
-                <p>Lepsza widocznosc, nizszy CPL w dluzszym okresie i stabilniejszy pipeline, bo nie opierasz sie tylko na jednym zrodle pozyskania.</p>
-              </details>
-            </aside>
-
-            <div class="service-what-you-get">
-              <div class="service-what-title">Co konkretnie dostajesz</div>
-              <div class="service-what-grid">
-                <div class="service-what-item">Strategie i plan kampanii pod leady B2B</div>
-                <div class="service-what-item">Animowany dashboard wynikow i statystyk</div>
-                <div class="service-what-item">Strone/landing zoptymalizowana pod konwersje</div>
-                <div class="service-what-item">Analityke, testy i ciagla optymalizacje</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="service-meta-visual" id="service-meta-visual">
-            <div class="service-meta-layout">
-              <article class="service-meta-panel">
-                <div class="service-meta-title">Mapa konwersji strony</div>
-                <div class="web-flow-list" data-web-flow>
-                  <div class="web-flow-item is-active"><div class="web-flow-number">01</div><div class="web-flow-label"><strong>Hero / UVP</strong><span>Jasny przekaz i mocne CTA.</span></div></div>
-                  <div class="web-flow-item"><div class="web-flow-number">02</div><div class="web-flow-label"><strong>Uslugi</strong><span>Oferta dopasowana do B2B.</span></div></div>
-                  <div class="web-flow-item"><div class="web-flow-number">03</div><div class="web-flow-label"><strong>Dowody zaufania</strong><span>Case studies i liczby.</span></div></div>
-                  <div class="web-flow-item"><div class="web-flow-number">04</div><div class="web-flow-label"><strong>Social proof</strong><span>Efekty i referencje klientow.</span></div></div>
-                  <div class="web-flow-item"><div class="web-flow-number">05</div><div class="web-flow-label"><strong>Konwersja</strong><span>Formularz i mikro-CTA.</span></div></div>
-                  <div class="web-flow-item"><div class="web-flow-number">06</div><div class="web-flow-label"><strong>Analityka</strong><span>Mierzenie i optymalizacja.</span></div></div>
-                </div>
-              </article>
-
-              <article class="web-page-shell">
-                <div class="web-page-topbar">
-                  <div style="display:flex;align-items:center;gap:6px;">
-                    <div class="web-page-logo"></div>
-                    <div class="web-page-nav"><span>Oferta</span><span>Case studies</span><span>Kontakt</span></div>
-                  </div>
-                  <button class="web-page-cta-pill">Umow konsultacje</button>
-                </div>
-
-                <div class="web-page-main">
-                  <div class="web-page-copy">
-                    <div class="web-page-eyebrow">Dla firm B2B</div>
-                    <div class="web-page-headline">Wiecej wartosciowych leadow. <em>Wieksza sprzedaz.</em></div>
-                    <div class="web-page-lead">Strona internetowa zaprojektowana pod pozyskiwanie i domykanie klientow B2B.</div>
-                    <div class="web-page-actions">
-                      <button class="is-primary">Umow rozmowe</button>
-                      <button>Zobacz case studies</button>
-                    </div>
-                  </div>
-                  <div class="web-page-form"><i></i><i></i><i></i><i></i></div>
-                </div>
-
-                <div class="web-service-grid">
-                  <div class="web-service-card"><strong>Kampanie Meta Ads</strong>Pozyskiwanie leadow B2B.</div>
-                  <div class="web-service-card"><strong>Google Ads</strong>Ruch o wysokiej intencji.</div>
-                  <div class="web-service-card"><strong>Strony B2B</strong>Konwersja i UX.</div>
-                  <div class="web-service-card"><strong>Optymalizacja</strong>Ciagla poprawa wynikow.</div>
-                </div>
-
-                <div class="web-logo-row">
-                  <span></span><span></span><span></span><span></span><span></span>
-                </div>
-
-                <div class="web-results-grid">
-                  <div class="web-result-card">
-                    <div class="web-result-label">Producent przemyslowy</div>
-                    <div class="web-result-value" data-web-result-value>+168%</div>
-                    <div class="web-result-delta">Wzrost leadow B2B</div>
-                    <div class="web-result-line" data-web-line><i style="height:18%"></i><i style="height:23%"></i><i style="height:27%"></i><i style="height:32%"></i><i style="height:41%"></i><i style="height:54%"></i></div>
-                  </div>
-                  <div class="web-result-card">
-                    <div class="web-result-label">Uslugi B2B</div>
-                    <div class="web-result-value" data-web-result-value>-42%</div>
-                    <div class="web-result-delta">Spadek CPL</div>
-                    <div class="web-result-line" data-web-line><i style="height:44%"></i><i style="height:39%"></i><i style="height:34%"></i><i style="height:30%"></i><i style="height:26%"></i><i style="height:20%"></i></div>
-                  </div>
-                  <div class="web-result-card">
-                    <div class="web-result-label">E-commerce B2B</div>
-                    <div class="web-result-value" data-web-result-value>+73%</div>
-                    <div class="web-result-delta">Wzrost przychodow</div>
-                    <div class="web-result-line" data-web-line><i style="height:16%"></i><i style="height:21%"></i><i style="height:28%"></i><i style="height:35%"></i><i style="height:46%"></i><i style="height:58%"></i></div>
-                  </div>
-                </div>
-
-                <div class="web-bottom-cta">
-                  <span>Zrobmy pierwszy krok do wzrostu Twojej firmy.</span>
-                  <button>Umow bezplatna rozmowe</button>
-                </div>
-              </article>
-
-              <aside class="web-side-rail">
-                <article class="web-side-card">
-                  <div class="web-side-head">Analityka i wyniki</div>
-                  <div class="web-side-kpi-grid">
-                    <div class="web-side-kpi"><div class="k">Leady</div><div class="v" data-web-leads>362</div><div class="d">+28%</div><div class="web-side-line" data-web-line><i style="height:22%"></i><i style="height:33%"></i><i style="height:28%"></i><i style="height:46%"></i><i style="height:51%"></i></div></div>
-                    <div class="web-side-kpi"><div class="k">CPL</div><div class="v" data-web-cpl>37,21</div><div class="d">-18%</div><div class="web-side-line" data-web-line><i style="height:51%"></i><i style="height:41%"></i><i style="height:39%"></i><i style="height:32%"></i><i style="height:26%"></i></div></div>
-                    <div class="web-side-kpi"><div class="k">Konwersja</div><div class="v" data-web-conv>6,42%</div><div class="d">+33%</div><div class="web-side-line" data-web-line><i style="height:18%"></i><i style="height:24%"></i><i style="height:31%"></i><i style="height:42%"></i><i style="height:49%"></i></div></div>
-                    <div class="web-side-kpi"><div class="k">ROAS</div><div class="v" data-web-roas>4,87</div><div class="d">+35%</div><div class="web-side-line" data-web-line><i style="height:16%"></i><i style="height:27%"></i><i style="height:34%"></i><i style="height:41%"></i><i style="height:57%"></i></div></div>
-                  </div>
-                </article>
-
-                <article class="web-side-card">
-                  <div class="web-side-head">Sciezka konwersji</div>
-                  <div class="web-conversion-funnel">
-                    <div class="web-funnel-row"><div class="web-funnel-bar"><i data-web-funnel-bar style="width:88%"></i></div><b>18 742</b></div>
-                    <div class="web-funnel-row"><div class="web-funnel-bar"><i data-web-funnel-bar style="width:57%"></i></div><b>2 846</b></div>
-                    <div class="web-funnel-row"><div class="web-funnel-bar"><i data-web-funnel-bar style="width:33%"></i></div><b>362</b></div>
-                    <div class="web-funnel-row"><div class="web-funnel-bar"><i data-web-funnel-bar style="width:16%"></i></div><b>64</b></div>
-                  </div>
-                </article>
-
-                <article class="web-side-card">
-                  <div class="web-side-head">Optymalizacja UX</div>
-                  <div class="web-ux-list" data-web-ux>
-                    <div class="web-ux-item is-active"><i></i><span>Jasny komunikat wartosci</span></div>
-                    <div class="web-ux-item"><i></i><span>Wyrazne CTA na kazdym ekranie</span></div>
-                    <div class="web-ux-item"><i></i><span>Dowody zaufania i case studies</span></div>
-                    <div class="web-ux-item"><i></i><span>Prosty formularz kontaktowy</span></div>
-                    <div class="web-ux-item"><i></i><span>Analityka i ciagla optymalizacja</span></div>
-                  </div>
-                </article>
-              </aside>
-            </div>
-
-            <div class="web-badge-strip">
-              <div class="web-badge-item"><i></i><span>Precyzyjne targetowanie</span></div>
-              <div class="web-badge-item"><i></i><span>Skuteczne kreacje</span></div>
-              <div class="web-badge-item"><i></i><span>Leady wysokiej jakosci</span></div>
-              <div class="web-badge-item"><i></i><span>Optymalizacja i skalowanie</span></div>
-              <div class="web-badge-item"><i></i><span>Pelna przejrzystosc</span></div>
-            </div>
-
-            <article class="service-case-snapshot" data-service-case-snapshot>
-              <div class="service-case-head">
-                <strong>Snapshot interaktywny case study</strong>
-                <span>Blok pod: Strony i sklepy internetowe</span>
-              </div>
-              <div class="service-case-metrics">
-                <div class="service-case-metric"><span>Leady / miesiac</span><b data-service-case-value="152">152</b></div>
-                <div class="service-case-metric"><span>Konwersja</span><b data-service-case-value="4.8">4,8%</b></div>
-                <div class="service-case-metric"><span>CPL</span><b data-service-case-value="49">49 zl</b></div>
-                <div class="service-case-metric"><span>ROAS</span><b data-service-case-value="5.2">5,2</b></div>
-              </div>
-              <div class="service-case-lines">
-                <div class="service-case-line"><i data-service-case-bar style="width:72%"></i></div>
-                <div class="service-case-line"><i data-service-case-bar style="width:64%"></i></div>
-                <div class="service-case-line"><i data-service-case-bar style="width:58%"></i></div>
-                <div class="service-case-line"><i data-service-case-bar style="width:76%"></i></div>
-              </div>
-            </article>
-          </div>
-        </div>
-
-        <div class="service-grid">
-          <?php $services_cards = isset($services_section["cards"]) && is_array($services_section["cards"]) ? $services_section["cards"] : []; ?>
-          <?php foreach ($services_cards as $services_card_index => $services_card) : ?>
-            <?php
-            $services_card_title = trim((string) ($services_card["title"] ?? ""));
-            $services_card_description = trim((string) ($services_card["description"] ?? ""));
-            if ($services_card_title === "" || $services_card_description === "") {
-                continue;
-            }
-            $services_card_delay_class = $services_card_index % 3 === 1 ? " d1" : ($services_card_index % 3 === 2 ? " d2" : "");
-            ?>
-            <div class="service-card reveal<?php echo esc_attr($services_card_delay_class); ?>">
-              <div class="service-top">
-                <div class="h3"><?php echo esc_html($services_card_title); ?></div>
-                <span class="badge badge-gray"><?php echo esc_html((string) ($services_card["badge"] ?? "Usluga")); ?></span>
-              </div>
-              <p class="body"><?php echo esc_html($services_card_description); ?></p>
-              <?php $services_card_chips = isset($services_card["chips"]) && is_array($services_card["chips"]) ? $services_card["chips"] : []; ?>
-              <div class="chips">
-                <?php foreach ($services_card_chips as $services_card_chip) : ?>
-                  <?php $services_card_chip = trim((string) $services_card_chip); ?>
-                  <?php if ($services_card_chip === "") : ?>
-                    <?php continue; ?>
-                  <?php endif; ?>
-                  <span class="chip"><?php echo esc_html($services_card_chip); ?></span>
-                <?php endforeach; ?>
-              </div>
-            </div>
-          <?php endforeach; ?>
-        </div>
-
-        <?php $services_bonus = isset($services_section["bonus"]) && is_array($services_section["bonus"]) ? $services_section["bonus"] : []; ?>
-        <div class="bonus reveal d2">
-          <div class="bonus-head">
-            <div class="bonus-icon">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M9 2L11.5 7H17L12.5 10.5L14 16L9 12.5L4 16L5.5 10.5L1 7H6.5L9 2Z" fill="white"/>
-              </svg>
-            </div>
-            <div class="bonus-title"><?php echo esc_html((string) ($services_bonus["title"] ?? "")); ?></div>
-            <div class="bonus-tag"><?php echo esc_html((string) ($services_bonus["tag"] ?? "W cenie")); ?></div>
-          </div>
-
-          <div class="bonus-body"><?php echo esc_html((string) ($services_bonus["body"] ?? "")); ?></div>
-
-          <div class="bonus-chips">
-            <?php $services_bonus_chips = isset($services_bonus["chips"]) && is_array($services_bonus["chips"]) ? $services_bonus["chips"] : []; ?>
-            <?php foreach ($services_bonus_chips as $services_bonus_chip) : ?>
-              <?php $services_bonus_chip = trim((string) $services_bonus_chip); ?>
-              <?php if ($services_bonus_chip === "") : ?>
-                <?php continue; ?>
-              <?php endif; ?>
-              <span class="bonus-chip"><?php echo esc_html($services_bonus_chip); ?></span>
-            <?php endforeach; ?>
-          </div>
+        <div class="section-cta-row reveal d2">
+          <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn btn-primary btn-sm">Napisz i sprawdź swoją stronę</a>
+          <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn btn-secondary btn-sm">Szybki formularz kontaktowy</a>
         </div>
       </div>
     </section>
 
-    <section class="section-sm section-border industry-strip-section" aria-label="Branze wspolpracy">
+    <section class="section section-border bg-soft" id="obszary-wsparcia">
       <div class="wrap">
-        <div class="industry-strip">
-          <div class="industry-strip-track">
-            <span>Produkcja i przemysl</span>
-            <span>Budownictwo</span>
-            <span>OZE</span>
-            <span>IT / SaaS B2B</span>
-            <span>Logistyka</span>
-            <span>E-commerce B2B</span>
-            <span>Uslugi profesjonalne</span>
-            <span>Hurt i dystrybucja</span>
-            <span>Produkcja i przemysl</span>
-            <span>Budownictwo</span>
-            <span>OZE</span>
-            <span>IT / SaaS B2B</span>
-            <span>Logistyka</span>
-            <span>E-commerce B2B</span>
-            <span>Uslugi profesjonalne</span>
-            <span>Hurt i dystrybucja</span>
-          </div>
+        <div style="max-width:760px">
+          <div class="eyebrow reveal">Ekspert</div>
+          <h2 class="h2 reveal d1">Kim jestem?</h2>
+          <p class="body reveal d2" style="margin-top:18px">Nazywam się Sebastian Kelm. Od ponad 10 lat pracuję w sprzedaży B2B i marketingu.</p>
+          <p class="body reveal d2" style="margin-top:14px">Nie projektuję kampanii „ładnych”. Projektuję kampanie, które sprzedają.</p>
+          <p class="body reveal d3" style="margin-top:14px">Znam proces od pierwszego kliknięcia do finalnej sprzedaży.</p>
+        </div>
+        <div class="section-cta-row reveal d3">
+          <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn btn-primary btn-sm">Porozmawiajmy o Twoich wynikach</a>
         </div>
       </div>
     </section>
@@ -5732,290 +5909,114 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       <div class="wrap">
         <div class="cta-band reveal">
           <div>
-            <h3><?php echo esc_html((string) ($cta_band_section["title"] ?? "")); ?></h3>
-            <p><?php echo esc_html((string) ($cta_band_section["text"] ?? "")); ?></p>
+            <h3>Sprawdzę Twój marketing</h3>
+            <p>Jeśli masz ruch, ale nie masz klientów - pokażę Ci, gdzie jest problem.</p>
           </div>
-          <a href="<?php echo esc_url(home_url((string) ($cta_band_section["cta_url"] ?? "/#kontakt"))); ?>" class="btn btn-primary"><?php echo esc_html((string) ($cta_band_section["cta_label"] ?? "Umow bezplatna rozmowe")); ?> →</a>
+          <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn btn-primary">Napisz i sprawdź swoją stronę</a>
+        </div>
+        <p class="hero-micro reveal d2" style="margin-top:12px">Odpowiadam konkretnie • bez sprzedażowego gadania</p>
+      </div>
+    </section>
+
+    <section class="section section-border bg-soft" id="jak-dzialam">
+      <div class="wrap">
+        <div style="max-width:720px">
+          <div class="eyebrow reveal">Jak dzialam</div>
+          <h2 class="h2 reveal d1">Nie zaczynam od zmian na slepo</h2>
+          <p class="body reveal d2" style="margin-top:18px">Najpierw sprawdzam, czy problem lezy w przekazie, ofercie, CTA, zaufaniu, stronie czy samym ruchu.</p>
+        </div>
+        <div class="steps reveal d1" style="margin-top:var(--sp-5)">
+          <div class="step"><div class="step-num">01</div><div><div class="step-title">Analiza i diagnoza</div><div class="step-desc">Analizuje, czy odwiedzajacy od razu rozumie czym sie zajmujesz, czy widzi korzysci i czy ma powod, zeby zostawic kontakt.</div></div></div>
+          <div class="step"><div class="step-num">02</div><div><div class="step-title">Rekomendacja i plan dzialan</div><div class="step-desc">Ukladam prosty plan: co uproscic, co doprecyzowac, co pokazac mocniej i gdzie ustawic glowny cel strony.</div></div></div>
+          <div class="step"><div class="step-num">03</div><div><div class="step-title">Wdrozenie i optymalizacja</div><div class="step-desc">Wdrazam zmiany w reklamach, tresciach i stronie tak, zeby wszystko pracowalo na jeden wynik: wiecej wartosciowych zapytan.</div></div></div>
+        </div>
+        <div class="section-cta-row reveal d2">
+          <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn btn-primary btn-sm">Chce przejsc przez ten proces →</a>
         </div>
       </div>
     </section>
 
-    <section class="section section-border js-home-optional-section" id="jak-dzialam">
+    <section class="section section-border" id="wyniki">
       <div class="wrap">
-        <div class="content">
-          <div class="eyebrow reveal"><?php echo esc_html((string) ($process_section["eyebrow"] ?? "Jak dzialam")); ?></div>
-          <h2 class="h2 reveal d1"><?php echo esc_html((string) ($process_section["title"] ?? "")); ?></h2>
-          <p class="body reveal d2" style="margin-top: 18px;"><?php echo esc_html((string) ($process_section["lead"] ?? "")); ?></p>
+        <div style="max-width:720px">
+          <div class="eyebrow reveal">Wyniki kampanii</div>
+          <h2 class="h2 reveal d1">Wyniki, które rozumiesz i widzisz w liczbach</h2>
+          <p class="body reveal d2" style="margin-top:18px">Na końcu liczy się to, czy Twoja reklama i strona przynoszą więcej dobrych rozmów, niższy CPL i realny wzrost sprzedaży.</p>
         </div>
-
-        <div class="process-visual reveal d1" id="process-visual" style="margin-top: 40px;">
-          <div class="process-track" data-process-track>
-            <aside class="process-side">
-              <div>
-                <i>🏢</i>
-                <strong>Twoj biznes</strong><br />
-                Wyzwania, cele i ambicje.
-              </div>
-            </aside>
-
-            <article class="process-card is-active">
-              <div class="process-step-dot">1</div>
-              <div class="process-card-title">Analiza i diagnoza</div>
-              <div class="process-card-sub">Rozumienie Twojego biznesu i barier wzrostu.</div>
-              <div class="process-card-list">
-                <span>Analiza rynku, konkurencji i oferty</span>
-                <span>Audyt kampanii, strony i lejka</span>
-                <span>Dane i liczby zamiast domyslow</span>
-              </div>
-              <div class="process-card-effect"><strong>Efekt:</strong> Wiesz, co dziala i gdzie sa najwieksze rezerwy wzrostu.</div>
-            </article>
-
-            <article class="process-card">
-              <div class="process-step-dot">2</div>
-              <div class="process-card-title">Rekomendacja i plan dzialan</div>
-              <div class="process-card-sub">Konkretny plan wzrostu na leady i sprzedaz.</div>
-              <div class="process-card-list">
-                <span>Plan marketingu i pozyskiwania leadow</span>
-                <span>Plan kampanii, tresci i automatyzacji</span>
-                <span>Priorytety, harmonogram i KPI</span>
-              </div>
-              <div class="process-card-effect"><strong>Efekt:</strong> Jasny plan: co, kiedy i po co robimy.</div>
-            </article>
-
-            <article class="process-card">
-              <div class="process-step-dot">3</div>
-              <div class="process-card-title">Wdrozenie i optymalizacja</div>
-              <div class="process-card-sub">Realizacja i stale doskonalenie systemu.</div>
-              <div class="process-card-list">
-                <span>Wdrazamy kampanie, strony i automatyzacje</span>
-                <span>Monitorujemy i analizujemy wyniki</span>
-                <span>Skalujemy to, co daje najlepszy zwrot</span>
-              </div>
-              <div class="process-card-effect"><strong>Efekt:</strong> Lepsze wyniki, nizsze koszty i przewidywalny wzrost.</div>
-            </article>
-
-            <aside class="process-side">
-              <div>
-                <i>📈</i>
-                <strong>Przewidywalny wzrost</strong><br />
-                Wiecej leadow i wyzsza sprzedaz.
-              </div>
-            </aside>
-          </div>
-
-          <div class="process-impact">
-            <div class="process-impact-head">Na co wplywamy i co poprawiamy</div>
-            <div class="process-impact-grid">
-              <div class="process-impact-card">
-                <div class="k">Liczba leadow</div>
-                <div class="v" data-process-impact="+62%">+62%</div>
-                <div class="process-impact-line" data-process-line><i style="height:18%"></i><i style="height:22%"></i><i style="height:27%"></i><i style="height:33%"></i><i style="height:43%"></i><i style="height:56%"></i></div>
-              </div>
-              <div class="process-impact-card">
-                <div class="k">Wspolczynnik konwersji</div>
-                <div class="v" data-process-impact="+38%">+38%</div>
-                <div class="process-impact-line" data-process-line><i style="height:16%"></i><i style="height:23%"></i><i style="height:29%"></i><i style="height:37%"></i><i style="height:44%"></i><i style="height:51%"></i></div>
-              </div>
-              <div class="process-impact-card">
-                <div class="k">Koszt pozyskania leada</div>
-                <div class="v" data-process-impact="-27%">-27%</div>
-                <div class="process-impact-line" data-process-line><i style="height:52%"></i><i style="height:47%"></i><i style="height:39%"></i><i style="height:33%"></i><i style="height:27%"></i><i style="height:20%"></i></div>
-              </div>
-              <div class="process-impact-card">
-                <div class="k">Wartosc transakcji</div>
-                <div class="v" data-process-impact="+41%">+41%</div>
-                <div class="process-impact-line" data-process-line><i style="height:18%"></i><i style="height:22%"></i><i style="height:28%"></i><i style="height:35%"></i><i style="height:41%"></i><i style="height:53%"></i></div>
-              </div>
-              <div class="process-impact-card">
-                <div class="k">ROI kampanii</div>
-                <div class="v" data-process-impact="+55%">+55%</div>
-                <div class="process-impact-line" data-process-line><i style="height:15%"></i><i style="height:23%"></i><i style="height:31%"></i><i style="height:39%"></i><i style="height:47%"></i><i style="height:57%"></i></div>
-              </div>
-              <div class="process-impact-card">
-                <div class="k">Przewidywalnosc sprzedazy</div>
-                <div class="v" data-process-impact="+73%">+73%</div>
-                <div class="process-impact-line" data-process-line><i style="height:14%"></i><i style="height:20%"></i><i style="height:29%"></i><i style="height:40%"></i><i style="height:54%"></i><i style="height:68%"></i></div>
-              </div>
-            </div>
-          </div>
+        <div class="metrics-grid">
+          <div class="metric-card reveal"><div class="mc-label">Leady / miesiac</div><div class="mc-num teal">362</div><span class="mc-change up">+28% vs poprzedni miesiac</span><div class="mc-sub">wartosciowe kontakty sprzedazowe</div></div>
+          <div class="metric-card reveal d1"><div class="mc-label">Koszt pozyskania leada (CPL)</div><div class="mc-num red">37 zl</div><span class="mc-change dn">-18% vs poprzedni miesiac</span><div class="mc-sub">przy tym samym budzecie</div></div>
+          <div class="metric-card dark reveal d2"><div class="mc-label">Lejek sprzedazowy</div><div class="funnel"><div class="funnel-row"><div class="f-lbl">Ruch</div><div class="f-track"><div class="f-fill" style="transform:scaleX(1)"></div></div><div class="f-val">23 810</div></div><div class="funnel-row"><div class="f-lbl">Leady</div><div class="f-track"><div class="f-fill" style="transform:scaleX(.62)"></div></div><div class="f-val">362</div></div><div class="funnel-row"><div class="f-lbl">Kwalifikacja</div><div class="f-track"><div class="f-fill" style="transform:scaleX(.4)"></div></div><div class="f-val">148</div></div><div class="funnel-row"><div class="f-lbl">Klienci</div><div class="f-track"><div class="f-fill" style="transform:scaleX(.17)"></div></div><div class="f-val">64</div></div></div></div>
+        </div>
+        <div class="section-cta-row reveal d2">
+          <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn btn-primary btn-sm">Sprawdźmy Twoje liczby i konwersję →</a>
         </div>
       </div>
     </section>
 
-    <section class="section bg-soft section-border js-home-optional-section" id="wyniki">
+    <section class="section section-border" id="dla-kogo">
       <div class="wrap">
-        <div class="content">
-          <div class="eyebrow reveal">Case study</div>
-          <h2 class="h2 reveal d1">Portfolio realizacji z naciskiem na <span class="accent">wynik biznesowy</span></h2>
-          <p class="body reveal d2" style="margin-top: 18px;">Strategia, kampanie i strona www zintegrowane w jeden system wzrostu leadow i sprzedazy.</p>
+        <div style="max-width:720px">
+          <div class="eyebrow reveal">Dla kogo</div>
+          <h2 class="h2 reveal d1">Z kim pracuje najlepiej</h2>
         </div>
-
-        <div class="case-portfolio-visual reveal d1" id="case-portfolio-visual" style="margin-top: 34px;">
-          <div class="case-portfolio-layout">
-            <article class="case-panel">
-              <div class="case-kicker">Case study</div>
-              <div class="case-main-title">Producent komponentow dla przemyslu</div>
-              <p class="case-desc">Kompleksowa wspolpraca: strategia marketingowa, kampanie paid ads i nowa strona internetowa pod konwersje.</p>
-
-              <div class="case-meta-grid">
-                <div class="case-meta-card"><strong>Branza</strong>Przemysl / B2B</div>
-                <div class="case-meta-card"><strong>Model wspolpracy</strong>Strategia, kampanie, strona WWW</div>
-                <div class="case-meta-card"><strong>Okres wspolpracy</strong>6 miesiecy</div>
-              </div>
-
-              <div class="case-score-grid">
-                <div class="case-score-row"><span>Liczba leadow / miesiac</span><span>78</span><span class="after" data-case-after>162</span><span class="delta">+108%</span></div>
-                <div class="case-score-row"><span>Koszt pozyskania leada (CPL)</span><span>142 zl</span><span class="after" data-case-after>76 zl</span><span class="delta">-46%</span></div>
-                <div class="case-score-row"><span>Wspolczynnik konwersji strony</span><span>1,21%</span><span class="after" data-case-after>2,89%</span><span class="delta">+139%</span></div>
-                <div class="case-score-row"><span>Przychody z kanalu / miesiac</span><span>87 000 zl</span><span class="after" data-case-after>186 000 zl</span><span class="delta">+114%</span></div>
-              </div>
-
-              <div class="case-done-grid">
-                <div class="case-done-item"><strong>Strategia i audyt</strong>Analiza rynku i lejka.</div>
-                <div class="case-done-item"><strong>Kampanie performance</strong>Meta Ads i Google Ads.</div>
-                <div class="case-done-item"><strong>Nowa strona WWW</strong>Struktura pod konwersje.</div>
-                <div class="case-done-item"><strong>Optymalizacja</strong>Testy i raportowanie.</div>
-              </div>
-
-              <div class="case-impact-grid">
-                <div class="case-impact-list">
-                  <span>Wiecej wartosciowych leadow</span>
-                  <span>Nizszy koszt pozyskania klienta</span>
-                  <span>Wyzsza konwersja strony</span>
-                  <span>Przewidywalny wzrost przychodow</span>
-                </div>
-                <div class="case-impact-bars">
-                  <div class="case-impact-bar-row"><span>Leady / miesiac</span><div class="case-impact-bar"><i data-case-impact-bar style="width:84%"></i></div><b>+108%</b></div>
-                  <div class="case-impact-bar-row"><span>CPL</span><div class="case-impact-bar"><i data-case-impact-bar style="width:35%"></i></div><b>-46%</b></div>
-                  <div class="case-impact-bar-row"><span>Konwersja strony</span><div class="case-impact-bar"><i data-case-impact-bar style="width:88%"></i></div><b>+139%</b></div>
-                </div>
-              </div>
-
-              <div class="case-quote">"Wreszcie mamy partnera, ktory mysli o sprzedazy, a nie tylko o kliknieciach. Lepsze leady, nizsze koszty, przewidywalny pipeline."<strong>Dyrektor Handlowy</strong></div>
-            </article>
-
-            <article class="case-panel">
-              <div class="case-kicker">Nowa strona WWW - struktura pod konwersje</div>
-              <div class="portfolio-topbar"><span>INDUSTRIQ</span><span>Oferta | Branza | Kontakt</span><button class="portfolio-hero-cta">Zapytaj o oferte</button></div>
-              <div class="portfolio-preview-shell">
-                <div class="portfolio-screen">
-                  <div class="portfolio-hero">
-                    <div class="portfolio-hero-copy">
-                      <strong>Komponenty dla przemyslu. Jakosc. Terminowosc. Zaufanie.</strong>
-                      <span>Dostarczamy sprawdzone rozwiazania dla wymagajacych sektorow przemyslowych.</span>
-                      <button class="portfolio-hero-cta">Zapytaj o oferte</button>
-                    </div>
-                    <div class="portfolio-hero-preview"></div>
-                  </div>
-                  <div class="portfolio-mini-grid">
-                    <div class="portfolio-mini-card">Dlaczego warto z nami wspolpracowac?<div class="line" data-portfolio-line><i style="height:18%"></i><i style="height:26%"></i><i style="height:34%"></i><i style="height:45%"></i><i style="height:56%"></i></div></div>
-                    <div class="portfolio-mini-card">Formularz leadowy<div class="line" data-portfolio-line><i style="height:15%"></i><i style="height:21%"></i><i style="height:30%"></i><i style="height:38%"></i><i style="height:48%"></i></div></div>
-                  </div>
-                </div>
-                <div class="portfolio-mobile"><div class="portfolio-mobile-screen"></div></div>
-              </div>
-
-              <div class="case-kicker" style="margin-top:2px;">Przykladowe realizacje</div>
-              <div class="portfolio-realizations">
-                <div class="portfolio-card"><div class="portfolio-thumb"></div><div class="portfolio-card-title">Branza IT / Automatyzacja</div></div>
-                <div class="portfolio-card"><div class="portfolio-thumb"></div><div class="portfolio-card-title">Branza Budownictwo</div></div>
-                <div class="portfolio-card"><div class="portfolio-thumb"></div><div class="portfolio-card-title">Branza OZE</div></div>
-              </div>
-            </article>
-          </div>
-
-          <div class="portfolio-kpi-strip" data-portfolio-kpi-strip>
-            <div class="portfolio-kpi-item is-active"><strong data-portfolio-kpi="+108%">+108%</strong><span>wiecej leadow</span></div>
-            <div class="portfolio-kpi-item"><strong data-portfolio-kpi="-46%">-46%</strong><span>nizszy koszt leada</span></div>
-            <div class="portfolio-kpi-item"><strong data-portfolio-kpi="+139%">+139%</strong><span>wyzsza konwersja</span></div>
-            <div class="portfolio-kpi-item"><strong data-portfolio-kpi="+114%">+114%</strong><span>wzrost przychodow</span></div>
-          </div>
-
-          <div style="display:flex;justify-content:flex-end;">
-            <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn btn-primary">Kontakt strategiczny i bezplatna rozmowa</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section-border js-home-optional-section" id="dla-kogo">
-      <div class="wrap">
-        <div class="content">
-          <div class="eyebrow reveal"><?php echo esc_html((string) ($fit_section["eyebrow"] ?? "Dla kogo")); ?></div>
-          <h2 class="h2 reveal d1"><?php echo esc_html((string) ($fit_section["title"] ?? "")); ?></h2>
-        </div>
-
-        <div class="fit-grid" style="margin-top: 40px;">
+        <div class="fit-grid">
           <div class="fit-card yes reveal">
-            <div class="fit-label"><?php echo esc_html((string) ($fit_section["good_label"] ?? "Dobry fit, jesli:")); ?></div>
-            <div class="fit-list">
-              <?php $fit_good_items = isset($fit_section["good_items"]) && is_array($fit_section["good_items"]) ? $fit_section["good_items"] : []; ?>
-              <?php foreach ($fit_good_items as $fit_good_item) : ?>
-                <?php $fit_good_item = trim((string) $fit_good_item); ?>
-                <?php if ($fit_good_item === "") : ?>
-                  <?php continue; ?>
-                <?php endif; ?>
-                <div class="fit-item"><span class="fit-icon">✓</span><?php echo esc_html($fit_good_item); ?></div>
-              <?php endforeach; ?>
+            <div class="fit-label">Dobry fit, jesli:</div>
+            <div class="fit-items">
+              <div class="fit-item"><span class="fit-icon">✅</span><span>Prowadzisz firme i chcesz laczyc marketing oraz strone WWW tak, by wspolnie dowozily wiecej zapytan</span></div>
+              <div class="fit-item"><span class="fit-icon">✅</span><span>Chcesz jasnej oferty, wyraznych CTA i strony, ktora nie rozprasza</span></div>
+              <div class="fit-item"><span class="fit-icon">✅</span><span>Szukasz partnera, ktory patrzy na marketing i sprzedaz razem</span></div>
+              <div class="fit-item"><span class="fit-icon">✅</span><span>Masz ruch lub kampanie, ale czujesz, ze strona moglaby zamieniac wiecej odwiedzajacych w kontakty</span></div>
             </div>
-            <a href="<?php echo esc_url(home_url((string) ($fit_section["good_cta_url"] ?? "/#kontakt"))); ?>" class="btn btn-primary"><?php echo esc_html((string) ($fit_section["good_cta_label"] ?? "Umow bezplatna rozmowe")); ?> →</a>
           </div>
-
           <div class="fit-card no reveal d1">
-            <div class="fit-label"><?php echo esc_html((string) ($fit_section["bad_label"] ?? "Mniejszy fit, jesli:")); ?></div>
-            <div class="fit-list">
-              <?php $fit_bad_items = isset($fit_section["bad_items"]) && is_array($fit_section["bad_items"]) ? $fit_section["bad_items"] : []; ?>
-              <?php foreach ($fit_bad_items as $fit_bad_item) : ?>
-                <?php $fit_bad_item = trim((string) $fit_bad_item); ?>
-                <?php if ($fit_bad_item === "") : ?>
-                  <?php continue; ?>
-                <?php endif; ?>
-                <div class="fit-item"><span class="fit-icon">—</span><?php echo esc_html($fit_bad_item); ?></div>
-              <?php endforeach; ?>
+            <div class="fit-label">Mniejszy fit, jesli:</div>
+            <div class="fit-items">
+              <div class="fit-item"><span class="fit-icon">—</span><span>Szukasz tylko najtanszego wykonania bez myslenia o wyniku</span></div>
+              <div class="fit-item"><span class="fit-icon">—</span><span>Oczekujesz rozbudowanej agencji z duzym zespolem od wszystkiego</span></div>
+              <div class="fit-item"><span class="fit-icon">—</span><span>Nie chcesz rozmawiac o ofercie, kliencie i procesie decyzji</span></div>
+              <div class="fit-item"><span class="fit-icon">—</span><span>Zalezy Ci tylko na ruchu, a nie na jakosci leadow i sprzedazy</span></div>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section bg-soft section-border js-home-optional-section" id="faq">
+    <section class="section section-border bg-soft" id="faq">
       <div class="wrap">
-        <div class="content">
+        <div style="max-width:720px">
           <div class="eyebrow reveal">FAQ</div>
-          <h2 class="h2 reveal d1">Najczęstsze <span class="accent">pytania</span></h2>
+          <h2 class="h2 reveal d1">Najczestsze pytania</h2>
         </div>
+        <div class="faq reveal d1">
+          <div class="faq-item"><button class="faq-q" type="button"><span>Co konkretnie zmienia sie na stronie po takiej wspolpracy?</span><span class="faq-icon">+</span></button><div class="faq-a">Najczesciej porzadkuje przekaz, doprecyzowuje oferte, wzmacniam CTA, dodaje potrzebne elementy zaufania i upraszczam droge do kontaktu.</div></div>
+          <div class="faq-item"><button class="faq-q" type="button"><span>Jak wyglada bezplatna konsultacja i co z niej wynika?</span><span class="faq-icon">+</span></button><div class="faq-a">Rozmawiamy o ofercie, stronie, reklamach i tym, gdzie uciekaja zapytania. Po rozmowie wiesz, co poprawic najpierw.</div></div>
+          <div class="faq-item"><button class="faq-q" type="button"><span>Czy sama reklama wystarczy, zeby poprawic wyniki?</span><span class="faq-icon">+</span></button><div class="faq-a">Nie zawsze. Jesli strona ma slaby przekaz albo nie buduje zaufania, to nawet dobry ruch bedzie przeciekal.</div></div>
+          <div class="faq-item"><button class="faq-q" type="button"><span>Czy obsługujesz tylko reklamy, czy też tworzenie stron internetowych?</span><span class="faq-icon">+</span></button><div class="faq-a">Obsługuję oba obszary: kampanie Google Ads i Meta Ads oraz strony WWW i landing page. Najlepsze wyniki daje połączenie marketingu i strony w jednym procesie.</div></div>
+          <div class="faq-item"><button class="faq-q" type="button"><span>Dla jakich firm jest ta współpraca: usługi lokalne, e-commerce czy B2B?</span><span class="faq-icon">+</span></button><div class="faq-a">Pracuję z różnymi modelami: firmy usługowe, e-commerce i firmy B2B. Kluczowe jest to, żeby oferta była klarowna, a marketing i strona dowoziły wartościowe zapytania.</div></div>
+          <div class="faq-item"><button class="faq-q" type="button"><span>Po jakim czasie widać efekty po zmianach na stronie i w kampaniach?</span><span class="faq-icon">+</span></button><div class="faq-a">Pierwsze sygnały poprawy zwykle widać po kilku tygodniach, ale stabilny efekt wymaga systematycznej optymalizacji. Działamy iteracyjnie: analiza, wdrożenie, pomiar i kolejne ulepszenia.</div></div>
+        </div>
+        <div class="section-cta-row reveal d2">
+          <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn btn-primary btn-sm">Mam podobne pytania — chce konsultacje →</a>
+          <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn btn-secondary btn-sm">Przejdz do kontaktu</a>
+        </div>
+      </div>
+    </section>
 
-        <div class="faq" style="margin-top: 40px;">
-          <?php if (!empty($faq_items)) : ?>
-            <?php foreach ($faq_items as $faq_index => $faq_item) : ?>
-              <?php
-              $question = trim((string) ($faq_item["question"] ?? ""));
-              $answer = trim((string) ($faq_item["answer"] ?? ""));
-              if ($question === "" || $answer === "") {
-                  continue;
-              }
-              $delay_class = "";
-              if ($faq_index % 4 === 1) {
-                  $delay_class = " d1";
-              } elseif ($faq_index % 4 === 2) {
-                  $delay_class = " d2";
-              } elseif ($faq_index % 4 === 3) {
-                  $delay_class = " d3";
-              }
-              ?>
-              <div class="faq-item reveal<?php echo esc_attr($delay_class); ?>">
-                <button class="faq-q" type="button">
-                  <span><?php echo esc_html($question); ?></span>
-                  <span class="faq-icon">+</span>
-                </button>
-                <div class="faq-a"><?php echo esc_html($answer); ?></div>
-              </div>
-            <?php endforeach; ?>
-          <?php else : ?>
-            <div class="faq-item reveal">
-              <div class="faq-a">Brak danych FAQ. Uzupelnij konfiguracje w panelu: Wyglad -> Konfiguracja dynamiczna.</div>
-            </div>
-          <?php endif; ?>
+    <section class="cta-dark">
+      <div class="wrap">
+        <div class="cta-dark-inner">
+          <div>
+            <h2 class="reveal">Twoja strona ma wygladac dobrze i sprzedawac</h2>
+            <p class="reveal d1">Jesli chcesz, moge spojrzec na Twoja strone i marketing pod katem: jasnosci przekazu, CTA, zaufania i konwersji. Powiem Ci wprost, co warto poprawic najpierw.</p>
+          </div>
+          <div class="reveal d2" style="text-align:center">
+            <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn-white">
+              Umow bezplatna konsultacje — 30 min
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </div>
         </div>
       </div>
     </section>
@@ -6023,149 +6024,40 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
     <section class="section" id="kontakt">
       <div class="wrap">
         <?php $ups_form_status = isset($_GET["ups_lead_status"]) ? sanitize_text_field(wp_unslash($_GET["ups_lead_status"])) : ""; ?>
-        <article class="contact-intro-bar reveal visible">
-          <div>
-            <div class="eyebrow">Bezplatna konsultacja wstepna</div>
-            <h2 class="contact-strategy-title">Zacznijmy od rozmowy. <span class="accent">Skupmy sie na rozwiazaniach.</span></h2>
-            <p class="contact-strategy-lead">30-45 minut rozmowy, ktora pomoze zobaczyc, co realnie ogranicza wzrost Twojego biznesu.</p>
-          </div>
-        </article>
-
-        <div class="contact-strategy-layout reveal visible" id="contact-strategy-visual">
-          <article class="contact-strategy-info">
-            <div class="contact-strategy-flow" data-contact-flow>
-              <div class="contact-flow-step is-active"><i>🔎</i><strong>Diagnoza sytuacji</strong><span>Rozumiemy cele i wyzwania.</span></div>
-              <div class="contact-flow-step"><i>📊</i><strong>Identyfikacja barier</strong><span>Wskazujemy, co ogranicza wzrost.</span></div>
-              <div class="contact-flow-step"><i>🎯</i><strong>Kierunki dzialan</strong><span>Dobieramy konkretne rekomendacje.</span></div>
-              <div class="contact-flow-step"><i>📈</i><strong>Plan kolejnych krokow</strong><span>Ustalamy priorytety i harmonogram.</span></div>
+        <div style="max-width:720px;margin:0 auto 28px;">
+          <div class="eyebrow reveal">Kontakt</div>
+          <h2 class="h2 reveal d1">Umow bezplatna konsultacje</h2>
+          <p class="body reveal d2" style="margin-top:10px;">Wypelnij formularz. Odpowiem osobiscie i podpowiem, od czego najlepiej zaczac.</p>
+        </div>
+        <div class="contact-strategy-form" style="max-width:860px;margin:0 auto;">
+          <?php if ($ups_form_status === "success") : ?>
+            <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #c3eddd;background:#e8f8f2;border-radius:10px;color:#085041;font-size:13px;">Dziekuje! Wiadomosc zostala zapisana i odezwe sie mozliwie szybko.</div>
+          <?php elseif ($ups_form_status === "error") : ?>
+            <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #edcccc;background:#fff2f2;border-radius:10px;color:#b13a3a;font-size:13px;">Nie udalo sie wyslac formularza. Sprawdz pola i sproboj ponownie.</div>
+          <?php endif; ?>
+          <form id="contact-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" novalidate data-upsellio-lead-form="1" data-upsellio-server-form="1">
+            <input type="hidden" name="action" value="upsellio_submit_lead" />
+            <input type="hidden" name="redirect_url" value="<?php echo esc_url(home_url("/#kontakt")); ?>" />
+            <input type="hidden" name="lead_form_origin" value="contact-form" />
+            <input type="hidden" name="lead_source" value="contact-form" />
+            <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
+            <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
+            <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
+            <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
+            <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
+            <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
+            <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
+            <div class="form-grid">
+              <div class="field"><label for="fname">Imie i nazwisko *</label><input class="input" type="text" id="fname" name="lead_name" placeholder="Twoje imie i nazwisko" required /></div>
+              <div class="field"><label for="femail">E-mail *</label><input class="input" type="email" id="femail" name="lead_email" placeholder="Twoj adres e-mail" required /></div>
+              <div class="field"><label for="fcompany">Nazwa firmy</label><input class="input" type="text" id="fcompany" name="lead_company" placeholder="Nazwa Twojej firmy" /></div>
+              <div class="field"><label for="fservice">Czego dotyczy rozmowa?</label><select class="select" id="fservice" name="lead_service"><option value="">Wybierz obszar</option><?php foreach ($contact_service_options as $service_option) : ?><?php $service_option = trim((string) $service_option); ?><?php if ($service_option === "") : ?><?php continue; ?><?php endif; ?><option><?php echo esc_html($service_option); ?></option><?php endforeach; ?></select></div>
+              <div class="field full"><label for="fmsg">Krotko opisz swoj cel lub wyzwanie *</label><textarea class="textarea" id="fmsg" name="lead_message" placeholder="Napisz kilka slow o swoim biznesie i oczekiwaniach..." required></textarea></div>
+              <div class="field full"><label style="display:flex;gap:8px;align-items:flex-start;"><input type="checkbox" name="lead_consent" value="1" required style="margin-top:3px;" /><span>Wyrazam zgode na kontakt w sprawie mojego zapytania.</span></label></div>
             </div>
-
-            <div class="contact-strategy-panels">
-              <div class="contact-panel">
-                <div class="contact-panel-title">Potencjalne obszary</div>
-                <div class="contact-list">
-                  <span>Jakosc i ilosc leadow</span>
-                  <span>Skutecznosc kampanii</span>
-                  <span>Koszt pozyskania klienta</span>
-                  <span>Konwersja strony www</span>
-                  <span>Proces sprzedazy</span>
-                  <span>Przewidywalnosc wynikow</span>
-                </div>
-              </div>
-              <div class="contact-panel">
-                <div class="contact-panel-title">Na co zwracamy uwage</div>
-                <div class="contact-metric-row"><span>Leady (jakosc)</span><div class="contact-metric-line" data-contact-line><i style="height:18%"></i><i style="height:23%"></i><i style="height:30%"></i><i style="height:39%"></i><i style="height:47%"></i></div></div>
-                <div class="contact-metric-row"><span>Konwersja strony</span><div class="contact-metric-line" data-contact-line><i style="height:16%"></i><i style="height:24%"></i><i style="height:31%"></i><i style="height:43%"></i><i style="height:54%"></i></div></div>
-                <div class="contact-metric-row"><span>Koszt pozyskania (CPL)</span><div class="contact-metric-line" data-contact-line><i style="height:52%"></i><i style="height:43%"></i><i style="height:37%"></i><i style="height:30%"></i><i style="height:23%"></i></div></div>
-                <div class="contact-metric-row"><span>Przychody</span><div class="contact-metric-line" data-contact-line><i style="height:18%"></i><i style="height:25%"></i><i style="height:33%"></i><i style="height:45%"></i><i style="height:58%"></i></div></div>
-              </div>
-              <div class="contact-panel">
-                <div class="contact-panel-title">Przejrzyste podejscie</div>
-                <div class="contact-list">
-                  <span>Bez zobowiazan</span>
-                  <span>Szczera ocena sytuacji</span>
-                  <span>Konkret, nie ogolniki</span>
-                  <span>Skupienie na wynikach</span>
-                </div>
-                <div class="contact-mini-note">Dobra strategia zaczyna sie od wlasciwych pytan.</div>
-              </div>
-            </div>
-
-            <div class="contact-proofs" data-contact-proofs>
-              <div class="contact-proof-item is-active"><i></i><span>Poufnosc rozmowy gwarantowana.</span></div>
-              <div class="contact-proof-item"><i></i><span>Doswiadczenie w B2B i sprzedazy.</span></div>
-            </div>
-          </article>
-
-          <div class="contact-strategy-form">
-            <div class="form-head" style="margin-bottom:2px;">
-              <h3 class="h3">Umow bezplatna konsultacje</h3>
-              <p class="body" style="margin-top: 8px;">Wybierz termin, ktory Ci odpowiada i opisz wyzwanie.</p>
-            </div>
-
-            <?php if ($ups_form_status === "success") : ?>
-              <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #c3eddd;background:#e8f8f2;border-radius:10px;color:#085041;font-size:13px;">Dziekuje! Wiadomosc zostala zapisana i odezwe sie mozliwie szybko.</div>
-            <?php elseif ($ups_form_status === "error") : ?>
-              <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #edcccc;background:#fff2f2;border-radius:10px;color:#b13a3a;font-size:13px;">Nie udalo sie wyslac formularza. Sprawdz pola i sproboj ponownie.</div>
-            <?php endif; ?>
-
-            <form id="contact-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" novalidate data-upsellio-lead-form="1" data-upsellio-server-form="1">
-              <input type="hidden" name="action" value="upsellio_submit_lead" />
-              <input type="hidden" name="redirect_url" value="<?php echo esc_url(home_url("/#kontakt")); ?>" />
-              <input type="hidden" name="lead_form_origin" value="contact-form" />
-              <input type="hidden" name="lead_source" value="contact-form" />
-              <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
-              <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
-              <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
-              <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
-              <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
-              <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
-              <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
-              <div class="form-grid">
-                <div class="field">
-                  <label for="fname">Imie i nazwisko *</label>
-                  <input class="input" type="text" id="fname" name="lead_name" placeholder="Twoje imie i nazwisko" required />
-                  <span class="field-error" id="fname-err">Podaj imie i nazwisko</span>
-                </div>
-
-                <div class="field">
-                  <label for="femail">E-mail *</label>
-                  <input class="input" type="email" id="femail" name="lead_email" placeholder="Twoj adres e-mail" required />
-                  <span class="field-error" id="femail-err">Podaj poprawny adres e-mail</span>
-                </div>
-
-                <div class="field">
-                  <label for="fcompany">Nazwa firmy</label>
-                  <input class="input" type="text" id="fcompany" name="lead_company" placeholder="Nazwa Twojej firmy" />
-                </div>
-
-                <div class="field">
-                  <label for="fservice">Czego dotyczy rozmowa?</label>
-                  <select class="select" id="fservice" name="lead_service">
-                    <option value="">Wybierz obszar</option>
-                    <?php foreach ($contact_service_options as $service_option) : ?>
-                      <?php $service_option = trim((string) $service_option); ?>
-                      <?php if ($service_option === "") : ?>
-                        <?php continue; ?>
-                      <?php endif; ?>
-                      <option><?php echo esc_html($service_option); ?></option>
-                    <?php endforeach; ?>
-                  </select>
-                </div>
-
-                <div class="field full">
-                  <label for="fmsg">Krotko opisz swoj cel lub wyzwanie *</label>
-                  <textarea class="textarea" id="fmsg" name="lead_message" placeholder="Napisz kilka slow o swoim biznesie i oczekiwaniach..." required></textarea>
-                  <span class="field-error" id="fmsg-err">Opisz w kilku slowach swoja sytuacje</span>
-                </div>
-
-                <div class="field">
-                  <label for="fphone">Telefon (opcjonalnie)</label>
-                  <input class="input" type="tel" id="fphone" name="lead_phone" placeholder="+48 575 522 595" autocomplete="tel" />
-                </div>
-
-                <div class="field">
-                  <label for="fmeeting">Dostepne terminy</label>
-                  <select class="select" id="fmeeting" name="lead_meeting_time">
-                    <option value="">Wybierz dogodny termin</option>
-                    <option>Pon-Pt, 9:00-12:00</option>
-                    <option>Pon-Pt, 12:00-16:00</option>
-                    <option>Pon-Pt, 16:00-19:00</option>
-                  </select>
-                </div>
-
-                <div class="field full">
-                  <label style="display:flex;gap:8px;align-items:flex-start;">
-                    <input type="checkbox" name="lead_consent" value="1" required style="margin-top:3px;" />
-                    <span>Wyrazam zgode na kontakt w sprawie mojego zapytania.</span>
-                  </label>
-                </div>
-              </div>
-
-              <button type="submit" class="btn btn-primary submit" id="submit-btn">Umow bezplatna konsultacje</button>
-              <p class="form-note">Bez spamu. Odpowiadam osobiscie. Wolisz zadzwonic? <a href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a></p>
-            </form>
-          </div>
+            <button type="submit" class="btn btn-primary submit" id="submit-btn">Umow bezplatna konsultacje</button>
+            <p class="form-note">Bez spamu. Odpowiadam osobiscie. Wolisz zadzwonic? <a href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a></p>
+          </form>
         </div>
       </div>
     </section>
