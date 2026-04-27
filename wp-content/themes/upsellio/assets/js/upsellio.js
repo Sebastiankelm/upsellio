@@ -5,10 +5,10 @@
   const nav = document.querySelector(".nav");
   const ham = document.getElementById("hamburger");
   const mob = document.getElementById("mobile-menu");
+  const navOffset = 84;
 
   function getNavOffset(extra = 0) {
-    const navHeight = nav ? Math.ceil(nav.getBoundingClientRect().height) : 72;
-    return navHeight + extra;
+    return navOffset + extra;
   }
 
   function revealElement(el) {

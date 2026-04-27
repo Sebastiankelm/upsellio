@@ -12,7 +12,8 @@ function upsellio_site_analytics_menu()
         "Analityka SEO",
         "edit_posts",
         "upsellio-site-analytics",
-        "upsellio_render_site_analytics_page"
+        "upsellio_render_site_analytics_page",
+        53
     );
 }
 add_action("admin_menu", "upsellio_site_analytics_menu");
@@ -1143,7 +1144,7 @@ function upsellio_render_site_analytics_page()
         .ups-analytics-table th,.ups-analytics-table td{border-bottom:1px solid #eceff3;padding:10px 9px;vertical-align:top;text-align:left}
         .ups-analytics-table th{font-size:12px;text-transform:uppercase;color:#5f6368;background:#f6f8fa}
         .ups-chip{display:inline-flex;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700}
-        .ups-chip.up{background:#e8f8f2;color:#0d634e}
+        .ups-chip.up{background:#ecfeff;color:#0f766e}
         .ups-chip.down{background:#fff2f2;color:#9f3636}
         .ups-chip.flat{background:#f3f4f6;color:#475467}
         .ups-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
@@ -1157,7 +1158,7 @@ function upsellio_render_site_analytics_page()
         .ups-trend-title{margin:0 0 8px;font-size:14px}
         .ups-trend-bars{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(3px,1fr);align-items:end;gap:2px;height:120px}
         .ups-trend-bar{display:block;border-radius:3px 3px 0 0;min-height:2px}
-        .ups-trend-bar.views{background:#1d9e75}
+        .ups-trend-bar.views{background:#0d9488}
         .ups-trend-bar.leads{background:#2271b1}
         .ups-trend-bar.impressions{background:#8b5cf6}
         .ups-trend-bar.clicks{background:#f59e0b}

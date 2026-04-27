@@ -110,6 +110,7 @@ function upsellio_crm_ensure_default_terms()
 
     $sources = [
         "contact-form" => "Formularz kontaktowy",
+        "hero-microform" => "Mikroformularz hero",
         "audit-form" => "Formularz audytu",
         "blog-form" => "Formularz blogowy",
         "newsletter" => "Newsletter",
@@ -156,6 +157,7 @@ function upsellio_crm_create_lead($payload)
     $name = sanitize_text_field($payload["name"] ?? "");
     $email = sanitize_email($payload["email"] ?? "");
     $message = sanitize_textarea_field($payload["message"] ?? "");
+    $company = sanitize_text_field($payload["company"] ?? "");
     $phone = sanitize_text_field($payload["phone"] ?? "");
     $service = sanitize_text_field($payload["service"] ?? "");
     $budget = sanitize_text_field($payload["budget"] ?? "");
@@ -187,6 +189,7 @@ function upsellio_crm_create_lead($payload)
     }
 
     update_post_meta($leadId, "_upsellio_lead_email", $email);
+    update_post_meta($leadId, "_upsellio_lead_company", $company);
     update_post_meta($leadId, "_upsellio_lead_phone", $phone);
     update_post_meta($leadId, "_upsellio_lead_service", $service);
     update_post_meta($leadId, "_upsellio_lead_budget", $budget);
@@ -293,17 +296,89 @@ function upsellio_crm_schedule_followup($lead_id)
     wp_schedule_single_event(time() + (24 * HOUR_IN_SECONDS), "upsellio_crm_followup_reminder", [$lead_id]);
 }
 
+function upsellio_crm_get_request_ip_hash()
+{
+    $candidates = [
+        $_SERVER["HTTP_CF_CONNECTING_IP"] ?? "",
+        $_SERVER["HTTP_X_FORWARDED_FOR"] ?? "",
+        $_SERVER["REMOTE_ADDR"] ?? "",
+    ];
+
+    foreach ($candidates as $candidate) {
+        $candidate = trim((string) $candidate);
+        if ($candidate === "") {
+            continue;
+        }
+        $ip = trim(explode(",", $candidate)[0]);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+            return hash_hmac("sha256", $ip, wp_salt("auth"));
+        }
+    }
+
+    return "";
+}
+
+function upsellio_crm_is_rate_limited($email)
+{
+    $limits = [];
+    $ipHash = upsellio_crm_get_request_ip_hash();
+    if ($ipHash !== "") {
+        $limits["ip_" . $ipHash] = 5;
+    }
+
+    $email = sanitize_email((string) $email);
+    if (is_email($email)) {
+        $limits["email_" . hash_hmac("sha256", strtolower($email), wp_salt("auth"))] = 3;
+    }
+
+    foreach ($limits as $key => $maxAttempts) {
+        $transientKey = "ups_crm_rl_" . md5($key);
+        $attempts = (int) get_transient($transientKey);
+        if ($attempts >= $maxAttempts) {
+            return true;
+        }
+        set_transient($transientKey, $attempts + 1, HOUR_IN_SECONDS);
+    }
+
+    return false;
+}
+
+function upsellio_crm_get_backup_recipient()
+{
+    $optionEmail = sanitize_email((string) get_option("upsellio_backup_lead_email", ""));
+    if (is_email($optionEmail)) {
+        return $optionEmail;
+    }
+
+    $envEmail = sanitize_email((string) getenv("UPSELLIO_BACKUP_LEAD_EMAIL"));
+    if (is_email($envEmail)) {
+        return $envEmail;
+    }
+
+    return "kontakt@upsellio.pl";
+}
+
 function upsellio_crm_send_emails($lead_id, $name, $email, $message)
 {
-    $adminEmail = get_option("admin_email");
+    $adminEmail = sanitize_email((string) get_option("admin_email"));
+    $backupEmail = upsellio_crm_get_backup_recipient();
+    $recipient = is_email($adminEmail) ? $adminEmail : $backupEmail;
     $subject = "Nowy lead w CRM Upsellio";
     $body = "Lead ID: {$lead_id}\nImię/Firma: {$name}\nE-mail: {$email}\n\nWiadomość:\n{$message}";
-    wp_mail($adminEmail, $subject, $body);
+    $adminSent = is_email($recipient) ? wp_mail($recipient, $subject, $body) : false;
+    if (!$adminSent && is_email($backupEmail) && strtolower($backupEmail) !== strtolower((string) $recipient)) {
+        $adminSent = wp_mail($backupEmail, $subject, $body);
+    }
+    if (!$adminSent) {
+        upsellio_crm_add_timeline_event((int) $lead_id, "mail_error", "Nie udało się wysłać powiadomienia e-mail do administratora.");
+    }
 
     if (is_email($email)) {
         $autoresponderSubject = "Dziękuję za kontakt - Upsellio";
         $autoresponderBody = "Cześć {$name},\n\nDziękuję za wiadomość. Wrócę do Ciebie możliwie szybko z konkretną odpowiedzią.\n\nPozdrawiam,\nSebastian / Upsellio";
-        wp_mail($email, $autoresponderSubject, $autoresponderBody);
+        if (!wp_mail($email, $autoresponderSubject, $autoresponderBody)) {
+            upsellio_crm_add_timeline_event((int) $lead_id, "mail_error", "Nie udało się wysłać autorespondera do leada.");
+        }
     }
 }
 
@@ -335,9 +410,20 @@ function upsellio_crm_handle_lead_submission()
         exit;
     }
 
+    if (upsellio_crm_is_rate_limited($email)) {
+        wp_safe_redirect(add_query_arg("ups_lead_status", "error", $redirectUrl));
+        exit;
+    }
+
+    $company = isset($_POST["lead_company"]) ? sanitize_text_field(wp_unslash($_POST["lead_company"])) : "";
+    if ($company !== "" && strpos($message, $company) === false) {
+        $message .= "\n\nStrona / firma: " . $company;
+    }
+
     $payload = [
         "name" => $name,
         "email" => $email,
+        "company" => $company,
         "phone" => isset($_POST["lead_phone"]) ? sanitize_text_field(wp_unslash($_POST["lead_phone"])) : "",
         "message" => $message,
         "service" => isset($_POST["lead_service"]) ? sanitize_text_field(wp_unslash($_POST["lead_service"])) : "",
@@ -687,7 +773,7 @@ function upsellio_crm_render_admin_shell_start($title, $subtitle, $active_tab)
         .ups-crm-sub{margin:6px 0 0;color:#5f6368;font-size:14px}
         .ups-crm-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px}
         .ups-crm-tab{display:inline-flex;align-items:center;border:1px solid #d9dde3;background:#fff;border-radius:999px;padding:8px 14px;text-decoration:none;color:#1d2327;font-weight:600}
-        .ups-crm-tab.active{background:#1d9e75;color:#fff;border-color:#1d9e75}
+        .ups-crm-tab.active{background:#0d9488;color:#fff;border-color:#0d9488}
         .ups-crm-card{background:#fff;border:1px solid #d9dde3;border-radius:14px;padding:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
         .ups-crm-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
         .ups-crm-kpi-value{font-size:26px;font-weight:700;line-height:1;margin-top:6px}
@@ -707,7 +793,7 @@ function upsellio_crm_render_admin_shell_start($title, $subtitle, $active_tab)
         .ups-kanban-col-title{margin:0;font-size:14px;font-weight:700}
         .ups-kanban-count{font-size:12px;color:#5f6368}
         .ups-kanban-drop{display:grid;gap:10px;min-height:120px}
-        .ups-kanban-col.is-over{outline:2px dashed #1d9e75;outline-offset:2px}
+        .ups-kanban-col.is-over{outline:2px dashed #0d9488;outline-offset:2px}
         .ups-kanban-card{border:1px solid #e8ebef;border-radius:12px;padding:10px;background:#fafbfc;cursor:grab;transition:all .12s ease}
         .ups-kanban-card:hover{border-color:#c7ced8;background:#fff}
         .ups-kanban-card:active{cursor:grabbing}
@@ -765,7 +851,8 @@ function upsellio_crm_add_admin_menu()
         "Pipeline",
         "edit_posts",
         "upsellio-crm-pipeline",
-        "upsellio_crm_render_pipeline_page"
+        "upsellio_crm_render_pipeline_page",
+        60
     );
     add_submenu_page(
         "edit.php?post_type=lead",
@@ -773,7 +860,8 @@ function upsellio_crm_add_admin_menu()
         "SLA Dashboard",
         "edit_posts",
         "upsellio-crm-sla",
-        "upsellio_crm_render_sla_page"
+        "upsellio_crm_render_sla_page",
+        61
     );
     add_submenu_page(
         "edit.php?post_type=lead",
@@ -781,7 +869,8 @@ function upsellio_crm_add_admin_menu()
         "Zadania Follow-up",
         "edit_posts",
         "upsellio-crm-tasks",
-        "upsellio_crm_render_tasks_page"
+        "upsellio_crm_render_tasks_page",
+        62
     );
     add_submenu_page(
         "edit.php?post_type=lead",
@@ -789,7 +878,8 @@ function upsellio_crm_add_admin_menu()
         "Raporty CRM",
         "edit_posts",
         "upsellio-crm-reports",
-        "upsellio_crm_render_reports_page"
+        "upsellio_crm_render_reports_page",
+        63
     );
 }
 add_action("admin_menu", "upsellio_crm_add_admin_menu");

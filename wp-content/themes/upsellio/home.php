@@ -16,6 +16,44 @@ $search_term = isset($_GET["s"]) ? sanitize_text_field(wp_unslash($_GET["s"])) :
 $blog_index_url = upsellio_get_blog_index_url();
 $categories = get_categories(["hide_empty" => true]);
 $tags = get_tags(["hide_empty" => true]);
+$blog_content_categories = [
+    ["name" => "Meta Ads", "slug" => "meta-ads", "desc" => "Kampanie Meta Ads, strategie, lejki, kreacje i remarketing dla firm.", "keywords" => "Meta Ads dla firm, Facebook Ads B2B, lejek Meta Ads, remarketing Facebook"],
+    ["name" => "Google Ads", "slug" => "google-ads", "desc" => "Kampanie Search, Performance Max, słowa kluczowe, struktura i optymalizacja.", "keywords" => "Google Ads dla firm, kampanie Search, słowa kluczowe z intencją zakupową"],
+    ["name" => "Konwersja i strony WWW", "slug" => "konwersja-strony", "desc" => "Landing pages, optymalizacja konwersji, copywriting, CTA i UX pod sprzedaż.", "keywords" => "konwersja strony internetowej, landing page firma, CTA na stronie"],
+    ["name" => "Pozyskiwanie klientów", "slug" => "pozyskiwanie-klientow", "desc" => "Lejki sprzedażowe, CPL, jakość zapytań i system marketingowy.", "keywords" => "pozyskiwanie klientów B2B, koszt pozyskania leada, CPL optymalizacja"],
+    ["name" => "Analityka i mierzenie", "slug" => "analityka", "desc" => "GA4, śledzenie konwersji, Tag Manager, atrybucja i raportowanie.", "keywords" => "śledzenie konwersji Google Ads, GA4 konfiguracja, atrybucja kampanii"],
+];
+$blog_content_plan = [
+    "Miesiąc 1 — Meta Ads i lejek" => ["Dlaczego reklamy Meta Ads nie sprzedają — 7 błędów, które blokują wynik", "Lejek Meta Ads od podstaw — ToF, MoF, BoF i remarketing w jednej kampanii", "Remarketing Meta Ads — jak odzyskać osoby, które nie zostawiły kontaktu", "Jak mierzyć jakość leadów z Facebook Ads — i dlaczego CPL to za mało"],
+    "Miesiąc 2 — Google Ads i intencja zakupowa" => ["Google Ads dla firm B2B — od czego zacząć, żeby nie przepalić budżetu", "Słowa kluczowe z intencją zakupową — jak je dobierać do kampanii Search", "Search Ads vs Performance Max — który typ kampanii wybrać dla swojej firmy", "Audyt kampanii Google Ads — 12 rzeczy, które warto sprawdzić co miesiąc"],
+    "Miesiąc 3 — Strony i konwersja" => ["Landing page pod Google Ads — co musi zawierać, żeby konwertować", "Dlaczego strona firmowa nie generuje zapytań — 6 przyczyn i jak je naprawić", "CTA na stronie internetowej — jak pisać wezwania do działania, które klikają", "Copywriting dla firm B2B — jak pisać treści strony, które przekonują"],
+    "Miesiąc 4 — Lead generation i sprzedaż" => ["System pozyskiwania klientów online — czym różni się od kampanii ad hoc", "CPL — co to jest, jak liczyć i jak go obniżać bez cięcia budżetu", "Jak odróżnić dobry lead od złego — i dlaczego to ważniejsze niż liczba kontaktów", "Meta Ads czy Google Ads — co wybrać dla firmy B2B i dlaczego to zależy"],
+    "Miesiąc 5 — Analityka i mierzenie" => ["Śledzenie konwersji Google Ads — jak skonfigurować i co naprawdę mierzyć", "Piksel Meta — co to jest, jak działa i dlaczego bez niego kampanie są mniej skuteczne", "Google Analytics 4 dla firm B2B — co warto śledzić i jakie raporty są ważne", "ROAS vs CPL — która metryka jest ważniejsza i kiedy patrzeć na którą"],
+    "Miesiąc 6 — Strategie i planowanie" => ["Jak zbudować plan marketingowy dla małej firmy", "Budżet reklamowy dla firm B2B — ile wydawać i jak to wyliczyć", "Dlaczego marketing nie działa — 5 systemowych przyczyn", "Core Web Vitals 2025 — jak szybkość ładowania wpływa na SEO i konwersję"],
+];
+
+add_filter("pre_get_document_title", static function ($title) {
+    return is_home() || is_page_template("page-blog.php")
+        ? "Blog o marketingu B2B | Meta Ads, Google Ads, strony | Upsellio"
+        : $title;
+});
+
+add_action("wp_head", static function () use ($blog_index_url, $paged) {
+    if (!(is_home() || is_page_template("page-blog.php"))) return;
+
+    echo '<meta name="description" content="Blog o Meta Ads, Google Ads, tworzeniu stron i pozyskiwaniu klientów dla firm B2B. Konkrety zamiast teorii — artykuły pisane przez praktyka.">' . "\n";
+    echo '<meta property="og:title" content="Blog o marketingu B2B | Meta Ads, Google Ads, strony | Upsellio">' . "\n";
+    echo '<meta property="og:description" content="Artykuły o Meta Ads, Google Ads, konwersji stron i pozyskiwaniu klientów dla firm B2B. Konkretne poradniki zamiast marketingowego szumu.">' . "\n";
+    echo '<meta property="og:type" content="website">' . "\n";
+    echo '<meta property="og:url" content="' . esc_url($blog_index_url) . '">' . "\n";
+    echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
+    echo '<link rel="canonical" href="' . esc_url($paged > 1 ? add_query_arg("paged", $paged, $blog_index_url) : $blog_index_url) . '">' . "\n";
+    if ($paged > 1) {
+        $prev_url = $paged === 2 ? $blog_index_url : add_query_arg("paged", $paged - 1, $blog_index_url);
+        echo '<link rel="prev" href="' . esc_url($prev_url) . '">' . "\n";
+    }
+    echo '<link rel="next" href="' . esc_url(add_query_arg("paged", $paged + 1, $blog_index_url)) . '">' . "\n";
+}, 1);
 
 get_header();
 ?>
@@ -39,7 +77,7 @@ get_header();
     height: 520px;
     border-radius: 999px;
     pointer-events: none;
-    background: radial-gradient(circle, rgba(29, 158, 117, 0.12), transparent 68%);
+    background: radial-gradient(circle, rgba(20, 184, 166, 0.13), transparent 68%);
   }
   .ups-blog-hero-topline {
     position: absolute;
@@ -286,7 +324,7 @@ get_header();
     content: "";
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at top right, rgba(29, 158, 117, 0.12), transparent 40%);
+    background: radial-gradient(circle at top right, rgba(20, 184, 166, 0.13), transparent 40%);
   }
   .ups-blog-featured-content {
     position: relative;
@@ -425,7 +463,7 @@ get_header();
   }
   .ups-blog-newsletter input:focus {
     border-color: var(--teal);
-    box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.13);
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.13);
   }
   .ups-blog-newsletter button {
     margin-top: 8px;
@@ -625,7 +663,7 @@ get_header();
   }
   .ups-blog-newsletter-row input:focus {
     border-color: var(--teal);
-    box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.13);
+    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.13);
   }
   .ups-blog-newsletter-row button {
     border: none;
@@ -925,6 +963,83 @@ get_header();
     min-height: 0;
     white-space: nowrap;
   }
+  .ups-blog-seo-copy {
+    margin-top: 24px;
+    max-width: 960px;
+    display: grid;
+    gap: 14px;
+  }
+  .ups-blog-seo-copy p {
+    color: var(--text-2);
+    line-height: 1.78;
+  }
+  .ups-blog-newsletter-points,
+  .ups-blog-plan-list {
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 8px;
+  }
+  .ups-blog-newsletter-points li,
+  .ups-blog-plan-list li {
+    position: relative;
+    padding-left: 24px;
+    color: var(--text-2);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .ups-blog-newsletter-points li::before,
+  .ups-blog-plan-list li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--teal);
+    font-weight: 900;
+  }
+  .ups-blog-category-strategy {
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 64px 0;
+  }
+  .ups-blog-category-strategy-grid,
+  .ups-blog-plan-grid {
+    margin-top: 28px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .ups-blog-category-strategy-card,
+  .ups-blog-plan-card {
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    background: var(--bg-soft);
+    padding: 22px;
+    box-shadow: var(--shadow-sm);
+  }
+  .ups-blog-category-strategy-card strong,
+  .ups-blog-plan-card strong {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text);
+    font-size: 17px;
+  }
+  .ups-blog-category-strategy-card p {
+    color: var(--text-2);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .ups-blog-category-strategy-card small {
+    display: block;
+    margin-top: 10px;
+    color: var(--text-3);
+    line-height: 1.55;
+  }
+  .ups-blog-content-plan {
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    padding: 64px 0;
+  }
   @media (max-width: 1050px) {
     .ups-blog-categories {
       position: static;
@@ -950,6 +1065,47 @@ get_header();
       padding: 24px;
     }
   }
+  @media (min-width: 761px) {
+    .ups-blog-category-strategy-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .ups-blog-plan-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1051px) {
+    .ups-blog-category-strategy-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    .ups-blog-plan-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  /* Mobile-first UX correction layer */
+  .ups-blog-title { font-size:clamp(34px,10vw,40px); line-height:1.09; letter-spacing:-1px; }
+  .ups-blog-hero .wrap { padding-top:48px !important; padding-bottom:56px !important; }
+  .ups-blog-lead { margin-top:16px; font-size:17px; line-height:1.65; }
+  .ups-blog-seo-copy { margin-top:16px; gap:10px; }
+  .ups-blog-seo-copy p { line-height:1.72; }
+  .ups-blog-categories { position:static; padding:12px 0 16px; }
+  .ups-blog-featured-wrap,.ups-blog-newsletter-band,.ups-blog-topics,.ups-blog-category-strategy,.ups-blog-content-plan,.ups-blog-cta { padding:48px 0; }
+  .ups-blog-list-wrap { padding:48px 0 56px; }
+  .ups-blog-list-title,.ups-blog-newsletter-title,.ups-blog-topics-title,.ups-blog-cta-title { font-size:clamp(28px,8vw,34px); line-height:1.12; letter-spacing:-.8px; }
+  .ups-blog-card,.ups-blog-panel,.ups-blog-category-strategy-card,.ups-blog-plan-card,.ups-blog-cta-shell { border-radius:20px; padding:20px; }
+  .ups-blog-featured-title { font-size:clamp(24px,7vw,30px); line-height:1.12; }
+  .ups-blog-newsletter-row { flex-direction:column; align-items:stretch; }
+  @media (min-width: 761px) {
+    .ups-blog-title { font-size:clamp(44px,6vw,58px); line-height:1.04; }
+    .ups-blog-hero .wrap { padding-top:70px !important; padding-bottom:76px !important; }
+    .ups-blog-featured-wrap,.ups-blog-newsletter-band,.ups-blog-topics,.ups-blog-category-strategy,.ups-blog-content-plan,.ups-blog-cta { padding:72px 0; }
+    .ups-blog-list-wrap { padding:64px 0 72px; }
+    .ups-blog-list-title,.ups-blog-newsletter-title,.ups-blog-topics-title,.ups-blog-cta-title { font-size:clamp(34px,4vw,46px); }
+    .ups-blog-newsletter-row { flex-direction:row; align-items:center; }
+  }
+  @media (min-width: 1051px) {
+    .ups-blog-title { font-size:64px; }
+    .ups-blog-list-title,.ups-blog-cta-title { font-size:50px; }
+  }
 </style>
 
 <main class="ups-blog js-ups-blog-root" data-current-category="<?php echo esc_attr($selected_category); ?>" data-current-tags="<?php echo esc_attr(implode(",", $selected_tags)); ?>" data-current-page="<?php echo esc_attr((string) $paged); ?>">
@@ -959,16 +1115,19 @@ get_header();
       <div style="max-width: 920px;">
         <div class="ups-blog-badge">
           <span class="ups-blog-dot"></span>
-          Blog o reklamach, sprzedaży i stronach, które mają dowozić wynik
+          Artykuły o reklamach i stronach pisane przez praktyka — nie teoria z podręcznika
         </div>
         <h1 class="ups-blog-title">
-          Blog Upsellio.<br />
-          <span style="color: var(--teal);">Konkrety zamiast marketingowego szumu.</span>
+          Blog Upsellio — marketing B2B bez owijania w bawełnę.<br />
+          <span style="color: var(--teal);">Meta Ads, Google Ads, konwersja i sprzedaż.</span>
         </h1>
         <p class="ups-blog-lead">
-          Artykuły o Meta Ads, lead generation, skalowaniu budżetu, landing page'ach i miejscach,
-          w których firmy najczęściej tracą wynik. Pisane prosto, ale na poziomie decyzyjnym.
+          Ten blog powstał z jednego powodu: zbyt wiele firm wydaje pieniądze na marketing, nie rozumiejąc, dlaczego wyniki są takie, jakie są. Znajdziesz tu konkretne artykuły o Meta Ads, Google Ads, stronach, landing pages, pozyskiwaniu klientów i mierzeniu jakości zapytań.
         </p>
+        <div class="ups-blog-seo-copy">
+          <p>Większość artykułów o marketingu internetowym jest pisana albo zbyt ogólnie, bez liczb i decyzji, albo zbyt technicznie, bez kontekstu biznesowego. Tutaj chodzi o treści, które pomagają właścicielom firm i managerom podejmować lepsze decyzje.</p>
+          <p>Jeśli zastanawiasz się, kiedy inwestować w Google Ads zamiast Meta Ads, co blokuje konwersję strony, jak działa remarketing albo jak mierzyć jakość leadów, a nie tylko ich liczbę, jesteś w dobrym miejscu.</p>
+        </div>
       </div>
 
       <form class="ups-blog-search js-ups-blog-search-form" method="get" action="<?php echo esc_url($blog_index_url); ?>">
@@ -987,7 +1146,7 @@ get_header();
             <input type="hidden" name="tags" value="<?php echo esc_attr(implode(",", $selected_tags)); ?>" />
           <?php endif; ?>
         </div>
-        <div class="ups-blog-search-note">Najnowsze wpisy, checklisty i analizy praktyczne</div>
+        <div class="ups-blog-search-note">Najnowsze wpisy, checklisty, analizy kampanii i odpowiedzi na pytania firm B2B</div>
       </form>
     </div>
   </section>
@@ -1129,10 +1288,15 @@ get_header();
       <div class="ups-blog-newsletter-inner">
         <div>
           <div class="eyebrow" style="color: var(--teal-dark); margin-bottom: 0;">Newsletter</div>
-          <h2 class="ups-blog-newsletter-title">Praktyczne materiały o reklamach i sprzedaży</h2>
+          <h2 class="ups-blog-newsletter-title">Konkretne materiały o reklamach i sprzedaży — bez spamu, bez ogólników.</h2>
           <p class="ups-blog-newsletter-text">
-            Raz na jakiś czas — konkretny materiał: checklista, analiza albo artykuł, który pomaga podejmować lepsze decyzje marketingowe. Bez spamu.
+            Raz na jakiś czas wysyłam materiały, które faktycznie pomagają podejmować lepsze decyzje marketingowe: checklisty, analizy kampanii, wnioski z prowadzonych projektów i odpowiedzi na pytania, które zadają firmy przed inwestycją w reklamy lub nową stronę.
           </p>
+          <ul class="ups-blog-newsletter-points">
+            <li>Materiały pisane przez praktyka z ponad 10-letnim doświadczeniem w marketingu B2B.</li>
+            <li>Bez cotygodniowych maili na siłę — tylko gdy jest coś wartego Twojego czasu.</li>
+            <li>Łatwy wypis jednym kliknięciem, w dowolnym momencie.</li>
+          </ul>
         </div>
         <div>
           <form class="ups-blog-newsletter-shell" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" method="post" data-upsellio-lead-form="1">
@@ -1151,11 +1315,12 @@ get_header();
             <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
             <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
             <div class="ups-blog-newsletter-row">
-              <input type="email" name="lead_email" placeholder="Twój adres e-mail" required />
-              <button type="submit">Zapisz mnie</button>
+              <label class="screen-reader-text" for="ups-blog-newsletter-band-email">Twój adres e-mail</label>
+              <input type="email" id="ups-blog-newsletter-band-email" name="lead_email" placeholder="Twój adres e-mail" required />
+              <button type="submit">Dołącz do czytelników</button>
             </div>
           </form>
-          <div class="ups-blog-newsletter-note">Dołącz do grona czytelników. Wypis jednym kliknięciem.</div>
+          <div class="ups-blog-newsletter-note">Dołączaj do grona firm, które wolą wiedzę od szumu. Wypis jednym kliknięciem.</div>
         </div>
       </div>
     </div>
@@ -1165,7 +1330,7 @@ get_header();
     <div class="wrap">
       <div class="ups-blog-topics-head">
         <div class="eyebrow" style="margin-bottom: 0;">Przeglądaj tematy</div>
-        <h2 class="ups-blog-topics-title">Kategorie</h2>
+        <h2 class="ups-blog-topics-title">Przeglądaj tematami — znajdź artykuły o tym, co teraz interesuje Cię najbardziej.</h2>
       </div>
       <div class="ups-blog-topics-grid">
         <?php foreach (array_slice($categories, 0, 5) as $topic_category) : ?>
@@ -1195,22 +1360,99 @@ get_header();
     </div>
   </section>
 
+  <section class="ups-blog-category-strategy">
+    <div class="wrap">
+      <div class="ups-blog-topics-head">
+        <div class="eyebrow" style="margin-bottom: 0;">Strategia kategorii</div>
+        <h2 class="ups-blog-topics-title">Tematy, które porządkują blog i budują kontekst SEO dla całego serwisu.</h2>
+      </div>
+      <div class="ups-blog-category-strategy-grid">
+        <?php foreach ($blog_content_categories as $content_category) : ?>
+          <article class="ups-blog-category-strategy-card">
+            <strong><?php echo esc_html((string) $content_category["name"]); ?></strong>
+            <p><?php echo esc_html((string) $content_category["desc"]); ?></p>
+            <small><?php echo esc_html((string) $content_category["keywords"]); ?></small>
+          </article>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </section>
+
+  <section class="ups-blog-content-plan">
+    <div class="wrap">
+      <div class="ups-blog-topics-head">
+        <div class="eyebrow" style="margin-bottom: 0;">Plan treści</div>
+        <h2 class="ups-blog-topics-title">24 tematy artykułów na 6 miesięcy regularnej, eksperckiej komunikacji.</h2>
+        <p class="ups-blog-panel-text">Plan równoważy frazy z intencją wyszukiwania, pytania klientów przed współpracą i wpisy wspierające strony usług: Meta Ads, Google Ads, tworzenie stron i pełną ofertę.</p>
+      </div>
+      <div class="ups-blog-plan-grid">
+        <?php foreach ($blog_content_plan as $month_title => $month_topics) : ?>
+          <article class="ups-blog-plan-card">
+            <strong><?php echo esc_html((string) $month_title); ?></strong>
+            <ul class="ups-blog-plan-list">
+              <?php foreach ($month_topics as $topic_title) : ?>
+                <li><?php echo esc_html((string) $topic_title); ?></li>
+              <?php endforeach; ?>
+            </ul>
+          </article>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </section>
+
   <section class="ups-blog-cta">
     <div class="wrap">
       <div class="ups-blog-cta-shell">
         <div class="eyebrow" style="color: var(--teal-dark); margin-bottom: 0;">CTA pod blogiem</div>
-        <h2 class="ups-blog-cta-title">Chcesz, żebym zamiast kolejnego artykułu spojrzał na Twoje reklamy?</h2>
+        <h2 class="ups-blog-cta-title">Wolisz, żeby ktoś spojrzał na Twoje kampanie, a nie czytać kolejny artykuł?</h2>
         <p class="ups-blog-cta-text">
-          Jeśli masz wrażenie, że kampanie „coś robią”, ale nie jesteś pewien czy dobrze — zacznij od krótkiej rozmowy albo darmowego audytu wyników reklam Meta.
+          Artykuły dają kontekst i wiedzę. Ale jeśli masz wrażenie, że Twoje kampanie Meta Ads lub Google Ads coś robią, a nie masz pewności czy dobrze, potrzebujesz spojrzeć na konkretne dane, kampanie i ofertę. Bezpłatna rozmowa lub audyt to 30-45 minut, po których wiesz, co blokuje wyniki i który element warto naprawić najpierw.
         </p>
         <div class="ups-blog-cta-actions">
           <a class="ups-blog-btn-primary" href="<?php echo esc_url(home_url("/#kontakt")); ?>">Umów bezpłatną rozmowę</a>
-          <a class="ups-blog-btn-secondary" href="<?php echo esc_url(home_url("/audyt-meta")); ?>">Zobacz audyt Meta Ads</a>
+          <a class="ups-blog-btn-secondary" href="<?php echo esc_url(home_url("/marketing-google-ads/")); ?>">Konsultacja Google Ads</a>
+          <a class="ups-blog-btn-secondary" href="<?php echo esc_url(home_url("/marketing-meta-ads/")); ?>">Audyt Meta Ads</a>
         </div>
       </div>
     </div>
   </section>
 </main>
+<?php
+$blog_schema_posts = get_posts([
+    "post_type" => "post",
+    "post_status" => "publish",
+    "numberposts" => 10,
+    "orderby" => "date",
+    "order" => "DESC",
+]);
+if (!empty($blog_schema_posts)) :
+?>
+<script type="application/ld+json">
+<?php
+echo wp_json_encode([
+    "@context" => "https://schema.org",
+    "@type" => "Blog",
+    "name" => "Blog Upsellio",
+    "url" => $blog_index_url,
+    "description" => "Blog o marketingu B2B, Meta Ads, Google Ads, tworzeniu stron i pozyskiwaniu klientów.",
+    "blogPost" => array_map(static function ($schema_post) {
+        return [
+            "@type" => "BlogPosting",
+            "headline" => (string) get_the_title($schema_post),
+            "description" => (string) get_the_excerpt($schema_post),
+            "url" => (string) get_permalink($schema_post),
+            "datePublished" => (string) get_the_date("c", $schema_post),
+            "dateModified" => (string) get_the_modified_date("c", $schema_post),
+            "author" => [
+                "@type" => "Person",
+                "name" => (string) get_the_author_meta("display_name", (int) $schema_post->post_author),
+            ],
+        ];
+    }, $blog_schema_posts),
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+?>
+</script>
+<?php endif; ?>
 <?php
 get_footer();
 ?>

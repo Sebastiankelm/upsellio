@@ -104,7 +104,7 @@ function upsellio_seo_render_score_column($column, $post_id)
         return;
     }
     $score = (int) get_post_meta($post_id, "_upsellio_seo_score", true);
-    $color = $score >= 75 ? "#1d9e75" : ($score >= 50 ? "#e18d2d" : "#d14c4c");
+    $color = $score >= 75 ? "#0d9488" : ($score >= 50 ? "#f59e0b" : "#d14c4c");
     echo '<strong style="color:' . esc_attr($color) . ';">' . esc_html((string) $score) . '/100</strong>';
 }
 add_action("manage_post_posts_custom_column", "upsellio_seo_render_score_column", 10, 2);
@@ -125,7 +125,7 @@ function upsellio_seo_render_meta_box($post)
     ?>
     <p><strong>Wynik SEO:</strong> <?php echo esc_html((string) $score); ?>/100</p>
     <?php if (empty($notes)) : ?>
-      <p style="color:#1d9e75;"><strong>OK:</strong> wpis jest gotowy pod publikację.</p>
+      <p style="color:#0d9488;"><strong>OK:</strong> wpis jest gotowy pod publikację.</p>
     <?php else : ?>
       <ul style="margin-left:16px;">
         <?php foreach ($notes as $note) : ?>
@@ -144,7 +144,8 @@ function upsellio_seo_register_refresh_menu()
         "Content Refresh",
         "edit_posts",
         "upsellio-content-refresh",
-        "upsellio_seo_render_refresh_page"
+        "upsellio_seo_render_refresh_page",
+        52
     );
 }
 add_action("admin_menu", "upsellio_seo_register_refresh_menu");
@@ -241,7 +242,8 @@ function upsellio_seo_register_brief_menu()
         "Generator Briefu SEO",
         "edit_posts",
         "upsellio-seo-brief",
-        "upsellio_seo_render_brief_page"
+        "upsellio_seo_render_brief_page",
+        51
     );
 }
 add_action("admin_menu", "upsellio_seo_register_brief_menu");

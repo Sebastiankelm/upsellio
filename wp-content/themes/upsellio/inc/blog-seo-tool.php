@@ -303,7 +303,8 @@ function upsellio_blog_generator_menu()
         "SEO Blog Tool",
         "edit_posts",
         "upsellio-seo-blog-tool",
-        "upsellio_render_blog_generator_screen"
+        "upsellio_render_blog_generator_screen",
+        50
     );
 }
 add_action("admin_menu", "upsellio_blog_generator_menu");
@@ -2187,9 +2188,9 @@ function upsellio_render_blog_generator_screen()
           align-items: center;
           justify-content: center;
           gap: 6px;
-          border: 1px solid #1d9e75;
+          border: 1px solid #0d9488;
           border-radius: 10px;
-          background: #1d9e75;
+          background: #0d9488;
           color: #fff;
           padding: 9px 12px;
           font-size: 12px;
@@ -2197,7 +2198,7 @@ function upsellio_render_blog_generator_screen()
           cursor: pointer;
           transition: 0.18s ease;
         }
-        .ups-next-action:hover { background:#17885f; border-color:#17885f; }
+        .ups-next-action:hover { background:#0f766e; border-color:#0f766e; }
         .ups-next-action[disabled] {
           background:#f2f2ef;
           border-color:#e2e2dd;
@@ -2224,7 +2225,7 @@ function upsellio_render_blog_generator_screen()
         .ups-score-row { display:grid; gap:4px; }
         .ups-score-row-top { display:flex; justify-content:space-between; font-size:12px; color:#585850; }
         .ups-score-track { width:100%; height:7px; border-radius:999px; background:#efefec; overflow:hidden; }
-        .ups-score-fill { width:0%; height:100%; border-radius:999px; transition:width .35s ease; background:#1d9e75; }
+        .ups-score-fill { width:0%; height:100%; border-radius:999px; transition:width .35s ease; background:#0d9488; }
         .ups-score-tips { margin-top:16px; border-top:1px solid #ecece9; padding-top:12px; }
         .ups-score-tips h4 { margin:0 0 8px; font-size:13px; }
         .ups-score-list { margin:0; padding-left:16px; display:grid; gap:8px; }
@@ -2234,17 +2235,17 @@ function upsellio_render_blog_generator_screen()
           border:none; background:none; padding:0; margin:0; text-align:left; cursor:pointer;
           color:inherit; font:inherit; line-height:inherit;
         }
-        .ups-score-jump:hover { color:#1d9e75; text-decoration:underline; text-underline-offset:2px; }
-        .ups-ok-chip { margin-top:8px; display:inline-flex; border:1px solid #bfe8d8; background:#e8f8f2; color:#085041; border-radius:999px; padding:5px 10px; font-size:11px; font-weight:600; }
+        .ups-score-jump:hover { color:#0d9488; text-decoration:underline; text-underline-offset:2px; }
+        .ups-ok-chip { margin-top:8px; display:inline-flex; border:1px solid #99f6e4; background:#ecfeff; color:#0f766e; border-radius:999px; padding:5px 10px; font-size:11px; font-weight:600; }
         .ups-form-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
         .ups-form-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
         .ups-field { display:block; }
         .ups-field > strong { display:block; }
         .ups-field input, .ups-field textarea, .ups-field select { width:100%; margin-top:6px; }
         .ups-field-highlight {
-          outline: 2px solid #1d9e75;
+          outline: 2px solid #0d9488;
           border-radius: 8px;
-          box-shadow: 0 0 0 4px rgba(29, 158, 117, 0.12);
+          box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.12);
           transition: box-shadow .2s ease, outline-color .2s ease;
         }
         .ups-tool-grid { grid-template-columns:1fr; }
@@ -2269,7 +2270,7 @@ function upsellio_render_blog_generator_screen()
         .ups-ready-chip.no { background:#fff2f2; color:#9f3636; border:1px solid #f0d4d4; }
         .ups-ready-chip.yes { background:#e9f9f3; color:#0b5d48; border:1px solid #bfe9d9; }
         .ups-delta-box { margin-top:12px; border-top:1px solid #ecece9; padding-top:10px; font-size:12px; color:#5f5f57; }
-        .ups-delta-up { color:#1d9e75; font-weight:700; }
+        .ups-delta-up { color:#0d9488; font-weight:700; }
         .ups-delta-down { color:#c14545; font-weight:700; }
         .ups-fix-box { margin-top:12px; border-top:1px solid #ecece9; padding-top:10px; }
         .ups-fix-title { margin:0 0 8px; font-size:12px; color:#5a5a52; font-weight:700; }
@@ -2278,7 +2279,7 @@ function upsellio_render_blog_generator_screen()
           border:1px solid #d9d9d5; background:#fff; border-radius:999px; padding:6px 10px;
           font-size:11px; color:#3f3f39; cursor:pointer; transition:.15s ease;
         }
-        .ups-fix-btn:hover { border-color:#1d9e75; color:#1d9e75; }
+        .ups-fix-btn:hover { border-color:#0d9488; color:#0d9488; }
         .ups-heatmap { margin-top:12px; border-top:1px solid #ecece9; padding-top:10px; }
         .ups-heatmap-title { margin:0 0 8px; font-size:12px; color:#5a5a52; font-weight:700; }
         .ups-heatmap-list { margin:0; padding:0; list-style:none; display:grid; gap:6px; }
@@ -2288,7 +2289,7 @@ function upsellio_render_blog_generator_screen()
         }
         .ups-heatmap-item-name { font-size:12px; color:#3f3f3a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .ups-heatmap-badge { border-radius:999px; padding:3px 7px; font-size:10px; font-weight:700; }
-        .ups-heatmap-badge.good { background:#e8f8f2; color:#0d634e; border:1px solid #c2ebdc; }
+        .ups-heatmap-badge.good { background:#ecfeff; color:#0f766e; border:1px solid #99f6e4; }
         .ups-heatmap-badge.mid { background:#fff4e5; color:#8d5b1b; border:1px solid #f1ddbf; }
         .ups-heatmap-badge.bad { background:#fff2f2; color:#963636; border:1px solid #f2d0d0; }
         .ups-posts-box { margin-top:20px; border-top:1px solid #ecece9; padding-top:14px; }
@@ -2300,9 +2301,9 @@ function upsellio_render_blog_generator_screen()
         .ups-post-link { font-size:11px; color:#2271b1; text-decoration:none; }
         .ups-post-link:hover { text-decoration:underline; }
         .ups-quick-edit-btn {
-          border:1px solid #1d9e75;
+          border:1px solid #0d9488;
           background:#fff;
-          color:#1d9e75;
+          color:#0d9488;
           border-radius:999px;
           font-size:11px;
           line-height:1;
@@ -2310,7 +2311,7 @@ function upsellio_render_blog_generator_screen()
           text-decoration:none;
           font-weight:700;
         }
-        .ups-quick-edit-btn:hover { background:#1d9e75; color:#fff; text-decoration:none; }
+        .ups-quick-edit-btn:hover { background:#0d9488; color:#fff; text-decoration:none; }
       </style>
       <h1 style="margin-bottom:16px;">Upsellio SEO Blog Tool</h1>
       <p style="max-width:920px;">
@@ -2713,7 +2714,7 @@ function upsellio_render_blog_generator_screen()
             </label>
             <label class="ups-field">
               <strong>Tagi (po przecinku)</strong>
-              <input type="text" name="tags" data-seo-field="tags" value="<?php echo esc_attr($prefill_values["tags"]); ?>" placeholder="meta ads, lead generation, landing page" />
+              <input type="text" name="tags" data-seo-field="tags" value="<?php echo esc_attr($prefill_values["tags"]); ?>" placeholder="meta ads, pozyskiwanie klientów, landing page" />
             </label>
             <label class="ups-field">
               <strong>Status wpisu</strong>
@@ -3370,7 +3371,7 @@ function upsellio_render_blog_generator_screen()
           function getScoreColor(total) {
             if (total < 50) return "#d14c4c";
             if (total < 75) return "#e18d2d";
-            return "#1d9e75";
+            return "#0d9488";
           }
 
           function getState(total) {
@@ -3540,7 +3541,7 @@ function upsellio_render_blog_generator_screen()
             else {
               if (articleType === "seo_article" || articleType === "landing_sales") {
                 addSuggestion(suggestions, "<strong>Lead generation:</strong> dodaj [upsellio_contact_form].", "content_template");
-                critical.push("Brak formularza lead generation w treści.");
+                critical.push("Brak formularza pozyskiwania klientów w treści.");
               }
             }
             if (problem.length >= 80) conversionScore += 5;

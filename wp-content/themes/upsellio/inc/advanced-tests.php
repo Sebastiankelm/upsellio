@@ -500,12 +500,14 @@ add_action("wp_ajax_upsellio_get_advanced_tests_state", "upsellio_get_advanced_t
 
 function upsellio_register_advanced_tests_admin_page()
 {
-    add_management_page(
+    add_submenu_page(
+        "tools.php",
         "Zaawansowane testy Upsellio",
         "Zaawansowane testy",
         "manage_options",
         "upsellio-advanced-tests",
-        "upsellio_render_advanced_tests_admin_page"
+        "upsellio_render_advanced_tests_admin_page",
+        97
     );
 }
 add_action("admin_menu", "upsellio_register_advanced_tests_admin_page");
