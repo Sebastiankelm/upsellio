@@ -1,0 +1,355 @@
+/*
+ * Upsellio Landing Pages - Consolidated Tokens & Utilities
+ *
+ * Etap 5 redesignu: ten plik konsoliduje powtarzalne zmienne, animacje i prymitywy
+ * używane na podstronach usługowych (Google Ads, Meta Ads, strony WWW, oferta) oraz
+ * w archiwach i pojedynczych wpisach. Kolejne template'y mogą stopniowo migrować
+ * z lokalnych klas (gads-*, meta-*, web-*, offer-*) na klasy lp-* bez ryzyka regresu.
+ *
+ * Konwencja:
+ *   --lp-*           tokeny wspólne dla landing pages
+ *   --lp-accent-*    akcent kolorystyczny per usługa (Google teal, Meta indigo, WWW amber)
+ *   .lp-*            klasy komponentowe gotowe do użycia
+ */
+
+:root {
+  /* Surface, border, text */
+  --lp-surface: #ffffff;
+  --lp-surface-soft: #f8fafc;
+  --lp-surface-mist: #f1f5f9;
+  --lp-border: #e2e8f0;
+  --lp-border-strong: #cbd5e1;
+  --lp-text: #0f172a;
+  --lp-text-muted: #475569;
+  --lp-text-subtle: #64748b;
+
+  /* Per-service accents - jedna paleta dla całego motywu */
+  --lp-accent-google: #0d9488;
+  --lp-accent-google-soft: #ccfbf1;
+  --lp-accent-google-line: #99f6e4;
+  --lp-accent-meta: #4f46e5;
+  --lp-accent-meta-soft: #e0e7ff;
+  --lp-accent-meta-line: #c7d2fe;
+  --lp-accent-web: #f59e0b;
+  --lp-accent-web-soft: #fef3c7;
+  --lp-accent-web-line: #fde68a;
+  --lp-accent-content: #0ea5e9;
+  --lp-accent-content-soft: #e0f2fe;
+
+  /* Radius i cienie */
+  --lp-r-sm: 10px;
+  --lp-r-md: 14px;
+  --lp-r-lg: 20px;
+  --lp-r-xl: 28px;
+  --lp-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --lp-shadow-sm: 0 6px 18px -8px rgba(15, 23, 42, 0.18);
+  --lp-shadow-md: 0 14px 40px rgba(15, 23, 42, 0.08);
+  --lp-shadow-lg: 0 24px 60px -20px rgba(13, 148, 136, 0.4);
+  --lp-shadow-meta: 0 24px 60px -20px rgba(79, 70, 229, 0.45);
+  --lp-shadow-web: 0 24px 60px -20px rgba(245, 158, 11, 0.4);
+
+  /* Spacing skala */
+  --lp-sp-1: 8px;
+  --lp-sp-2: 14px;
+  --lp-sp-3: 22px;
+  --lp-sp-4: 32px;
+  --lp-sp-5: 48px;
+  --lp-sp-6: 72px;
+}
+
+/* -------------------------------------------------- *
+ * Pojemniki sekcji
+ * -------------------------------------------------- */
+.lp-section {
+  padding: var(--lp-sp-5) 0;
+}
+
+.lp-section--soft {
+  background: var(--lp-surface-soft);
+}
+
+.lp-section--mist {
+  background: var(--lp-surface-mist);
+}
+
+.lp-section--dark {
+  background: radial-gradient(circle at 0% 0%, #0f172a, #020617 70%);
+  color: #f8fafc;
+}
+
+.lp-wrap {
+  width: min(1180px, 100% - 32px);
+  margin: 0 auto;
+}
+
+@media (min-width: 961px) {
+  .lp-section {
+    padding: var(--lp-sp-6) 0;
+  }
+}
+
+/* -------------------------------------------------- *
+ * Typografia landing
+ * -------------------------------------------------- */
+.lp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border);
+  color: var(--lp-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.lp-h1 {
+  font-family: Syne, "Inter", system-ui, sans-serif;
+  font-size: clamp(34px, 5vw, 54px);
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+  color: var(--lp-text);
+  margin: 12px 0 18px;
+}
+
+.lp-h2 {
+  font-family: Syne, "Inter", system-ui, sans-serif;
+  font-size: clamp(26px, 3.4vw, 38px);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--lp-text);
+  margin: 0 0 16px;
+}
+
+.lp-lead {
+  font-size: clamp(16px, 1.6vw, 19px);
+  line-height: 1.6;
+  color: var(--lp-text-muted);
+  max-width: 56ch;
+  margin: 0 0 22px;
+}
+
+/* -------------------------------------------------- *
+ * Karty
+ * -------------------------------------------------- */
+.lp-card {
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-r-lg);
+  padding: 22px;
+  box-shadow: var(--lp-shadow-xs);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.lp-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--lp-border-strong);
+  box-shadow: var(--lp-shadow-sm);
+}
+
+.lp-card--feature {
+  border-top-width: 3px;
+}
+
+.lp-card--google {
+  border-top: 3px solid var(--lp-accent-google);
+}
+
+.lp-card--meta {
+  border-top: 3px solid var(--lp-accent-meta);
+}
+
+.lp-card--web {
+  border-top: 3px solid var(--lp-accent-web);
+}
+
+.lp-card--content {
+  border-top: 3px solid var(--lp-accent-content);
+}
+
+/* -------------------------------------------------- *
+ * Pille i badge
+ * -------------------------------------------------- */
+.lp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--lp-surface-soft);
+  border: 1px solid var(--lp-border);
+  color: var(--lp-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lp-pill--google {
+  background: var(--lp-accent-google-soft);
+  border-color: var(--lp-accent-google-line);
+  color: var(--lp-accent-google);
+}
+
+.lp-pill--meta {
+  background: var(--lp-accent-meta-soft);
+  border-color: var(--lp-accent-meta-line);
+  color: var(--lp-accent-meta);
+}
+
+.lp-pill--web {
+  background: var(--lp-accent-web-soft);
+  border-color: var(--lp-accent-web-line);
+  color: #b45309;
+}
+
+/* -------------------------------------------------- *
+ * Animacje reveal (kompatybilne z .reveal w upsellio.js)
+ * -------------------------------------------------- */
+.lp-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lp-reveal.visible,
+.lp-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* -------------------------------------------------- *
+ * Wspólne layouty hero (dwukolumnowy)
+ * -------------------------------------------------- */
+.lp-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  align-items: center;
+}
+
+@media (min-width: 961px) {
+  .lp-hero-grid {
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 48px;
+  }
+}
+
+/* -------------------------------------------------- *
+ * Wspólne wzorce KPI grid
+ * -------------------------------------------------- */
+.lp-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.lp-kpi {
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border);
+  border-radius: var(--lp-r-lg);
+  padding: 22px 20px;
+  box-shadow: var(--lp-shadow-xs);
+}
+
+.lp-kpi-value {
+  font-family: Syne, "Inter", system-ui, sans-serif;
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--lp-accent-google);
+}
+
+.lp-kpi--meta .lp-kpi-value {
+  color: var(--lp-accent-meta);
+}
+
+.lp-kpi--web .lp-kpi-value {
+  color: #b45309;
+}
+
+.lp-kpi-label {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--lp-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+/* -------------------------------------------------- *
+ * Powtarzalne komponenty form
+ * -------------------------------------------------- */
+.lp-form-shell {
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border);
+  border-top: 4px solid var(--lp-accent-google);
+  border-radius: var(--lp-r-xl);
+  padding: clamp(24px, 4vw, 36px);
+  box-shadow: var(--lp-shadow-md);
+}
+
+.lp-form-host {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--lp-border);
+}
+
+.lp-form-host-photo,
+.lp-form-host-fallback {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  flex: 0 0 64px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(140deg, #e8f8f2, #f3faf7);
+  color: #085041;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+}
+
+.lp-form-host-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.lp-form-host-body strong {
+  display: block;
+  font-family: Syne, "Inter", system-ui, sans-serif;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  color: var(--lp-text);
+}
+
+.lp-form-host-body span {
+  display: block;
+  font-size: 13px;
+  color: var(--lp-text-subtle);
+}
+
+.lp-form-host-body em {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--lp-accent-google);
+}

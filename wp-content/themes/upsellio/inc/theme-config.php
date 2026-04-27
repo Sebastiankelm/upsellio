@@ -279,6 +279,84 @@ function upsellio_get_theme_config_defaults()
             "contact_phone" => "+48 575 522 595",
             "contact_email" => "kontakt@upsellio.pl",
         ],
+        "trust_seo" => [
+            "organization" => [
+                "name" => "Upsellio",
+                "alternate_name" => "Upsellio by Sebastian Kelm",
+                "url" => "/",
+                "description" => "Marketing internetowy B2B, kampanie Google Ads, Meta Ads oraz strony internetowe dla firm B2B.",
+                "email" => "kontakt@upsellio.pl",
+                "telephone" => "+48 575 522 595",
+                "founder_name" => "Sebastian Kelm",
+                "area_served" => "PL",
+                "logo_url" => "",
+                "default_og_image" => "",
+            ],
+            "social_profiles" => [
+                "linkedin" => "https://www.linkedin.com/in/sebastiankelm/",
+                "facebook" => "https://www.facebook.com/upsellio.pl",
+                "instagram" => "https://www.instagram.com/upsellio.pl/",
+                "x" => "https://x.com/upsellio",
+                "youtube" => "https://www.youtube.com/@upsellio",
+            ],
+            "founder" => [
+                "name" => "Sebastian Kelm",
+                "role" => "Growth marketer B2B i praktyk sprzedaży",
+                "photo_url" => "",
+                "bio" => "Od ponad 10 lat łączę sprzedaż B2B, kampanie reklamowe i strony nastawione na konwersję.",
+                "stats" => [
+                    "10+ lat praktyki w sprzedaży i marketingu",
+                    "Doświadczenie w kampaniach Google Ads i Meta Ads",
+                    "Bezpośredni kontakt z osobą odpowiedzialną za wynik",
+                ],
+                "client_sectors" => ["B2B", "usługi", "e-commerce"],
+            ],
+            "proof_labels" => [
+                "hero_dashboard" => "Przykładowy wynik z kampanii — branża: usługi B2B",
+                "cta_dark" => "Bezpłatna analiza • konkretne wnioski • bez zobowiązań",
+                "funnel_benchmark" => "Konwersja 1,5%+ zwykle oznacza zdrowy punkt startowy w B2B.",
+            ],
+            "pricing_ranges" => [
+                [
+                    "name" => "Kampanie Google Ads",
+                    "price" => "Wycena indywidualna",
+                    "description" => "Zależnie od skali konta, liczby kampanii i zakresu optymalizacji.",
+                    "enabled" => true,
+                ],
+                [
+                    "name" => "Kampanie Meta Ads",
+                    "price" => "Wycena indywidualna",
+                    "description" => "Dla lead generation, retargetingu i kampanii B2B/B2C.",
+                    "enabled" => true,
+                ],
+                [
+                    "name" => "Strony i landing page",
+                    "price" => "Wycena po rozmowie",
+                    "description" => "Zakres zależy od liczby widoków, treści i integracji.",
+                    "enabled" => true,
+                ],
+            ],
+            "testimonials" => [],
+            "featured_case" => [
+                "label" => "Case study",
+                "client_context" => "Klient z branży usług B2B, rynek ogólnopolski",
+                "period" => "wyniki po 4 miesiącach współpracy",
+                "before" => "Ruch bez stabilnych zapytań",
+                "after" => "Stały napływ kwalifikowanych leadów",
+                "metrics" => [
+                    "Konwersja strony: 0,6% → 2,3%",
+                    "CPL: -18%",
+                    "Leady: +28% miesiąc do miesiąca",
+                ],
+                "enabled" => true,
+            ],
+            "lead_magnet_bullets" => [
+                "Checklistę najczęstszych błędów w kampaniach i na stronie",
+                "Punkty kontrolne do oceny jakości leadów",
+                "Prosty sposób priorytetyzacji poprawek",
+                "Wskazówki, co mierzyć przed zwiększeniem budżetu",
+            ],
+        ],
     ];
 }
 
@@ -300,9 +378,104 @@ function upsellio_update_theme_config($new_config)
     update_option("upsellio_theme_config_v1", $safe_config);
 }
 
+function upsellio_get_trust_seo_config()
+{
+    $config = upsellio_get_theme_config();
+    return isset($config["trust_seo"]) && is_array($config["trust_seo"])
+        ? $config["trust_seo"]
+        : [];
+}
+
+function upsellio_get_trust_seo_section($section_key)
+{
+    $section_key = sanitize_key((string) $section_key);
+    $config = upsellio_get_trust_seo_config();
+    return isset($config[$section_key]) && is_array($config[$section_key])
+        ? $config[$section_key]
+        : [];
+}
+
+function upsellio_get_organization_schema_config()
+{
+    return upsellio_get_trust_seo_section("organization");
+}
+
+function upsellio_get_testimonials_config()
+{
+    $testimonials = upsellio_get_trust_seo_section("testimonials");
+    $items = [];
+    foreach ($testimonials as $testimonial) {
+        if (!is_array($testimonial)) {
+            continue;
+        }
+        $quote = trim((string) ($testimonial["quote"] ?? ""));
+        $name = trim((string) ($testimonial["name"] ?? ""));
+        if ($quote === "" || $name === "") {
+            continue;
+        }
+        $items[] = $testimonial;
+    }
+    return $items;
+}
+
+function upsellio_get_pricing_ranges_config()
+{
+    $ranges = upsellio_get_trust_seo_section("pricing_ranges");
+    return array_values(array_filter($ranges, static function ($item) {
+        return is_array($item) && !empty($item["enabled"]) && trim((string) ($item["name"] ?? "")) !== "";
+    }));
+}
+
+function upsellio_get_default_og_image_url($context = "default")
+{
+    if (function_exists("upsellio_get_template_asset_url")) {
+        $context_map = [
+            "blog" => "og_blog",
+            "post" => "og_blog",
+            "portfolio" => "og_portfolio",
+            "case" => "og_portfolio",
+            "service" => "og_services",
+            "services" => "og_services",
+            "offer" => "og_services",
+        ];
+        $candidate_keys = [];
+        $context_key = (string) $context;
+        if (isset($context_map[$context_key])) {
+            $candidate_keys[] = $context_map[$context_key];
+        }
+        $candidate_keys[] = "og_default";
+
+        foreach ($candidate_keys as $candidate) {
+            $candidate_url = upsellio_get_template_asset_url($candidate, "full");
+            if ($candidate_url !== "") {
+                return esc_url_raw($candidate_url);
+            }
+        }
+    }
+
+    $organization = upsellio_get_organization_schema_config();
+    $configured_image = trim((string) ($organization["default_og_image"] ?? ""));
+    if ($configured_image !== "") {
+        return esc_url_raw($configured_image);
+    }
+    $logo_url = trim((string) ($organization["logo_url"] ?? ""));
+    if ($logo_url !== "") {
+        return esc_url_raw($logo_url);
+    }
+    if (function_exists("upsellio_get_generated_logo_url")) {
+        $generated_logo = upsellio_get_generated_logo_url("png");
+        if ($generated_logo !== "") {
+            return $generated_logo;
+        }
+    }
+    return get_template_directory_uri() . "/assets/images/upsellio-logo.png";
+}
+
 function upsellio_get_contact_phone()
 {
-    return "+48 575 522 595";
+    $organization = upsellio_get_organization_schema_config();
+    $phone = trim((string) ($organization["telephone"] ?? ""));
+    return $phone !== "" ? $phone : "+48 575 522 595";
 }
 
 function upsellio_get_special_navigation_links_config()
@@ -367,6 +540,7 @@ function upsellio_register_template_seo_head($template_key, $replacements = [])
     $og_description = trim($replace_tokens((string) ($payload["og_description"] ?? "")));
     $og_type = trim($replace_tokens((string) ($payload["og_type"] ?? "website")));
     $og_url = trim($replace_tokens((string) ($payload["og_url"] ?? "/")));
+    $og_image = trim($replace_tokens((string) ($payload["og_image"] ?? "")));
     $twitter_card = trim($replace_tokens((string) ($payload["twitter_card"] ?? "summary")));
     $schema_type = trim($replace_tokens((string) ($payload["schema_type"] ?? "")));
     $schema_name = trim($replace_tokens((string) ($payload["schema_name"] ?? "")));
@@ -387,6 +561,7 @@ function upsellio_register_template_seo_head($template_key, $replacements = [])
         $og_description,
         $og_type,
         $og_url,
+        $og_image,
         $twitter_card,
         $schema_type,
         $schema_name,
@@ -406,6 +581,11 @@ function upsellio_register_template_seo_head($template_key, $replacements = [])
         }
         echo '<meta property="og:type" content="' . esc_attr($og_type !== "" ? $og_type : "website") . '" />' . "\n";
         echo '<meta property="og:url" content="' . esc_url(home_url($og_url !== "" ? $og_url : "/")) . '" />' . "\n";
+        $resolved_og_image = $og_image !== "" ? $og_image : (function_exists("upsellio_get_default_og_image_url") ? upsellio_get_default_og_image_url() : "");
+        if ($resolved_og_image !== "") {
+            echo '<meta property="og:image" content="' . esc_url($resolved_og_image) . '" />' . "\n";
+            echo '<meta name="twitter:image" content="' . esc_url($resolved_og_image) . '" />' . "\n";
+        }
         echo '<meta name="twitter:card" content="' . esc_attr($twitter_card !== "" ? $twitter_card : "summary") . '" />' . "\n";
 
         if ($schema_type !== "") {
@@ -1183,9 +1363,11 @@ function upsellio_handle_theme_config_submit()
     $special_links_json = isset($_POST["ups_special_links_json"]) ? (string) wp_unslash($_POST["ups_special_links_json"]) : "[]";
     $front_page_json = isset($_POST["ups_front_page_sections_json"]) ? (string) wp_unslash($_POST["ups_front_page_sections_json"]) : "{}";
     $template_seo_json = isset($_POST["ups_template_seo_json"]) ? (string) wp_unslash($_POST["ups_template_seo_json"]) : "{}";
+    $trust_seo_json = isset($_POST["ups_trust_seo_json"]) ? (string) wp_unslash($_POST["ups_trust_seo_json"]) : "{}";
     $special_links = json_decode($special_links_json, true);
     $front_sections = json_decode($front_page_json, true);
     $template_seo = json_decode($template_seo_json, true);
+    $trust_seo = json_decode($trust_seo_json, true);
     if (!is_array($special_links)) {
         $special_links = upsellio_get_theme_config_defaults()["special_navigation_links"];
     }
@@ -1195,11 +1377,15 @@ function upsellio_handle_theme_config_submit()
     if (!is_array($template_seo)) {
         $template_seo = upsellio_get_theme_config_defaults()["template_seo"];
     }
+    if (!is_array($trust_seo)) {
+        $trust_seo = upsellio_get_theme_config_defaults()["trust_seo"];
+    }
 
     upsellio_update_theme_config([
         "template_seo" => $template_seo,
         "special_navigation_links" => $special_links,
         "front_page_sections" => $front_sections,
+        "trust_seo" => $trust_seo,
     ]);
 
     wp_safe_redirect(add_query_arg(["page" => "upsellio-theme-config", "saved" => 1], admin_url("themes.php")));
@@ -1217,6 +1403,7 @@ function upsellio_render_theme_config_screen()
     $template_seo_json = wp_json_encode($config["template_seo"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     $special_links_json = wp_json_encode($config["special_navigation_links"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     $front_page_json = wp_json_encode($config["front_page_sections"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    $trust_seo_json = wp_json_encode($config["trust_seo"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     $content_post_type_options = upsellio_get_content_post_type_options();
     ?>
     <div class="wrap">
@@ -1304,6 +1491,9 @@ function upsellio_render_theme_config_screen()
         <textarea name="ups_special_links_json" rows="14" class="large-text code"><?php echo esc_textarea((string) $special_links_json); ?></textarea>
         <h2>Front page sections (JSON)</h2>
         <textarea name="ups_front_page_sections_json" rows="24" class="large-text code"><?php echo esc_textarea((string) $front_page_json); ?></textarea>
+        <h2 id="trust-seo">Dane zaufania, SEO i CRO (JSON)</h2>
+        <p>Uzupełnij tu dane Organization, profile społecznościowe, opinie, widełki cenowe, dowody społeczne, domyślny obraz OG oraz treści do case studies. Szablony pobierają te dane jako jedno źródło prawdy.</p>
+        <textarea name="ups_trust_seo_json" rows="28" class="large-text code"><?php echo esc_textarea((string) $trust_seo_json); ?></textarea>
         <p><button type="submit" name="upsellio_theme_config_submit" value="1" class="button button-primary">Zapisz konfiguracje</button></p>
       </form>
     </div>

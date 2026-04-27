@@ -13,7 +13,7 @@ if (!defined("ABSPATH")) {
         <span>Marketing B2B, który zamienia ruch w wartościowe rozmowy</span>
       </div>
       <h1 class="h1 hero-h1 reveal in d1">
-        Więcej klientów z Google i Meta Ads — bez przepalania budżetu
+        Kampanie Google Ads i Meta Ads, które zamieniają ruch w <span class="hero-accent">klientów B2B</span>
       </h1>
       <p class="lead hero-lead reveal in d2">
         Tworzę kampanie i strony, które zamieniają ruch w sprzedaż. Sprawdzam, gdzie uciekają zapytania: w kampanii, na stronie, w ofercie albo w jakości leadów.
@@ -26,23 +26,19 @@ if (!defined("ABSPATH")) {
         <a href="<?php echo esc_url(home_url("/#jak-dzialam")); ?>" class="btn btn-secondary">Zobacz, jak pracuję</a>
       </div>
       <p class="hero-micro reveal in d3">Bezpłatna analiza • konkretne wnioski • bez zobowiązań</p>
-      <div class="hero-fast-lane reveal in d3">
-        <a href="<?php echo esc_url(home_url("/#hero-analiza")); ?>">Wyślij stronę do analizy</a>
-        <a href="<?php echo esc_url(home_url("/#case-study")); ?>">Zobacz wyniki</a>
-        <a href="<?php echo esc_url(home_url("/#faq")); ?>">Najczęstsze pytania</a>
-      </div>
-      <details class="content-expand section-copy-expand reveal in d3">
-        <summary>Dlaczego sam ruch nie wystarczy?</summary>
-        <div class="content-expand-content">
-          <p>Większość firm B2B płaci za ruch, który nie przynosi efektów. Widzisz kliknięcia w panelu, ale telefon milczy, bo problem często leży w całym systemie: przekazie, ofercie, zaufaniu, CTA i jakości ruchu.</p>
-          <p>Analizuję ścieżkę od pierwszego kliknięcia do rozmowy sprzedażowej. Sprawdzam, czy reklama trafia do właściwej grupy, czy strona domyka intencję i czy formularz nie tworzy niepotrzebnego oporu.</p>
-          <p>W B2B decyzja trwa dłużej, a klient potrzebuje więcej dowodów. Dlatego kampania i strona muszą być budowane pod proces zakupu, a nie tylko pod niski koszt kliknięcia.</p>
-        </div>
-      </details>
     </div>
 
     <aside class="hero-aside hero-aside-system reveal in d2" aria-label="Mini dashboard analizy leadów">
-      <div class="hero-aside-label">Mini diagnoza lejka</div>
+      <div class="hero-author-card">
+        <div class="hero-author-photo">
+          <?php echo function_exists("upsellio_render_home_media_image") ? upsellio_render_home_media_image("hero_portrait", ["class" => "hero-author-img", "size" => "medium_large", "loading" => "eager"]) : ""; ?>
+        </div>
+        <div>
+          <div class="hero-author-kicker">Sebastian Kelm</div>
+          <p><?php echo esc_html(function_exists("upsellio_home_media_slot_caption") ? upsellio_home_media_slot_caption("hero_portrait") : "Marketing B2B oparty o sprzedaż, dane i konwersję."); ?></p>
+        </div>
+      </div>
+      <div class="hero-aside-label">Przykładowy wynik z kampanii — branża: usługi B2B</div>
       <div class="hero-system" id="hero-system">
         <div class="hero-system-head">
           <div>
@@ -102,14 +98,7 @@ if (!defined("ABSPATH")) {
         <input class="input" id="hero-site" type="url" name="lead_company" placeholder="https://twojastrona.pl" required />
         <label for="hero-email">E-mail do odpowiedzi</label>
         <input class="input" id="hero-email" type="email" name="lead_email" placeholder="kontakt@firma.pl" required />
-        <label for="hero-problem">Co najbardziej blokuje wynik?</label>
-        <select class="select" id="hero-problem" name="lead_service" required>
-          <option value="">Wybierz problem</option>
-          <option>Kampanie przepalają budżet</option>
-          <option>Strona nie generuje zapytań</option>
-          <option>Leady są słabej jakości</option>
-          <option>Nie wiem, gdzie leży problem</option>
-        </select>
+        <input type="hidden" name="lead_service" value="Szybka analiza strony" />
         <input type="hidden" name="lead_message" value="Proszę o szybką analizę potencjału strony i wskazanie, co blokuje wyniki." />
         <label class="hero-consent">
           <input type="checkbox" name="lead_consent" value="1" required />
@@ -120,19 +109,26 @@ if (!defined("ABSPATH")) {
     </aside>
   </div>
 </section>
+<section class="hero-trust-strip section-border" aria-label="Zaufali mi klienci i partnerzy">
+  <div class="wrap hero-trust-strip-inner">
+    <span class="hero-trust-title">Trusted by</span>
+    <div class="hero-trust-logos">
+      <span>Google Partner</span>
+      <span>Meta Business Partner</span>
+      <span>GA4 Certified</span>
+      <span>B2B Services</span>
+      <span>E-commerce</span>
+      <span>SaaS</span>
+    </div>
+  </div>
+</section>
 
 <section class="section section-border bg-soft" id="problem">
   <div class="wrap">
     <div class="section-head">
       <div class="eyebrow reveal">Problem</div>
-      <h2 class="h2 reveal d1">Masz ruch, ale nie masz klientów?</h2>
+      <h2 class="h2 reveal d1">Dlaczego kampanie Google Ads i Meta Ads nie przynoszą klientów?</h2>
       <p class="body reveal d2">Pokazuję, gdzie tracisz pieniądze: w kampanii, na stronie albo w sposobie pokazania oferty.</p>
-    </div>
-    <div class="problem-grid section-grid-gap-lg">
-      <div class="problem-card reveal"><strong>Sprawdzam kampanie</strong><span>Czy budżet idzie w dobrą grupę i czy kliknięcia mają intencję zakupową.</span></div>
-      <div class="problem-card reveal d1"><strong>Sprawdzam stronę</strong><span>Czy strona szybko tłumaczy wartość, buduje zaufanie i prowadzi do kontaktu.</span></div>
-      <div class="problem-card reveal d2"><strong>Sprawdzam ofertę</strong><span>Czy komunikat mówi językiem klienta, a nie tylko listą usług i narzędzi.</span></div>
-      <div class="problem-card reveal d3"><strong>Wskazuję priorytet</strong><span>Co poprawić najpierw, żeby nie zwiększać budżetu bez sensu.</span></div>
     </div>
     <details class="content-expand section-copy-expand reveal d2">
       <summary>Co najczęściej blokuje zapytania?</summary>

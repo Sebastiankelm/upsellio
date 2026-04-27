@@ -1,6 +1,6 @@
 (function () {
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const reveals = document.querySelectorAll(".reveal");
+  const reveals = document.querySelectorAll(".reveal, .lp-reveal");
   const topBtn = document.getElementById("scroll-top");
   const nav = document.querySelector(".nav");
   const ham = document.getElementById("hamburger");
@@ -127,6 +127,21 @@
       } else if (!event.shiftKey && active === last) {
         event.preventDefault();
         first.focus();
+      }
+    });
+  }
+
+  const dropdownToggle = document.querySelector(".nav-dropdown-toggle");
+  const dropdownRoot = dropdownToggle ? dropdownToggle.closest(".nav-dropdown") : null;
+  if (dropdownToggle && dropdownRoot) {
+    dropdownToggle.addEventListener("click", () => {
+      const isOpen = dropdownRoot.classList.toggle("open");
+      dropdownToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+    document.addEventListener("click", (event) => {
+      if (!dropdownRoot.contains(event.target)) {
+        dropdownRoot.classList.remove("open");
+        dropdownToggle.setAttribute("aria-expanded", "false");
       }
     });
   }
@@ -607,6 +622,67 @@
     link.addEventListener("click", () => trackContactClick("tel", link.getAttribute("href") || ""));
   });
 
+  function initServerLeadForms() {
+    const serverForms = Array.from(document.querySelectorAll("form[data-upsellio-server-form='1']"));
+    if (!serverForms.length) return;
+
+    serverForms.forEach((serverForm) => {
+      if (serverForm.dataset.upsellioAjaxReady === "1") return;
+      const serverSubmit = serverForm.querySelector("button[type='submit'], input[type='submit']");
+      if (!serverSubmit) return;
+      serverForm.dataset.upsellioAjaxReady = "1";
+
+      serverForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const defaultText = serverSubmit.textContent || serverSubmit.value || "Wyślij";
+        let feedback = serverForm.querySelector("[data-form-feedback]");
+        if (!feedback) {
+          feedback = document.createElement("div");
+          feedback.setAttribute("data-form-feedback", "1");
+          feedback.setAttribute("role", "status");
+          feedback.className = "form-feedback";
+          serverForm.insertBefore(feedback, serverForm.firstChild);
+        }
+
+        if ("textContent" in serverSubmit) serverSubmit.textContent = "Wysyłanie...";
+        if ("value" in serverSubmit) serverSubmit.value = "Wysyłanie...";
+        serverSubmit.disabled = true;
+        feedback.textContent = "";
+        feedback.classList.remove("is-success", "is-error");
+
+        try {
+          const response = await fetch(serverForm.action, {
+            method: serverForm.method || "POST",
+            body: new FormData(serverForm),
+            credentials: "same-origin",
+            redirect: "follow",
+          });
+          if (!response.ok || (response.url && response.url.includes("ups_lead_status=error"))) {
+            throw new Error("Nie udało się wysłać formularza. Sprawdź pola i spróbuj ponownie.");
+          }
+
+          feedback.textContent = "Dziękuję! Wiadomość została zapisana i odezwę się możliwie szybko.";
+          feedback.classList.add("is-success");
+          if (typeof window.gtag === "function") {
+            window.gtag("event", "lead_form_submitted", {
+              form_id: serverForm.id || serverForm.dataset.upsellioLeadForm || "lead-form",
+            });
+          }
+          serverForm.reset();
+        } catch (error) {
+          feedback.textContent = error.message || "Błąd wysyłki. Spróbuj ponownie.";
+          feedback.classList.add("is-error");
+        } finally {
+          if ("textContent" in serverSubmit) serverSubmit.textContent = defaultText;
+          if ("value" in serverSubmit) serverSubmit.value = defaultText;
+          serverSubmit.disabled = false;
+        }
+      });
+    });
+  }
+
+  initServerLeadForms();
+
   const form = document.getElementById("contact-form") || document.getElementById("audit-form");
   const submitBtn = document.getElementById("submit-btn");
   if (form && submitBtn) {
@@ -628,7 +704,67 @@
       return !show;
     }
 
-    if (form.dataset.upsellioServerForm === "1") return;
+    if (form.dataset.upsellioServerForm === "1") {
+      if (form.dataset.upsellioAjaxReady === "1") return;
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const defaultText = submitBtn.textContent;
+        let feedback = form.querySelector("[data-form-feedback]");
+        if (!feedback) {
+          feedback = document.createElement("div");
+          feedback.setAttribute("data-form-feedback", "1");
+          feedback.setAttribute("role", "status");
+          feedback.style.margin = "0 0 12px";
+          feedback.style.padding = "10px 12px";
+          feedback.style.borderRadius = "10px";
+          feedback.style.fontSize = "13px";
+          form.insertBefore(feedback, form.firstChild);
+        }
+
+        submitBtn.textContent = "Wysyłanie...";
+        submitBtn.disabled = true;
+        feedback.textContent = "";
+        feedback.style.display = "none";
+
+        try {
+          const response = await fetch(form.action, {
+            method: form.method || "POST",
+            body: new FormData(form),
+            credentials: "same-origin",
+            redirect: "follow",
+          });
+          if (!response.ok || (response.url && response.url.includes("ups_lead_status=error"))) {
+            throw new Error("Nie udało się wysłać formularza. Sprawdź pola i spróbuj ponownie.");
+          }
+
+          feedback.textContent = "Dziękuję! Wiadomość została zapisana i odezwę się możliwie szybko.";
+          feedback.style.display = "block";
+          feedback.style.border = "1px solid #c3eddd";
+          feedback.style.background = "#e8f8f2";
+          feedback.style.color = "#085041";
+          submitBtn.textContent = "Wysłano!";
+          if (typeof window.gtag === "function") {
+            window.gtag("event", "lead_form_submitted", {
+              form_id: form.id || form.dataset.upsellioLeadForm || "lead-form",
+            });
+          }
+          setTimeout(() => {
+            submitBtn.textContent = defaultText;
+            submitBtn.disabled = false;
+            form.reset();
+          }, 2800);
+        } catch (error) {
+          feedback.textContent = error.message || "Błąd wysyłki. Spróbuj ponownie.";
+          feedback.style.display = "block";
+          feedback.style.border = "1px solid #edcccc";
+          feedback.style.background = "#fff2f2";
+          feedback.style.color = "#b13a3a";
+          submitBtn.textContent = defaultText;
+          submitBtn.disabled = false;
+        }
+      });
+      return;
+    }
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -676,6 +812,11 @@
 
         submitBtn.textContent = "Wysłano! Odezwę się wkrótce ✓";
         submitBtn.style.background = "var(--teal-dark)";
+        if (typeof window.gtag === "function") {
+          window.gtag("event", "lead_form_submitted", {
+            form_id: form.id || "contact-form",
+          });
+        }
         setTimeout(() => {
           submitBtn.textContent = defaultText;
           submitBtn.style.background = "";

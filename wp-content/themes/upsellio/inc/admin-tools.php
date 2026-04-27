@@ -14,6 +14,9 @@ function upsellio_admin_url($page)
     $routes = [
         "upsellio-content-tools" => "themes.php?page=upsellio-content-tools",
         "upsellio-theme-config" => "themes.php?page=upsellio-theme-config",
+        "upsellio-trust-seo" => "themes.php?page=upsellio-theme-config#trust-seo",
+        "upsellio-home-media" => "themes.php?page=upsellio-home-media",
+        "upsellio-template-assets" => "themes.php?page=upsellio-template-assets",
         "upsellio-portfolio-seed" => "edit.php?post_type=portfolio&page=upsellio-portfolio-seed",
         "upsellio-marketing-portfolio-seed" => "edit.php?post_type=marketing_portfolio&page=upsellio-marketing-portfolio-seed",
         "upsellio-lead-magnet-seed" => "edit.php?post_type=lead_magnet&page=upsellio-lead-magnet-seed",
@@ -105,6 +108,9 @@ function upsellio_render_admin_hub_screen()
       upsellio_admin_hub_section("Treści i konfiguracja", [
           ["Dodaj treści", "Szybkie linki do tworzenia portfolio, lead magnetów i szablonów stron.", upsellio_admin_url("upsellio-content-tools")],
           ["Konfiguracja dynamiczna", "Eksport/import tekstów motywu oraz treści zarządzanych w panelu.", upsellio_admin_url("upsellio-theme-config"), "manage_options"],
+          ["Dane zaufania i schema", "Organizacja, opinie, ceny, social proof, obraz OG i dane do JSON-LD.", upsellio_admin_url("upsellio-trust-seo"), "manage_options"],
+          ["Media strony głównej", "Przypisz zdjęcia, screenshoty, avatary, alty i podpisy do sekcji landing page.", upsellio_admin_url("upsellio-home-media"), "manage_options"],
+          ["Assety stron", "Centralne zdjęcie założyciela, screenshoty paneli, mockupy i fallbacki OG dla podstron i template'ów.", upsellio_admin_url("upsellio-template-assets"), "manage_options"],
       ]);
 
       upsellio_admin_hub_section("Bazy treści", [
@@ -154,6 +160,8 @@ function upsellio_hide_scattered_admin_tool_submenus()
     $items = [
         ["themes.php", "upsellio-content-tools"],
         ["themes.php", "upsellio-theme-config"],
+        ["themes.php", "upsellio-home-media"],
+        ["themes.php", "upsellio-template-assets"],
         ["themes.php", "upsellio-logo-tool"],
         ["themes.php", "upsellio-server-files"],
         ["themes.php", "upsellio-navigation-sync"],

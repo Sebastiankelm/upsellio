@@ -204,3 +204,178 @@ function upsellio_serve_technical_seo_files_early($wp)
     }
 }
 add_action("parse_request", "upsellio_serve_technical_seo_files_early", 1);
+
+function upsellio_get_schema_url($value, $fallback = "/")
+{
+    $value = trim((string) $value);
+    if ($value === "") {
+        $value = (string) $fallback;
+    }
+    if (preg_match("#^https?://#i", $value)) {
+        return esc_url_raw($value);
+    }
+    return home_url("/" . ltrim($value, "/"));
+}
+
+function upsellio_get_organization_schema_payload()
+{
+    $organization = function_exists("upsellio_get_organization_schema_config") ? upsellio_get_organization_schema_config() : [];
+    $social_profiles = function_exists("upsellio_get_trust_seo_section") ? upsellio_get_trust_seo_section("social_profiles") : [];
+    $same_as = [];
+    foreach ((array) $social_profiles as $profile_url) {
+        $profile_url = esc_url_raw((string) $profile_url);
+        if ($profile_url !== "") {
+            $same_as[] = $profile_url;
+        }
+    }
+
+    $logo_url = trim((string) ($organization["logo_url"] ?? ""));
+    if ($logo_url === "" && function_exists("upsellio_get_generated_logo_url")) {
+        $logo_url = upsellio_get_generated_logo_url("png");
+    }
+
+    $payload = [
+        "@context" => "https://schema.org",
+        "@type" => "Organization",
+        "@id" => home_url("/#organization"),
+        "name" => trim((string) ($organization["name"] ?? "Upsellio")),
+        "url" => upsellio_get_schema_url((string) ($organization["url"] ?? "/")),
+        "description" => trim((string) ($organization["description"] ?? "")),
+    ];
+
+    $alternate_name = trim((string) ($organization["alternate_name"] ?? ""));
+    if ($alternate_name !== "") {
+        $payload["alternateName"] = $alternate_name;
+    }
+    if ($logo_url !== "") {
+        $payload["logo"] = esc_url_raw($logo_url);
+    }
+    $email = trim((string) ($organization["email"] ?? ""));
+    $telephone = trim((string) ($organization["telephone"] ?? ""));
+    if ($email !== "") {
+        $payload["email"] = $email;
+    }
+    if ($telephone !== "") {
+        $payload["contactPoint"] = [
+            "@type" => "ContactPoint",
+            "telephone" => $telephone,
+            "email" => $email,
+            "contactType" => "customer support",
+            "areaServed" => trim((string) ($organization["area_served"] ?? "PL")),
+            "availableLanguage" => ["pl-PL"],
+        ];
+    }
+    $founder_name = trim((string) ($organization["founder_name"] ?? ""));
+    if ($founder_name !== "") {
+        $payload["founder"] = [
+            "@type" => "Person",
+            "name" => $founder_name,
+        ];
+    }
+    if (!empty($same_as)) {
+        $payload["sameAs"] = array_values(array_unique($same_as));
+    }
+
+    return array_filter($payload, static function ($value) {
+        return $value !== "" && $value !== [];
+    });
+}
+
+function upsellio_print_organization_schema()
+{
+    if (is_admin()) {
+        return;
+    }
+    echo '<script type="application/ld+json">' . wp_json_encode(upsellio_get_organization_schema_payload(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+}
+add_action("wp_head", "upsellio_print_organization_schema", 8);
+
+function upsellio_render_faq_schema($faq_items)
+{
+    $entities = [];
+    foreach ((array) $faq_items as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+        $question = trim(wp_strip_all_tags((string) ($item["question"] ?? "")));
+        $answer = trim(wp_strip_all_tags((string) ($item["answer"] ?? "")));
+        if ($question === "" || $answer === "") {
+            continue;
+        }
+        $entities[] = [
+            "@type" => "Question",
+            "name" => $question,
+            "acceptedAnswer" => [
+                "@type" => "Answer",
+                "text" => $answer,
+            ],
+        ];
+    }
+    if (empty($entities)) {
+        return;
+    }
+    echo '<script type="application/ld+json">' . wp_json_encode([
+        "@context" => "https://schema.org",
+        "@type" => "FAQPage",
+        "mainEntity" => $entities,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+}
+
+function upsellio_get_service_schema_payload($name, $description, $url, $service_type = "")
+{
+    $organization = upsellio_get_organization_schema_payload();
+    $payload = [
+        "@context" => "https://schema.org",
+        "@type" => "Service",
+        "name" => trim((string) $name),
+        "description" => trim((string) $description),
+        "url" => upsellio_get_schema_url($url),
+        "serviceType" => trim((string) $service_type),
+        "areaServed" => trim((string) ($organization["contactPoint"]["areaServed"] ?? "PL")),
+        "provider" => [
+            "@type" => "Organization",
+            "@id" => home_url("/#organization"),
+            "name" => (string) ($organization["name"] ?? "Upsellio"),
+            "url" => (string) ($organization["url"] ?? home_url("/")),
+        ],
+    ];
+    return array_filter($payload, static function ($value) {
+        return $value !== "" && $value !== [];
+    });
+}
+
+function upsellio_render_service_schema($name, $description, $url, $service_type = "")
+{
+    echo '<script type="application/ld+json">' . wp_json_encode(upsellio_get_service_schema_payload($name, $description, $url, $service_type), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+}
+
+function upsellio_render_breadcrumb_schema($items)
+{
+    $list_items = [];
+    $position = 1;
+    foreach ((array) $items as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+        $name = trim((string) ($item["name"] ?? ""));
+        $url = trim((string) ($item["url"] ?? ""));
+        if ($name === "" || $url === "") {
+            continue;
+        }
+        $list_items[] = [
+            "@type" => "ListItem",
+            "position" => $position,
+            "name" => $name,
+            "item" => upsellio_get_schema_url($url),
+        ];
+        $position++;
+    }
+    if (empty($list_items)) {
+        return;
+    }
+    echo '<script type="application/ld+json">' . wp_json_encode([
+        "@context" => "https://schema.org",
+        "@type" => "BreadcrumbList",
+        "itemListElement" => $list_items,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+}

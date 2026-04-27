@@ -103,6 +103,8 @@ function upsellio_get_mailto_href($email)
 require_once get_template_directory() . "/inc/technical-seo.php";
 
 require_once get_template_directory() . "/inc/admin-tools.php";
+require_once get_template_directory() . "/inc/home-media.php";
+require_once get_template_directory() . "/inc/template-assets.php";
 
 function upsellio_is_strict_custom_embed_mode()
 {
@@ -429,6 +431,17 @@ function upsellio_get_social_profile_url($network)
         return "";
     }
 
+    if (function_exists("upsellio_get_trust_seo_section")) {
+        $social_profiles = upsellio_get_trust_seo_section("social_profiles");
+        $configured_value = trim((string) ($social_profiles[$network] ?? ""));
+        if ($configured_value !== "") {
+            $configured_value = esc_url_raw($configured_value);
+            if ($configured_value !== "") {
+                return $configured_value;
+            }
+        }
+    }
+
     $option_key = "upsellio_social_" . $network . "_url";
     $env_key = "UPSELLIO_SOCIAL_" . strtoupper($network) . "_URL";
     $value = trim((string) get_option($option_key, ""));
@@ -479,8 +492,11 @@ function upsellio_get_footer_city_links($limit = 54)
     if (!empty($ids)) {
         foreach ((array) $ids as $city_id) {
             $city_id = (int) $city_id;
+            $city_name = (string) (get_post_meta($city_id, "_upsellio_city_name", true) ?: get_the_title($city_id));
             $links[] = [
-                "label" => "Marketing i strony WWW " . (string) (get_post_meta($city_id, "_upsellio_city_name", true) ?: get_the_title($city_id)),
+                "label" => "Marketing i strony WWW " . $city_name,
+                "city_name" => $city_name,
+                "service_label" => "Marketing i strony WWW",
                 "url" => (string) get_permalink($city_id),
             ];
         }
@@ -488,8 +504,11 @@ function upsellio_get_footer_city_links($limit = 54)
     }
 
     foreach (array_slice((array) upsellio_get_cities_dataset(), 0, $limit) as $city_item) {
+        $city_name = (string) ($city_item["name"] ?? "");
         $links[] = [
-            "label" => "Marketing i strony WWW " . (string) ($city_item["name"] ?? ""),
+            "label" => "Marketing i strony WWW " . $city_name,
+            "city_name" => $city_name,
+            "service_label" => "Marketing i strony WWW",
             "url" => home_url("/miasto/" . (string) ($city_item["slug"] ?? "") . "/"),
         ];
     }
@@ -549,6 +568,20 @@ function upsellio_get_generated_logo_url($preferred = "png")
     return (string) ($assets[$preferred] ?? $assets["png"] ?? "");
 }
 
+function upsellio_get_social_icon_svg($network)
+{
+    $network = sanitize_key((string) $network);
+    $icons = [
+        "linkedin" => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 8.8H3.1v11.1h3.5V8.8zM4.8 3.5a2 2 0 0 0 0 4 2 2 0 0 0 0-4zm15.9 9.4c0-3-1.6-4.4-3.9-4.4-1.8 0-2.6 1-3 1.7V8.8h-3.5v11.1h3.5v-6.2c0-1.6.3-3.2 2.2-3.2 1.9 0 1.9 1.8 1.9 3.3v6.1H21V12.9h-.3z" fill="currentColor"/></svg>',
+        "facebook" => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.7 21v-8h2.7l.4-3h-3.1V8.1c0-.9.2-1.5 1.5-1.5h1.6V3.8c-.8-.1-1.6-.1-2.5-.1-2.4 0-4 1.5-4 4.3V10H7.8v3h2.4v8h3.5z" fill="currentColor"/></svg>',
+        "instagram" => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7.2A4.8 4.8 0 1 0 16.8 12 4.8 4.8 0 0 0 12 7.2zm0 7.9A3.1 3.1 0 1 1 15.1 12 3.1 3.1 0 0 1 12 15.1zm6.1-8a1.1 1.1 0 1 0 1.1 1.1 1.1 1.1 0 0 0-1.1-1.1zm-1.4 13.8H7.3A3.9 3.9 0 0 1 3.4 17V7A3.9 3.9 0 0 1 7.3 3h9.4a3.9 3.9 0 0 1 3.9 4v10a3.9 3.9 0 0 1-3.9 3.9zM7.3 4.7A2.3 2.3 0 0 0 5.1 7v10a2.3 2.3 0 0 0 2.2 2.3h9.4a2.3 2.3 0 0 0 2.2-2.3V7a2.3 2.3 0 0 0-2.2-2.3H7.3z" fill="currentColor"/></svg>',
+        "x" => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.2 3h2.9l-6.3 7.2L22 21h-5.6l-4.4-5.8L6.9 21H4l6.8-7.7L2 3h5.7l4 5.3L18.2 3zm-1 16.4h1.6L6.9 4.5H5.2l12 14.9z" fill="currentColor"/></svg>',
+        "youtube" => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 8.5a3.1 3.1 0 0 0-2.2-2.2C17.9 5.8 12 5.8 12 5.8s-5.9 0-7.8.5A3.1 3.1 0 0 0 2 8.5 32.7 32.7 0 0 0 1.5 12a32.7 32.7 0 0 0 .5 3.5 3.1 3.1 0 0 0 2.2 2.2c1.9.5 7.8.5 7.8.5s5.9 0 7.8-.5a3.1 3.1 0 0 0 2.2-2.2 32.7 32.7 0 0 0 .5-3.5 32.7 32.7 0 0 0-.5-3.5zM10.1 15.3V8.7l5.2 3.3-5.2 3.3z" fill="currentColor"/></svg>',
+    ];
+
+    return (string) ($icons[$network] ?? "");
+}
+
 function upsellio_render_unified_footer($args = [])
 {
     $args = is_array($args) ? $args : [];
@@ -556,6 +589,9 @@ function upsellio_render_unified_footer($args = [])
         ? (string) $args["contact_email"]
         : "kontakt@upsellio.pl";
     $contact_phone = function_exists("upsellio_get_contact_phone") ? (string) upsellio_get_contact_phone() : "+48 575 522 595";
+    $organization_config = function_exists("upsellio_get_organization_schema_config") ? upsellio_get_organization_schema_config() : [];
+    $footer_trust_config = function_exists("upsellio_get_trust_seo_section") ? upsellio_get_trust_seo_section("founder") : [];
+    $footer_proof_items = isset($footer_trust_config["stats"]) && is_array($footer_trust_config["stats"]) ? array_slice($footer_trust_config["stats"], 0, 3) : [];
     $contact_phone_href = preg_replace("/\s+/", "", $contact_phone);
     $definitions = upsellio_get_footer_popular_definitions_links(12);
     $cities = upsellio_get_footer_city_links(54);
@@ -567,8 +603,16 @@ function upsellio_render_unified_footer($args = [])
     $marketing_portfolio_url = function_exists("upsellio_get_marketing_portfolio_page_url") ? (string) upsellio_get_marketing_portfolio_page_url() : home_url("/portfolio-marketingowe/");
     $lead_magnets_url = function_exists("upsellio_get_lead_magnets_page_url") ? (string) upsellio_get_lead_magnets_page_url() : home_url("/lead-magnety/");
     $contact_url = function_exists("upsellio_get_contact_page_url") ? (string) upsellio_get_contact_page_url() : home_url("/kontakt/");
+    $google_ads_url = home_url("/marketing-google-ads/");
+    $meta_ads_url = home_url("/marketing-meta-ads/");
+    $websites_url = home_url("/tworzenie-stron-internetowych/");
+    $landing_page_url = home_url("/tworzenie-stron-internetowych/#landing-page");
+    $advisory_url = home_url("/oferta/");
     $definitions_url = upsellio_get_definitions_archive_url();
     $cities_url = upsellio_get_cities_archive_url();
+    $privacy_url = home_url("/polityka-prywatnosci/");
+    $cookies_url = home_url("/polityka-cookies/");
+    $terms_url = home_url("/regulamin/");
     $blog_page_id = function_exists("upsellio_get_blog_page_id") ? (int) upsellio_get_blog_page_id() : (int) get_option("page_for_posts");
     $blog_url = $blog_page_id > 0 ? (string) get_permalink($blog_page_id) : home_url("/blog/");
     $footer_logo_assets = function_exists("upsellio_get_generated_logo_assets") ? upsellio_get_generated_logo_assets() : [];
@@ -582,29 +626,37 @@ function upsellio_render_unified_footer($args = [])
     $instagram_url = upsellio_get_social_profile_url("instagram");
     $x_url = upsellio_get_social_profile_url("x");
     $youtube_url = upsellio_get_social_profile_url("youtube");
+    $social_profiles = [
+        ["name" => "LinkedIn", "url" => $linkedin_url, "icon" => "linkedin"],
+        ["name" => "Facebook", "url" => $facebook_url, "icon" => "facebook"],
+        ["name" => "Instagram", "url" => $instagram_url, "icon" => "instagram"],
+        ["name" => "X", "url" => $x_url, "icon" => "x"],
+        ["name" => "YouTube", "url" => $youtube_url, "icon" => "youtube"],
+    ];
+    $social_profiles = array_values(array_filter($social_profiles, static function ($profile) {
+        return isset($profile["url"]) && (string) $profile["url"] !== "";
+    }));
+    $company_name = trim((string) ($organization_config["name"] ?? "Upsellio / Sebastian Kelm"));
+    $company_tax_id = trim((string) ($organization_config["tax_id"] ?? ""));
+    $company_address = trim((string) ($organization_config["address"] ?? ""));
+    $latest_posts = get_posts([
+        "post_type" => "post",
+        "post_status" => "publish",
+        "numberposts" => 3,
+        "orderby" => "date",
+        "order" => "DESC",
+    ]);
+    $latest_marketing_cases = get_posts([
+        "post_type" => "marketing_portfolio",
+        "post_status" => "publish",
+        "numberposts" => 3,
+        "orderby" => "date",
+        "order" => "DESC",
+    ]);
 
     ob_start();
     ?>
     <footer class="ups-footer" aria-labelledby="ups-footer-title" id="<?php echo esc_attr($component_id); ?>">
-      <?php if (false) : ?><style>
-        .ups-footer{--uf-bg:#f8fafc;--uf-surface:#fff;--uf-border:#e2e8f0;--uf-border-strong:#cbd5e1;--uf-text:#071426;--uf-text-2:#334155;--uf-text-3:#64748b;--uf-teal:#0d9488;--uf-teal-dark:#0f766e;--uf-shadow:0 14px 40px rgba(15,23,42,.08);--uf-radius:28px;padding:72px 0 28px;border-top:1px solid var(--uf-border);background:radial-gradient(circle at top left, rgba(20,184,166,.12), transparent 24%),linear-gradient(180deg,#fff 0%,#f8fafc 100%);color:var(--uf-text)}
-        .ups-footer .wrap{max-width:1240px;margin:0 auto;padding:0 20px}.ups-footer__top{display:grid;grid-template-columns:minmax(320px,1.05fr) minmax(0,1.2fr);gap:24px;align-items:start}
-        .ups-footer__brand,.ups-footer__cols,.ups-footer__definitions,.ups-footer__cities{background:var(--uf-surface);border:1px solid var(--uf-border);border-radius:var(--uf-radius);box-shadow:var(--uf-shadow)}
-        .ups-footer__brand{padding:28px}.ups-footer__logo{display:inline-flex;align-items:center;gap:14px;text-decoration:none;color:inherit}.ups-footer__logo-mark{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#14b8a6 0%,#0f766e 100%);color:#fff;font-family:Syne,sans-serif;font-weight:800;font-size:20px;box-shadow:0 10px 24px rgba(13,148,136,.22)}
-        .ups-footer__logo-copy{display:flex;flex-direction:column;line-height:1.1}.ups-footer__logo-name{font-family:Syne,sans-serif;font-size:24px;font-weight:800;letter-spacing:-.03em}.ups-footer__logo-sub{margin-top:4px;font-size:13px;color:var(--uf-text-3)}.ups-footer__lead{margin:18px 0 0;max-width:58ch;font-size:15px;line-height:1.8;color:var(--uf-text-2)}
-        .ups-footer__trust{display:grid;gap:12px;margin-top:22px}.ups-footer__trust-item{padding:14px 16px;border:1px solid var(--uf-border);border-radius:18px;background:#f8fafc}.ups-footer__trust-item strong{display:block;font-size:14px;line-height:1.35}.ups-footer__trust-item span{display:block;margin-top:4px;font-size:13px;line-height:1.6;color:var(--uf-text-2)}
-        .ups-footer__cta{margin-top:24px;padding:22px;border-radius:22px;border:1px solid rgba(13,148,136,.28);background:linear-gradient(180deg, rgba(20,184,166,.13), rgba(255,255,255,.98))}.ups-footer__cta-copy h2{margin:0;font-family:Syne,sans-serif;font-size:24px;line-height:1.05;letter-spacing:-.03em}.ups-footer__cta-copy p{margin:10px 0 0;font-size:14px;line-height:1.75;color:var(--uf-text-2)}
-        .ups-footer__cta-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.ups-footer__btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:700;text-decoration:none;transition:.2s ease}.ups-footer__btn--primary{background:var(--uf-teal);border:1px solid var(--uf-teal);color:#fff}.ups-footer__btn--secondary{background:#fff;border:1px solid var(--uf-border-strong);color:var(--uf-text)}
-        .ups-footer__cols{padding:28px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}.ups-footer__heading{margin:0 0 14px;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--uf-text-3)}.ups-footer__links{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-        .ups-footer__links a,.ups-footer__contact a,.ups-footer__cities-grid a,.ups-footer__section-link,.ups-footer__legal a{color:var(--uf-text-2);text-decoration:none}.ups-footer__links a:hover,.ups-footer__contact a:hover,.ups-footer__cities-grid a:hover,.ups-footer__section-link:hover,.ups-footer__legal a:hover{color:var(--uf-teal)}
-        .ups-footer__contact{font-style:normal;display:grid;gap:10px}
-        .ups-footer__definitions,.ups-footer__cities{margin-top:22px;padding:26px 28px}.ups-footer__section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}.ups-footer__section-head--cities{align-items:center}.ups-footer__section-title{margin:0;font-family:Syne,sans-serif;font-size:22px;line-height:1.08;letter-spacing:-.03em}.ups-footer__section-sub{margin:8px 0 0;font-size:14px;line-height:1.7;color:var(--uf-text-3)}
-        .ups-footer__chips{display:flex;flex-wrap:wrap;gap:10px}.ups-footer__chips a{display:inline-flex;align-items:center;min-height:38px;padding:0 14px;border-radius:999px;border:1px solid var(--uf-border);background:#f8fafc;font-size:13px}
-        .ups-footer__toggle{appearance:none;border:1px solid var(--uf-border-strong);background:#fff;color:var(--uf-text);min-height:42px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer}
-        .ups-footer__cities-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 18px}.ups-footer__cities-grid a{display:block;font-size:13px;line-height:1.55;color:var(--uf-text-3)}.ups-footer__cities-more{margin-top:18px;padding-top:18px;border-top:1px solid var(--uf-border)}
-        .ups-footer__bottom{margin-top:22px;padding-top:18px;border-top:1px solid var(--uf-border);display:flex;justify-content:space-between;align-items:center;gap:12px 24px;flex-wrap:wrap}.ups-footer__copyright{margin:0;font-size:12px;line-height:1.6;color:var(--uf-text-3)}.ups-footer__legal{display:flex;flex-wrap:wrap;gap:16px}
-        @media(max-width:1180px){.ups-footer__cols{grid-template-columns:repeat(2,minmax(0,1fr))}.ups-footer__cities-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:920px){.ups-footer__top{grid-template-columns:1fr}}@media(max-width:720px){.ups-footer{padding:56px 0 24px}.ups-footer__brand,.ups-footer__cols,.ups-footer__definitions,.ups-footer__cities{padding:20px;border-radius:22px}.ups-footer__cols{grid-template-columns:1fr;gap:20px}.ups-footer__cities-grid{grid-template-columns:1fr}.ups-footer__section-title,.ups-footer__cta-copy h2{font-size:20px}.ups-footer__btn{width:100%}}
-      </style><?php endif; ?>
       <div class="wrap">
         <div class="ups-footer__top">
           <section class="ups-footer__brand" aria-label="O marce Upsellio">
@@ -620,34 +672,58 @@ function upsellio_render_unified_footer($args = [])
                 <span class="ups-footer__logo-name">Upsellio</span>
               <?php endif; ?>
             </a>
-            <p class="ups-footer__lead">Marketing internetowy, kampanie Meta Ads i Google Ads oraz strony WWW, które wspierają pozyskiwanie klientów i wzrost sprzedaży.</p>
+            <p class="ups-footer__lead"><?php echo esc_html((string) ($organization_config["description"] ?? "Marketing internetowy, kampanie Meta Ads i Google Ads oraz strony WWW, które wspierają pozyskiwanie klientów i wzrost sprzedaży.")); ?></p>
             <div class="ups-footer__trust">
-              <div class="ups-footer__trust-item"><strong>10 lat praktyki w sprzedaży i marketingu</strong><span>Praktyk, nie konsultant z prezentacji.</span></div>
-              <div class="ups-footer__trust-item"><strong>Jeden punkt kontaktu</strong><span>Bez pośredników, bez agencyjnego chaosu.</span></div>
-              <div class="ups-footer__trust-item"><strong>Cel: leady i sprzedaż</strong><span>Nie zasięgi dla samego zasięgu.</span></div>
+              <?php if (!empty($footer_proof_items)) : ?>
+                <?php foreach ($footer_proof_items as $proof_item) : ?>
+                  <div class="ups-footer__trust-item"><strong><?php echo esc_html((string) $proof_item); ?></strong><span><?php echo esc_html((string) ($footer_trust_config["role"] ?? "Praktyczne wsparcie marketingu i sprzedaży.")); ?></span></div>
+                <?php endforeach; ?>
+              <?php else : ?>
+                <div class="ups-footer__trust-item"><strong>10 lat praktyki w sprzedaży i marketingu</strong><span>Praktyk, nie konsultant z prezentacji.</span></div>
+                <div class="ups-footer__trust-item"><strong>Jeden punkt kontaktu</strong><span>Bez pośredników, bez agencyjnego chaosu.</span></div>
+                <div class="ups-footer__trust-item"><strong>Cel: leady i sprzedaż</strong><span>Nie zasięgi dla samego zasięgu.</span></div>
+              <?php endif; ?>
             </div>
-            <div class="ups-footer__cta">
-              <div class="ups-footer__cta-copy"><h2>Chcesz sprawdzić, co blokuje wzrost leadów lub sprzedaży?</h2><p>Opisz krótko firmę, ofertę i problem. Wrócę z konkretną rekomendacją, od czego zacząć i gdzie uciekają wyniki.</p></div>
-              <div class="ups-footer__cta-actions">
-                <a href="<?php echo esc_url($contact_url); ?>" class="ups-footer__btn ups-footer__btn--primary">Umów bezpłatną rozmowę</a>
-                <a href="<?php echo esc_url($contact_email_href); ?>" class="ups-footer__btn ups-footer__btn--secondary"><?php echo esc_html($contact_email_display); ?></a>
-              </div>
+            <div class="ups-footer__newsletter">
+              <div class="ups-footer__cta-copy"><h2>Otrzymuj konkretne wskazówki marketingowe raz na tydzień.</h2><p>Krótki newsletter bez spamu: kampanie, strony i sprzedaż B2B. Sama praktyka i gotowe checklisty.</p></div>
+              <form class="ups-footer__newsletter-form" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" method="post" data-upsellio-lead-form="1">
+                <input type="hidden" name="action" value="upsellio_submit_lead" />
+                <input type="hidden" name="redirect_url" value="<?php echo esc_url($blog_url); ?>" />
+                <input type="hidden" name="lead_form_origin" value="footer_newsletter" />
+                <input type="hidden" name="lead_source" value="footer_newsletter" />
+                <input type="hidden" name="lead_name" value="Newsletter footer" />
+                <input type="hidden" name="lead_message" value="Nowa subskrypcja newslettera ze stopki." />
+                <input type="hidden" name="lead_consent" value="1" />
+                <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
+                <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
+                <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
+                <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
+                <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
+                <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" class="ups-footer__honeypot" />
+                <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
+                <label class="screen-reader-text" for="ups-footer-newsletter-email">Twój e-mail</label>
+                <input type="email" id="ups-footer-newsletter-email" name="lead_email" placeholder="Twój e-mail" required />
+                <button type="submit" class="ups-footer__btn ups-footer__btn--primary">Zapisz mnie</button>
+              </form>
             </div>
           </section>
           <div class="ups-footer__cols">
             <nav class="ups-footer__col" aria-label="Nawigacja główna"><h2 class="ups-footer__heading">Nawigacja</h2><ul class="ups-footer__links"><li><a href="<?php echo esc_url(home_url("/")); ?>">Strona główna</a></li><li><a href="<?php echo esc_url($blog_url); ?>">Blog</a></li><li><a href="<?php echo esc_url($definitions_url); ?>">Baza wiedzy</a></li><li><a href="<?php echo esc_url($portfolio_url); ?>">Portfolio</a></li><li><a href="<?php echo esc_url($marketing_portfolio_url); ?>">Portfolio marketingowe</a></li><li><a href="<?php echo esc_url($lead_magnets_url); ?>">Lead magnety</a></li><li><a href="<?php echo esc_url($contact_url); ?>">Kontakt</a></li></ul></nav>
-            <nav class="ups-footer__col" aria-label="Usługi Upsellio"><h2 class="ups-footer__heading">Usługi</h2><ul class="ups-footer__links"><li><a href="<?php echo esc_url(home_url("/#uslugi")); ?>">Marketing internetowy</a></li><li><a href="<?php echo esc_url(home_url("/#uslugi")); ?>">Kampanie Meta Ads dla firm</a></li><li><a href="<?php echo esc_url(home_url("/#uslugi")); ?>">Google Ads dla firm</a></li><li><a href="<?php echo esc_url(home_url("/#uslugi")); ?>">Strony internetowe dla firm</a></li><li><a href="<?php echo esc_url(home_url("/#uslugi")); ?>">Landing page pod konwersję</a></li><li><a href="<?php echo esc_url(home_url("/#uslugi")); ?>">Doradztwo sprzedażowe</a></li></ul></nav>
+            <nav class="ups-footer__col" aria-label="Usługi Upsellio"><h2 class="ups-footer__heading">Usługi</h2><ul class="ups-footer__links"><li><a href="<?php echo esc_url(home_url("/#uslugi")); ?>">Marketing internetowy</a></li><li><a href="<?php echo esc_url($meta_ads_url); ?>">Kampanie Meta Ads dla firm</a></li><li><a href="<?php echo esc_url($google_ads_url); ?>">Google Ads dla firm</a></li><li><a href="<?php echo esc_url($websites_url); ?>">Strony internetowe dla firm</a></li><li><a href="<?php echo esc_url($landing_page_url); ?>">Landing page pod konwersję</a></li><li><a href="<?php echo esc_url($advisory_url); ?>">Doradztwo sprzedażowe</a></li></ul></nav>
             <nav class="ups-footer__col" aria-label="Zasoby i wiedza"><h2 class="ups-footer__heading">Wiedza</h2><ul class="ups-footer__links"><li><a href="<?php echo esc_url($definitions_url); ?>">Słownik pojęć marketingowych</a></li><li><a href="<?php echo esc_url($lead_magnets_url); ?>">Materiały do pobrania</a></li><li><a href="<?php echo esc_url($portfolio_url); ?>">Realizacje stron i sklepów</a></li><li><a href="<?php echo esc_url($marketing_portfolio_url); ?>">Case studies marketingowe</a></li><li><a href="<?php echo esc_url($cities_url); ?>">Obsługiwane miasta</a></li></ul></nav>
-            <section class="ups-footer__col" aria-labelledby="ups-footer-contact-heading"><h2 class="ups-footer__heading" id="ups-footer-contact-heading">Kontakt</h2><address class="ups-footer__contact"><a href="<?php echo esc_url($contact_email_href); ?>"><?php echo esc_html($contact_email_display); ?></a><a href="<?php echo esc_url("tel:" . $contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a><a href="<?php echo esc_url($linkedin_url); ?>" target="_blank" rel="noopener noreferrer">LinkedIn</a><a href="<?php echo esc_url($facebook_url); ?>" target="_blank" rel="noopener noreferrer">Facebook</a><a href="<?php echo esc_url($instagram_url); ?>" target="_blank" rel="noopener noreferrer">Instagram</a><a href="<?php echo esc_url($x_url); ?>" target="_blank" rel="noopener noreferrer">X</a><a href="<?php echo esc_url($youtube_url); ?>" target="_blank" rel="noopener noreferrer">YouTube</a></address></section>
+            <section class="ups-footer__col" aria-labelledby="ups-footer-contact-heading"><h2 class="ups-footer__heading" id="ups-footer-contact-heading">Kontakt</h2><address class="ups-footer__contact"><a href="<?php echo esc_url($contact_email_href); ?>"><?php echo esc_html($contact_email_display); ?></a><a href="<?php echo esc_url("tel:" . $contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a><?php if ($company_name !== "") : ?><span class="ups-footer__company-line"><?php echo esc_html($company_name); ?></span><?php endif; ?><?php if ($company_tax_id !== "") : ?><span class="ups-footer__company-line">NIP: <?php echo esc_html($company_tax_id); ?></span><?php endif; ?><?php if ($company_address !== "") : ?><span class="ups-footer__company-line"><?php echo esc_html($company_address); ?></span><?php endif; ?><?php if (!empty($social_profiles)) : ?><div class="ups-footer__social-list"><?php foreach ($social_profiles as $social_profile) : ?><a href="<?php echo esc_url((string) $social_profile["url"]); ?>" target="_blank" rel="noopener noreferrer" aria-label="<?php echo esc_attr((string) $social_profile["name"]); ?>"><?php echo upsellio_get_social_icon_svg((string) $social_profile["icon"]); ?><span><?php echo esc_html((string) $social_profile["name"]); ?></span></a><?php endforeach; ?></div><?php endif; ?></address></section>
           </div>
         </div>
         <?php if (!empty($definitions)) : ?>
         <section class="ups-footer__definitions" aria-labelledby="ups-footer-definitions-heading"><div class="ups-footer__section-head"><div><h2 class="ups-footer__section-title" id="ups-footer-definitions-heading">Popularne definicje</h2><p class="ups-footer__section-sub">Krótkie pojęcia z obszaru marketingu, analityki i sprzedaży B2B.</p></div><a href="<?php echo esc_url($definitions_url); ?>" class="ups-footer__section-link">Zobacz całą bazę wiedzy</a></div><div class="ups-footer__chips"><?php foreach ($definitions as $item) : ?><a href="<?php echo esc_url((string) $item["url"]); ?>"><?php echo esc_html((string) $item["label"]); ?></a><?php endforeach; ?></div></section>
         <?php endif; ?>
-        <section class="ups-footer__cities" aria-labelledby="ups-footer-cities-heading"><div class="ups-footer__section-head ups-footer__section-head--cities"><div><h2 class="ups-footer__section-title" id="ups-footer-cities-heading">Usługi w największych miastach Polski</h2><p class="ups-footer__section-sub">Marketing internetowy, Google Ads, Meta Ads i strony WWW dla firm z całej Polski.</p></div><?php if (!empty($cities_hidden)) : ?><button class="ups-footer__toggle" type="button" data-role="cities-toggle" aria-expanded="false" aria-controls="<?php echo esc_attr($component_id . "-cities-more"); ?>">Pokaż więcej miast</button><?php endif; ?></div><div class="ups-footer__cities-grid"><?php foreach ($cities_visible as $city_item) : ?><a href="<?php echo esc_url((string) $city_item["url"]); ?>"><?php echo esc_html((string) $city_item["label"]); ?></a><?php endforeach; ?></div><?php if (!empty($cities_hidden)) : ?><div class="ups-footer__cities-more" id="<?php echo esc_attr($component_id . "-cities-more"); ?>" data-role="cities-more" hidden><div class="ups-footer__cities-grid"><?php foreach ($cities_hidden as $city_item) : ?><a href="<?php echo esc_url((string) $city_item["url"]); ?>"><?php echo esc_html((string) $city_item["label"]); ?></a><?php endforeach; ?></div></div><?php endif; ?></section>
-        <div class="ups-footer__bottom"><p class="ups-footer__copyright">© <?php echo esc_html(gmdate("Y")); ?> Upsellio / Sebastian Kelm. Wszelkie prawa zastrzeżone.</p><nav class="ups-footer__legal" aria-label="Linki dodatkowe"><a href="<?php echo esc_url(home_url("/polityka-prywatnosci/")); ?>">Polityka prywatności</a><a href="<?php echo esc_url($contact_url); ?>">Kontakt</a><a href="<?php echo esc_url(home_url("/")); ?>">Upsellio.pl</a></nav></div>
+        <section class="ups-footer__cities" aria-labelledby="ups-footer-cities-heading"><div class="ups-footer__section-head ups-footer__section-head--cities"><div><h2 class="ups-footer__section-title" id="ups-footer-cities-heading">Usługi w największych miastach Polski</h2><p class="ups-footer__section-sub">Marketing internetowy, Google Ads, Meta Ads i strony WWW dla firm z całej Polski.</p></div><?php if (!empty($cities_hidden)) : ?><button class="ups-footer__toggle" type="button" data-role="cities-toggle" aria-expanded="false" aria-controls="<?php echo esc_attr($component_id . "-cities-more"); ?>">Pokaż więcej miast</button><?php endif; ?></div><div class="ups-footer__cities-grid"><?php foreach ($cities_visible as $city_item) : ?><a href="<?php echo esc_url((string) $city_item["url"]); ?>"><strong><?php echo esc_html((string) ($city_item["city_name"] ?? $city_item["label"])); ?></strong><span><?php echo esc_html((string) ($city_item["service_label"] ?? "Marketing i strony WWW")); ?></span></a><?php endforeach; ?></div><?php if (!empty($cities_hidden)) : ?><div class="ups-footer__cities-more" id="<?php echo esc_attr($component_id . "-cities-more"); ?>" data-role="cities-more" hidden><div class="ups-footer__cities-grid"><?php foreach ($cities_hidden as $city_item) : ?><a href="<?php echo esc_url((string) $city_item["url"]); ?>"><strong><?php echo esc_html((string) ($city_item["city_name"] ?? $city_item["label"])); ?></strong><span><?php echo esc_html((string) ($city_item["service_label"] ?? "Marketing i strony WWW")); ?></span></a><?php endforeach; ?></div></div><?php endif; ?></section>
+        <?php if (!empty($latest_posts) || !empty($latest_marketing_cases)) : ?>
+        <section class="ups-footer__latest-posts" aria-labelledby="ups-footer-latest-posts-heading"><div class="ups-footer__section-head"><div><h2 class="ups-footer__section-title" id="ups-footer-latest-posts-heading">Najnowsze treści</h2><p class="ups-footer__section-sub">Sprawdź najnowsze publikacje i case studies marketingowe.</p></div></div><div class="ups-footer__latest-grid"><div><h3>Blog</h3><ul><?php foreach ((array) $latest_posts as $latest_post) : ?><li><a href="<?php echo esc_url((string) get_permalink((int) $latest_post->ID)); ?>"><?php echo esc_html((string) get_the_title((int) $latest_post->ID)); ?></a></li><?php endforeach; ?></ul></div><div><h3>Case studies marketingowe</h3><ul><?php foreach ((array) $latest_marketing_cases as $latest_case) : ?><li><a href="<?php echo esc_url((string) get_permalink((int) $latest_case->ID)); ?>"><?php echo esc_html((string) get_the_title((int) $latest_case->ID)); ?></a></li><?php endforeach; ?></ul></div></div></section>
+        <?php endif; ?>
+        <div class="ups-footer__bottom"><div><span class="ups-footer__locale">Działamy zdalnie w całej Polsce</span><p class="ups-footer__copyright">© <?php echo esc_html(gmdate("Y")); ?> Upsellio / Sebastian Kelm. Wszelkie prawa zastrzeżone.</p></div><nav class="ups-footer__legal" aria-label="Linki dodatkowe"><a href="<?php echo esc_url($privacy_url); ?>">Polityka prywatności</a><a href="<?php echo esc_url($cookies_url); ?>">Polityka cookies</a><a href="<?php echo esc_url($terms_url); ?>">Regulamin</a><a href="<?php echo esc_url($contact_url); ?>">Kontakt</a><a href="<?php echo esc_url(home_url("/")); ?>">Upsellio.pl</a></nav></div>
       </div>
-      <script type="application/ld+json"><?php echo wp_json_encode(["@context"=>"https://schema.org","@type"=>"ProfessionalService","name"=>"Upsellio","alternateName"=>"Upsellio by Sebastian Kelm","url"=>home_url("/"),"email"=>$contact_email,"telephone"=>$contact_phone,"areaServed"=>"Polska","description"=>"Marketing internetowy B2B, kampanie Meta Ads, Google Ads oraz strony internetowe dla firm B2B.","sameAs"=>[$linkedin_url,$facebook_url,$instagram_url,$x_url,$youtube_url]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
+      <script type="application/ld+json"><?php echo wp_json_encode(["@context"=>"https://schema.org","@type"=>"ProfessionalService","name"=>(string) ($organization_config["name"] ?? "Upsellio"),"alternateName"=>(string) ($organization_config["alternate_name"] ?? "Upsellio by Sebastian Kelm"),"url"=>home_url((string) ($organization_config["url"] ?? "/")),"email"=>(string) ($organization_config["email"] ?? $contact_email),"telephone"=>(string) ($organization_config["telephone"] ?? $contact_phone),"areaServed"=>(string) ($organization_config["area_served"] ?? "PL"),"description"=>(string) ($organization_config["description"] ?? "Marketing internetowy B2B, kampanie Meta Ads, Google Ads oraz strony internetowe dla firm B2B."),"sameAs"=>array_values(array_filter([$linkedin_url,$facebook_url,$instagram_url,$x_url,$youtube_url]))], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
       <script>
         (function () {
           var root = document.getElementById('<?php echo esc_js($component_id); ?>');
@@ -673,8 +749,8 @@ function upsellio_get_contact_page_seo_payload()
     $contact_url = upsellio_get_contact_page_url();
 
     return [
-        "title" => "Kontakt | Bezpłatna diagnoza marketingu | Upsellio",
-        "description" => "Skontaktuj się z Upsellio — opisz cel i problem, a wrócę z konkretną rekomendacją od czego zacząć. Diagnoza Meta Ads, Google Ads i stron.",
+        "title" => "Kontakt | Bezpłatna konsultacja marketingowa | Upsellio",
+        "description" => "Umów bezpłatną konsultację marketingową. Opisz cel, stronę lub kampanie Google Ads i Meta Ads, a wrócę z konkretną rekomendacją.",
         "canonical" => $contact_url,
     ];
 }
@@ -715,7 +791,7 @@ function upsellio_print_contact_page_seo_meta()
         echo '<link rel="canonical" href="' . esc_url($canonical) . '">' . "\n";
         echo '<meta property="og:url" content="' . esc_url($canonical) . '">' . "\n";
     }
-    $og_image = function_exists("upsellio_get_generated_logo_url") ? upsellio_get_generated_logo_url("png") : "";
+    $og_image = function_exists("upsellio_get_default_og_image_url") ? upsellio_get_default_og_image_url() : (function_exists("upsellio_get_generated_logo_url") ? upsellio_get_generated_logo_url("png") : "");
     if ($og_image !== "") {
         echo '<meta property="og:image" content="' . esc_url($og_image) . '">' . "\n";
     }
@@ -739,6 +815,7 @@ require_once get_template_directory() . "/inc/crm.php";
 require_once get_template_directory() . "/inc/seo-automation.php";
 require_once get_template_directory() . "/inc/data-schema.php";
 require_once get_template_directory() . "/inc/site-analytics.php";
+require_once get_template_directory() . "/inc/breadcrumbs.php";
 require_once get_template_directory() . "/inc/advanced-tests.php";
 require_once get_template_directory() . "/inc/portfolio-seed.php";
 require_once get_template_directory() . "/inc/marketing-portfolio-seed.php";
@@ -842,6 +919,32 @@ function upsellio_primary_menu_name()
     return "Upsellio Primary Auto";
 }
 
+function upsellio_resolve_menu_item_url($menu_item)
+{
+    if (!is_object($menu_item)) {
+        return "";
+    }
+
+    $menu_item_type = isset($menu_item->type) ? (string) $menu_item->type : "";
+    $object_id = isset($menu_item->object_id) ? (int) $menu_item->object_id : 0;
+
+    if ($menu_item_type === "post_type" && $object_id > 0) {
+        $permalink = get_permalink($object_id);
+        if (is_string($permalink) && $permalink !== "") {
+            return $permalink;
+        }
+    }
+
+    if ($menu_item_type === "taxonomy" && $object_id > 0) {
+        $term_link = get_term_link($object_id);
+        if (is_string($term_link) && $term_link !== "") {
+            return $term_link;
+        }
+    }
+
+    return isset($menu_item->url) ? (string) $menu_item->url : "";
+}
+
 function upsellio_get_primary_navigation_links()
 {
     $locations = get_nav_menu_locations();
@@ -852,7 +955,7 @@ function upsellio_get_primary_navigation_links()
         $menu_items = wp_get_nav_menu_items($menu_id, ["update_post_term_cache" => false]);
         if (is_array($menu_items)) {
             foreach ($menu_items as $menu_item) {
-                $url = isset($menu_item->url) ? (string) $menu_item->url : "";
+                $url = upsellio_resolve_menu_item_url($menu_item);
                 $title = isset($menu_item->title) ? wp_strip_all_tags((string) $menu_item->title) : "";
                 if ($url === "" || $title === "") {
                     continue;
@@ -1320,6 +1423,9 @@ function upsellio_assets()
     $style_path = get_template_directory() . "/assets/css/upsellio.css";
     $style_uri = get_template_directory_uri() . "/assets/css/upsellio.css";
     $style_version = file_exists($style_path) ? (string) filemtime($style_path) : "1.0.0";
+    $landing_style_path = get_template_directory() . "/assets/css/upsellio-landing.css";
+    $landing_style_uri = get_template_directory_uri() . "/assets/css/upsellio-landing.css";
+    $landing_style_version = file_exists($landing_style_path) ? (string) filemtime($landing_style_path) : "1.0.0";
     $script_path = get_template_directory() . "/assets/js/upsellio.js";
     $script_uri = get_template_directory_uri() . "/assets/js/upsellio.js";
     $script_version = file_exists($script_path) ? (string) filemtime($script_path) : "1.0.0";
@@ -1329,6 +1435,7 @@ function upsellio_assets()
 
     $is_home_template_request = is_front_page() || (function_exists("upsellio_is_homepage_request") && upsellio_is_homepage_request());
     if ($is_home_template_request) {
+        wp_enqueue_style("upsellio-landing", $landing_style_uri, [], $landing_style_version);
         wp_enqueue_script("upsellio-home", $home_script_uri, [], $home_script_version, true);
         add_action(
             "wp_footer",
@@ -1367,6 +1474,7 @@ function upsellio_assets()
     }
 
     wp_enqueue_style("upsellio-main", $style_uri, [], $style_version);
+    wp_enqueue_style("upsellio-landing", $landing_style_uri, ["upsellio-main"], $landing_style_version);
     wp_enqueue_script("upsellio-main", $script_uri, [], $script_version, true);
     wp_localize_script(
         "upsellio-main",

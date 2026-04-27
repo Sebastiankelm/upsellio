@@ -17,12 +17,26 @@ $contact_phone = trim((string) ($args["contact_phone"] ?? ""));
           <h2 class="h2 reveal d1">Umów bezpłatną konsultację</h2>
           <p class="body reveal d2" style="margin-top:10px;">Opowiesz o firmie, ruchu i obecnych wynikach. Wrócę z konkretną rekomendacją: co poprawić najpierw, żeby zwiększyć liczbę wartościowych zapytań.</p>
         </div>
-        <div class="contact-strategy-form" style="max-width:860px;margin:0 auto;">
+        <div class="contact-strategy-form contact-extended-layout" style="max-width:980px;margin:0 auto;">
           <?php if ($ups_form_status === "success") : ?>
             <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #c3eddd;background:#e8f8f2;border-radius:10px;color:#085041;font-size:13px;">Dziękuję! Wiadomość została zapisana i odezwę się możliwie szybko.</div>
           <?php elseif ($ups_form_status === "error") : ?>
             <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #edcccc;background:#fff2f2;border-radius:10px;color:#b13a3a;font-size:13px;">Nie udało się wysłać formularza. Sprawdź pola i spróbuj ponownie.</div>
           <?php endif; ?>
+          <div class="contact-extended-benefits">
+            <h3 class="h3">Co dostaniesz po wysłaniu formularza?</h3>
+            <ul>
+              <li>Odpowiedź w ciągu 24h z pierwszym kierunkiem działań.</li>
+              <li>30-minutową rozmowę o kampanii, stronie i jakości leadów.</li>
+              <li>Checklistę priorytetów do wdrożenia po rozmowie.</li>
+            </ul>
+            <blockquote>“Po pierwszej rozmowie wiedzieliśmy dokładnie, co poprawić najpierw i gdzie uciekały zapytania.”</blockquote>
+            <div class="contact-channels">
+              <a href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>">📞 Zadzwoń</a>
+              <a href="<?php echo esc_url(home_url("/kontakt/")); ?>">📅 Umów termin</a>
+              <a href="<?php echo esc_url("https://www.linkedin.com/"); ?>" target="_blank" rel="noopener noreferrer">💼 LinkedIn</a>
+            </div>
+          </div>
           <form id="contact-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" novalidate data-upsellio-lead-form="1" data-upsellio-server-form="1">
             <input type="hidden" name="action" value="upsellio_submit_lead" />
             <input type="hidden" name="redirect_url" value="<?php echo esc_url(home_url("/#kontakt")); ?>" />
@@ -45,6 +59,7 @@ $contact_phone = trim((string) ($args["contact_phone"] ?? ""));
             </div>
             <button type="submit" class="btn btn-primary submit" id="submit-btn">Umów bezpłatną konsultację</button>
             <p class="form-note">Bez spamu. Odpowiadam osobiście. Wolisz zadzwonić? <a href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a></p>
+            <div class="contact-inline-proof">Pracuję z firmami B2B, usługowymi i e-commerce w modelu wzrostu leadów.</div>
           </form>
         </div>
       </div>

@@ -540,3 +540,22 @@ var upsellioReducedMotion = window.matchMedia && window.matchMedia("(prefers-red
       upsellioStartInterval(rotateProofs, 4200);
       upsellioStartInterval(animateContactLines, 3900);
     })();
+
+    (function () {
+      var stickyNav = document.getElementById("home-sticky-nav");
+      var heroSection = document.getElementById("start");
+      if (!stickyNav || !heroSection) return;
+
+      function toggleStickyNav() {
+        var heroBottom = heroSection.getBoundingClientRect().bottom;
+        if (heroBottom <= 88) {
+          stickyNav.classList.add("is-visible");
+          return;
+        }
+        stickyNav.classList.remove("is-visible");
+      }
+
+      toggleStickyNav();
+      window.addEventListener("scroll", toggleStickyNav, { passive: true });
+      window.addEventListener("resize", toggleStickyNav);
+    })();

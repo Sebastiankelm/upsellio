@@ -142,6 +142,8 @@ function upsellio_render_lead_magnet_details_meta_box($post)
     $cta = (string) get_post_meta($post_id, "_ups_lm_cta", true);
     $image = (string) get_post_meta($post_id, "_ups_lm_image", true);
     $is_featured = (string) get_post_meta($post_id, "_ups_lm_featured", true) === "1";
+    $bullets = (string) get_post_meta($post_id, "_ups_lm_bullets", true);
+    $is_gated = (string) get_post_meta($post_id, "_ups_lm_gated", true) === "1";
     $custom_html = (string) get_post_meta($post_id, "_ups_lm_custom_html", true);
     $custom_css = (string) get_post_meta($post_id, "_ups_lm_custom_css", true);
     $custom_js = (string) get_post_meta($post_id, "_ups_lm_custom_js", true);
@@ -169,9 +171,19 @@ function upsellio_render_lead_magnet_details_meta_box($post)
       <input type="url" id="ups_lm_image" name="ups_lm_image" value="<?php echo esc_attr($image); ?>" class="widefat" placeholder="https://..." />
     </p>
     <p>
+      <label for="ups_lm_bullets"><strong>Co znajdziesz w środku (jedna pozycja na linię)</strong></label>
+      <textarea id="ups_lm_bullets" name="ups_lm_bullets" class="widefat" rows="5" placeholder="Checklista błędów&#10;Punkty kontrolne&#10;Rekomendacje wdrożeniowe"><?php echo esc_textarea($bullets); ?></textarea>
+    </p>
+    <p>
       <label style="display:flex;align-items:flex-start;gap:8px;">
         <input type="checkbox" name="ups_lm_featured" value="1" <?php checked($is_featured); ?> />
         <span>Ustaw jako wyróżniony materiał na stronie katalogu.</span>
+      </label>
+    </p>
+    <p>
+      <label style="display:flex;align-items:flex-start;gap:8px;">
+        <input type="checkbox" name="ups_lm_gated" value="1" <?php checked($is_gated); ?> />
+        <span>Materiał premium: pokaż bramkę e-mail przed pobraniem/konsultacją.</span>
       </label>
     </p>
     <hr />
@@ -219,6 +231,7 @@ function upsellio_save_lead_magnet_details_meta_box($post_id)
         "_ups_lm_badge" => isset($_POST["ups_lm_badge"]) ? sanitize_text_field(wp_unslash($_POST["ups_lm_badge"])) : "",
         "_ups_lm_cta" => isset($_POST["ups_lm_cta"]) ? sanitize_text_field(wp_unslash($_POST["ups_lm_cta"])) : "",
         "_ups_lm_image" => isset($_POST["ups_lm_image"]) ? esc_url_raw(wp_unslash($_POST["ups_lm_image"])) : "",
+        "_ups_lm_bullets" => isset($_POST["ups_lm_bullets"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_lm_bullets"])) : "",
     ];
 
     foreach ($fields as $meta_key => $meta_value) {
@@ -226,6 +239,7 @@ function upsellio_save_lead_magnet_details_meta_box($post_id)
     }
 
     update_post_meta((int) $post_id, "_ups_lm_featured", isset($_POST["ups_lm_featured"]) ? "1" : "0");
+    update_post_meta((int) $post_id, "_ups_lm_gated", isset($_POST["ups_lm_gated"]) ? "1" : "0");
     update_post_meta((int) $post_id, "_upsellio_is_lead_magnet", "1");
 
     $custom_html = isset($_POST["ups_lm_custom_html"]) ? wp_unslash($_POST["ups_lm_custom_html"]) : "";
@@ -264,6 +278,8 @@ function upsellio_get_lead_magnet_list($limit = 30)
             "badge" => (string) get_post_meta($post_id, "_ups_lm_badge", true),
             "cta" => (string) get_post_meta($post_id, "_ups_lm_cta", true),
             "image" => (string) get_post_meta($post_id, "_ups_lm_image", true),
+            "bullets" => upsellio_parse_textarea_lines((string) get_post_meta($post_id, "_ups_lm_bullets", true), 8),
+            "is_gated" => (string) get_post_meta($post_id, "_ups_lm_gated", true) === "1",
             "category" => $first_term ? (string) $first_term->name : "Lead generation",
             "category_slug" => $first_term ? (string) $first_term->slug : "lead-generation",
             "is_featured" => (string) get_post_meta($post_id, "_ups_lm_featured", true) === "1",
@@ -399,6 +415,9 @@ function upsellio_render_portfolio_details_meta_box($post)
     $scope = (string) get_post_meta($post_id, "_ups_port_scope", true);
     $external_url = (string) get_post_meta($post_id, "_ups_port_external_url", true);
     $metrics = (string) get_post_meta($post_id, "_ups_port_metrics", true);
+    $technologies = (string) get_post_meta($post_id, "_ups_port_technologies", true);
+    $client_quote = (string) get_post_meta($post_id, "_ups_port_client_quote", true);
+    $has_publish_consent = (string) get_post_meta($post_id, "_ups_port_publish_consent", true) === "1";
     $is_featured = (string) get_post_meta($post_id, "_ups_port_featured", true) === "1";
     $custom_html = (string) get_post_meta($post_id, "_ups_port_custom_html", true);
     $custom_css = (string) get_post_meta($post_id, "_ups_port_custom_css", true);
@@ -445,6 +464,20 @@ function upsellio_render_portfolio_details_meta_box($post)
     <p>
       <label for="ups_port_metrics"><strong>Metryki projektu (jedna na linię)</strong></label>
       <textarea id="ups_port_metrics" name="ups_port_metrics" class="widefat" rows="5" placeholder="np. +42% zapytań&#10;-31% CPL&#10;+19% konwersji"><?php echo esc_textarea($metrics); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_port_technologies"><strong>Technologie / narzędzia (jedna pozycja na linię)</strong></label>
+      <textarea id="ups_port_technologies" name="ups_port_technologies" class="widefat" rows="4" placeholder="WordPress&#10;GA4&#10;Google Tag Manager"><?php echo esc_textarea($technologies); ?></textarea>
+    </p>
+    <p>
+      <label for="ups_port_client_quote"><strong>Cytat klienta / social proof</strong></label>
+      <textarea id="ups_port_client_quote" name="ups_port_client_quote" class="widefat" rows="4" placeholder="Krótka opinia klienta, jeśli masz zgodę na publikację."><?php echo esc_textarea($client_quote); ?></textarea>
+    </p>
+    <p>
+      <label style="display:flex;align-items:flex-start;gap:8px;">
+        <input type="checkbox" name="ups_port_publish_consent" value="1" <?php checked($has_publish_consent); ?> />
+        <span>Mam zgodę na publikację danych, cytatu lub nazwy klienta w tym case study.</span>
+      </label>
     </p>
     <p>
       <label style="display:flex;align-items:flex-start;gap:8px;">
@@ -502,6 +535,8 @@ function upsellio_save_portfolio_details_meta_box($post_id)
         "_ups_port_scope" => isset($_POST["ups_port_scope"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_port_scope"])) : "",
         "_ups_port_result" => isset($_POST["ups_port_result"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_port_result"])) : "",
         "_ups_port_metrics" => isset($_POST["ups_port_metrics"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_port_metrics"])) : "",
+        "_ups_port_technologies" => isset($_POST["ups_port_technologies"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_port_technologies"])) : "",
+        "_ups_port_client_quote" => isset($_POST["ups_port_client_quote"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_port_client_quote"])) : "",
     ];
 
     foreach ($fields as $meta_key => $meta_value) {
@@ -509,6 +544,7 @@ function upsellio_save_portfolio_details_meta_box($post_id)
     }
 
     update_post_meta((int) $post_id, "_ups_port_featured", isset($_POST["ups_port_featured"]) ? "1" : "0");
+    update_post_meta((int) $post_id, "_ups_port_publish_consent", isset($_POST["ups_port_publish_consent"]) ? "1" : "0");
 
     $custom_html = isset($_POST["ups_port_custom_html"]) ? wp_unslash($_POST["ups_port_custom_html"]) : "";
     $custom_css = isset($_POST["ups_port_custom_css"]) ? wp_unslash($_POST["ups_port_custom_css"]) : "";
@@ -551,6 +587,13 @@ function upsellio_get_portfolio_list($limit = 60)
         $terms = get_the_terms($post_id, "portfolio_category");
         $first_term = (!empty($terms) && !is_wp_error($terms)) ? $terms[0] : null;
 
+        $port_image = (string) get_post_meta($post_id, "_ups_port_image", true);
+        $featured_image_url = "";
+        if ($port_image === "" && has_post_thumbnail($post_id)) {
+            $featured_image_url = (string) get_the_post_thumbnail_url($post_id, "large");
+        }
+        $thumbnail = $port_image !== "" ? $port_image : $featured_image_url;
+
         $items[] = [
             "id" => $post_id,
             "title" => (string) get_the_title($post_id),
@@ -560,11 +603,16 @@ function upsellio_get_portfolio_list($limit = 60)
             "meta" => (string) get_post_meta($post_id, "_ups_port_meta", true),
             "badge" => (string) get_post_meta($post_id, "_ups_port_badge", true),
             "cta" => (string) get_post_meta($post_id, "_ups_port_cta", true),
-            "image" => (string) get_post_meta($post_id, "_ups_port_image", true),
+            "image" => $port_image,
+            "thumbnail" => $thumbnail,
+            "external_url" => (string) get_post_meta($post_id, "_ups_port_external_url", true),
             "problem" => (string) get_post_meta($post_id, "_ups_port_problem", true),
             "scope" => (string) get_post_meta($post_id, "_ups_port_scope", true),
             "result" => (string) get_post_meta($post_id, "_ups_port_result", true),
             "metrics" => upsellio_parse_metrics_lines((string) get_post_meta($post_id, "_ups_port_metrics", true)),
+            "technologies" => upsellio_parse_metrics_lines((string) get_post_meta($post_id, "_ups_port_technologies", true)),
+            "client_quote" => (string) get_post_meta($post_id, "_ups_port_client_quote", true),
+            "has_publish_consent" => (string) get_post_meta($post_id, "_ups_port_publish_consent", true) === "1",
             "category" => $first_term ? (string) $first_term->name : "Realizacje",
             "category_slug" => $first_term ? (string) $first_term->slug : "realizacje",
             "is_featured" => (string) get_post_meta($post_id, "_ups_port_featured", true) === "1",
@@ -573,6 +621,47 @@ function upsellio_get_portfolio_list($limit = 60)
     wp_reset_postdata();
 
     return $items;
+}
+
+function upsellio_get_initials_from_text($text, $limit = 2)
+{
+    $text = trim((string) $text);
+    if ($text === "") {
+        return "";
+    }
+    $parts = preg_split("/\s+/", $text);
+    $initials = "";
+    foreach ((array) $parts as $part) {
+        if ($part === "" || mb_strlen($initials) >= $limit) {
+            continue;
+        }
+        $initials .= mb_strtoupper(mb_substr($part, 0, 1));
+    }
+    return $initials;
+}
+
+function upsellio_split_metric_line($line)
+{
+    $line = trim((string) $line);
+    if ($line === "") {
+        return ["value" => "", "label" => ""];
+    }
+    if (mb_strpos($line, ":") !== false) {
+        $parts = explode(":", $line, 2);
+        $label = trim((string) $parts[0]);
+        $value = trim((string) ($parts[1] ?? ""));
+        if ($value !== "") {
+            return ["value" => $value, "label" => $label];
+        }
+    }
+    if (preg_match("/^([+\-]?[\d][\d\.,]*\s*(?:%|×|x|pkt|pt)?)\s*(.*)$/u", $line, $matches)) {
+        $value = trim((string) $matches[1]);
+        $label = trim((string) $matches[2]);
+        if ($value !== "") {
+            return ["value" => $value, "label" => $label];
+        }
+    }
+    return ["value" => "", "label" => $line];
 }
 
 function upsellio_ensure_portfolio_page_exists()

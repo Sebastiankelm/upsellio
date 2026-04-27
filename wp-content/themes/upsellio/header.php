@@ -30,6 +30,10 @@ $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? (string) u
 $marketing_portfolio_url = function_exists("upsellio_get_marketing_portfolio_page_url") ? (string) upsellio_get_marketing_portfolio_page_url() : home_url("/portfolio-marketingowe/");
 $lead_magnets_url = function_exists("upsellio_get_lead_magnets_page_url") ? (string) upsellio_get_lead_magnets_page_url() : home_url("/lead-magnety/");
 $contact_url = function_exists("upsellio_get_contact_page_url") ? (string) upsellio_get_contact_page_url() : home_url("/kontakt/");
+$contact_phone = function_exists("upsellio_get_contact_phone") ? (string) upsellio_get_contact_phone() : "+48 575 522 595";
+$contact_phone_href = preg_replace("/\s+/", "", $contact_phone);
+$contact_email = "kontakt@upsellio.pl";
+$nav_cta_url = is_front_page() ? home_url("/#hero-analiza") : $contact_url;
 $brand_logo_assets = function_exists("upsellio_get_generated_logo_assets") ? upsellio_get_generated_logo_assets() : [];
 $brand_logo_url = (string) ($brand_logo_assets["png"] ?? "");
 $brand_logo_webp_320_url = (string) ($brand_logo_assets["webp_320"] ?? "");
@@ -47,7 +51,15 @@ $brand_logo_webp_640_url = (string) ($brand_logo_assets["webp_640"] ?? "");
 </head>
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
+<a class="skip-link" href="#main-content">Przejdź do treści</a>
 <header class="nav">
+  <div class="nav-topbar" aria-label="Szybki kontakt">
+    <div class="wrap nav-topbar-inner">
+      <a href="<?php echo esc_url("tel:" . $contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
+      <a href="<?php echo esc_url("mailto:" . $contact_email); ?>"><?php echo esc_html($contact_email); ?></a>
+      <span>10 lat praktyki w sprzedaży B2B</span>
+    </div>
+  </div>
   <div class="wrap nav-inner">
     <a href="<?php echo esc_url(home_url("/")); ?>" class="brand" aria-label="Upsellio — strona główna">
       <?php if ($brand_logo_url !== "") : ?>
@@ -55,7 +67,7 @@ $brand_logo_webp_640_url = (string) ($brand_logo_assets["webp_640"] ?? "");
           <?php if ($brand_logo_webp_320_url !== "" && $brand_logo_webp_640_url !== "") : ?>
             <source type="image/webp" srcset="<?php echo esc_url($brand_logo_webp_320_url); ?> 320w, <?php echo esc_url($brand_logo_webp_640_url); ?> 640w" sizes="(max-width: 760px) 163px, 222px" />
           <?php endif; ?>
-          <img src="<?php echo esc_url($brand_logo_url); ?>" alt="Upsellio" class="brand-logo" width="320" height="213" decoding="async" fetchpriority="high" />
+          <img src="<?php echo esc_url($brand_logo_url); ?>" alt="Upsellio — kampanie Google Ads i Meta Ads dla firm B2B" class="brand-logo" width="320" height="213" decoding="async" fetchpriority="high" />
         </picture>
       <?php else : ?>
         <span class="brand-fallback">Upsellio</span>
@@ -95,7 +107,21 @@ $brand_logo_webp_640_url = (string) ($brand_logo_assets["webp_640"] ?? "");
           </a>
         </li>
       <?php endforeach; ?>
+      <li class="nav-dropdown">
+        <button type="button" class="nav-dropdown-toggle" aria-expanded="false">Usługi</button>
+        <div class="nav-dropdown-menu">
+          <a href="<?php echo esc_url(home_url("/marketing-google-ads/")); ?>">Google Ads</a>
+          <a href="<?php echo esc_url(home_url("/marketing-meta-ads/")); ?>">Meta Ads</a>
+          <a href="<?php echo esc_url(home_url("/tworzenie-stron-internetowych/")); ?>">Strony WWW</a>
+          <a href="<?php echo esc_url(home_url("/oferta/")); ?>">Doradztwo</a>
+        </div>
+      </li>
     </ul>
+
+    <a href="<?php echo esc_url($nav_cta_url); ?>" class="btn btn-primary btn-sm nav-cta" aria-label="Bezpłatna analiza marketingu">
+      <span class="nav-cta-long">Bezpłatna analiza</span>
+      <span class="nav-cta-short">Analiza</span>
+    </a>
 
     <button class="hamburger" id="hamburger" aria-label="Otwórz menu" aria-controls="mobile-menu" aria-expanded="false" type="button">
       <span></span><span></span><span></span>
@@ -106,7 +132,19 @@ $brand_logo_webp_640_url = (string) ($brand_logo_assets["webp_640"] ?? "");
       <?php foreach ($primary_navigation_links as $nav_link) : ?>
         <a href="<?php echo esc_url((string) $nav_link["url"]); ?>"<?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>><?php echo esc_html((string) $nav_link["title"]); ?></a>
       <?php endforeach; ?>
+      <a href="<?php echo esc_url(home_url("/marketing-google-ads/")); ?>">Google Ads</a>
+      <a href="<?php echo esc_url(home_url("/marketing-meta-ads/")); ?>">Meta Ads</a>
+      <a href="<?php echo esc_url(home_url("/tworzenie-stron-internetowych/")); ?>">Strony WWW</a>
+      <a href="<?php echo esc_url(home_url("/oferta/")); ?>">Doradztwo</a>
+      <a href="<?php echo esc_url($nav_cta_url); ?>" class="mobile-menu-cta">Analiza</a>
     </div>
   </div>
 </header>
+<?php if (!function_exists("upsellio_is_contact_page_context") || !upsellio_is_contact_page_context()) : ?>
+<a href="<?php echo esc_url($nav_cta_url); ?>" class="mobile-sticky-cta">Umów bezpłatną konsultację →</a>
+<?php endif; ?>
+<?php if (function_exists("upsellio_render_breadcrumbs")) : ?>
+<?php echo upsellio_render_breadcrumbs(); ?>
+<?php endif; ?>
+<div id="main-content" tabindex="-1"></div>
 
