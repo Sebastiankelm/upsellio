@@ -19,12 +19,17 @@ $type = (string) get_post_meta($post_id, "_ups_port_type", true);
 $meta = (string) get_post_meta($post_id, "_ups_port_meta", true);
 $badge = (string) get_post_meta($post_id, "_ups_port_badge", true);
 $cta = (string) get_post_meta($post_id, "_ups_port_cta", true);
-$image = (string) get_post_meta($post_id, "_ups_port_image", true);
+$image = function_exists("upsellio_resolve_post_image_url")
+    ? upsellio_resolve_post_image_url($post_id, "_ups_port_image", "large")
+    : (string) get_post_meta($post_id, "_ups_port_image", true);
 $problem = (string) get_post_meta($post_id, "_ups_port_problem", true);
 $scope = (string) get_post_meta($post_id, "_ups_port_scope", true);
 $result = (string) get_post_meta($post_id, "_ups_port_result", true);
 $external_url = (string) get_post_meta($post_id, "_ups_port_external_url", true);
 $metrics = function_exists("upsellio_parse_metrics_lines") ? upsellio_parse_metrics_lines((string) get_post_meta($post_id, "_ups_port_metrics", true)) : [];
+$technologies = function_exists("upsellio_parse_metrics_lines") ? upsellio_parse_metrics_lines((string) get_post_meta($post_id, "_ups_port_technologies", true)) : [];
+$client_quote = (string) get_post_meta($post_id, "_ups_port_client_quote", true);
+$has_publish_consent = (string) get_post_meta($post_id, "_ups_port_publish_consent", true) === "1";
 $custom_html = (string) get_post_meta($post_id, "_ups_port_custom_html", true);
 $custom_css = (string) get_post_meta($post_id, "_ups_port_custom_css", true);
 $custom_js = (string) get_post_meta($post_id, "_ups_port_custom_js", true);
@@ -39,15 +44,24 @@ $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? upsellio_g
 <style>
   .ports-page { background:#f8fafc; color:#071426; }
   .ports-wrap { width:min(1240px, calc(100% - 32px)); margin:0 auto; }
-  .ports-hero { border-bottom:1px solid #e2e8f0; background:linear-gradient(180deg, rgba(20,184,166,0.12), rgba(255,255,255,0)); }
-  .ports-hero-inner { padding:56px 0 42px; }
+  .ports-hero { border-bottom:1px solid #e2e8f0; background:radial-gradient(circle at top right, rgba(20,184,166,0.20), rgba(255,255,255,0) 55%), linear-gradient(180deg, rgba(20,184,166,0.14), rgba(255,255,255,0) 70%); }
+  .ports-hero-inner { padding:56px 0 42px; display:grid; grid-template-columns:1fr; gap:28px; align-items:start; }
+  .ports-hero-copy { min-width:0; }
+  .ports-hero-visual { display:none; }
+  .ports-hero-visual .ports-hero-cover { border-radius:20px; overflow:hidden; border:1px solid #e2e8f0; box-shadow:0 30px 60px -30px rgba(15,23,42,.25); aspect-ratio:16 / 11; background:linear-gradient(135deg,#ecfeff,#cbd5e1); position:relative; }
+  .ports-hero-visual .ports-hero-cover img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+  .ports-hero-visual .ports-hero-fallback { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:#0f766e; }
+  .ports-hero-visual .ports-hero-fallback-initials { width:72px; height:72px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-family:"Syne",sans-serif; font-weight:800; font-size:28px; color:#0f766e; box-shadow:0 12px 30px -12px rgba(13,148,136,.4); }
   .ports-back { color:#64748b; font-size:14px; font-weight:600; }
   .ports-badge { display:inline-flex; margin-top:12px; border-radius:999px; border:1px solid #99f6e4; background:#ecfeff; color:#0f766e; font-size:12px; font-weight:700; padding:6px 12px; }
   .ports-title { margin:16px 0 14px; max-width:830px; font-family:"Syne",sans-serif; font-size:clamp(34px, 6vw, 62px); line-height:.98; letter-spacing:-.05em; }
   .ports-excerpt { margin:0; max-width:850px; color:#334155; font-size:19px; line-height:1.72; }
   .ports-meta { margin-top:15px; color:#64748b; font-size:14px; }
-  .ports-metrics { margin-top:14px; display:flex; flex-wrap:wrap; gap:8px; }
-  .ports-metric { border:1px solid #e2e8f0; background:#f8fafc; color:#334155; border-radius:999px; font-size:12px; padding:6px 10px; }
+  .ports-kpi { margin-top:24px; display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; max-width:560px; }
+  .ports-kpi-item { padding:16px 18px; border-radius:14px; background:#fff; border:1px solid #e2e8f0; box-shadow:0 6px 18px -10px rgba(15,23,42,.08); }
+  .ports-kpi-value { display:block; font-family:"Syne",sans-serif; font-size:clamp(26px,4vw,34px); line-height:1; letter-spacing:-.03em; color:#0d9488; font-weight:800; }
+  .ports-kpi-label { display:block; margin-top:6px; font-size:12px; line-height:1.45; color:#475569; font-weight:600; }
+  .ports-kpi-item.is-text .ports-kpi-value { font-size:14px; line-height:1.4; color:#071426; font-weight:700; letter-spacing:0; }
   .ports-main { padding:36px 0 52px; }
   .ports-layout { display:grid; grid-template-columns:1fr; gap:16px; }
   .ports-card { border:1px solid #e2e8f0; border-radius:24px; background:#fff; padding:22px; overflow:hidden; }
@@ -98,6 +112,11 @@ $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? upsellio_g
   .ports-side-link.secondary { border:1px solid #e2e8f0; background:#fff; color:#334155; }
   .ports-side-link.secondary:hover { border-color:#0d9488; color:#0d9488; }
   @media (min-width:761px){ .ports-wrap{width:min(1240px, calc(100% - 48px));} }
+  @media (min-width:980px){
+    .ports-hero-inner { grid-template-columns:minmax(0, 1.15fr) minmax(0, 0.85fr); padding:72px 0 60px; gap:40px; }
+    .ports-hero-visual { display:block; }
+    .ports-hero-visual .ports-hero-cover { aspect-ratio:5 / 4; }
+  }
   @media (min-width:1100px){
     .ports-layout{grid-template-columns:minmax(0, 1fr) 350px;align-items:start;gap:22px;}
     .ports-sidebar{position:sticky;top:104px;align-self:start;padding:18px;}
@@ -116,33 +135,55 @@ $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? upsellio_g
 </style>
 
 <main class="ports-page">
+  <?php
+  $hero_cover_url = $image !== "" ? $image : (has_post_thumbnail($post_id) ? (string) get_the_post_thumbnail_url($post_id, "large") : "");
+  $hero_initials = function_exists("upsellio_get_initials_from_text") ? upsellio_get_initials_from_text($title) : "";
+  $kpi_metrics = array_slice((array) $metrics, 0, 4);
+  ?>
   <section class="ports-hero">
     <div class="ports-wrap ports-hero-inner">
-      <a class="ports-back" href="<?php echo esc_url($portfolio_url); ?>">← Wróć do katalogu portfolio</a>
-      <?php if ($badge !== "") : ?><div class="ports-badge"><?php echo esc_html($badge); ?></div><?php endif; ?>
-      <h1 class="ports-title"><?php echo esc_html($title); ?></h1>
-      <?php if ($excerpt !== "") : ?><p class="ports-excerpt"><?php echo esc_html($excerpt); ?></p><?php endif; ?>
-      <?php if ($type !== "" || $meta !== "") : ?><div class="ports-meta"><?php echo esc_html(trim($type . " · " . $meta, " ·")); ?></div><?php endif; ?>
-      <?php if (!empty($metrics)) : ?>
-        <div class="ports-metrics">
-          <?php foreach ((array) $metrics as $metric) : ?>
-            <span class="ports-metric"><?php echo esc_html((string) $metric); ?></span>
-          <?php endforeach; ?>
+      <div class="ports-hero-copy">
+        <a class="ports-back" href="<?php echo esc_url($portfolio_url); ?>">← Wróć do katalogu portfolio</a>
+        <?php if ($badge !== "") : ?><div class="ports-badge"><?php echo esc_html($badge); ?></div><?php endif; ?>
+        <h1 class="ports-title"><?php echo esc_html($title); ?></h1>
+        <?php if ($excerpt !== "") : ?><p class="ports-excerpt"><?php echo esc_html($excerpt); ?></p><?php endif; ?>
+        <?php if ($type !== "" || $meta !== "") : ?><div class="ports-meta"><?php echo esc_html(trim($type . " · " . $meta, " ·")); ?></div><?php endif; ?>
+        <?php if (!empty($kpi_metrics)) : ?>
+          <div class="ports-kpi" role="list" aria-label="Wyniki projektu">
+            <?php foreach ($kpi_metrics as $metric_line) :
+              $metric_split = function_exists("upsellio_split_metric_line") ? upsellio_split_metric_line((string) $metric_line) : ["value" => "", "label" => (string) $metric_line];
+              $metric_value = (string) ($metric_split["value"] ?? "");
+              $metric_label = (string) ($metric_split["label"] ?? "");
+              $is_text = $metric_value === "";
+              ?>
+              <div class="ports-kpi-item<?php echo $is_text ? " is-text" : ""; ?>" role="listitem">
+                <span class="ports-kpi-value"><?php echo esc_html($is_text ? $metric_label : $metric_value); ?></span>
+                <?php if (!$is_text && $metric_label !== "") : ?>
+                  <span class="ports-kpi-label"><?php echo esc_html($metric_label); ?></span>
+                <?php endif; ?>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+      </div>
+      <div class="ports-hero-visual" aria-hidden="true">
+        <div class="ports-hero-cover">
+          <?php if ($hero_cover_url !== "") : ?>
+            <img src="<?php echo esc_url($hero_cover_url); ?>" alt="<?php echo esc_attr($title); ?>" loading="lazy" decoding="async" width="1400" height="900" />
+          <?php else : ?>
+            <div class="ports-hero-fallback">
+              <div class="ports-hero-fallback-initials"><?php echo esc_html($hero_initials !== "" ? $hero_initials : "UP"); ?></div>
+            </div>
+          <?php endif; ?>
         </div>
-      <?php endif; ?>
+      </div>
     </div>
   </section>
 
   <section class="ports-main">
     <div class="ports-wrap ports-layout">
       <article class="ports-card">
-        <?php if ($image !== "") : ?>
-          <div class="ports-cover">
-            <img src="<?php echo esc_url($image); ?>" alt="<?php echo esc_attr($title); ?>" loading="lazy" decoding="async" width="1400" height="900" />
-          </div>
-        <?php endif; ?>
-
-        <?php if ($problem !== "" || $scope !== "" || $result !== "") : ?>
+        <?php if ($problem !== "" || $scope !== "" || $result !== "" || !empty($technologies) || ($client_quote !== "" && $has_publish_consent)) : ?>
           <div class="ports-sections">
             <?php if ($problem !== "") : ?>
               <section class="ports-section">
@@ -158,8 +199,20 @@ $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? upsellio_g
             <?php endif; ?>
             <?php if ($result !== "") : ?>
               <section class="ports-section">
-                <h2 class="ports-section-title">Efekt biznesowy</h2>
+                <h2 class="ports-section-title">Wyniki</h2>
                 <p class="ports-section-copy"><?php echo esc_html($result); ?></p>
+              </section>
+            <?php endif; ?>
+            <?php if (!empty($technologies)) : ?>
+              <section class="ports-section">
+                <h2 class="ports-section-title">Technologie i narzędzia</h2>
+                <p class="ports-section-copy"><?php echo esc_html(implode(" · ", array_map("strval", $technologies))); ?></p>
+              </section>
+            <?php endif; ?>
+            <?php if ($client_quote !== "" && $has_publish_consent) : ?>
+              <section class="ports-section">
+                <h2 class="ports-section-title">Opinia klienta</h2>
+                <p class="ports-section-copy">“<?php echo esc_html($client_quote); ?>”</p>
               </section>
             <?php endif; ?>
           </div>

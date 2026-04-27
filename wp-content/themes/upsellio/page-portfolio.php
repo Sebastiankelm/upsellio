@@ -45,7 +45,7 @@ foreach ($portfolio_items as $index => $item) {
 <style>
   .port-page { background:#f8fafc; color:#071426; }
   .port-wrap { width:min(1240px, calc(100% - 32px)); margin:0 auto; }
-  .port-hero { border-bottom:1px solid #e2e8f0; background:linear-gradient(180deg, rgba(20,184,166,0.12), rgba(255,255,255,0) 58%); }
+  .port-hero { border-bottom:1px solid #e2e8f0; background:radial-gradient(circle at top right, rgba(20,184,166,0.22), rgba(255,255,255,0) 55%), linear-gradient(180deg, rgba(20,184,166,0.18), rgba(255,255,255,0) 65%); }
   .port-hero-inner { padding:64px 0 52px; }
   .port-pill { display:inline-flex; align-items:center; gap:10px; border:1px solid #99f6e4; background:#ecfeff; color:#0f766e; font-size:12px; font-weight:600; border-radius:999px; padding:9px 14px; }
   .port-pill-dot { width:8px; height:8px; border-radius:50%; background:#0d9488; }
@@ -64,9 +64,12 @@ foreach ($portfolio_items as $index => $item) {
   .port-featured-section { border-bottom:1px solid #e2e8f0; background:#f1f5f9; }
   .port-featured-grid { display:grid; grid-template-columns:1fr; gap:18px; padding:46px 0; }
   .port-featured-card { overflow:hidden; border:1px solid #e2e8f0; border-radius:28px; background:#fff; display:grid; grid-template-columns:1fr; }
-  .port-featured-visual { min-height:270px; position:relative; background:#d8dfdc; }
+  .port-featured-visual { min-height:270px; position:relative; background:linear-gradient(135deg,#ecfeff,#cbd5e1); display:flex; align-items:center; justify-content:center; }
   .port-featured-visual img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
   .port-featured-overlay { position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.32)); }
+  .port-featured-fallback { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:10px; color:#0f766e; padding:24px; text-align:center; }
+  .port-featured-fallback-initials { width:80px; height:80px; border-radius:50%; background:#fff; box-shadow:0 12px 30px -12px rgba(13,148,136,.4); display:flex; align-items:center; justify-content:center; font-family:"Syne",sans-serif; font-size:32px; font-weight:800; letter-spacing:-.02em; color:#0f766e; }
+  .port-featured-fallback-title { font-family:"Syne",sans-serif; font-size:18px; line-height:1.15; max-width:240px; }
   .port-featured-badge { position:absolute; left:20px; top:20px; border:1px solid rgba(255,255,255,.28); border-radius:999px; background:rgba(255,255,255,.16); color:#fff; padding:6px 12px; font-size:12px; font-weight:700; backdrop-filter:blur(6px); }
   .port-featured-body { padding:28px; }
   .port-featured-category { display:inline-flex; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; color:#334155; font-size:11px; font-weight:700; padding:5px 11px; }
@@ -94,8 +97,17 @@ foreach ($portfolio_items as $index => $item) {
   .port-h2 { margin:10px 0 0; font-family:"Syne",sans-serif; font-size:clamp(32px, 4vw, 46px); line-height:1.05; letter-spacing:-.045em; }
   .port-grid-meta { color:#7a817a; font-size:14px; }
   .port-grid { display:grid; gap:14px; padding:16px 0 54px; grid-template-columns:1fr; }
-  .port-card { border:1px solid #e2e8f0; border-radius:24px; background:#fff; padding:22px; display:flex; flex-direction:column; transition:.2s ease; min-height:100%; }
+  .port-card { border:1px solid #e2e8f0; border-radius:24px; background:#fff; padding:0; display:flex; flex-direction:column; transition:.2s ease; min-height:100%; overflow:hidden; }
   .port-card:hover { border-color:#0d9488; transform:translateY(-2px); box-shadow:0 14px 40px rgba(15,23,42,.08); }
+  .port-card-thumb { position:relative; aspect-ratio:16 / 10; background:linear-gradient(135deg,#ecfeff,#cbd5e1); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .port-card-thumb img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform .3s ease; }
+  .port-card:hover .port-card-thumb img { transform:scale(1.04); }
+  .port-card-thumb-fallback { display:flex; flex-direction:column; align-items:center; gap:8px; color:#0f766e; }
+  .port-card-thumb-fallback-circle { width:54px; height:54px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-family:"Syne",sans-serif; font-weight:800; font-size:22px; letter-spacing:-.02em; color:#0f766e; box-shadow:0 8px 20px -10px rgba(13,148,136,.4); }
+  .port-card-thumb-tag { font-size:10px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:#0f766e; }
+  .port-card-live { position:absolute; top:10px; right:10px; display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:999px; background:rgba(255,255,255,.92); color:#0f766e; font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; backdrop-filter:blur(4px); }
+  .port-card-live::before { content:""; width:6px; height:6px; border-radius:50%; background:#0d9488; }
+  .port-card-body { padding:20px 22px 22px; display:flex; flex-direction:column; flex:1; }
   .port-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
   .port-card-category { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#6d736d; font-weight:700; }
   .port-card-type { font-size:12px; color:#596059; margin-top:5px; }
@@ -126,7 +138,7 @@ foreach ($portfolio_items as $index => $item) {
 <main class="port-page">
   <section class="port-hero">
     <div class="port-wrap port-hero-inner">
-      <div class="port-pill"><span class="port-pill-dot"></span>Portfolio stron, sklepów i aplikacji tworzonych pod wynik, proces i realne użycie</div>
+      <div class="port-pill"><span class="port-pill-dot"></span>Realizacje · strony, sklepy, aplikacje</div>
       <h1 class="port-h1">Portfolio Upsellio.<br /><span class="port-accent">Strony i aplikacje, które mają działać — nie tylko wyglądać.</span></h1>
       <p class="port-lead">Zebrane realizacje stron internetowych, sklepów i aplikacji webowych tworzonych z myślą o sprzedaży, procesach i użyteczności. Każdy projekt prowadzi do własnej podstrony case study z celem, zakresem i efektem biznesowym oraz interaktywnym podglądem wdrożonej strony.</p>
       <div class="port-search">
@@ -151,11 +163,20 @@ foreach ($portfolio_items as $index => $item) {
     <section class="port-featured-section">
       <div class="port-wrap port-featured-grid">
         <article class="port-featured-card">
+          <?php
+          $featured_visual_url = !empty($featured["image"]) ? (string) $featured["image"] : (!empty($featured["thumbnail"]) ? (string) $featured["thumbnail"] : "");
+          $featured_initials = function_exists("upsellio_get_initials_from_text") ? upsellio_get_initials_from_text((string) $featured["title"]) : "";
+          ?>
           <div class="port-featured-visual">
-            <?php if (!empty($featured["image"])) : ?>
-              <img src="<?php echo esc_url((string) $featured["image"]); ?>" alt="<?php echo esc_attr((string) $featured["title"]); ?>" loading="lazy" />
+            <?php if ($featured_visual_url !== "") : ?>
+              <img src="<?php echo esc_url($featured_visual_url); ?>" alt="<?php echo esc_attr((string) $featured["title"]); ?>" loading="lazy" />
+              <div class="port-featured-overlay"></div>
+            <?php else : ?>
+              <div class="port-featured-fallback" aria-hidden="true">
+                <div class="port-featured-fallback-initials"><?php echo esc_html($featured_initials !== "" ? $featured_initials : "UP"); ?></div>
+                <div class="port-featured-fallback-title"><?php echo esc_html((string) $featured["title"]); ?></div>
+              </div>
             <?php endif; ?>
-            <div class="port-featured-overlay"></div>
             <?php if (!empty($featured["badge"])) : ?><div class="port-featured-badge"><?php echo esc_html((string) $featured["badge"]); ?></div><?php endif; ?>
           </div>
           <div class="port-featured-body">
@@ -221,17 +242,36 @@ foreach ($portfolio_items as $index => $item) {
             ]);
             $search_text = function_exists("mb_strtolower") ? mb_strtolower($search_text) : strtolower($search_text);
             ?>
+            <?php
+            $card_thumb = !empty($item["thumbnail"]) ? (string) $item["thumbnail"] : "";
+            $card_initials = function_exists("upsellio_get_initials_from_text") ? upsellio_get_initials_from_text((string) $item["title"]) : "";
+            $has_live = !empty($item["external_url"]);
+            $card_cta = $has_live ? "Podgląd live + case study →" : "Zobacz case study →";
+            ?>
             <article class="port-card" data-cat="<?php echo esc_attr((string) $item["category_slug"]); ?>" data-search="<?php echo esc_attr($search_text); ?>">
-              <div class="port-card-top">
-                <div>
-                  <div class="port-card-category"><?php echo esc_html((string) $item["category"]); ?></div>
-                  <div class="port-card-type"><?php echo esc_html(!empty($item["type"]) ? (string) $item["type"] : "Projekt webowy"); ?></div>
+              <a class="port-card-thumb" href="<?php echo esc_url((string) $item["url"]); ?>" aria-label="<?php echo esc_attr((string) $item["title"]); ?>">
+                <?php if ($card_thumb !== "") : ?>
+                  <img src="<?php echo esc_url($card_thumb); ?>" alt="<?php echo esc_attr((string) $item["title"]); ?>" loading="lazy" decoding="async" width="400" height="250" />
+                <?php else : ?>
+                  <div class="port-card-thumb-fallback" aria-hidden="true">
+                    <div class="port-card-thumb-fallback-circle"><?php echo esc_html($card_initials !== "" ? $card_initials : "U"); ?></div>
+                    <div class="port-card-thumb-tag"><?php echo esc_html((string) $item["category"]); ?></div>
+                  </div>
+                <?php endif; ?>
+                <?php if ($has_live) : ?><span class="port-card-live">Live</span><?php endif; ?>
+              </a>
+              <div class="port-card-body">
+                <div class="port-card-top">
+                  <div>
+                    <div class="port-card-category"><?php echo esc_html((string) $item["category"]); ?></div>
+                    <div class="port-card-type"><?php echo esc_html(!empty($item["type"]) ? (string) $item["type"] : "Projekt webowy"); ?></div>
+                  </div>
                 </div>
+                <h3 class="port-card-title"><?php echo esc_html((string) $item["title"]); ?></h3>
+                <p class="port-card-excerpt"><?php echo esc_html((string) $item["excerpt"]); ?></p>
+                <?php if (!empty($item["meta"])) : ?><div class="port-card-meta"><?php echo esc_html((string) $item["meta"]); ?></div><?php endif; ?>
+                <a class="port-card-link" href="<?php echo esc_url((string) $item["url"]); ?>"><?php echo esc_html($card_cta); ?></a>
               </div>
-              <h3 class="port-card-title"><?php echo esc_html((string) $item["title"]); ?></h3>
-              <p class="port-card-excerpt"><?php echo esc_html((string) $item["excerpt"]); ?></p>
-              <?php if (!empty($item["meta"])) : ?><div class="port-card-meta"><?php echo esc_html((string) $item["meta"]); ?></div><?php endif; ?>
-              <a class="port-card-link" href="<?php echo esc_url((string) $item["url"]); ?>">Wejdź na podstronę projektu →</a>
             </article>
           <?php endforeach; ?>
         </div>

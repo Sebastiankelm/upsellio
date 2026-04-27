@@ -17,7 +17,9 @@ $content = (string) apply_filters("the_content", get_the_content());
 $type = (string) get_post_meta($post_id, "_ups_mport_type", true);
 $meta = (string) get_post_meta($post_id, "_ups_mport_meta", true);
 $badge = (string) get_post_meta($post_id, "_ups_mport_badge", true);
-$image = (string) get_post_meta($post_id, "_ups_mport_image", true);
+$image = function_exists("upsellio_resolve_post_image_url")
+    ? upsellio_resolve_post_image_url($post_id, "_ups_mport_image", "large")
+    : (string) get_post_meta($post_id, "_ups_mport_image", true);
 $date = (string) get_post_meta($post_id, "_ups_mport_date", true);
 $sector = (string) get_post_meta($post_id, "_ups_mport_sector", true);
 $problem = (string) get_post_meta($post_id, "_ups_mport_problem", true);

@@ -29,6 +29,20 @@ $contact_service_options = [
     "Marketing + strona (oba)",
     "Nie wiem — chcę porozmawiać",
 ];
+$contact_founder = function_exists("upsellio_get_trust_seo_section") ? upsellio_get_trust_seo_section("founder") : [];
+$contact_founder_name = (string) ($contact_founder["name"] ?? "Sebastian Kelm");
+$contact_founder_role = (string) ($contact_founder["role"] ?? "Growth marketer B2B");
+$contact_founder_photo = (string) ($contact_founder["photo_url"] ?? "");
+$contact_founder_initials = "";
+if ($contact_founder_name !== "") {
+    $name_parts = preg_split("/\s+/", trim($contact_founder_name));
+    foreach ((array) $name_parts as $part) {
+        if ($part === "" || mb_strlen($contact_founder_initials) >= 2) {
+            continue;
+        }
+        $contact_founder_initials .= mb_strtoupper(mb_substr($part, 0, 1));
+    }
+}
 $contact_faq_items = [
     [
         "question" => "Jak szybko wracasz z odpowiedzią?",
@@ -58,13 +72,26 @@ $contact_faq_items = [
 ?>
 <style>
   .contact-page { background:#fff; }
-  .contact-hero { border-bottom:1px solid var(--border); background:linear-gradient(180deg, rgba(20,184,166,0.12), rgba(255,255,255,0) 60%); }
+  .contact-hero { border-bottom:1px solid var(--border); background:radial-gradient(circle at top right, rgba(20,184,166,0.22), rgba(255,255,255,0) 55%), linear-gradient(180deg, rgba(20,184,166,0.14), rgba(255,255,255,0) 70%); }
   .contact-hero-inner { padding:56px 0 44px; display:grid; gap:26px; }
   .contact-hero-points { display:grid; gap:10px; margin-top:20px; }
   .contact-hero-point { display:flex; gap:8px; align-items:flex-start; color:var(--text-2); font-size:14px; line-height:1.65; }
   .contact-check { color:var(--teal); font-weight:700; }
+  .contact-hero-side { display:none; }
+  .contact-host-card { display:flex; flex-direction:column; align-items:flex-start; gap:14px; padding:22px; border:1px solid var(--border); border-radius:22px; background:#fff; box-shadow:var(--shadow-sm); max-width:320px; }
+  .contact-host-row { display:flex; gap:14px; align-items:center; }
+  .contact-host-photo { width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid #ecfeff; box-shadow:0 6px 18px -8px rgba(15,23,42,.25); flex-shrink:0; }
+  .contact-host-initials { width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#0d9488,#14b8a6); color:#fff; font-family:var(--font-display); font-size:26px; font-weight:800; letter-spacing:-.02em; box-shadow:0 6px 18px -8px rgba(13,148,136,.5); flex-shrink:0; }
+  .contact-host-meta strong { display:block; font-family:var(--font-display); font-size:18px; line-height:1.15; letter-spacing:-.02em; color:var(--text); }
+  .contact-host-meta span { display:block; margin-top:4px; font-size:12px; color:var(--text-3); }
+  .contact-host-promise { margin:0; padding:10px 14px; border:1px solid #99f6e4; background:#ecfeff; border-radius:14px; color:#0f766e; font-weight:700; font-size:13px; line-height:1.5; align-self:stretch; }
+  .contact-host-list { margin:0; padding:0; list-style:none; display:grid; gap:8px; align-self:stretch; }
+  .contact-host-list li { display:flex; gap:8px; color:var(--text-2); font-size:13px; line-height:1.55; }
+  .contact-host-list li::before { content:"✓"; color:var(--teal); font-weight:900; }
   .contact-grid { display:grid; gap:16px; grid-template-columns:1fr; }
   .contact-card { border:1px solid var(--border); border-radius:18px; background:#fff; padding:22px; box-shadow:var(--shadow-sm); }
+  .contact-card-icon { width:42px; height:42px; border-radius:12px; background:#ecfeff; color:#0d9488; display:inline-flex; align-items:center; justify-content:center; margin-bottom:14px; }
+  .contact-card-icon svg { width:22px; height:22px; }
   .contact-card-label { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-3); font-weight:700; }
   .contact-card-title { margin:10px 0 8px; font-family:var(--font-display); font-size:24px; line-height:1.04; letter-spacing:-.03em; }
   .contact-card-copy { color:var(--text-2); font-size:14px; line-height:1.72; }
@@ -75,6 +102,8 @@ $contact_faq_items = [
   .contact-form-note { margin-top:8px; color:var(--text-3); font-size:12px; text-align:center; }
   .contact-form-alt { margin-top:16px; padding-top:16px; border-top:1px solid var(--border); display:grid; gap:8px; color:var(--text-2); font-size:13px; }
   .contact-process-grid { margin-top:28px; display:grid; gap:12px; }
+  .contact-process-card { position:relative; padding-top:30px; }
+  .contact-process-card .contact-step-num { position:absolute; top:18px; right:20px; font-family:var(--font-display); font-size:36px; font-weight:800; line-height:1; letter-spacing:-.04em; color:var(--teal); opacity:.18; }
   .contact-process-card strong { display:block; margin-bottom:8px; color:var(--text); }
   .contact-faq { max-width:900px; }
   .contact-cta { border:1px solid var(--teal-line); background:var(--teal-soft); border-radius:22px; padding:26px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:16px; }
@@ -82,7 +111,8 @@ $contact_faq_items = [
   .contact-cta-copy h3 { font-family:var(--font-display); font-size:26px; line-height:1.05; margin-bottom:8px; }
 
   @media (min-width: 761px) {
-    .contact-hero-inner { padding:72px 0 56px; }
+    .contact-hero-inner { padding:72px 0 56px; grid-template-columns:minmax(0,1.4fr) minmax(0,0.8fr); align-items:start; gap:40px; }
+    .contact-hero-side { display:block; }
     .contact-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); }
     .contact-form-grid { grid-template-columns:1fr 1fr; }
     .contact-form-grid .field.full { grid-column:1 / -1; }
@@ -156,26 +186,56 @@ echo wp_json_encode([
           <div class="contact-hero-point"><span class="contact-check">✓</span><span>Bez presji sprzedażowej i bez gotowych pakietów.</span></div>
           <div class="contact-hero-point"><span class="contact-check">✓</span><span>Kontakt bezpośrednio z Sebastianem Kelmem, praktykiem sprzedaży i marketingu B2B.</span></div>
         </div>
+        <a href="#formularz-kontaktowy" class="btn btn-primary reveal visible" style="width:fit-content;margin-top:18px;">Przejdź do formularza →</a>
       </div>
-      <a href="#formularz-kontaktowy" class="btn btn-primary reveal visible" style="width:fit-content;">Przejdź do formularza →</a>
+      <aside class="contact-hero-side reveal visible">
+        <div class="contact-host-card">
+          <div class="contact-host-row">
+            <?php if ($contact_founder_photo !== "") : ?>
+              <img class="contact-host-photo" src="<?php echo esc_url($contact_founder_photo); ?>" alt="<?php echo esc_attr($contact_founder_name); ?>" width="72" height="72" loading="lazy" decoding="async" />
+            <?php else : ?>
+              <div class="contact-host-initials" aria-hidden="true"><?php echo esc_html($contact_founder_initials !== "" ? $contact_founder_initials : "SK"); ?></div>
+            <?php endif; ?>
+            <div class="contact-host-meta">
+              <strong><?php echo esc_html($contact_founder_name); ?></strong>
+              <span><?php echo esc_html($contact_founder_role); ?></span>
+            </div>
+          </div>
+          <p class="contact-host-promise">„Odpiszę osobiście w ciągu 24h roboczych — bez automatycznych ofert.”</p>
+          <ul class="contact-host-list">
+            <li>Czytam każde zgłoszenie i wracam z konkretną rekomendacją.</li>
+            <li>Nie wysyłam szablonowych cenników.</li>
+            <li>Decyzja należy do Ciebie. Bez presji sprzedażowej.</li>
+          </ul>
+        </div>
+      </aside>
     </div>
   </section>
 
   <section class="section section-border">
     <div class="wrap contact-grid">
       <article class="contact-card reveal">
+        <div class="contact-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
         <div class="contact-card-label">E-mail</div>
         <h2 class="contact-card-title">Napisz wiadomość</h2>
         <p class="contact-card-copy">Każda wiadomość trafia bezpośrednio do mnie. Odpisuję z rekomendacją, nie z szablonową odpowiedzią.</p>
         <a class="contact-card-link" href="<?php echo esc_url($contact_email_href); ?>"><?php echo esc_html($contact_email_display); ?></a>
       </article>
       <article class="contact-card reveal d1">
+        <div class="contact-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.86 19.86 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.86 19.86 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
         <div class="contact-card-label">Telefon</div>
         <h2 class="contact-card-title">Szybka rozmowa</h2>
         <p class="contact-card-copy">Masz pilny temat lub wolisz porozmawiać zanim wypełnisz formularz? Zadzwoń. Jeśli nie odbiorę, wrócę z kontaktem tego samego dnia.</p>
         <a class="contact-card-link" href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a>
       </article>
       <article class="contact-card reveal d2">
+        <div class="contact-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+        </div>
         <div class="contact-card-label">Formularz</div>
         <h2 class="contact-card-title">Bezpłatna diagnoza</h2>
         <p class="contact-card-copy">Formularz zbiera kontekst biznesowy Twojej firmy, dzięki temu od pierwszej odpowiedzi przechodzimy do konkretów, a nie ogólnych pytań.</p>
@@ -275,9 +335,21 @@ echo wp_json_encode([
         <p class="body reveal d2" style="margin-top:14px;">Wiele firm obawia się kontaktu z agencją marketingową, bo spodziewa się automatycznej odpowiedzi z cennikiem i presji na szybką decyzję. U mnie wygląda to inaczej.</p>
       </div>
       <div class="contact-process-grid">
-        <div class="contact-card contact-process-card reveal"><strong>1. Analiza zgłoszenia</strong><p class="contact-card-copy">Po otrzymaniu formularza czytam opisaną sytuację i przygotowuję się do odpowiedzi. Analizuję problem, obecne działania i najbardziej logiczny następny krok.</p></div>
-        <div class="contact-card contact-process-card reveal d1"><strong>2. Odpowiedź z rekomendacją</strong><p class="contact-card-copy">Wracam z konkretnymi obserwacjami: co warto sprawdzić lub poprawić najpierw, który kanał ma sens i jaki następny krok proponuję.</p></div>
-        <div class="contact-card contact-process-card reveal d2"><strong>3. Decyzja bez presji</strong><p class="contact-card-copy">Po wymianie informacji decydujesz, czy chcesz kontynuować. Jeśli nie, zostajesz z wiedzą, którą możesz wdrożyć samodzielnie lub porównać z innymi ofertami.</p></div>
+        <div class="contact-card contact-process-card reveal">
+          <span class="contact-step-num" aria-hidden="true">01</span>
+          <strong>Analiza zgłoszenia</strong>
+          <p class="contact-card-copy">Po otrzymaniu formularza czytam opisaną sytuację i przygotowuję się do odpowiedzi. Analizuję problem, obecne działania i najbardziej logiczny następny krok.</p>
+        </div>
+        <div class="contact-card contact-process-card reveal d1">
+          <span class="contact-step-num" aria-hidden="true">02</span>
+          <strong>Odpowiedź z rekomendacją</strong>
+          <p class="contact-card-copy">Wracam z konkretnymi obserwacjami: co warto sprawdzić lub poprawić najpierw, który kanał ma sens i jaki następny krok proponuję.</p>
+        </div>
+        <div class="contact-card contact-process-card reveal d2">
+          <span class="contact-step-num" aria-hidden="true">03</span>
+          <strong>Decyzja bez presji</strong>
+          <p class="contact-card-copy">Po wymianie informacji decydujesz, czy chcesz kontynuować. Jeśli nie, zostajesz z wiedzą, którą możesz wdrożyć samodzielnie lub porównać z innymi ofertami.</p>
+        </div>
       </div>
     </div>
   </section>
