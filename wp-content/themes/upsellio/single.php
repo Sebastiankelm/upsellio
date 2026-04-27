@@ -188,6 +188,30 @@ if (have_posts()) :
             text-transform: uppercase;
             color: var(--text-3);
           }
+          .ups-post-toc-wrap > summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            list-style: none;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--text-3);
+          }
+          .ups-post-toc-wrap > summary::-webkit-details-marker { display: none; }
+          .ups-post-toc-wrap > summary::after {
+            content: "";
+            width: 10px;
+            height: 10px;
+            border-right: 2px solid var(--text-3);
+            border-bottom: 2px solid var(--text-3);
+            transform: rotate(45deg);
+            transition: 0.2s ease;
+          }
+          .ups-post-toc-wrap[open] > summary::after { transform: rotate(-135deg); }
           .ups-post-toc {
             margin-top: 12px;
             display: grid;
@@ -250,6 +274,40 @@ if (have_posts()) :
             width: 100%;
             height: 320px;
             object-fit: cover;
+          }
+          .ups-post-highlight-fallback {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 220px;
+            background: linear-gradient(135deg, #ecfeff 0%, #fff 60%, #f7faf9 100%);
+            overflow: hidden;
+          }
+          .ups-post-highlight-fallback::before {
+            content: attr(data-decor);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: var(--font-display);
+            font-size: clamp(56px, 14vw, 140px);
+            font-weight: 800;
+            letter-spacing: -0.06em;
+            color: rgba(15, 118, 110, 0.08);
+            white-space: nowrap;
+            pointer-events: none;
+          }
+          .ups-post-highlight-fallback-badge {
+            position: relative;
+            padding: 10px 18px;
+            border-radius: 999px;
+            background: var(--teal);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
           }
           .ups-post-highlight-copy {
             padding: 26px;
@@ -447,6 +505,62 @@ if (have_posts()) :
             background: #fff2f2;
             color: #b13a3a;
           }
+          .ups-post-end-cta {
+            margin-top: 24px;
+            border: 1px solid var(--teal-line);
+            border-radius: 28px;
+            background: radial-gradient(circle at top right, rgba(20,184,166,0.18), transparent 50%), linear-gradient(135deg, #ecfeff 0%, #fff 70%);
+            padding: 34px 32px;
+            display: grid;
+            gap: 20px;
+            grid-template-columns: 1fr;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+          }
+          .ups-post-end-cta-eyebrow {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--teal-dark);
+          }
+          .ups-post-end-cta-title {
+            margin-top: 8px;
+            font-family: var(--font-display);
+            font-size: clamp(26px, 4vw, 36px);
+            line-height: 1.08;
+            letter-spacing: -0.04em;
+            color: #081827;
+          }
+          .ups-post-end-cta p {
+            margin-top: 10px;
+            color: var(--text-2);
+            font-size: 15px;
+            line-height: 1.65;
+          }
+          .ups-post-end-cta-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+          }
+          .ups-post-end-cta-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 48px;
+            padding: 0 22px;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 800;
+            transition: 0.2s ease;
+            text-decoration: none;
+          }
+          .ups-post-end-cta-btn.is-primary { background: var(--teal); color: #fff; box-shadow: 0 14px 28px rgba(13,148,136,.24); }
+          .ups-post-end-cta-btn.is-secondary { background: #fff; border: 1px solid var(--border); color: #081827; }
+          .ups-post-end-cta-btn:hover { transform: translateY(-2px); }
+          @media (min-width: 760px) {
+            .ups-post-end-cta { grid-template-columns: 1fr auto; gap: 32px; padding: 38px; }
+          }
           .ups-post-related {
             border-top: 1px solid var(--border);
             background: #fff;
@@ -597,6 +711,9 @@ if (have_posts()) :
             .ups-post-sidebar {
               position: sticky;
             }
+            .ups-post-toc-wrap > summary { pointer-events: none; }
+            .ups-post-toc-wrap > summary::after { display: none; }
+            .ups-post-toc-wrap > .ups-post-toc { display: grid !important; }
             .ups-inline-grid {
               grid-template-columns: 1fr 1fr;
             }
@@ -655,8 +772,8 @@ if (have_posts()) :
             <div class="ups-post-main-inner">
               <aside class="ups-post-sidebar">
                 <?php if (!empty($toc_items)) : ?>
-                  <div class="ups-post-panel">
-                    <div class="ups-post-panel-title">Spis treści</div>
+                  <details class="ups-post-panel ups-post-toc-wrap">
+                    <summary>Spis treści</summary>
                     <nav class="ups-post-toc">
                       <?php foreach ($toc_items as $toc_item) : ?>
                         <a href="#<?php echo esc_attr($toc_item["id"]); ?>" class="<?php echo $toc_item["level"] === "h3" ? "lvl-h3" : ""; ?>">
@@ -664,7 +781,7 @@ if (have_posts()) :
                         </a>
                       <?php endforeach; ?>
                     </nav>
-                  </div>
+                  </details>
                 <?php endif; ?>
 
                 <?php if (!empty($lead_magnet["url"])) : ?>
@@ -698,9 +815,17 @@ if (have_posts()) :
                       <p>Dobre reklamy nie wystarczą, jeśli reszta procesu sprzedaży nie jest gotowa dowieźć wyniku.</p>
                     </div>
                   </div>
-                <?php elseif (current_user_can("manage_options")) : ?>
-                  <div class="ups-post-highlight" style="display:block;padding:16px;border:1px solid #edcccc;background:#fff2f2;">
-                    Brak obrazu wyrozniajacego i _upsellio_featured_image_url dla tego wpisu.
+                <?php else :
+                    $fallback_decor = $primary_category && !empty($primary_category->name) ? $primary_category->name : "Blog Upsellio";
+                    ?>
+                  <div class="ups-post-highlight">
+                    <div class="ups-post-highlight-fallback" data-decor="<?php echo esc_attr(mb_strtoupper($fallback_decor)); ?>" aria-hidden="true">
+                      <span class="ups-post-highlight-fallback-badge"><?php echo esc_html($fallback_decor); ?></span>
+                    </div>
+                    <div class="ups-post-highlight-copy">
+                      <small>Kluczowa myśl artykułu</small>
+                      <p>Dobre reklamy nie wystarczą, jeśli reszta procesu sprzedaży nie jest gotowa dowieźć wyniku.</p>
+                    </div>
                   </div>
                 <?php endif; ?>
 
@@ -712,6 +837,18 @@ if (have_posts()) :
                     <?php endif; ?>
                   </section>
                 </article>
+
+                <aside class="ups-post-end-cta" aria-label="Następny krok">
+                  <div>
+                    <span class="ups-post-end-cta-eyebrow">Następny krok</span>
+                    <h2 class="ups-post-end-cta-title">Sprawdźmy, gdzie naprawdę traci się klientów w Twojej firmie.</h2>
+                    <p>Bezpłatna diagnoza marketingu: 30-45 minut, bez presji sprzedażowej. Zobaczymy, czy problemem jest komunikat, ścieżka klienta, kampanie czy strona — i od czego ma sens zacząć.</p>
+                  </div>
+                  <div class="ups-post-end-cta-actions">
+                    <a class="ups-post-end-cta-btn is-primary" href="<?php echo esc_url(home_url("/oferta/#formularz-oferta")); ?>">Chcę bezpłatną diagnozę</a>
+                    <a class="ups-post-end-cta-btn is-secondary" href="<?php echo esc_url(home_url("/kontakt/")); ?>">Zobacz kontakt</a>
+                  </div>
+                </aside>
               </div>
             </div>
           </section>

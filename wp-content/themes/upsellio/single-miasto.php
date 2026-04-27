@@ -52,6 +52,33 @@ while (have_posts()) :
     $phoneHref = preg_replace("/[^0-9+]/", "", $contactPhone);
     $ctaSeed = abs(crc32($citySlug . "|" . $cityName));
 
+    $voivodeshipKey = function_exists("remove_accents") ? remove_accents((string) $voivodeship) : (string) $voivodeship;
+    $voivodeshipKey = strtolower(preg_replace("/\s+/", "-", trim($voivodeshipKey)));
+    $voivodeshipMap = [
+        "mazowieckie" => [140, 90],
+        "slaskie" => [110, 130],
+        "wielkopolskie" => [90, 90],
+        "malopolskie" => [130, 145],
+        "dolnoslaskie" => [70, 110],
+        "lubelskie" => [170, 110],
+        "pomorskie" => [100, 35],
+        "zachodniopomorskie" => [50, 50],
+        "lodzkie" => [115, 100],
+        "podlaskie" => [175, 65],
+        "kujawsko-pomorskie" => [105, 65],
+        "swietokrzyskie" => [135, 120],
+        "warminsko-mazurskie" => [150, 50],
+        "lubuskie" => [55, 80],
+        "opolskie" => [95, 125],
+        "podkarpackie" => [175, 145],
+    ];
+    if (isset($voivodeshipMap[$voivodeshipKey])) {
+        [$pinX, $pinY] = $voivodeshipMap[$voivodeshipKey];
+    } else {
+        $pinX = 70 + ($ctaSeed % 110);
+        $pinY = 60 + (($ctaSeed >> 4) % 90);
+    }
+
     $ctaActionPool = [
         "Umów bezpłatną konsultację dla %s",
         "Sprawdź potencjał wzrostu firmy w %s",
@@ -221,7 +248,14 @@ while (have_posts()) :
     ?>
     <style>
       .city-wrap{width:min(1240px,calc(100% - 32px));margin:0 auto}
-      .city-hero{padding:72px 0 48px;border-bottom:1px solid var(--border,#e2e8f0);background:radial-gradient(circle at top right,rgba(20,184,166,.12),transparent 32%),var(--bg-soft,#f1f5f9)}
+      .city-hero{padding:72px 0 48px;border-bottom:1px solid var(--border,#e2e8f0);background:radial-gradient(circle at top right,rgba(20,184,166,.18),transparent 36%),linear-gradient(180deg,#ecfeff,#f1f5f9)}
+      .city-hero-grid{display:grid;gap:30px;align-items:center}
+      .city-hero-copy{min-width:0}
+      .city-hero-map{display:none;background:#fff;border:1px solid var(--border,#e2e8f0);border-radius:22px;padding:20px;box-shadow:0 14px 40px rgba(15,23,42,.08)}
+      .city-hero-map svg{width:100%;height:auto;display:block}
+      .city-hero-map-caption{margin-top:10px;display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:12px;color:#475569}
+      .city-hero-map-caption strong{color:#0f766e;font-family:Syne,sans-serif;font-size:16px;letter-spacing:-.02em}
+      @media(min-width:961px){.city-hero-grid{grid-template-columns:1.25fr .75fr}.city-hero-map{display:block}}
       .city-breadcrumbs{font-size:12px;color:var(--text-3,#64748b);margin-bottom:14px}
       .city-h1{font-family:var(--font-display, "Syne", sans-serif);font-weight:800;font-size:clamp(36px,5vw,62px);line-height:1.02;letter-spacing:-1.5px}
       .city-lead{margin-top:18px;font-size:18px;line-height:1.8;color:var(--text-2,#334155);max-width:860px}
@@ -286,20 +320,42 @@ while (have_posts()) :
     <main>
       <section class="city-hero">
         <div class="city-wrap">
-          <nav class="city-breadcrumbs" aria-label="Breadcrumb">
-            <a href="<?php echo esc_url(home_url("/")); ?>">Strona główna</a> /
-            <a href="<?php echo esc_url(home_url("/miasta/")); ?>">Miasta</a> /
-            <span><?php echo esc_html($cityName); ?></span>
-          </nav>
-          <h1 class="city-h1">Marketing i strony WWW <?php echo esc_html($cityName); ?></h1>
-          <p class="city-lead">
-            Skuteczne pozyskiwanie klientów w mieście <?php echo esc_html($cityName); ?>:
-            kampanie Meta i Google Ads, strony pod konwersję oraz wsparcie sprzedaży B2B i usług.
-          </p>
-          <div class="city-meta">
-            <span class="city-pill">Województwo: <?php echo esc_html($voivodeship); ?></span>
-            <span class="city-pill">Specjalizacja: <?php echo esc_html($marketAngle); ?></span>
-            <span class="city-pill">Model: <?php echo esc_html($serviceFocus); ?></span>
+          <div class="city-hero-grid">
+            <div class="city-hero-copy">
+              <nav class="city-breadcrumbs" aria-label="Breadcrumb">
+                <a href="<?php echo esc_url(home_url("/")); ?>">Strona główna</a> /
+                <a href="<?php echo esc_url(home_url("/miasta/")); ?>">Miasta</a> /
+                <span><?php echo esc_html($cityName); ?></span>
+              </nav>
+              <h1 class="city-h1">Marketing i strony WWW <?php echo esc_html($cityName); ?></h1>
+              <p class="city-lead">
+                Skuteczne pozyskiwanie klientów w mieście <?php echo esc_html($cityName); ?>:
+                kampanie Meta i Google Ads, strony pod konwersję oraz wsparcie sprzedaży B2B i usług.
+              </p>
+              <div class="city-meta">
+                <span class="city-pill">Województwo: <?php echo esc_html($voivodeship); ?></span>
+                <span class="city-pill">Specjalizacja: <?php echo esc_html($marketAngle); ?></span>
+                <span class="city-pill">Model: <?php echo esc_html($serviceFocus); ?></span>
+              </div>
+            </div>
+            <aside class="city-hero-map" aria-hidden="true">
+              <svg viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="city-map-grad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#ecfeff"/>
+                    <stop offset="100%" stop-color="#f1f5f9"/>
+                  </linearGradient>
+                </defs>
+                <path d="M40 60 L70 30 L110 28 L140 12 L180 28 L210 50 L218 92 L208 130 L196 158 L172 190 L140 200 L110 196 L78 184 L52 162 L28 130 L24 98 Z" fill="url(#city-map-grad)" stroke="#99f6e4" stroke-width="2"/>
+                <circle cx="<?php echo (int) $pinX; ?>" cy="<?php echo (int) $pinY; ?>" r="14" fill="#0d9488" fill-opacity="0.18"/>
+                <circle cx="<?php echo (int) $pinX; ?>" cy="<?php echo (int) $pinY; ?>" r="8" fill="#0d9488" fill-opacity="0.32"/>
+                <circle cx="<?php echo (int) $pinX; ?>" cy="<?php echo (int) $pinY; ?>" r="4" fill="#0f766e"/>
+              </svg>
+              <div class="city-hero-map-caption">
+                <strong><?php echo esc_html($cityName); ?></strong>
+                <span><?php echo esc_html("woj. " . $voivodeship); ?></span>
+              </div>
+            </aside>
           </div>
         </div>
       </section>

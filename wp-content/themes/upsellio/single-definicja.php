@@ -34,47 +34,59 @@ while (have_posts()) :
     $articleHtml = apply_filters("the_content", get_the_content());
 
     $toolIntroPool = [
-        "Szybko oszacuj, jak termin %s przeklada sie na wynik kampanii i strony.",
-        "To proste narzedzie pomaga zinterpretowac %s w kontekscie realnych danych.",
-        "Sprawdz praktyczny wynik dla %s na bazie trzech kluczowych liczb.",
-        "W 30 sekund policz orientacyjny potencjal poprawy zwiazany z %s.",
-        "Narzedzie wspiera szybka diagnoze, czy %s jest obecnie dobrze wykorzystywane.",
+        "Szybko oszacuj, jak termin %s przekłada się na wynik kampanii i strony.",
+        "To proste narzędzie pomaga zinterpretować %s w kontekście realnych danych.",
+        "Sprawdź praktyczny wynik dla %s na bazie trzech kluczowych liczb.",
+        "W 30 sekund policz orientacyjny potencjał poprawy związany z %s.",
+        "Narzędzie wspiera szybką diagnozę, czy %s jest obecnie dobrze wykorzystywane.",
     ];
     $toolScoreLabelPool = [
-        "Potencjal optymalizacji",
-        "Wskaznik gotowosci",
-        "Priorytet wdrozenia",
-        "Indeks skutecznosci",
+        "Potencjał optymalizacji",
+        "Wskaźnik gotowości",
+        "Priorytet wdrożenia",
+        "Indeks skuteczności",
         "Poziom dopasowania",
     ];
     $toolPrimaryLabelPool = [
         "Miesięczny budżet reklamowy (PLN)",
-        "Miesieczna liczba sesji na stronie",
-        "Liczba leadow miesiecznie",
-        "Srednia wartosc koszyka/oferty (PLN)",
-        "Liczba zapytan handlowych miesiecznie",
+        "Miesięczna liczba sesji na stronie",
+        "Liczba leadów miesięcznie",
+        "Średnia wartość koszyka/oferty (PLN)",
+        "Liczba zapytań handlowych miesięcznie",
     ];
     $toolSecondaryLabelPool = [
-        "Aktualny wspolczynnik konwersji (%)",
+        "Aktualny współczynnik konwersji (%)",
         "Szacowany CTR kampanii (%)",
-        "Jaka czesc leadow jest wartosciowa? (%)",
+        "Jaka część leadów jest wartościowa? (%)",
         "Jak oceniasz jakość ruchu? (1-100)",
         "Jaki odsetek ruchu wraca na stronę? (%)",
     ];
     $toolThirdLabelPool = [
         "Docelowa poprawa w 90 dni (%)",
-        "Przewidywana poprawa po wdrozeniu (%)",
-        "Mozliwa redukcja kosztu pozyskania (%)",
-        "Wzrost jakosci leadow po zmianach (%)",
+        "Przewidywana poprawa po wdrożeniu (%)",
+        "Możliwa redukcja kosztu pozyskania (%)",
+        "Wzrost jakości leadów po zmianach (%)",
         "Planowany wzrost konwersji po testach (%)",
     ];
     $toolActionPool = [
-        "Skup sie na uspojnieniu komunikatu reklamy i strony.",
-        "Priorytet: poprawa intencji ruchu i filtrowanie leadow.",
-        "Najwiekszy efekt da testowanie oferty i CTA.",
+        "Skup się na ujednoliceniu komunikatu reklamy i strony.",
+        "Priorytet: poprawa intencji ruchu i filtrowanie leadów.",
+        "Największy efekt da testowanie oferty i CTA.",
         "Wartym krokiem jest audyt lejka i analityki konwersji.",
         "Zacznij od 2-3 testów, potem skaluj działania.",
     ];
+    $diagramKey = strtolower((string) $category);
+    if (strpos($diagramKey, "seo") !== false) {
+        $diagramType = "seo";
+    } elseif (strpos($diagramKey, "konwers") !== false || strpos($diagramKey, "cro") !== false) {
+        $diagramType = "konwersja";
+    } elseif (strpos($diagramKey, "anali") !== false || strpos($diagramKey, "data") !== false) {
+        $diagramType = "analityka";
+    } elseif (strpos($diagramKey, "reklam") !== false || strpos($diagramKey, "ads") !== false || strpos($diagramKey, "ppc") !== false) {
+        $diagramType = "reklamy";
+    } else {
+        $diagramType = "marketing";
+    }
     $toolTitle = "Kalkulator praktyczny: " . $term;
     $toolIntro = sprintf($toolIntroPool[$seed % count($toolIntroPool)], $term);
     $toolScoreLabel = $toolScoreLabelPool[$seed % count($toolScoreLabelPool)];
@@ -167,14 +179,14 @@ while (have_posts()) :
             $inlineCounter++;
             $linksHtml = "";
             if (is_array($definitionLink) && !empty($definitionLink["url"])) {
-                $linksHtml .= '<a href="' . esc_url($definitionLink["url"]) . '">Powiazana definicja: ' . esc_html($definitionLink["name"]) . "</a>";
+                $linksHtml .= '<a href="' . esc_url($definitionLink["url"]) . '">Powiązana definicja: ' . esc_html($definitionLink["name"]) . "</a>";
             }
             if (is_array($cityLink) && !empty($cityLink["url"])) {
-                $linksHtml .= '<a href="' . esc_url($cityLink["url"]) . '">Uslugi lokalne: ' . esc_html("Marketing i strony WWW " . $cityLink["name"]) . "</a>";
+                $linksHtml .= '<a href="' . esc_url($cityLink["url"]) . '">Usługi lokalne: ' . esc_html("Marketing i strony WWW " . $cityLink["name"]) . "</a>";
             }
             return $matches[0] .
                 '<aside class="definition-inline-cta">' .
-                    '<strong>Wdroz ' . esc_html($term) . ' praktycznie, nie tylko teoretycznie.</strong>' .
+                    '<strong>Wdróż ' . esc_html($term) . ' praktycznie, nie tylko teoretycznie.</strong>' .
                     '<div class="definition-inline-links">' . $linksHtml . "</div>" .
                     '<a class="definition-inline-btn" href="' . esc_url(home_url("/kontakt/")) . '">Umów bezpłatną rozmowę</a>' .
                 "</aside>";
@@ -183,8 +195,14 @@ while (have_posts()) :
     );
     ?>
     <style>
+      .definition-progress{position:fixed;top:0;left:0;width:0;height:3px;background:linear-gradient(90deg,#0d9488,#14b8a6);z-index:90;transition:width .12s linear;will-change:width}
       .definition-wrap{width:min(1140px,calc(100% - 32px));margin:0 auto}
-      .definition-hero{padding:72px 0 34px;border-bottom:1px solid #e2e8f0;background:#f1f5f9}
+      .definition-hero{position:relative;overflow:hidden;padding:72px 0 34px;border-bottom:1px solid #e2e8f0;background:radial-gradient(circle at top right, rgba(20,184,166,0.14), transparent 36%), linear-gradient(180deg,#ecfeff,#f1f5f9)}
+      .definition-hero-grid{display:grid;gap:30px;align-items:center}
+      .definition-hero-copy{min-width:0}
+      .definition-hero-diagram{display:none}
+      .definition-hero-diagram svg{width:100%;height:auto;display:block;border-radius:22px;background:#fff;border:1px solid #e2e8f0;padding:18px;box-shadow:0 14px 40px rgba(15,23,42,.08)}
+      @media(min-width:981px){.definition-hero-grid{grid-template-columns:1.2fr .8fr}.definition-hero-diagram{display:block}}
       .definition-breadcrumbs{font-size:12px;color:#6f6f67;margin-bottom:14px}
       .definition-title{font-family:Syne,sans-serif;font-size:clamp(34px,5vw,56px);line-height:1.05;letter-spacing:-1px}
       .definition-lead{margin-top:14px;max-width:860px;font-size:18px;line-height:1.75;color:#334155}
@@ -253,23 +271,118 @@ while (have_posts()) :
       @media(min-width:981px){.definition-wrap{width:min(1140px,calc(100% - 40px))}.definition-main{grid-template-columns:minmax(0,1fr) 320px}.definition-side{position:sticky}}
     </style>
 
+    <div class="definition-progress" id="definition-progress" aria-hidden="true"></div>
     <section class="definition-hero">
       <div class="definition-wrap">
-        <div class="definition-breadcrumbs">
-          <a href="<?php echo esc_url(home_url("/")); ?>">Strona glowna</a> /
-          <a href="<?php echo esc_url(home_url("/definicje/")); ?>">Definicje</a> /
-          <span><?php echo esc_html($term); ?></span>
-        </div>
-        <h1 class="definition-title"><?php echo esc_html($term); ?></h1>
-        <p class="definition-lead">
-          Wyjasnienie pojecia <?php echo esc_html($term); ?> wraz z praktycznym zastosowaniem w SEO, kampaniach reklamowych i optymalizacji konwersji.
-        </p>
-        <div class="definition-pills">
-          <span class="definition-pill">Kategoria: <?php echo esc_html($category); ?></span>
-          <span class="definition-pill">Poziom: <?php echo esc_html($difficulty); ?></span>
-          <?php if ($mainKeyword) : ?>
-            <span class="definition-pill">Fraza: <?php echo esc_html($mainKeyword); ?></span>
-          <?php endif; ?>
+        <div class="definition-hero-grid">
+          <div class="definition-hero-copy">
+            <div class="definition-breadcrumbs">
+              <a href="<?php echo esc_url(home_url("/")); ?>">Strona główna</a> /
+              <a href="<?php echo esc_url(home_url("/definicje/")); ?>">Definicje</a> /
+              <span><?php echo esc_html($term); ?></span>
+            </div>
+            <h1 class="definition-title"><?php echo esc_html($term); ?></h1>
+            <p class="definition-lead">
+              Wyjaśnienie pojęcia <?php echo esc_html($term); ?> wraz z praktycznym zastosowaniem w SEO, kampaniach reklamowych i optymalizacji konwersji.
+            </p>
+            <div class="definition-pills">
+              <span class="definition-pill">Kategoria: <?php echo esc_html($category); ?></span>
+              <span class="definition-pill">Poziom: <?php echo esc_html($difficulty); ?></span>
+              <?php if ($mainKeyword) : ?>
+                <span class="definition-pill">Fraza: <?php echo esc_html($mainKeyword); ?></span>
+              <?php endif; ?>
+            </div>
+          </div>
+          <div class="definition-hero-diagram" aria-hidden="true">
+            <?php if ($diagramType === "seo") : ?>
+              <svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg">
+                <rect x="14" y="14" width="192" height="22" rx="6" fill="#f1f5f9"/>
+                <circle cx="28" cy="25" r="6" fill="none" stroke="#0d9488" stroke-width="2"/>
+                <line x1="32" y1="29" x2="38" y2="35" stroke="#0d9488" stroke-width="2" stroke-linecap="round"/>
+                <text x="48" y="29" font-family="Syne,sans-serif" font-size="11" fill="#475569">jak zoptymalizować...</text>
+                <rect x="14" y="46" width="192" height="14" rx="4" fill="#ecfeff"/>
+                <text x="20" y="56" font-size="10" fill="#0f766e" font-weight="700">1.</text>
+                <text x="32" y="56" font-size="10" fill="#0f766e">Wynik #1: idealny tytuł, meta i intent</text>
+                <rect x="14" y="64" width="192" height="14" rx="4" fill="#f8fafc"/>
+                <text x="20" y="74" font-size="10" fill="#475569">2.</text>
+                <text x="32" y="74" font-size="10" fill="#475569">Wynik #2 - poprawna struktura H</text>
+                <rect x="14" y="82" width="192" height="14" rx="4" fill="#f8fafc"/>
+                <text x="20" y="92" font-size="10" fill="#475569">3.</text>
+                <text x="32" y="92" font-size="10" fill="#475569">Wynik #3 - mocne linkowanie</text>
+                <g transform="translate(14,108)">
+                  <rect x="0" y="20" width="22" height="20" fill="#99f6e4"/>
+                  <rect x="28" y="10" width="22" height="30" fill="#5eead4"/>
+                  <rect x="56" y="0" width="22" height="40" fill="#0d9488"/>
+                  <rect x="84" y="14" width="22" height="26" fill="#5eead4"/>
+                  <rect x="112" y="6" width="22" height="34" fill="#14b8a6"/>
+                  <rect x="140" y="22" width="22" height="18" fill="#99f6e4"/>
+                  <text x="170" y="34" font-size="10" font-weight="700" fill="#0f766e">SERP</text>
+                </g>
+              </svg>
+            <?php elseif ($diagramType === "konwersja") : ?>
+              <svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg">
+                <text x="14" y="22" font-family="Syne,sans-serif" font-size="11" font-weight="800" fill="#0f766e">LEJEK KONWERSJI</text>
+                <path d="M14 36 L206 36 L160 84 L160 130 L60 130 L60 84 Z" fill="#ecfeff" stroke="#99f6e4"/>
+                <text x="110" y="58" text-anchor="middle" font-size="11" font-weight="700" fill="#081827">Odwiedzający</text>
+                <text x="110" y="73" text-anchor="middle" font-size="9" fill="#64748b">100%</text>
+                <text x="110" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#081827">Zaangażowani</text>
+                <text x="110" y="113" text-anchor="middle" font-size="9" fill="#64748b">~30%</text>
+                <text x="110" y="123" text-anchor="middle" font-size="11" font-weight="800" fill="#0f766e">Lead</text>
+                <rect x="80" y="138" width="60" height="14" rx="6" fill="#0d9488"/>
+                <text x="110" y="148" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">Klient</text>
+              </svg>
+            <?php elseif ($diagramType === "analityka") : ?>
+              <svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg">
+                <text x="14" y="22" font-family="Syne,sans-serif" font-size="11" font-weight="800" fill="#0f766e">DASHBOARD ANALITYKI</text>
+                <line x1="14" y1="130" x2="206" y2="130" stroke="#cbd5e1"/>
+                <line x1="14" y1="40" x2="14" y2="130" stroke="#cbd5e1"/>
+                <polyline points="14,110 50,90 86,98 122,72 158,80 194,52" fill="none" stroke="#0d9488" stroke-width="2"/>
+                <circle cx="14" cy="110" r="3" fill="#0d9488"/>
+                <circle cx="50" cy="90" r="3" fill="#0d9488"/>
+                <circle cx="86" cy="98" r="3" fill="#0d9488"/>
+                <circle cx="122" cy="72" r="3" fill="#0d9488"/>
+                <circle cx="158" cy="80" r="3" fill="#0d9488"/>
+                <circle cx="194" cy="52" r="4" fill="#0f766e"/>
+                <text x="14" y="148" font-size="9" fill="#64748b">Pn</text>
+                <text x="50" y="148" font-size="9" fill="#64748b">Wt</text>
+                <text x="86" y="148" font-size="9" fill="#64748b">Śr</text>
+                <text x="122" y="148" font-size="9" fill="#64748b">Cz</text>
+                <text x="158" y="148" font-size="9" fill="#64748b">Pt</text>
+                <text x="194" y="148" font-size="9" font-weight="700" fill="#0f766e">Sb</text>
+              </svg>
+            <?php elseif ($diagramType === "reklamy") : ?>
+              <svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg">
+                <text x="14" y="22" font-family="Syne,sans-serif" font-size="11" font-weight="800" fill="#0f766e">KAMPANIA → STRONA → LEAD</text>
+                <rect x="14" y="36" width="56" height="44" rx="8" fill="#ecfeff" stroke="#99f6e4"/>
+                <text x="42" y="56" text-anchor="middle" font-size="10" font-weight="700" fill="#0f766e">Reklama</text>
+                <text x="42" y="68" text-anchor="middle" font-size="9" fill="#475569">CTR</text>
+                <path d="M70 58 H82" stroke="#94a3b8" stroke-width="2" marker-end="url(#defm)"/>
+                <rect x="82" y="36" width="56" height="44" rx="8" fill="#fff" stroke="#cbd5e1"/>
+                <text x="110" y="56" text-anchor="middle" font-size="10" font-weight="700" fill="#081827">Strona</text>
+                <text x="110" y="68" text-anchor="middle" font-size="9" fill="#475569">CR</text>
+                <path d="M138 58 H150" stroke="#94a3b8" stroke-width="2" marker-end="url(#defm)"/>
+                <rect x="150" y="36" width="56" height="44" rx="8" fill="#0f766e"/>
+                <text x="178" y="56" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">Lead</text>
+                <text x="178" y="68" text-anchor="middle" font-size="9" fill="#a7f3d0">CPL</text>
+                <defs><marker id="defm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker></defs>
+                <text x="110" y="110" text-anchor="middle" font-size="10" fill="#64748b">Mierzymy każdy etap, optymalizujemy najsłabszy.</text>
+              </svg>
+            <?php else : ?>
+              <svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg">
+                <text x="14" y="22" font-family="Syne,sans-serif" font-size="11" font-weight="800" fill="#0f766e">SYSTEM MARKETINGU</text>
+                <circle cx="55" cy="80" r="32" fill="#ecfeff" stroke="#99f6e4"/>
+                <text x="55" y="78" text-anchor="middle" font-size="10" font-weight="700" fill="#0f766e">Ruch</text>
+                <text x="55" y="92" text-anchor="middle" font-size="9" fill="#475569">Ads · SEO</text>
+                <circle cx="110" cy="80" r="32" fill="#fff" stroke="#cbd5e1"/>
+                <text x="110" y="78" text-anchor="middle" font-size="10" font-weight="700" fill="#081827">Strona</text>
+                <text x="110" y="92" text-anchor="middle" font-size="9" fill="#475569">UX · CRO</text>
+                <circle cx="165" cy="80" r="32" fill="#0f766e"/>
+                <text x="165" y="78" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">Lead</text>
+                <text x="165" y="92" text-anchor="middle" font-size="9" fill="#a7f3d0">Sprzedaż</text>
+                <text x="110" y="138" text-anchor="middle" font-size="10" fill="#64748b">Trzy elementy, jeden spójny wynik.</text>
+              </svg>
+            <?php endif; ?>
+          </div>
         </div>
       </div>
     </section>
@@ -311,7 +424,7 @@ while (have_posts()) :
 
         <section class="definition-contact" id="formularz-definicji">
           <h2>Formularz kontaktowy</h2>
-          <p>Chcesz wdrozyc <?php echo esc_html($term); ?> w praktyce? Opisz krotko sytuacje, przygotuje rekomendacje.</p>
+          <p>Chcesz wdrożyć <?php echo esc_html($term); ?> w praktyce? Opisz krótko sytuację, przygotuję rekomendacje.</p>
           <div class="definition-contact-links">
             <a href="<?php echo esc_url("tel:" . $contactPhoneHref); ?>">Telefon: <?php echo esc_html($contactPhone); ?></a>
             <a href="<?php echo esc_url($contactEmailHref); ?>">E-mail: <?php echo esc_html($contactEmailDisplay); ?></a>
@@ -331,7 +444,7 @@ while (have_posts()) :
             <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
             <div class="definition-contact-row">
               <label>
-                Imie i firma *
+                Imię i firma *
                 <input type="text" name="lead_name" required />
               </label>
               <label>
@@ -345,20 +458,20 @@ while (have_posts()) :
                 <input type="tel" name="lead_phone" />
               </label>
               <label>
-                Co chcesz poprawic? *
-                <textarea name="lead_message" required>Chce wdrozyc definicje <?php echo esc_textarea($term); ?> w praktyce.</textarea>
+                Co chcesz poprawić? *
+                <textarea name="lead_message" required>Chcę wdrożyć definicję <?php echo esc_textarea($term); ?> w praktyce.</textarea>
               </label>
             </div>
             <label class="definition-consent">
               <input type="checkbox" name="lead_consent" value="1" required />
-              <span>Wyrazam zgode na kontakt w sprawie mojego zapytania.</span>
+              <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
             </label>
-            <button class="definition-tool-btn primary" type="submit">Wyslij formularz</button>
+            <button class="definition-tool-btn primary" type="submit">Wyślij formularz</button>
           </form>
         </section>
 
-        <section class="definition-linking" aria-label="Linkowanie wewnetrzne definicji">
-          <h2>Powiazane tematy i strony lokalne</h2>
+        <section class="definition-linking" aria-label="Linkowanie wewnętrzne definicji">
+          <h2>Powiązane tematy i strony lokalne</h2>
           <div class="definition-link-grid">
             <?php foreach ($selectedDefinitionLinks as $definitionLink) : ?>
               <a href="<?php echo esc_url($definitionLink["url"]); ?>">
@@ -394,7 +507,7 @@ while (have_posts()) :
           <?php endif; ?>
           <?php if (!empty($adjacent["next"])) : ?>
             <a href="<?php echo esc_url($adjacent["next"]["url"]); ?>">
-              <small>Nastepna definicja</small>
+              <small>Następna definicja</small>
               <?php echo esc_html($adjacent["next"]["name"]); ?>
             </a>
           <?php endif; ?>
@@ -403,7 +516,7 @@ while (have_posts()) :
 
       <aside class="definition-side">
         <div class="definition-card">
-          <div class="definition-card-title">Powiazane definicje</div>
+          <div class="definition-card-title">Powiązane definicje</div>
           <div class="definition-list">
             <?php foreach ($related as $relatedItem) : ?>
               <a href="<?php echo esc_url($relatedItem["url"]); ?>"><?php echo esc_html($relatedItem["name"]); ?></a>
@@ -420,17 +533,34 @@ while (have_posts()) :
                 ?>
               <a href="<?php echo esc_url($url); ?>"><?php echo esc_html($label); ?></a>
             <?php endforeach; ?>
-            <a href="<?php echo esc_url(home_url("/definicje/")); ?>">Powrot do wszystkich definicji</a>
+            <a href="<?php echo esc_url(home_url("/definicje/")); ?>">Powrót do wszystkich definicji</a>
           </div>
         </div>
 
         <div class="definition-phone-box">
-          Potrzebujesz szybkiej konsultacji? Zadzwon:
+          Potrzebujesz szybkiej konsultacji? Zadzwoń:
           <a href="<?php echo esc_url("tel:" . $contactPhoneHref); ?>"><?php echo esc_html($contactPhone); ?></a>
         </div>
       </aside>
     </section>
     <script>
+      (function () {
+        var bar = document.getElementById("definition-progress");
+        if (bar) {
+          var article = document.querySelector(".definition-content");
+          var update = function () {
+            if (!article) return;
+            var rect = article.getBoundingClientRect();
+            var total = rect.height - window.innerHeight;
+            if (total <= 0) { bar.style.width = "100%"; return; }
+            var passed = Math.min(Math.max(-rect.top, 0), total);
+            bar.style.width = ((passed / total) * 100) + "%";
+          };
+          window.addEventListener("scroll", update, { passive: true });
+          window.addEventListener("resize", update);
+          update();
+        }
+      })();
       (function () {
         var tool = document.getElementById("narzedzie-definicji");
         if (!tool) return;

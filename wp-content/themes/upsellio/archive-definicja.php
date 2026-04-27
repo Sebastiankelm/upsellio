@@ -15,9 +15,15 @@ $definitions = get_posts([
 ?>
 <style>
   .defs-wrap{width:min(1140px,calc(100% - 32px));margin:0 auto}
-  .defs-hero{padding:72px 0 36px;border-bottom:1px solid #e2e8f0;background:#f1f5f9}
+  .defs-hero{position:relative;overflow:hidden;padding:72px 0 36px;border-bottom:1px solid #e2e8f0;background:radial-gradient(circle at top right, rgba(20,184,166,0.16), transparent 40%), linear-gradient(180deg,#ecfeff,#f1f5f9)}
+  .defs-hero::before{content:"ABC";position:absolute;top:-30px;right:-20px;font-family:Syne,sans-serif;font-weight:800;font-size:clamp(160px,28vw,320px);line-height:.85;letter-spacing:-.08em;color:rgba(15,118,110,.06);pointer-events:none;user-select:none}
+  .defs-hero > .defs-wrap{position:relative}
+  .defs-pill{display:inline-flex;align-items:center;gap:8px;margin-bottom:14px;padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #99f6e4;color:#0f766e;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+  .defs-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:#0d9488}
   .defs-title{font-family:Syne,sans-serif;font-size:clamp(34px,5vw,56px);line-height:1.05;letter-spacing:-1px}
   .defs-lead{margin-top:16px;max-width:860px;font-size:18px;line-height:1.75;color:#334155}
+  .defs-stats{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px;font-size:13px;color:#475569}
+  .defs-stats strong{font-family:Syne,sans-serif;font-size:22px;color:#0f766e;letter-spacing:-.02em;display:block}
   .defs-controls{margin-top:24px;display:flex;flex-wrap:wrap;gap:12px;flex-direction:column}
   .defs-search{flex:1 1 300px}
   .defs-search input{width:100%;border:1px solid #c9c9c3;border-radius:10px;padding:12px 14px}
@@ -28,10 +34,11 @@ $definitions = get_posts([
   .defs-headline{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:16px}
   .defs-count{font-size:13px;color:#6f6f67}
   .defs-grid{display:grid;grid-template-columns:1fr;gap:12px 16px}
-  .defs-card{display:block;padding:14px;border:1px solid #e6e6e1;border-radius:12px;background:#fff;transition:.2s ease}
-  .defs-card:hover{border-color:#0d9488;transform:translateY(-1px)}
-  .defs-card-title{font-weight:600;line-height:1.4;color:#071426}
-  .defs-card-meta{margin-top:8px;font-size:12px;color:#6f6f67}
+  .defs-card{display:block;padding:16px;border:1px solid #e6e6e1;border-radius:14px;background:#fff;transition:.2s ease}
+  .defs-card:hover{border-color:#0d9488;transform:translateY(-2px);box-shadow:0 14px 30px rgba(15,23,42,.06)}
+  .defs-card-title{font-weight:700;font-size:16px;line-height:1.32;color:#071426}
+  .defs-card-excerpt{margin-top:8px;font-size:13px;line-height:1.55;color:#475569;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .defs-card-meta{margin-top:10px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#0f766e;font-weight:700}
   .defs-empty{display:none;padding:24px;border:1px dashed #c9c9c3;border-radius:12px;color:#6f6f67}
   @media(min-width:681px){.defs-controls{flex-direction:row}}
   @media(min-width:981px){.defs-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
@@ -39,11 +46,17 @@ $definitions = get_posts([
 
 <section class="defs-hero">
   <div class="defs-wrap">
+    <span class="defs-pill">Słownik Upsellio</span>
     <h1 class="defs-title">Definicje SEO i marketingu</h1>
     <p class="defs-lead">
-      Sekcja wiedzy z praktycznymi wyjasnieniami pojec SEO, SEM, analityki i optymalizacji konwersji.
-      Kazda definicja zawiera unikalny opis, FAQ oraz linki do powiazanych zagadnien.
+      Sekcja wiedzy z praktycznymi wyjaśnieniami pojęć SEO, SEM, analityki i optymalizacji konwersji.
+      Każda definicja zawiera unikalny opis, FAQ oraz linki do powiązanych zagadnień.
     </p>
+    <div class="defs-stats" aria-hidden="true">
+      <div><strong><?php echo esc_html(count($definitions)); ?></strong>definicji w bazie</div>
+      <div><strong>4</strong>kategorie tematyczne</div>
+      <div><strong>3</strong>poziomy zaawansowania</div>
+    </div>
     <div class="defs-controls">
       <div class="defs-search">
         <input id="defs-search-input" type="text" placeholder="Szukaj definicji..." aria-label="Szukaj definicji">
@@ -61,7 +74,7 @@ $definitions = get_posts([
 
 <main class="defs-main defs-wrap">
   <div class="defs-headline">
-    <h2 style="font-family:Syne,sans-serif;font-size:30px;line-height:1.2;">Slownik wiedzy</h2>
+    <h2 style="font-family:Syne,sans-serif;font-size:30px;line-height:1.2;">Słownik wiedzy</h2>
     <div class="defs-count" id="defs-count"><?php echo esc_html(count($definitions)); ?> definicji</div>
   </div>
 
@@ -70,6 +83,14 @@ $definitions = get_posts([
         $term = get_post_meta($definition->ID, "_upsellio_definition_term", true) ?: get_the_title($definition->ID);
         $category = get_post_meta($definition->ID, "_upsellio_definition_category", true) ?: "marketing";
         $difficulty = get_post_meta($definition->ID, "_upsellio_definition_difficulty", true) ?: "sredni";
+        $excerpt_raw = (string) get_post_meta($definition->ID, "_upsellio_definition_short", true);
+        if ($excerpt_raw === "") {
+            $excerpt_raw = (string) $definition->post_excerpt;
+        }
+        if ($excerpt_raw === "") {
+            $excerpt_raw = wp_strip_all_tags((string) $definition->post_content);
+        }
+        $excerpt = wp_trim_words($excerpt_raw, 18, "…");
         $letter = strtolower(substr(remove_accents($term), 0, 1));
         ?>
       <a
@@ -79,12 +100,15 @@ $definitions = get_posts([
         data-letter="<?php echo esc_attr($letter); ?>"
       >
         <div class="defs-card-title"><?php echo esc_html($term); ?></div>
-        <div class="defs-card-meta"><?php echo esc_html($category . " • " . $difficulty); ?></div>
+        <?php if ($excerpt !== "") : ?>
+          <div class="defs-card-excerpt"><?php echo esc_html($excerpt); ?></div>
+        <?php endif; ?>
+        <div class="defs-card-meta"><?php echo esc_html($category . " · " . $difficulty); ?></div>
       </a>
     <?php endforeach; ?>
   </div>
 
-  <div class="defs-empty" id="defs-empty">Brak wynikow dla wybranego filtra. Sprobuj innej frazy lub zakresu liter.</div>
+  <div class="defs-empty" id="defs-empty">Brak wyników dla wybranego filtra. Spróbuj innej frazy lub zakresu liter.</div>
 </main>
 
 <script>
