@@ -67,10 +67,10 @@ if ($image !== "") {
 }
 ?>
 <style>
-  .mps{background:#fff;color:#111110}
-  .mps-wrap{max-width:1080px;margin:0 auto;padding:0 40px}
-  .mps-breadcrumb{padding:20px 0;border-bottom:1px solid #e5e5e1;background:#f8f8f6;font-size:13px;color:#7c7c74}
-  .mps-breadcrumb a{color:#7c7c74}
+  .mps{background:#f8fafc;color:#071426}
+  .mps-wrap{max-width:1240px;margin:0 auto;padding:0 40px}
+  .mps-breadcrumb{padding:20px 0;border-bottom:1px solid #e2e8f0;background:#f1f5f9;font-size:13px;color:#64748b}
+  .mps-breadcrumb a{color:#64748b}
   .mps-hero{background:linear-gradient(135deg,#1a3a5c,#2563a8);padding:80px 0 0}
   .mps-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
   .mps-tag{font-size:11px;font-weight:600;color:rgba(255,255,255,.85);background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.22);border-radius:100px;padding:4px 12px}
@@ -79,34 +79,49 @@ if ($image !== "") {
   .mps-meta{display:flex;gap:40px;flex-wrap:wrap;padding:26px 0;border-top:1px solid rgba(255,255,255,.18)}
   .mps-meta small{display:block;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.5)}
   .mps-meta span{font-size:14px;color:rgba(255,255,255,.92)}
-  .mps-kpi{background:#fff;border-bottom:1px solid #e5e5e1;box-shadow:0 4px 16px rgba(0,0,0,.08)}
-  .mps-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);border-left:1px solid #e5e5e1}
-  .mps-kpi-cell{padding:24px;border-right:1px solid #e5e5e1;border-bottom:1px solid #e5e5e1}
-  .mps-kpi-cell b{display:block;font-family:"Syne",sans-serif;font-size:30px;color:#1D9E75;line-height:1}
-  .mps-kpi-cell span{font-size:12px;color:#3d3d38}
-  .mps-content{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:64px;padding:70px 0}
+  .mps-kpi{background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 14px 40px rgba(15,23,42,.08)}
+  .mps-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);border-left:1px solid #e2e8f0}
+  .mps-kpi-cell{padding:24px;border-right:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0}
+  .mps-kpi-cell b{display:block;font-family:"Syne",sans-serif;font-size:30px;color:#0d9488;line-height:1}
+  .mps-kpi-cell span{font-size:12px;color:#334155}
+  .mps-content{display:grid;grid-template-columns:1fr;gap:28px;padding:70px 0}
   .mps article h2{font-family:"Syne",sans-serif;font-size:22px;line-height:1.18;margin:0 0 14px}
-  .mps article p,.mps article li{font-size:15px;line-height:1.78;color:#3d3d38}
+  .mps article p,.mps article li{font-size:15px;line-height:1.78;color:#334155}
   .mps-block{margin-bottom:38px}
   .mps-problem,.mps-solution{border-radius:16px;padding:20px;border-left:3px solid}
   .mps-problem{background:rgba(226,75,74,.06);border-color:#e24b4a}
-  .mps-solution{background:#e8f8f2;border-color:#1D9E75}
-  .mps-chart{background:#f8f8f6;border:1px solid #e5e5e1;border-radius:22px;padding:20px}
-  .mps-chart-bars{display:flex;align-items:flex-end;gap:6px;height:120px;padding-bottom:8px;border-bottom:1px solid #e5e5e1}
+  .mps-solution{background:#ecfeff;border-color:#0d9488}
+  .mps-chart{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:22px;padding:20px}
+  .mps-chart-bars{display:flex;align-items:flex-end;gap:6px;height:120px;padding-bottom:8px;border-bottom:1px solid #e2e8f0}
   .mps-chart-bars div{flex:1;border-radius:4px 4px 0 0}
   .mps-chart-bars .before{background:#c8c8c2}
-  .mps-chart-bars .after{background:#1D9E75}
-  .mps-side-card{border:1px solid #e5e5e1;border-radius:22px;padding:22px;background:#fff;margin-bottom:14px}
+  .mps-chart-bars .after{background:#0d9488}
+  .mps-side-card{border:1px solid #e2e8f0;border-radius:22px;padding:22px;background:#fff;margin-bottom:14px}
   .mps-side-card h3{font-family:"Syne",sans-serif;font-size:18px;margin:0 0 8px}
-  .mps-side-card p{font-size:13px;color:#3d3d38;line-height:1.65}
-  .mps-side-card .btn{display:inline-flex;width:100%;justify-content:center;border-radius:12px;padding:12px 14px;margin-top:8px;background:#1D9E75;color:#fff;font-weight:600}
-  .mps-side-card .row{padding:10px 0;border-bottom:1px solid #e5e5e1;font-size:13px;display:flex;justify-content:space-between;gap:12px}
+  .mps-side-card p{font-size:13px;color:#334155;line-height:1.65}
+  .mps-side-card .btn{display:inline-flex;width:100%;justify-content:center;border-radius:12px;padding:12px 14px;margin-top:8px;background:linear-gradient(135deg,#0d9488,#14b8a6);color:#fff;font-weight:600}
+  .mps-side-card .row{padding:10px 0;border-bottom:1px solid #e2e8f0;font-size:13px;display:flex;justify-content:space-between;gap:12px}
   .mps-side-card .row:last-child{border-bottom:none}
   .mps-tags-list{display:flex;flex-wrap:wrap;gap:7px}
-  .mps-tags-list span{font-size:12px;background:#f1f1ee;border:1px solid #e5e5e1;padding:5px 10px;border-radius:8px}
+  .mps-tags-list span{font-size:12px;background:#f1f5f9;border:1px solid #e2e8f0;padding:5px 10px;border-radius:8px}
   .mps-custom{margin-top:20px;padding:16px;border:1px solid #dce7e1;border-radius:14px;background:#f8fcfa}
   .mps-form input,.mps-form textarea{width:100%;border:1px solid #c8c8c2;border-radius:12px;padding:11px 12px;font-size:14px;margin-bottom:10px}
   .mps-form textarea{min-height:96px;resize:vertical}
+  @media(min-width:1100px){
+    .mps-content{grid-template-columns:minmax(0,1fr) 340px;gap:34px}
+    .mps-side{position:sticky;top:104px;align-self:start}
+    .mps-side .mps-side-card{padding:18px;margin-bottom:10px}
+    .mps-side .mps-side-card h3{font-size:17px;margin-bottom:6px}
+    .mps-side .mps-side-card p{font-size:12px;line-height:1.5;margin:0 0 8px}
+    .mps-side .mps-form input,
+    .mps-side .mps-form textarea{padding:9px 11px;font-size:13px;margin-bottom:8px;border-radius:10px}
+    .mps-side .mps-form textarea{min-height:72px;line-height:1.45}
+    .mps-side .mps-form label{font-size:11px;line-height:1.35;margin:4px 0 8px}
+    .mps-side .mps-side-card .btn{padding:10px 12px;font-size:13px}
+    .mps-side .mps-side-card .row{padding:8px 0;font-size:12px}
+    .mps-side .mps-tags-list{gap:5px}
+    .mps-side .mps-tags-list span{font-size:11px;padding:4px 8px}
+  }
   @media(max-width:980px){.mps-kpi-grid{grid-template-columns:1fr 1fr}.mps-content{grid-template-columns:1fr}}
   @media(max-width:760px){.mps-wrap{padding:0 24px}.mps-kpi-grid{grid-template-columns:1fr}}
 </style>
@@ -142,8 +157,8 @@ if ($image !== "") {
       <div class="mps-wrap mps-kpi-grid">
         <?php foreach (array_slice($kpis, 0, 4) as $kpi) : ?>
           <div class="mps-kpi-cell">
-            <div style="font-size:11px;color:#7c7c74;text-transform:uppercase;letter-spacing:1.1px;margin-bottom:6px;"><?php echo esc_html((string) ($kpi["label"] ?? "KPI")); ?></div>
-            <div style="font-size:12px;color:#7c7c74;margin-bottom:6px;">Przed: <?php echo esc_html((string) ($kpi["before"] ?? "-")); ?></div>
+            <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1.1px;margin-bottom:6px;"><?php echo esc_html((string) ($kpi["label"] ?? "KPI")); ?></div>
+            <div style="font-size:12px;color:#64748b;margin-bottom:6px;">Przed: <?php echo esc_html((string) ($kpi["before"] ?? "-")); ?></div>
             <b><?php echo esc_html((string) (($kpi["after"] ?? "") !== "" ? $kpi["after"] : ($kpi["change"] ?? "-"))); ?></b>
             <span><?php echo esc_html((string) ($kpi["desc"] ?? ($kpi["change"] ?? ""))); ?></span>
           </div>
@@ -162,7 +177,7 @@ if ($image !== "") {
         <?php if ($result !== "") : ?><div class="mps-block"><h2>Wynik biznesowy</h2><p><?php echo esc_html($result); ?></p></div><?php endif; ?>
 
         <div class="mps-chart">
-          <div style="font-size:13px;color:#3d3d38;margin-bottom:10px;">Przykładowy trend poprawy KPI po wdrożeniu</div>
+          <div style="font-size:13px;color:#334155;margin-bottom:10px;">Przykładowy trend poprawy KPI po wdrożeniu</div>
           <div class="mps-chart-bars">
             <div class="before" style="height:95%"></div><div class="after" style="height:100%"></div>
             <div class="before" style="height:88%"></div><div class="after" style="height:78%"></div>
@@ -181,7 +196,7 @@ if ($image !== "") {
         <?php endif; ?>
       </article>
 
-      <aside>
+      <aside class="mps-side">
         <div class="mps-side-card">
           <h3>Chcesz podobny wynik?</h3>
           <p>Wypełnij krótki formularz. Otrzymasz rekomendację działań dla Twojej kampanii lub strony.</p>

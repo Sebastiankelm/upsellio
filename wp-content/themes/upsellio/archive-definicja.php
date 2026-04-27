@@ -15,22 +15,22 @@ $definitions = get_posts([
 ?>
 <style>
   .defs-wrap{width:min(1140px,calc(100% - 32px));margin:0 auto}
-  .defs-hero{padding:72px 0 36px;border-bottom:1px solid #e6e6e1;background:#f8f8f6}
+  .defs-hero{padding:72px 0 36px;border-bottom:1px solid #e2e8f0;background:#f1f5f9}
   .defs-title{font-family:Syne,sans-serif;font-size:clamp(34px,5vw,56px);line-height:1.05;letter-spacing:-1px}
-  .defs-lead{margin-top:16px;max-width:860px;font-size:18px;line-height:1.75;color:#3d3d38}
+  .defs-lead{margin-top:16px;max-width:860px;font-size:18px;line-height:1.75;color:#334155}
   .defs-controls{margin-top:24px;display:flex;flex-wrap:wrap;gap:12px;flex-direction:column}
   .defs-search{flex:1 1 300px}
   .defs-search input{width:100%;border:1px solid #c9c9c3;border-radius:10px;padding:12px 14px}
   .defs-filter{display:flex;flex-wrap:wrap;gap:8px}
-  .defs-chip{border:1px solid #c9c9c3;border-radius:999px;padding:8px 12px;font-size:12px;color:#3d3d38;cursor:pointer;background:#fff}
-  .defs-chip.is-active,.defs-chip:hover{border-color:#1d9e75;color:#1d9e75}
+  .defs-chip{border:1px solid #cbd5e1;border-radius:999px;padding:8px 12px;font-size:12px;color:#334155;cursor:pointer;background:#fff}
+  .defs-chip.is-active,.defs-chip:hover{border-color:#0d9488;color:#0d9488}
   .defs-main{padding:42px 0 56px}
   .defs-headline{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:16px}
   .defs-count{font-size:13px;color:#6f6f67}
   .defs-grid{display:grid;grid-template-columns:1fr;gap:12px 16px}
   .defs-card{display:block;padding:14px;border:1px solid #e6e6e1;border-radius:12px;background:#fff;transition:.2s ease}
-  .defs-card:hover{border-color:#1d9e75;transform:translateY(-1px)}
-  .defs-card-title{font-weight:600;line-height:1.4;color:#111110}
+  .defs-card:hover{border-color:#0d9488;transform:translateY(-1px)}
+  .defs-card-title{font-weight:600;line-height:1.4;color:#071426}
   .defs-card-meta{margin-top:8px;font-size:12px;color:#6f6f67}
   .defs-empty{display:none;padding:24px;border:1px dashed #c9c9c3;border-radius:12px;color:#6f6f67}
   @media(min-width:681px){.defs-controls{flex-direction:row}}

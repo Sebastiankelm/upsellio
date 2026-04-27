@@ -1,6 +1,7 @@
 <?php
 /*
-Template Name: Blog Index
+Template Name: Upsellio - Blog
+Template Post Type: page
 */
 
 if (!defined("ABSPATH")) {

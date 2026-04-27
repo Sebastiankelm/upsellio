@@ -49,12 +49,16 @@ function upsellio_city_meta_tags()
     }
 
     $postId = get_the_ID();
-    $city = get_post_meta($postId, "_upsellio_city_name", true);
+    $citySlug = get_post_meta($postId, "_upsellio_city_slug", true) ?: get_post_field("post_name", $postId);
+    $cityDatasetItem = upsellio_get_city_by_slug($citySlug);
+    $city = is_array($cityDatasetItem) && !empty($cityDatasetItem["name"])
+        ? $cityDatasetItem["name"]
+        : get_post_meta($postId, "_upsellio_city_name", true);
     $description = get_post_meta($postId, "_upsellio_city_meta_description", true);
     $url = get_permalink($postId);
 
     if (!$description) {
-        $description = "Pozyskuj wiecej klientow w miescie " . $city . " dzieki kampaniom Meta i Google Ads oraz stronie WWW nastawionej na konwersje.";
+        $description = "Pozyskuj więcej klientów w mieście " . $city . " dzięki kampaniom Meta i Google Ads oraz stronie WWW nastawionej na konwersję.";
     }
 
     echo '<meta name="description" content="' . esc_attr($description) . '">' . "\n";
@@ -86,7 +90,7 @@ function upsellio_city_meta_tags()
             [
                 "@type" => "ListItem",
                 "position" => 1,
-                "name" => "Strona glowna",
+                "name" => "Strona główna",
                 "item" => home_url("/"),
             ],
             [
@@ -152,8 +156,12 @@ function upsellio_get_footer_city_links_html()
         }, upsellio_get_cities_dataset());
     } else {
         $cityLinks = array_map(function ($postId) {
+            $citySlug = get_post_meta($postId, "_upsellio_city_slug", true) ?: get_post_field("post_name", $postId);
+            $cityDatasetItem = upsellio_get_city_by_slug($citySlug);
             return [
-                "name" => get_post_meta($postId, "_upsellio_city_name", true) ?: get_the_title($postId),
+                "name" => is_array($cityDatasetItem) && !empty($cityDatasetItem["name"])
+                    ? $cityDatasetItem["name"]
+                    : (get_post_meta($postId, "_upsellio_city_name", true) ?: get_the_title($postId)),
                 "url" => get_permalink($postId),
             ];
         }, $posts);
@@ -165,24 +173,24 @@ function upsellio_get_footer_city_links_html()
 
     ob_start();
     ?>
-    <section class="upsellio-local-seo" aria-label="Miasta obslugi" id="<?php echo esc_attr($componentId); ?>">
+    <section class="upsellio-local-seo" aria-label="Miasta obsługi" id="<?php echo esc_attr($componentId); ?>">
       <style>
         .upsellio-local-seo{margin-top:32px;padding-top:24px;border-top:1px solid var(--border,#e6e6e1)}
         .upsellio-local-seo-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
-        .upsellio-local-seo-title{font-size:13px;font-weight:700;letter-spacing:.3px;color:var(--text-2,#3d3d38)}
+        .upsellio-local-seo-title{font-size:13px;font-weight:700;letter-spacing:.3px;color:var(--text-2,#334155)}
         .upsellio-local-seo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px}
-        .upsellio-local-seo-link{font-size:13px;line-height:1.5;color:var(--text-3,#7c7c74);display:inline-block;text-decoration:none}
-        .upsellio-local-seo-link:hover{color:var(--teal,#1d9e75)}
+        .upsellio-local-seo-link{font-size:13px;line-height:1.5;color:var(--text-3,#64748b);display:inline-block;text-decoration:none}
+        .upsellio-local-seo-link:hover{color:var(--teal,#0d9488)}
         .upsellio-local-seo-more{overflow:hidden;max-height:0;opacity:0;transition:max-height .45s ease, opacity .25s ease}
         .upsellio-local-seo-more.is-open{opacity:1;max-height:2200px;margin-top:14px}
-        .upsellio-local-seo-toggle{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border-strong,#c9c9c3);border-radius:999px;background:transparent;color:var(--text-2,#3d3d38);cursor:pointer;font-size:12px}
-        .upsellio-local-seo-toggle:hover{border-color:var(--teal,#1d9e75);color:var(--teal,#1d9e75)}
+        .upsellio-local-seo-toggle{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border-strong,#cbd5e1);border-radius:999px;background:transparent;color:var(--text-2,#334155);cursor:pointer;font-size:12px}
+        .upsellio-local-seo-toggle:hover{border-color:var(--teal,#0d9488);color:var(--teal,#0d9488)}
         @media(min-width:861px){.upsellio-local-seo-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
       </style>
       <div class="upsellio-local-seo-head">
-        <div class="upsellio-local-seo-title">Uslugi w najwiekszych miastach Polski</div>
+        <div class="upsellio-local-seo-title">Usługi w największych miastach Polski</div>
         <?php if (!empty($hiddenLinks)) : ?>
-          <button class="upsellio-local-seo-toggle" type="button" data-role="toggle">Pokaz wszystkie miasta</button>
+          <button class="upsellio-local-seo-toggle" type="button" data-role="toggle">Pokaż wszystkie miasta</button>
         <?php endif; ?>
       </div>
       <div class="upsellio-local-seo-grid">
@@ -211,7 +219,7 @@ function upsellio_get_footer_city_links_html()
             if (!btn || !hidden) return;
             btn.addEventListener('click', function () {
               var open = hidden.classList.toggle('is-open');
-              btn.textContent = open ? 'Ukryj liste miast' : 'Pokaz wszystkie miasta';
+              btn.textContent = open ? 'Ukryj listę miast' : 'Pokaż wszystkie miasta';
             });
           })();
         </script>
@@ -239,12 +247,12 @@ function upsellio_get_footer_popular_definitions_html()
     ob_start();
     ?>
     <section style="margin-top:28px;padding-top:24px;border-top:1px solid #e6e6e1;">
-      <h3 style="margin:0 0 12px;font-family:Syne,sans-serif;font-size:18px;color:#111110;">Popularne definicje</h3>
+      <h3 style="margin:0 0 12px;font-family:Syne,sans-serif;font-size:18px;color:#071426;">Popularne definicje</h3>
       <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;">
         <?php foreach ($popularDefinitions as $definition) :
             $term = get_post_meta($definition->ID, "_upsellio_definition_term", true) ?: get_the_title($definition->ID);
             ?>
-          <a href="<?php echo esc_url(get_permalink($definition->ID)); ?>" style="font-size:13px;line-height:1.5;color:#7c7c74;">
+          <a href="<?php echo esc_url(get_permalink($definition->ID)); ?>" style="font-size:13px;line-height:1.5;color:#64748b;">
             <?php echo esc_html($term); ?>
           </a>
         <?php endforeach; ?>
@@ -266,26 +274,26 @@ function upsellio_generate_city_content($city, $position)
     $voivodeship = $city["voivodeship"];
     $marketAngle = $city["market_angle"];
     $serviceFocus = $city["service_focus"];
-    $challenge = $city["local_challenge"] ?? "niska jakosc leadow";
+    $challenge = $city["local_challenge"] ?? "niska jakość leadów";
     $advantage = $city["local_advantage"] ?? "stabilny popyt lokalny";
     $seasonality = $city["seasonality_angle"] ?? "stabilny popyt";
     $seed = abs(crc32($city["slug"] . "|" . $position));
 
     $leadPartsA = [
-        "W miescie %s najwiecej firm przepala budzet na niespojne kampanie i strone, ktora nie domyka zapytania.",
-        "Dla firm dzialajacych w %s kluczowe jest polaczenie precyzyjnego targetowania z komunikatem sprzedazowym.",
-        "W %s wspieram firmy, ktore chca przewidywalnie skalowac leady bez podbijania kosztu pozyskania.",
-        "W regionie %s laczymy marketing i strone WWW tak, aby ruch zamienial sie w konkretne rozmowy handlowe.",
-        "Firmy z %s najczesciej traca wynik na etapie przejscia z reklamy do oferty - to miejsce optymalizujemy w pierwszej kolejnosci.",
+        "W mieście %s najwięcej firm przepala budżet na niespójne kampanie i stronę, która nie domyka zapytania.",
+        "Dla firm działających w %s kluczowe jest połączenie precyzyjnego targetowania z komunikatem sprzedażowym.",
+        "W %s wspieram firmy, które chcą przewidywalnie skalować leady bez podbijania kosztu pozyskania.",
+        "W regionie %s łączymy marketing i stronę WWW tak, aby ruch zamieniał się w konkretne rozmowy handlowe.",
+        "Firmy z %s najczęściej tracą wynik na etapie przejścia z reklamy do oferty - to miejsce optymalizujemy w pierwszej kolejności.",
         "Model dla %s opieram na danych i intencji klienta, a nie na samych metrykach platform reklamowych.",
-        "W %s budujemy lejki, ktore skracaja dystans miedzy kliknieciem a wartosciowym zapytaniem.",
-        "Dzialania dla %s projektuje tak, by marketing wspieral rzeczywista skutecznosc sprzedazy, nie tylko ruch.",
+        "W %s budujemy lejki, które skracają dystans między kliknięciem a wartościowym zapytaniem.",
+        "Działania dla %s projektuję tak, by marketing wspierał rzeczywistą skuteczność sprzedaży, nie tylko ruch.",
     ];
     $leadPartsB = [
-        "Najwiekszym wyzwaniem jest tutaj %s, ale przewaga to rownoczesnie %s.",
+        "Największym wyzwaniem jest tutaj %s, ale przewaga to równocześnie %s.",
         "Lokalna specyfika to %s, a mocna strona rynku to %s.",
-        "Na tym rynku widac %s, jednak firmy moga wykorzystac %s.",
-        "Najczestszy punkt blokady: %s. Potencjal wzrostu: %s.",
+        "Na tym rynku widać %s, jednak firmy mogą wykorzystać %s.",
+        "Najczęstszy punkt blokady: %s. Potencjał wzrostu: %s.",
     ];
     $lead = sprintf(
         $leadPartsA[$seed % count($leadPartsA)] . " " . $leadPartsB[$seed % count($leadPartsB)],
@@ -295,23 +303,23 @@ function upsellio_generate_city_content($city, $position)
     );
 
     $marketParagraphs = [
-        "Dla rynku %s przygotowujemy scenariusze reklamowe pod intencje zakupowa i etap decyzji klienta.",
-        "W %s kluczowe jest odroznienie leadow przypadkowych od zapytan realnie gotowych do rozmowy handlowej.",
-        "Wojewodztwo %s ma specyficzna dynamike popytu, dlatego strategia sezonowa to: %s.",
-        "Przy tym profilu rynku (%s) kampanie i strona musza dzialac jako jeden system, inaczej wynik szybko spada.",
-        "W tym modelu (%s) monitorujemy koszt pozyskania, jakosc leadow i konwersje na kolejne etapy procesu.",
-        "Na rynku %s wykorzystujemy testy kreacji i testy ofertowe rownolegle, zeby szybciej znalezc najskuteczniejsza kombinacje.",
+        "Dla rynku %s przygotowujemy scenariusze reklamowe pod intencję zakupową i etap decyzji klienta.",
+        "W %s kluczowe jest odróżnienie leadów przypadkowych od zapytań realnie gotowych do rozmowy handlowej.",
+        "Województwo %s ma specyficzną dynamikę popytu, dlatego strategia sezonowa to: %s.",
+        "Przy tym profilu rynku (%s) kampanie i strona muszą działać jako jeden system, inaczej wynik szybko spada.",
+        "W tym modelu (%s) monitorujemy koszt pozyskania, jakość leadów i konwersję na kolejne etapy procesu.",
+        "Na rynku %s wykorzystujemy testy kreacji i testy ofertowe równolegle, żeby szybciej znaleźć najskuteczniejszą kombinację.",
     ];
     $marketSection = sprintf($marketParagraphs[$seed % count($marketParagraphs)], $name, $name, $voivodeship, $seasonality, $marketAngle, $serviceFocus, $name);
 
     $serviceBulletsPool = [
-        "Audyt kont reklamowych i strony pod konwersje dla " . $name,
-        "Plan 90 dni: kampanie, landing page i pomiar leadow",
-        "Meta Ads i Google Ads z optymalizacja pod jakosc zapytan",
-        "Strona WWW / landing page z jasna architektura decyzji zakupowej",
-        "Tagowanie i analityka pod realne KPI sprzedazowe",
-        "Raporty tygodniowe z rekomendacjami kolejnych testow",
-        "Synchronizacja marketingu z procesem handlowym zespolu",
+        "Audyt kont reklamowych i strony pod konwersję dla " . $name,
+        "Plan 90 dni: kampanie, landing page i pomiar leadów",
+        "Meta Ads i Google Ads z optymalizacją pod jakość zapytań",
+        "Strona WWW / landing page z jasną architekturą decyzji zakupowej",
+        "Tagowanie i analityka pod realne KPI sprzedażowe",
+        "Raporty tygodniowe z rekomendacjami kolejnych testów",
+        "Synchronizacja marketingu z procesem handlowym zespołu",
         "Iteracyjna optymalizacja kosztu pozyskania i konwersji",
     ];
     $serviceBullets = [];
@@ -320,18 +328,18 @@ function upsellio_generate_city_content($city, $position)
     }
 
     $faqPool = [
-        ["q" => "Czy obslugujesz firmy z miasta %s zdalnie czy lokalnie?", "a" => "Tak. Pracujemy zdalnie i lokalnie, zalezenie od potrzeb. Najwazniejszy jest rytm wdrozen i regularna optymalizacja."],
-        ["q" => "Ile trwa start kampanii dla firmy z %s?", "a" => "Zwykle 7-21 dni: audyt, plan testow, wdrozenie, pomiar i pierwsza iteracja optymalizacji."],
-        ["q" => "Czy mozna zaczac tylko od strony WWW dla %s?", "a" => "Tak. Strone budujemy tak, aby byla gotowa do pozniejszego skalowania kampanii i SEO lokalnego."],
-        ["q" => "Jak mierzysz jakosc leadow w %s?", "a" => "Laczymy dane z formularzy, CRM i etapu handlowego. Patrzymy nie tylko na liczbe leadow, ale tez ich wartosc."],
-        ["q" => "Czy wspierasz firmy B2B dzialajace w %s?", "a" => "Tak, to jeden z glownych obszarow. Ukladamy komunikacje, targetowanie i lejek pod dluzszy proces decyzji."],
-        ["q" => "Jak szybko mozna zobaczyc pierwsze efekty w %s?", "a" => "Pierwsze sygnaly zwykle pojawiaja sie po kilku tygodniach, a stabilna optymalizacja najczesciej po 6-12 tygodniach."],
-        ["q" => "Czy prowadzisz stale testy reklam dla rynku %s?", "a" => "Tak. Testujemy kreacje, grupy odbiorcow i oferty. Decyzje opieramy na danych, nie na domyslach."],
-        ["q" => "Czy obslugujesz tez kampanie remarketingowe dla %s?", "a" => "Tak, remarketing jest stalym elementem strategii, zwlaszcza przy dluzszym cyklu zakupowym."],
-        ["q" => "Czy mozna polaczyc kampanie i przebudowe strony w %s?", "a" => "Tak, to czesty scenariusz. Dzieki temu ruch i konwersja sa projektowane jako jeden system."],
-        ["q" => "Jak wyglada raportowanie dla firm z %s?", "a" => "Raportujemy KPI biznesowe: koszt pozyskania, jakosc leadow, konwersje i rekomendacje kolejnych krokow."],
-        ["q" => "Czy to rozwiazanie sprawdzi sie przy mniejszym budzecie w %s?", "a" => "Tak, zaczynamy od priorytetow o najwyzszym potencjale zwrotu i stopniowo skalujemy dzialania."],
-        ["q" => "Czy wspierasz tylko pozyskanie leadow, czy tez sprzedaz po stronie firmy z %s?", "a" => "Wsparcie obejmuje takze proces handlowy: jakosc zapytan, etapy lejka i przekazywanie leadow."],
+        ["q" => "Czy obsługujesz firmy z miasta %s zdalnie czy lokalnie?", "a" => "Tak. Pracujemy zdalnie i lokalnie, zależnie od potrzeb. Najważniejszy jest rytm wdrożeń i regularna optymalizacja."],
+        ["q" => "Ile trwa start kampanii dla firmy z %s?", "a" => "Zwykle 7-21 dni: audyt, plan testów, wdrożenie, pomiar i pierwsza iteracja optymalizacji."],
+        ["q" => "Czy można zacząć tylko od strony WWW dla %s?", "a" => "Tak. Stronę budujemy tak, aby była gotowa do późniejszego skalowania kampanii i SEO lokalnego."],
+        ["q" => "Jak mierzysz jakość leadów w %s?", "a" => "Łączymy dane z formularzy, CRM i etapu handlowego. Patrzymy nie tylko na liczbę leadów, ale też ich wartość."],
+        ["q" => "Czy wspierasz firmy B2B działające w %s?", "a" => "Tak, to jeden z głównych obszarów. Układamy komunikację, targetowanie i lejek pod dłuższy proces decyzji."],
+        ["q" => "Jak szybko można zobaczyć pierwsze efekty w %s?", "a" => "Pierwsze sygnały zwykle pojawiają się po kilku tygodniach, a stabilna optymalizacja najczęściej po 6-12 tygodniach."],
+        ["q" => "Czy prowadzisz stałe testy reklam dla rynku %s?", "a" => "Tak. Testujemy kreacje, grupy odbiorców i oferty. Decyzje opieramy na danych, nie na domysłach."],
+        ["q" => "Czy obsługujesz też kampanie remarketingowe dla %s?", "a" => "Tak, remarketing jest stałym elementem strategii, zwłaszcza przy dłuższym cyklu zakupowym."],
+        ["q" => "Czy można połączyć kampanie i przebudowę strony w %s?", "a" => "Tak, to częsty scenariusz. Dzięki temu ruch i konwersja są projektowane jako jeden system."],
+        ["q" => "Jak wygląda raportowanie dla firm z %s?", "a" => "Raportujemy KPI biznesowe: koszt pozyskania, jakość leadów, konwersję i rekomendacje kolejnych kroków."],
+        ["q" => "Czy to rozwiązanie sprawdzi się przy mniejszym budżecie w %s?", "a" => "Tak, zaczynamy od priorytetów o najwyższym potencjale zwrotu i stopniowo skalujemy działania."],
+        ["q" => "Czy wspierasz tylko pozyskanie leadów, czy też sprzedaż po stronie firmy z %s?", "a" => "Wsparcie obejmuje także proces handlowy: jakość zapytań, etapy lejka i przekazywanie leadów."],
     ];
     $faq = [];
     for ($i = 0; $i < 4; $i++) {
@@ -343,11 +351,11 @@ function upsellio_generate_city_content($city, $position)
     }
 
     $ctaVariants = [
-        "Umow bezplatna konsultacje dla %s i dostan plan dzialan pod Twoj budzet.",
-        "Sprawdzmy, jak poprawic skutecznosc marketingu i strony WWW w %s w ciagu najblizszych 90 dni.",
-        "Chcesz wiecej wartosciowych zapytan z %s? Zacznijmy od audytu i konkretnej mapy wdrozen.",
-        "Umow rozmowe i zobacz, co na rynku %s da najszybszy zwrot z inwestycji.",
-        "Dla miasta %s przygotuje plan: kampanie, strona i proces leadowy pod realny wynik.",
+        "Umów bezpłatną konsultację dla %s i dostań plan działań pod Twój budżet.",
+        "Sprawdźmy, jak poprawić skuteczność marketingu i strony WWW w %s w ciągu najbliższych 90 dni.",
+        "Chcesz więcej wartościowych zapytań z %s? Zacznijmy od audytu i konkretnej mapy wdrożeń.",
+        "Umów rozmowę i zobacz, co na rynku %s da najszybszy zwrot z inwestycji.",
+        "Dla miasta %s przygotuję plan: kampanie, strona i proces leadowy pod realny wynik.",
     ];
     $cta = sprintf($ctaVariants[$seed % count($ctaVariants)], $name);
 
@@ -365,7 +373,7 @@ function upsellio_generate_city_content($city, $position)
     $content .= '<h3>Specyfika lokalnego rynku</h3>';
     $content .= '<p>' . esc_html($marketSection) . '</p>';
     $content .= '<p>W "profilu rynku ' . esc_html($name) . '" priorytet to: ' . esc_html($cityProfile["priority_channel"]) . ', okno konwersji: ' . esc_html((string) $cityProfile["conversion_window_days"]) . ' dni.</p>';
-    $content .= '<h3>Zakres wspolpracy dla ' . esc_html($name) . '</h3><ul>';
+    $content .= '<h3>Zakres współpracy dla ' . esc_html($name) . '</h3><ul>';
     foreach ($serviceBullets as $bullet) {
         $content .= '<li>' . esc_html($bullet) . '</li>';
     }
@@ -375,7 +383,7 @@ function upsellio_generate_city_content($city, $position)
         $content .= '<p><strong>' . esc_html($item["q"]) . '</strong><br>' . esc_html($item["a"]) . '</p>';
     }
     $content .= '<h3>Plan 90 dni</h3>';
-    $content .= '<p>Intensywnosc dzialan: ' . esc_html((string) $cityProfile["intensity_index"]) . '/100. Poziom konkurencji: ' . esc_html((string) $cityProfile["competition_index"]) . '/100. Sezonowosc: ' . esc_html($seasonality) . '.</p>';
+    $content .= '<p>Intensywność działań: ' . esc_html((string) $cityProfile["intensity_index"]) . '/100. Poziom konkurencji: ' . esc_html((string) $cityProfile["competition_index"]) . '/100. Sezonowość: ' . esc_html($seasonality) . '.</p>';
     $content .= '<p><strong>' . esc_html($cta) . '</strong></p>';
 
     $fingerprint = md5($city["slug"] . "|" . $lead . "|" . $marketSection . "|" . implode("|", $serviceBullets) . "|" . implode("|", wp_list_pluck($faq, "q")) . "|" . $cta);
@@ -457,6 +465,9 @@ function upsellio_seed_city_pages($force = false)
         update_post_meta($postId, "_upsellio_city_voivodeship", $city["voivodeship"]);
         update_post_meta($postId, "_upsellio_city_market_angle", $city["market_angle"]);
         update_post_meta($postId, "_upsellio_city_service_focus", $city["service_focus"]);
+        update_post_meta($postId, "_upsellio_city_local_challenge", $city["local_challenge"]);
+        update_post_meta($postId, "_upsellio_city_local_advantage", $city["local_advantage"]);
+        update_post_meta($postId, "_upsellio_city_seasonality_angle", $city["seasonality_angle"]);
         update_post_meta($postId, "_upsellio_city_meta_description", $generated["meta_description"]);
         update_post_meta($postId, "_upsellio_city_faq", $generated["faq"]);
         update_post_meta($postId, "_upsellio_city_cta", $generated["cta"]);

@@ -281,45 +281,45 @@ function upsellio_definition_category_context($category)
 {
     $contexts = [
         "seo" => [
-            "team" => "zespol contentowy i SEO",
-            "goal" => "zwiekszenie widocznosci organicznej i wzrost ruchu z intencja zakupowa",
-            "risk" => "optymalizacja pod pojedyncza metryke zamiast calosci lejka",
+            "team" => "zespół contentowy i SEO",
+            "goal" => "zwiększenie widoczności organicznej i wzrost ruchu z intencją zakupową",
+            "risk" => "optymalizacja pod pojedynczą metrykę zamiast całości lejka",
         ],
         "sem" => [
-            "team" => "zespol performance i handlowy",
-            "goal" => "stabilna liczba jakosciowych leadow przy kontrolowanym koszcie",
-            "risk" => "przepalanie budzetu przez zbyt szerokie targetowanie",
+            "team" => "zespół performance i handlowy",
+            "goal" => "stabilna liczba jakościowych leadów przy kontrolowanym koszcie",
+            "risk" => "przepalanie budżetu przez zbyt szerokie targetowanie",
         ],
         "analityka" => [
-            "team" => "analityk i osoba odpowiedzialna za decyzje budzetowe",
-            "goal" => "trafniejsze decyzje oparte na danych i lepsza rentownosc kampanii",
-            "risk" => "bledna interpretacja danych z powodu braku segmentacji",
+            "team" => "analityk i osoba odpowiedzialna za decyzje budżetowe",
+            "goal" => "trafniejsze decyzje oparte na danych i lepsza rentowność kampanii",
+            "risk" => "błędna interpretacja danych z powodu braku segmentacji",
         ],
         "seo-techniczne" => [
             "team" => "developer i SEO techniczne",
-            "goal" => "szybsze indeksowanie, stabilna wydajnosc i lepsza jakosc serwisu",
-            "risk" => "wdrozenia bez testow, ktore pogarszaja crawl i UX",
+            "goal" => "szybsze indeksowanie, stabilna wydajność i lepsza jakość serwisu",
+            "risk" => "wdrożenia bez testów, które pogarszają crawl i UX",
         ],
         "content" => [
             "team" => "content manager i copywriter",
-            "goal" => "skalowalna produkcja tresci wspierajaca ruch i sprzedaz",
-            "risk" => "duplikacja tematow i brak spojnej mapy tresci",
+            "goal" => "skalowalna produkcja treści wspierająca ruch i sprzedaż",
+            "risk" => "duplikacja tematów i brak spójnej mapy treści",
         ],
         "ux" => [
-            "team" => "projektant UX i wlasciciel produktu",
-            "goal" => "wyzszy wspolczynnik konwersji bez zwiekszania kosztu ruchu",
-            "risk" => "zmiany projektowe bez testow i walidacji hipotez",
+            "team" => "projektant UX i właściciel produktu",
+            "goal" => "wyższy współczynnik konwersji bez zwiększania kosztu ruchu",
+            "risk" => "zmiany projektowe bez testów i walidacji hipotez",
         ],
         "strategia" => [
-            "team" => "zarzad i marketing",
-            "goal" => "spojna strategia, ktora laczy marketing z realnym procesem sprzedazy",
-            "risk" => "brak priorytetow i rozproszenie dzialan miedzy kanalami",
+            "team" => "zarząd i marketing",
+            "goal" => "spójna strategia, która łączy marketing z realnym procesem sprzedaży",
+            "risk" => "brak priorytetów i rozproszenie działań między kanałami",
         ],
     ];
 
     return $contexts[$category] ?? [
-        "team" => "zespol marketingu",
-        "goal" => "poprawa skutecznosci i przewidywalnosci dzialan",
+        "team" => "zespół marketingu",
+        "goal" => "poprawa skuteczności i przewidywalności działań",
         "risk" => "decyzje podejmowane bez kontekstu biznesowego",
     ];
 }
@@ -339,60 +339,60 @@ function upsellio_definition_generate_content($definition, $position)
     $secondaryAsText = implode(", ", array_slice($secondaryKeywords, 0, 3));
 
     $introTemplate = upsellio_definition_pick_variant([
-        "Gdy zespol pyta o %s, najczesciej chodzi o to, jak ten termin przeklada sie na decyzje budzetowe i wynik sprzedazowy.",
-        "%s to nie tylko definicja slownikowa. To punkt kontrolny, ktory pozwala ocenic, czy marketing pracuje na realny cel firmy.",
-        "W praktyce %s pojawia sie tam, gdzie trzeba polaczyc dane, tresc i proces sprzedazy w jeden spojny system.",
-        "Jesli chcesz poprawic skutecznosc dzialan online, zrozumienie %s jest jednym z pierwszych krokow.",
+        "Gdy zespół pyta o %s, najczęściej chodzi o to, jak ten termin przekłada się na decyzje budżetowe i wynik sprzedażowy.",
+        "%s to nie tylko definicja słownikowa. To punkt kontrolny, który pozwala ocenić, czy marketing pracuje na realny cel firmy.",
+        "W praktyce %s pojawia się tam, gdzie trzeba połączyć dane, treść i proces sprzedaży w jeden spójny system.",
+        "Jeśli chcesz poprawić skuteczność działań online, zrozumienie %s jest jednym z pierwszych kroków.",
     ], $slug, "intro");
     $intro = sprintf($introTemplate, $term);
 
     $definitionTemplate = upsellio_definition_pick_variant([
-        "%s to pojecie opisujace mechanizm, ktory pomaga osiagnac cel: %s.",
-        "Najprosciej: %s to sposob porzadkowania decyzji w obszarze %s.",
-        "W jezyku operacyjnym %s odpowiada za to, czy zespol utrzymuje kontrole nad procesem i wynikiem.",
+        "%s to pojęcie opisujące mechanizm, który pomaga osiągnąć cel: %s.",
+        "Najprościej: %s to sposób porządkowania decyzji w obszarze %s.",
+        "W języku operacyjnym %s odpowiada za to, czy zespół utrzymuje kontrolę nad procesem i wynikiem.",
     ], $slug, "definition");
     $definitionParagraph = sprintf($definitionTemplate, $term, $context["goal"]);
 
     $howItWorksTemplate = upsellio_definition_pick_variant([
-        "Aby %s dzialalo poprawnie, %s powinien regularnie zestawiac dane operacyjne z celem biznesowym.",
-        "Skuteczne wykorzystanie %s wymaga wspolpracy pomiedzy %s oraz jasnych zasad raportowania.",
-        "%s daje najlepsze efekty, kiedy %s pracuje na tej samej definicji sukcesu i wspolnym slowniku metryk.",
+        "Aby %s działało poprawnie, %s powinien regularnie zestawiać dane operacyjne z celem biznesowym.",
+        "Skuteczne wykorzystanie %s wymaga współpracy pomiędzy %s oraz jasnych zasad raportowania.",
+        "%s daje najlepsze efekty, kiedy %s pracuje na tej samej definicji sukcesu i wspólnym słowniku metryk.",
     ], $slug, "how");
     $howItWorks = sprintf($howItWorksTemplate, $term, $context["team"]);
 
     $implementationTemplate = upsellio_definition_pick_variant([
-        "Wdrozenie zacznij od audytu stanu obecnego, potem ustaw priorytety i wdrazaj poprawki w cyklach 2-tygodniowych.",
-        "Najpierw porzadkujesz pomiar, nastepnie hipotezy i testy, a na koncu standaryzujesz proces dla calego zespolu.",
-        "Najlepiej sprawdza sie podejscie etapowe: diagnoza, szybkie poprawki, testy i kwartalny przeglad strategii.",
+        "Wdrożenie zacznij od audytu stanu obecnego, potem ustaw priorytety i wdrażaj poprawki w cyklach 2-tygodniowych.",
+        "Najpierw porządkujesz pomiar, następnie hipotezy i testy, a na końcu standaryzujesz proces dla całego zespołu.",
+        "Najlepiej sprawdza się podejście etapowe: diagnoza, szybkie poprawki, testy i kwartalny przegląd strategii.",
     ], $slug, "implementation");
 
     $mistakesTemplate = upsellio_definition_pick_variant([
-        "Najczestszy blad to traktowanie %s jako celu samego w sobie. W efekcie zespol gubi kontekst rentownosci i jakosci leadow.",
-        "Drugim czestym bledem jest brak segmentacji danych. Bez tego %s moze prowadzic do mylnych wnioskow.",
-        "Firmy czesto wdrazaja %s jednorazowo i nie wracaja do optymalizacji, przez co efekt szybko wygasa.",
-        "Ryzykiem bywa rowniez brak wspolnej definicji terminu, co utrudnia wspolprace miedzy marketingiem i sprzedaza.",
+        "Najczęstszy błąd to traktowanie %s jako celu samego w sobie. W efekcie zespół gubi kontekst rentowności i jakości leadów.",
+        "Drugim częstym błędem jest brak segmentacji danych. Bez tego %s może prowadzić do mylnych wniosków.",
+        "Firmy często wdrażają %s jednorazowo i nie wracają do optymalizacji, przez co efekt szybko wygasa.",
+        "Ryzykiem bywa również brak wspólnej definicji terminu, co utrudnia współpracę między marketingiem i sprzedażą.",
     ], $slug, "mistakes");
     $mistakes = sprintf($mistakesTemplate, $term);
 
     $exampleTemplate = upsellio_definition_pick_variant([
-        "Przyklad: firma B2B analizuje %s co tydzien i laczy je z jakoscia zapytan. Po 6 tygodniach ogranicza koszt pozyskania bez spadku sprzedazy.",
-        "Przyklad redakcyjny: zespol wdraza %s w trzech kanałach, porownuje wyniki i przesuwa budzet do najbardziej rentownego segmentu.",
-        "Przyklad operacyjny: po wdrozeniu %s firma porzadkuje lejki i szybciej identyfikuje, ktore kampanie generuja tylko pozorny wynik.",
+        "Przykład: firma B2B analizuje %s co tydzień i łączy je z jakością zapytań. Po 6 tygodniach ogranicza koszt pozyskania bez spadku sprzedaży.",
+        "Przykład redakcyjny: zespół wdraża %s w trzech kanałach, porównuje wyniki i przesuwa budżet do najbardziej rentownego segmentu.",
+        "Przykład operacyjny: po wdrożeniu %s firma porządkuje lejki i szybciej identyfikuje, które kampanie generują tylko pozorny wynik.",
     ], $slug, "example");
     $exampleText = sprintf($exampleTemplate, $term);
 
     $faq = [
         [
-            "q" => "Czy " . $term . " jest wazne przy malym budzecie?",
-            "a" => "Tak. Przy malym budzecie " . $term . " pomaga szybciej ograniczyc koszt blednych decyzji i lepiej ustawic priorytety.",
+            "q" => "Czy " . $term . " jest ważne przy małym budżecie?",
+            "a" => "Tak. Przy małym budżecie " . $term . " pomaga szybciej ograniczyć koszt błędnych decyzji i lepiej ustawić priorytety.",
         ],
         [
-            "q" => "Jak mierzyc postep po wdrozeniu " . $term . "?",
-            "a" => "Najlepiej laczyc metryke glowna z metrykami pomocniczymi: konwersja, koszt pozyskania, jakosc leada i dynamika sprzedazy.",
+            "q" => "Jak mierzyć postęp po wdrożeniu " . $term . "?",
+            "a" => "Najlepiej łączyć metrykę główną z metrykami pomocniczymi: konwersja, koszt pozyskania, jakość leada i dynamika sprzedaży.",
         ],
         [
-            "q" => "Z czym najczesciej laczy sie " . $term . "?",
-            "a" => "W praktyce z obszarami takimi jak pomiar, tresc, struktura kampanii i proces handlowy po stronie firmy.",
+            "q" => "Z czym najczęściej łączy się " . $term . "?",
+            "a" => "W praktyce z obszarami takimi jak pomiar, treść, struktura kampanii i proces handlowy po stronie firmy.",
         ],
     ];
 
@@ -428,34 +428,34 @@ function upsellio_definition_generate_content($definition, $position)
     $content .= '<h2>Co to jest ' . esc_html($term) . "?</h2>";
     $content .= "<p>" . esc_html($intro) . "</p>";
     $content .= "<p>" . esc_html($definitionParagraph) . "</p>";
-    $content .= '<p><strong>Fraza glowna:</strong> ' . esc_html($mainKeyword) . ". ";
-    $content .= '<strong>Frazy wspierajace:</strong> ' . esc_html($secondaryAsText) . ". ";
+    $content .= '<p><strong>Fraza główna:</strong> ' . esc_html($mainKeyword) . ". ";
+    $content .= '<strong>Frazy wspierające:</strong> ' . esc_html($secondaryAsText) . ". ";
     $content .= '<strong>Kategoria:</strong> ' . esc_html($category) . ". ";
-    $content .= '<strong>Poziom trudnosci:</strong> ' . esc_html($difficultyLabel) . ". ";
+    $content .= '<strong>Poziom trudności:</strong> ' . esc_html($difficultyLabel) . ". ";
     $content .= '<strong>Intencja:</strong> ' . esc_html($intentLabel) . ".</p>";
 
-    $content .= '<h2>Jak dziala ' . esc_html($term) . " w realnym projekcie?</h2>";
+    $content .= '<h2>Jak działa ' . esc_html($term) . " w realnym projekcie?</h2>";
     $content .= "<p>" . esc_html($howItWorks) . "</p>";
     $content .= "<p>" . $contextLine . "</p>";
     $content .= "<p>" . esc_html($exampleText) . "</p>";
 
-    $content .= '<h2>Jak wdrozyc ' . esc_html($term) . " krok po kroku?</h2>";
+    $content .= '<h2>Jak wdrożyć ' . esc_html($term) . " krok po kroku?</h2>";
     $content .= "<p>" . esc_html($implementationTemplate) . "</p>";
     $content .= "<ul>";
-    $content .= "<li>Ustal definicje sukcesu i KPI, ktore naprawde wspieraja " . esc_html($context["goal"]) . ".</li>";
-    $content .= "<li>Zbieraj dane w jednym miejscu i opisuj zmiany, by nie tracic kontekstu decyzji.</li>";
+    $content .= "<li>Ustal definicję sukcesu i KPI, które naprawdę wspierają " . esc_html($context["goal"]) . ".</li>";
+    $content .= "<li>Zbieraj dane w jednym miejscu i opisuj zmiany, by nie tracić kontekstu decyzji.</li>";
     $content .= "<li>Pracuj iteracyjnie: test, pomiar, wniosek, poprawka.</li>";
-    $content .= "<li>Raz w miesiacu sprawdz czy " . esc_html($term) . " nadal wspiera cel biznesowy, a nie tylko wskaznik.</li>";
+    $content .= "<li>Raz w miesiącu sprawdź, czy " . esc_html($term) . " nadal wspiera cel biznesowy, a nie tylko wskaźnik.</li>";
     $content .= "</ul>";
 
-    $content .= '<h2>Najczestsze bledy przy pracy z ' . esc_html($term) . "</h2>";
+    $content .= '<h2>Najczęstsze błędy przy pracy z ' . esc_html($term) . "</h2>";
     $content .= "<p>" . esc_html($mistakes) . "</p>";
-    $content .= "<p><strong>Uwaga:</strong> glownym ryzykiem jest " . esc_html($context["risk"]) . ".</p>";
+    $content .= "<p><strong>Uwaga:</strong> głównym ryzykiem jest " . esc_html($context["risk"]) . ".</p>";
 
     $content .= "<h2>Powiazane definicje</h2>";
     $content .= "<ul>" . $relatedList . "</ul>";
 
-    $content .= "<h2>Przydatne linki do dalszych dzialan</h2>";
+    $content .= "<h2>Przydatne linki do dalszych działań</h2>";
     $content .= "<ul>" . $serviceList . "</ul>";
 
     $content .= "<h2>FAQ</h2>";
@@ -463,10 +463,10 @@ function upsellio_definition_generate_content($definition, $position)
         $content .= "<p><strong>" . esc_html($item["q"]) . "</strong><br>" . esc_html($item["a"]) . "</p>";
     }
 
-    $content .= '<p><strong>Chcesz wdrozyc ' . esc_html($term) . ' szybciej i w zgodzie z celem biznesowym? ';
-    $content .= '<a href="' . esc_url(home_url("/#kontakt")) . '">Umow bezplatna rozmowe i dostan plan dzialania</a>.</strong></p>';
+    $content .= '<p><strong>Chcesz wdrożyć ' . esc_html($term) . ' szybciej i w zgodzie z celem biznesowym? ';
+    $content .= '<a href="' . esc_url(home_url("/#kontakt")) . '">Umów bezpłatną rozmowę i dostań plan działania</a>.</strong></p>';
 
-    $metaDescription = $term . " - definicja, przyklady i praktyczne wdrozenie. Sprawdz jak wykorzystac ten termin w SEO, reklamach i optymalizacji konwersji.";
+    $metaDescription = $term . " - definicja, przykłady i praktyczne wdrożenie. Sprawdź, jak wykorzystać ten termin w SEO, reklamach i optymalizacji konwersji.";
     $fingerprint = md5($slug . "|" . $term . "|" . $mainKeyword . "|" . $position . "|" . $context["goal"]);
 
     return [
@@ -615,10 +615,11 @@ function upsellio_definition_seed_menu()
     add_submenu_page(
         "edit.php?post_type=definicja",
         "Generator definicji SEO",
-        "Generator SEO",
+        "Generator definicji",
         "manage_options",
         "upsellio-definitions-generator",
-        "upsellio_definition_seed_screen"
+        "upsellio_definition_seed_screen",
+        43
     );
 }
 add_action("admin_menu", "upsellio_definition_seed_menu");

@@ -15,7 +15,6 @@ function upsellio_portfolio_seed_build_content($project)
         $outcome_items .= "<li>" . esc_html((string) $outcome_item) . "</li>";
     }
 
-    $keywords = esc_html(implode(", ", (array) ($project["keywords"] ?? [])));
     $title = esc_html((string) ($project["title"] ?? ""));
     $industry = esc_html((string) ($project["industry"] ?? ""));
     $offer = esc_html((string) ($project["offer"] ?? ""));
@@ -25,7 +24,7 @@ function upsellio_portfolio_seed_build_content($project)
 
     return <<<HTML
 <h2>Cel projektu: {$title}</h2>
-<p>Projekt został zaprojektowany dla branży <strong>{$industry}</strong>, z naciskiem na <strong>lead generation</strong>, SEO i wzrost jakości zapytań ofertowych. Głównym celem było skrócenie drogi użytkownika od wejścia na stronę do kontaktu oraz poprawa konwersji na kluczowych podstronach.</p>
+<p>Projekt został przygotowany dla branży <strong>{$industry}</strong> z naciskiem na prostszą ścieżkę do kontaktu, lepszą prezentację oferty i wygodniejsze korzystanie ze strony. Głównym celem było skrócenie drogi użytkownika od wejścia na stronę do wysłania zapytania.</p>
 
 <h2>Wyzwanie biznesowe</h2>
 <p>{$problem}</p>
@@ -42,11 +41,11 @@ function upsellio_portfolio_seed_build_content($project)
 {$outcome_items}
 </ul>
 
-<h2>Dlaczego to case study wspiera SEO</h2>
-<p>Ta realizacja celuje w intencje transakcyjne i porównawcze, a treść została przygotowana pod frazy takie jak: <strong>{$keywords}</strong>. Dzięki temu podstrona działa nie tylko jako portfolio, ale także jako evergreen content pod pozyskiwanie ruchu organicznego i nowych leadów.</p>
+<h2>Co warto przenieść do podobnego projektu</h2>
+<p>Najważniejsze było uporządkowanie komunikacji, pokazanie przewag firmy i doprowadzenie użytkownika do jasnego następnego kroku. Podobne podejście sprawdza się wtedy, gdy oferta wymaga zaufania, konkretnych argumentów i dobrze poprowadzonego kontaktu.</p>
 
 <h2>Dla kogo podobne wdrożenie</h2>
-<p>To rozwiązanie rekomendowane dla firm, które oferują <strong>{$offer}</strong> i chcą połączyć skuteczną prezentację oferty z procesem pozyskiwania wartościowych zapytań.</p>
+<p>To rozwiązanie jest dobrym kierunkiem dla firm, które oferują <strong>{$offer}</strong> i chcą, aby strona lepiej tłumaczyła wartość usługi oraz szybciej prowadziła użytkownika do rozmowy.</p>
 HTML;
 }
 
@@ -73,7 +72,7 @@ HTML;
 #shot-p1{border:1px solid #dce7e1;border-radius:14px;padding:12px;background:#f8fcfa}
 #shot-p1 .ups-shot-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 #shot-p1 .ups-shot-tabs button{border:1px solid #cde5da;background:#fff;padding:6px 10px;border-radius:999px;cursor:pointer}
-#shot-p1 .ups-shot-tabs .is-active{background:#1d9e75;color:#fff;border-color:#1d9e75}
+#shot-p1 .ups-shot-tabs .is-active{background:#0d9488;color:#fff;border-color:#0d9488}
 #shot-p1 .ups-shot-body{margin-top:10px;padding:10px;background:#fff;border:1px solid #e5ede8;border-radius:10px}
 #shot-p1 .is-hidden{display:none}
 CSS;
@@ -138,7 +137,7 @@ HTML;
 #shot-p3{border:1px solid #dce7e1;border-radius:14px;padding:12px;background:#f8fcfa}
 #shot-p3 .p3-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
 #shot-p3 button{border:1px solid #cde5da;background:#fff;padding:8px;border-radius:10px;cursor:pointer}
-#shot-p3 .is-active{background:#1d9e75;color:#fff}
+#shot-p3 .is-active{background:#0d9488;color:#fff}
 #shot-p3 .p3-value{padding:12px;background:#fff;border:1px solid #e5ede8;border-radius:10px;font-weight:700}
 CSS;
     $shot_3_js = <<<'JS'
@@ -204,7 +203,7 @@ HTML;
 #shot-p5 select{width:100%;margin:10px 0;padding:8px;border:1px solid #d5e2db;border-radius:8px}
 #shot-p5 .p5-bars{display:grid;gap:8px}
 #shot-p5 .p5-bar{height:28px;background:#e7f5ef;border-radius:8px;overflow:hidden;position:relative}
-#shot-p5 .p5-bar > span{display:block;height:100%;background:#1d9e75}
+#shot-p5 .p5-bar > span{display:block;height:100%;background:#0d9488}
 #shot-p5 .p5-bar label{position:absolute;left:8px;top:5px;font-size:12px;color:#0f4f40;font-weight:700}
 CSS;
     $shot_5_js = <<<'JS'
@@ -241,7 +240,7 @@ HTML;
 #shot-p6{border:1px solid #dce7e1;border-radius:14px;padding:12px;background:#f8fcfa}
 #shot-p6 .p6-steps{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
 #shot-p6 button{border:1px solid #cde5da;background:#fff;padding:6px 10px;border-radius:999px;cursor:pointer}
-#shot-p6 .is-active{background:#1d9e75;color:#fff}
+#shot-p6 .is-active{background:#0d9488;color:#fff}
 CSS;
     $shot_6_js = <<<'JS'
 (() => {
@@ -308,7 +307,7 @@ HTML;
 #shot-p8{border:1px solid #dce7e1;border-radius:14px;padding:12px;background:#f8fcfa}
 #shot-p8 .p8-switch{display:flex;gap:8px;margin:10px 0}
 #shot-p8 button{border:1px solid #cde5da;background:#fff;padding:6px 10px;border-radius:999px;cursor:pointer}
-#shot-p8 .is-active{background:#1d9e75;color:#fff}
+#shot-p8 .is-active{background:#0d9488;color:#fff}
 #shot-p8 ul{margin:0;padding-left:18px}
 CSS;
     $shot_8_js = <<<'JS'
@@ -477,7 +476,7 @@ JS;
             "result" => "Skrócono czas od zapytania do sprzedaży i poprawiono jakość onboardingu klienta.",
             "scope_list" => ["Kalkulator pakietów i zakresu opieki.", "Automatyczne szablony odpowiedzi.", "Panel statusów konsultacji.", "Integracja z płatnościami online."],
             "outcomes" => ["Szybsze domykanie zapytań.", "Mniej pracy manualnej.", "Wyższa wartość klienta."],
-            "keywords" => ["strona dietetyka online", "automatyzacja gabinet dietetyczny", "lead generation dietetyk"],
+            "keywords" => ["strona dietetyka online", "automatyzacja gabinet dietetyczny", "pozyskiwanie klientów dietetyk"],
             "metrics" => ["-68% czasu ofertowania", "+26% zamkniętych leadów", "+17% wartość pakietu"],
             "interactive_html" => $shot_4_html,
             "interactive_css" => $shot_4_css,
@@ -525,7 +524,7 @@ JS;
             "result" => "Wzrosła liczba wartościowych leadów, a sprzedaż szybciej identyfikowała klientów z potencjałem.",
             "scope_list" => ["Nowy hero z obietnicą efektu.", "Sekcja zakresu usług i cen orientacyjnych.", "Dowody społeczne i FAQ.", "Formularz kontaktowy o niskim oporze."],
             "outcomes" => ["Więcej zapytań miesięcznie.", "Lepsza jakość leadów.", "Wyższy CVR podstron usługowych."],
-            "keywords" => ["strona usługowa SEO", "lead generation lokalnie", "strona firmowa pod zapytania"],
+            "keywords" => ["strona usługowa SEO", "pozyskiwanie klientów lokalnie", "strona firmowa pod zapytania"],
             "metrics" => ["+61% leadów", "+1.5 pp CVR", "-19% bounce rate"],
             "interactive_html" => $shot_6_html,
             "interactive_css" => $shot_6_css,
@@ -621,7 +620,7 @@ JS;
             "result" => "Strona stała się kanałem inbound i regularnie dostarcza jakościowe zapytania.",
             "scope_list" => ["Nowy messaging i układ oferty.", "Sekcje z dowodami i wynikami.", "Treści SEO pod intent komercyjny.", "CTA do rozmowy osadzone kontekstowo."],
             "outcomes" => ["Więcej leadów miesięcznie.", "Lepszy fit klientów.", "Silniejszy positioning marki."],
-            "keywords" => ["strona usługowa premium", "projektowanie strony pod lead generation", "seo dla firm usługowych"],
+            "keywords" => ["strona usługowa premium", "projektowanie strony pod zapytania", "seo dla firm usługowych"],
             "metrics" => ["+189% ruchu organicznego", "+63 leady kwartalnie", "2.8% CVR formularza"],
             "interactive_html" => $shot_10_html,
             "interactive_css" => $shot_10_css,
@@ -764,7 +763,8 @@ function upsellio_register_portfolio_seed_menu()
         "Generator portfolio",
         "manage_options",
         "upsellio-portfolio-seed",
-        "upsellio_portfolio_seed_screen"
+        "upsellio_portfolio_seed_screen",
+        30
     );
 }
 add_action("admin_menu", "upsellio_register_portfolio_seed_menu");
@@ -777,7 +777,7 @@ function upsellio_portfolio_seed_screen()
     ?>
     <div class="wrap">
       <h1>Generator: 10 zaawansowanych wpisów portfolio</h1>
-      <p>Tworzy komplet profesjonalnych case studies SEO + lead generation z interaktywnymi shotami (HTML/CSS/JS) osadzonymi na podstronach projektów.</p>
+      <p>Tworzy komplet profesjonalnych wpisów portfolio z opisem celu, zakresu prac, efektów oraz interaktywnymi podglądami projektów.</p>
       <p><a class="button button-primary" href="<?php echo esc_url(upsellio_get_portfolio_seed_url(false)); ?>">Wygeneruj brakujące wpisy portfolio</a></p>
       <p><a class="button" href="<?php echo esc_url(upsellio_get_portfolio_seed_url(true)); ?>">Nadpisz i odśwież wszystkie 10 wpisów</a></p>
     </div>

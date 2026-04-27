@@ -48,7 +48,7 @@ while (have_posts()) :
         "Poziom dopasowania",
     ];
     $toolPrimaryLabelPool = [
-        "Miesieczny budzet reklamowy (PLN)",
+        "Miesięczny budżet reklamowy (PLN)",
         "Miesieczna liczba sesji na stronie",
         "Liczba leadow miesiecznie",
         "Srednia wartosc koszyka/oferty (PLN)",
@@ -58,8 +58,8 @@ while (have_posts()) :
         "Aktualny wspolczynnik konwersji (%)",
         "Szacowany CTR kampanii (%)",
         "Jaka czesc leadow jest wartosciowa? (%)",
-        "Jak oceniasz jakosc ruchu? (1-100)",
-        "Jaki odsetek ruchu wraca na strone? (%)",
+        "Jak oceniasz jakość ruchu? (1-100)",
+        "Jaki odsetek ruchu wraca na stronę? (%)",
     ];
     $toolThirdLabelPool = [
         "Docelowa poprawa w 90 dni (%)",
@@ -73,7 +73,7 @@ while (have_posts()) :
         "Priorytet: poprawa intencji ruchu i filtrowanie leadow.",
         "Najwiekszy efekt da testowanie oferty i CTA.",
         "Wartym krokiem jest audyt lejka i analityki konwersji.",
-        "Zacznij od 2-3 testow, potem skaluj dzialania.",
+        "Zacznij od 2-3 testów, potem skaluj działania.",
     ];
     $toolTitle = "Kalkulator praktyczny: " . $term;
     $toolIntro = sprintf($toolIntroPool[$seed % count($toolIntroPool)], $term);
@@ -176,7 +176,7 @@ while (have_posts()) :
                 '<aside class="definition-inline-cta">' .
                     '<strong>Wdroz ' . esc_html($term) . ' praktycznie, nie tylko teoretycznie.</strong>' .
                     '<div class="definition-inline-links">' . $linksHtml . "</div>" .
-                    '<a class="definition-inline-btn" href="' . esc_url(home_url("/kontakt/")) . '">Umow bezplatna rozmowe</a>' .
+                    '<a class="definition-inline-btn" href="' . esc_url(home_url("/kontakt/")) . '">Umów bezpłatną rozmowę</a>' .
                 "</aside>";
         },
         $articleHtml
@@ -184,44 +184,44 @@ while (have_posts()) :
     ?>
     <style>
       .definition-wrap{width:min(1140px,calc(100% - 32px));margin:0 auto}
-      .definition-hero{padding:72px 0 34px;border-bottom:1px solid #e6e6e1;background:#f8f8f6}
+      .definition-hero{padding:72px 0 34px;border-bottom:1px solid #e2e8f0;background:#f1f5f9}
       .definition-breadcrumbs{font-size:12px;color:#6f6f67;margin-bottom:14px}
       .definition-title{font-family:Syne,sans-serif;font-size:clamp(34px,5vw,56px);line-height:1.05;letter-spacing:-1px}
-      .definition-lead{margin-top:14px;max-width:860px;font-size:18px;line-height:1.75;color:#3d3d38}
+      .definition-lead{margin-top:14px;max-width:860px;font-size:18px;line-height:1.75;color:#334155}
       .definition-pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
       .definition-pill{font-size:12px;border:1px solid #c9c9c3;border-radius:999px;background:#fff;padding:7px 12px}
       .definition-main{padding:46px 0 60px;display:grid;grid-template-columns:1fr;gap:34px}
       .definition-content{line-height:1.8;color:#262624}
-      .definition-content h2,.definition-content h3{font-family:Syne,sans-serif;color:#111110;line-height:1.2}
+      .definition-content h2,.definition-content h3{font-family:Syne,sans-serif;color:#071426;line-height:1.2}
       .definition-content h2{font-size:33px;margin:0 0 14px}
       .definition-content h3{font-size:22px;margin:24px 0 8px}
       .definition-content p{margin:0 0 14px}
       .definition-content ul{margin:0 0 16px 20px}
       .definition-content li{margin:0 0 8px}
-      .definition-content a{color:#1d9e75}
+      .definition-content a{color:#0d9488}
       .definition-content a:hover{text-decoration:underline}
-      .definition-inline-cta{margin:16px 0 20px;padding:15px;border:1px solid #c3eddd;background:#e8f8f2;border-radius:12px}
+      .definition-inline-cta{margin:16px 0 20px;padding:15px;border:1px solid #99f6e4;background:#ecfeff;border-radius:12px}
       .definition-inline-cta strong{display:block;color:#0d4637;font-size:15px;line-height:1.5;margin-bottom:8px}
       .definition-inline-links{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:10px}
       .definition-inline-links a{font-size:12px;color:#145f49}
-      .definition-inline-btn{display:inline-flex;align-items:center;justify-content:center;background:#1d9e75;color:#fff;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700}
+      .definition-inline-btn{display:inline-flex;align-items:center;justify-content:center;background:#0d9488;color:#fff;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700}
       .definition-tool{margin:26px 0 0;padding:20px;border:1px solid #e6e6e1;border-radius:14px;background:#fff}
       .definition-tool h2{font-size:28px;margin:0 0 8px}
-      .definition-tool p{margin:0 0 12px;color:#3d3d38}
+      .definition-tool p{margin:0 0 12px;color:#334155}
       .definition-tool-grid{display:grid;gap:12px}
       .definition-tool-grid label{display:grid;gap:6px;font-size:13px;color:#2f2f2a}
       .definition-tool-grid input{width:100%;border:1px solid #c9c9c3;border-radius:10px;padding:10px 12px;font:inherit}
       .definition-tool-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
       .definition-tool-btn{border:none;border-radius:10px;padding:10px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}
-      .definition-tool-btn.primary{background:#1d9e75;color:#fff}
+      .definition-tool-btn.primary{background:#0d9488;color:#fff}
       .definition-tool-btn.ghost{background:#f3f3ef;color:#4c4c46}
-      .definition-tool-result{margin-top:12px;padding:14px;border-radius:12px;background:#f8f8f6;border:1px solid #e6e6e1;display:none}
+      .definition-tool-result{margin-top:12px;padding:14px;border-radius:12px;background:#f1f5f9;border:1px solid #e2e8f0;display:none}
       .definition-tool-result.show{display:block}
       .definition-tool-score{font-size:30px;font-family:Syne,sans-serif;line-height:1}
       .definition-tool-note{margin-top:6px;font-size:13px;color:#3f3f38}
       .definition-contact{margin-top:26px;padding:20px;border:1px solid #e6e6e1;border-radius:14px;background:#fff}
       .definition-contact h2{font-size:26px;margin:0 0 8px}
-      .definition-contact p{margin:0 0 12px;color:#3d3d38}
+      .definition-contact p{margin:0 0 12px;color:#334155}
       .definition-contact-links{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
       .definition-contact-links a{font-size:13px;font-weight:600}
       .definition-contact-form{display:grid;gap:12px}
@@ -235,17 +235,17 @@ while (have_posts()) :
       .definition-linking h2{font-size:24px;margin:0 0 10px}
       .definition-link-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px}
       .definition-link-grid a{font-size:13px;color:#5f5f58}
-      .definition-link-grid a:hover{color:#1d9e75}
+      .definition-link-grid a:hover{color:#0d9488}
       .definition-side{position:static;display:grid;gap:16px;height:max-content}
       .definition-card{border:1px solid #e6e6e1;border-radius:14px;background:#fff;padding:18px}
       .definition-card-title{font-family:Syne,sans-serif;font-size:22px;margin-bottom:10px}
       .definition-list{display:grid;gap:8px}
       .definition-list a{font-size:14px;color:#5f5f58}
-      .definition-list a:hover{color:#1d9e75}
-      .definition-phone-box{border:1px solid #c3eddd;background:#e8f8f2;border-radius:12px;padding:12px;font-size:13px;color:#0d4637}
+      .definition-list a:hover{color:#0d9488}
+      .definition-phone-box{border:1px solid #99f6e4;background:#ecfeff;border-radius:12px;padding:12px;font-size:13px;color:#0f766e}
       .definition-phone-box a{font-weight:700}
       .definition-adjacent{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:26px;padding-top:18px;border-top:1px solid #e6e6e1}
-      .definition-adjacent a{display:block;border:1px solid #e6e6e1;border-radius:12px;padding:12px;min-width:220px;color:#111110}
+      .definition-adjacent a{display:block;border:1px solid #e2e8f0;border-radius:12px;padding:12px;min-width:220px;color:#071426}
       .definition-adjacent small{display:block;font-size:12px;color:#6f6f67;margin-bottom:6px}
       .definition-faq{margin-top:28px;padding-top:24px;border-top:1px solid #e6e6e1}
       .definition-faq-item + .definition-faq-item{margin-top:14px}
@@ -416,7 +416,7 @@ while (have_posts()) :
           <div class="definition-list">
             <?php foreach ($serviceLinks as $relative) :
                 $url = home_url($relative);
-                $label = $relative === "/#kontakt" ? "Umow rozmowe" : ($relative === "/#uslugi" ? "Zobacz uslugi" : "Sprawdz miasta obslugi");
+                $label = $relative === "/#kontakt" ? "Umów rozmowę" : ($relative === "/#uslugi" ? "Zobacz usługi" : "Sprawdź miasta obsługi");
                 ?>
               <a href="<?php echo esc_url($url); ?>"><?php echo esc_html($label); ?></a>
             <?php endforeach; ?>
@@ -453,7 +453,7 @@ while (have_posts()) :
         function getMessage(score) {
           if (score < 35) return "Niski wynik. Najpierw uporzadkuj fundament: komunikat, pomiar i jasne CTA.";
           if (score < 70) return "Sredni wynik. Potencjal jest, ale potrzebna jest regularna optymalizacja.";
-          return "Wysoki wynik. Mozesz skalowac to, co dziala i poprawiac jakosc leadow.";
+          return "Wysoki wynik. Możesz skalować to, co działa i poprawiać jakość leadów.";
         }
 
         calcBtn.addEventListener("click", function () {

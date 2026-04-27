@@ -3,6 +3,10 @@ if (!defined("ABSPATH")) {
     exit;
 }
 $primary_navigation_links = function_exists("upsellio_get_primary_navigation_links") ? upsellio_get_primary_navigation_links() : [];
+$brand_logo_assets = function_exists("upsellio_get_generated_logo_assets") ? upsellio_get_generated_logo_assets() : [];
+$brand_logo_url = (string) ($brand_logo_assets["png"] ?? "");
+$brand_logo_webp_320_url = (string) ($brand_logo_assets["webp_320"] ?? "");
+$brand_logo_webp_640_url = (string) ($brand_logo_assets["webp_640"] ?? "");
 if (function_exists("upsellio_register_template_seo_head")) {
     upsellio_register_template_seo_head("audyt_meta");
 }
@@ -25,21 +29,21 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
   <?php if (false) : ?><style>
     :root {
       --bg: #ffffff;
-      --bg-soft: #f8f8f6;
+      --bg-soft: #f1f5f9;
       --bg-muted: #f1f1ee;
       --surface: #ffffff;
 
-      --text: #111110;
-      --text-2: #3d3d38;
-      --text-3: #7c7c74;
+      --text: #071426;
+      --text-2: #334155;
+      --text-3: #64748b;
 
       --border: #e6e6e1;
       --border-strong: #c9c9c3;
 
-      --teal: #1d9e75;
-      --teal-hover: #17885f;
-      --teal-dark: #085041;
-      --teal-soft: #e8f8f2;
+      --teal: #0d9488;
+      --teal-hover: #0f766e;
+      --teal-dark: #0f766e;
+      --teal-soft: #ecfeff;
       --teal-line: #c3eddd;
 
       --danger: #d94c4c;
@@ -170,13 +174,13 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       padding: 15px 28px;
       font-size: 15px;
       font-weight: 600;
-      box-shadow: 0 0 0 0 rgba(29, 158, 117, 0.38);
+      box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.38);
       animation: pulse 2.8s ease 2.5s infinite;
     }
     .btn-primary:hover {
       background: var(--teal-hover);
       transform: translateY(-2px);
-      box-shadow: 0 8px 22px rgba(29, 158, 117, 0.28);
+      box-shadow: 0 8px 22px rgba(13, 148, 136, 0.28);
       animation: none;
     }
     .btn-secondary {
@@ -194,9 +198,9 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
     }
 
     @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(29,158,117,0.36); }
-      70% { box-shadow: 0 0 0 12px rgba(29,158,117,0); }
-      100% { box-shadow: 0 0 0 0 rgba(29,158,117,0); }
+      0% { box-shadow: 0 0 0 0 rgba(20,184,166,0.36); }
+      70% { box-shadow: 0 0 0 12px rgba(20,184,166,0); }
+      100% { box-shadow: 0 0 0 0 rgba(20,184,166,0); }
     }
 
     .nav {
@@ -338,7 +342,7 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       overflow: hidden;
       border-bottom: 1px solid var(--border);
       background:
-        radial-gradient(circle at top right, rgba(29,158,117,0.08), transparent 32%),
+        radial-gradient(circle at top right, rgba(20,184,166,0.12), transparent 32%),
         var(--bg);
     }
     .hero::before {
@@ -507,7 +511,7 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
     .textarea:focus,
     .select:focus {
       border-color: var(--teal);
-      box-shadow: 0 0 0 3px rgba(29,158,117,0.13);
+      box-shadow: 0 0 0 3px rgba(20,184,166,0.13);
     }
     .input.error,
     .textarea.error { border-color: var(--danger); }
@@ -841,16 +845,24 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
   <header class="nav">
     <div class="wrap nav-inner">
       <a href="#start" class="brand" aria-label="Upsellio — strona główna">
-        <div class="brand-mark">U</div>
-        <div class="brand-text">
-          <div class="brand-name">Upsellio</div>
-          <div class="brand-sub">by Sebastian Kelm</div>
-        </div>
+        <?php if ($brand_logo_url !== "") : ?>
+          <picture>
+            <?php if ($brand_logo_webp_320_url !== "" && $brand_logo_webp_640_url !== "") : ?>
+              <source type="image/webp" srcset="<?php echo esc_url($brand_logo_webp_320_url); ?> 320w, <?php echo esc_url($brand_logo_webp_640_url); ?> 640w" sizes="(max-width: 760px) 163px, 222px" />
+            <?php endif; ?>
+            <img src="<?php echo esc_url($brand_logo_url); ?>" alt="Upsellio" class="brand-logo" width="320" height="213" decoding="async" fetchpriority="high" />
+          </picture>
+        <?php else : ?>
+          <div class="brand-text">
+            <div class="brand-name">Upsellio</div>
+            <div class="brand-sub">by Sebastian Kelm</div>
+          </div>
+        <?php endif; ?>
       </a>
 
       <ul class="nav-links">
         <?php foreach ($primary_navigation_links as $nav_link) : ?>
-          <li><a href="<?php echo esc_url((string) $nav_link["url"]); ?>"><?php echo esc_html((string) $nav_link["title"]); ?></a></li>
+          <li><a href="<?php echo esc_url((string) $nav_link["url"]); ?>"<?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>><?php echo esc_html((string) $nav_link["title"]); ?></a></li>
         <?php endforeach; ?>
       </ul>
 
@@ -866,7 +878,7 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
     <div class="mobile-menu" id="mobile-menu">
       <div class="wrap">
         <?php foreach ($primary_navigation_links as $nav_link) : ?>
-          <a href="<?php echo esc_url((string) $nav_link["url"]); ?>"><?php echo esc_html((string) $nav_link["title"]); ?></a>
+          <a href="<?php echo esc_url((string) $nav_link["url"]); ?>"<?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>><?php echo esc_html((string) $nav_link["title"]); ?></a>
         <?php endforeach; ?>
         <a href="#formularz">Darmowy audyt →</a>
       </div>
@@ -915,7 +927,7 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
 
           <?php $ups_form_status = isset($_GET["ups_lead_status"]) ? sanitize_text_field(wp_unslash($_GET["ups_lead_status"])) : ""; ?>
           <?php if ($ups_form_status === "success") : ?>
-            <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #c3eddd;background:#e8f8f2;border-radius:10px;color:#085041;font-size:13px;">Dziękuję! Zgłoszenie zostało zapisane i wrócę z odpowiedzią.</div>
+            <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #99f6e4;background:#ecfeff;border-radius:10px;color:#0f766e;font-size:13px;">Dziękuję! Zgłoszenie zostało zapisane i wrócę z odpowiedzią.</div>
           <?php elseif ($ups_form_status === "error") : ?>
             <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #edcccc;background:#fff2f2;border-radius:10px;color:#b13a3a;font-size:13px;">Nie udało się wysłać zgłoszenia. Uzupełnij pola i spróbuj ponownie.</div>
           <?php endif; ?>
@@ -1142,11 +1154,19 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       <div class="footer-inner">
         <div class="footer-brand">
           <div class="brand">
-            <div class="brand-mark">U</div>
-            <div class="brand-text">
-              <div class="brand-name">Upsellio</div>
-              <div class="brand-sub">by Sebastian Kelm</div>
-            </div>
+            <?php if ($brand_logo_url !== "") : ?>
+              <picture>
+                <?php if ($brand_logo_webp_320_url !== "" && $brand_logo_webp_640_url !== "") : ?>
+                  <source type="image/webp" srcset="<?php echo esc_url($brand_logo_webp_320_url); ?> 320w, <?php echo esc_url($brand_logo_webp_640_url); ?> 640w" sizes="220px" />
+                <?php endif; ?>
+                <img src="<?php echo esc_url($brand_logo_url); ?>" alt="Upsellio" class="brand-logo" width="320" height="213" loading="lazy" decoding="async" />
+              </picture>
+            <?php else : ?>
+              <div class="brand-text">
+                <div class="brand-name">Upsellio</div>
+                <div class="brand-sub">by Sebastian Kelm</div>
+              </div>
+            <?php endif; ?>
           </div>
           <div class="muted" style="margin-top:12px;font-size:13px;line-height:1.6;">
             Darmowy audyt wyników reklam Meta dla firm, które chcą lepiej rozumieć, co działa i co poprawić.

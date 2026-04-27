@@ -8,11 +8,29 @@ get_header();
 while (have_posts()) :
     the_post();
     $postId = get_the_ID();
-    $cityName = get_post_meta($postId, "_upsellio_city_name", true) ?: get_the_title();
     $citySlug = get_post_meta($postId, "_upsellio_city_slug", true) ?: get_post_field("post_name", $postId);
-    $voivodeship = get_post_meta($postId, "_upsellio_city_voivodeship", true) ?: "polska";
-    $marketAngle = get_post_meta($postId, "_upsellio_city_market_angle", true) ?: "lokalne firmy";
-    $serviceFocus = get_post_meta($postId, "_upsellio_city_service_focus", true) ?: "marketing i strony WWW";
+    $cityDatasetItem = function_exists("upsellio_get_city_by_slug") ? upsellio_get_city_by_slug($citySlug) : null;
+    $cityName = is_array($cityDatasetItem) && !empty($cityDatasetItem["name"])
+        ? $cityDatasetItem["name"]
+        : (get_post_meta($postId, "_upsellio_city_name", true) ?: get_the_title());
+    $voivodeship = is_array($cityDatasetItem) && !empty($cityDatasetItem["voivodeship"])
+        ? $cityDatasetItem["voivodeship"]
+        : (get_post_meta($postId, "_upsellio_city_voivodeship", true) ?: "polska");
+    $marketAngle = is_array($cityDatasetItem) && !empty($cityDatasetItem["market_angle"])
+        ? $cityDatasetItem["market_angle"]
+        : (get_post_meta($postId, "_upsellio_city_market_angle", true) ?: "lokalne firmy");
+    $serviceFocus = is_array($cityDatasetItem) && !empty($cityDatasetItem["service_focus"])
+        ? $cityDatasetItem["service_focus"]
+        : (get_post_meta($postId, "_upsellio_city_service_focus", true) ?: "marketing i strony WWW");
+    $localChallenge = is_array($cityDatasetItem) && !empty($cityDatasetItem["local_challenge"])
+        ? $cityDatasetItem["local_challenge"]
+        : (get_post_meta($postId, "_upsellio_city_local_challenge", true) ?: "niska jakość leadów z kampanii");
+    $localAdvantage = is_array($cityDatasetItem) && !empty($cityDatasetItem["local_advantage"])
+        ? $cityDatasetItem["local_advantage"]
+        : (get_post_meta($postId, "_upsellio_city_local_advantage", true) ?: "stabilny popyt lokalny");
+    $seasonalityAngle = is_array($cityDatasetItem) && !empty($cityDatasetItem["seasonality_angle"])
+        ? $cityDatasetItem["seasonality_angle"]
+        : (get_post_meta($postId, "_upsellio_city_seasonality_angle", true) ?: "stabilny popyt przez cały rok");
     $cta = get_post_meta($postId, "_upsellio_city_cta", true);
     $faq = get_post_meta($postId, "_upsellio_city_faq", true);
     if (!is_array($faq)) {
@@ -35,38 +53,38 @@ while (have_posts()) :
     $ctaSeed = abs(crc32($citySlug . "|" . $cityName));
 
     $ctaActionPool = [
-        "Umow bezplatna konsultacje dla %s",
-        "Sprawdz potencjal wzrostu firmy w %s",
+        "Umów bezpłatną konsultację dla %s",
+        "Sprawdź potencjał wzrostu firmy w %s",
         "Dopasuj kampanie do decyzji klienta w %s",
-        "Popraw konwersje strony dla rynku %s",
+        "Popraw konwersję strony dla rynku %s",
         "Zaplanuj 90 dni marketingu dla %s",
-        "Zweryfikuj jakosc leadow z %s",
+        "Zweryfikuj jakość leadów z %s",
         "Uruchom lepiej targetowane reklamy dla %s",
-        "Uspojnij lejek sprzedazowy dla %s",
-        "Skroc czas od kliku do zapytania w %s",
-        "Podnies skutecznosc sprzedazy B2B w %s",
-        "Uloz plan Meta Ads i Google Ads dla %s",
+        "Uspójnij lejek sprzedażowy dla %s",
+        "Skróć czas od kliku do zapytania w %s",
+        "Podnieś skuteczność sprzedaży B2B w %s",
+        "Ułóż plan Meta Ads i Google Ads dla %s",
         "Przestaw marketing na mierzalny wynik w %s",
         "Wzmocnij pozycje firmy lokalnie w %s",
-        "Zwieksz liczbe wartosciowych rozmow z %s",
-        "Uloz strone pod leady dla %s",
-        "Zweryfikuj co blokuje sprzedaz w %s",
+        "Zwiększ liczbę wartościowych rozmów z %s",
+        "Ułóż stronę pod leady dla %s",
+        "Zweryfikuj co blokuje sprzedaż w %s",
         "Skaluj zapytania bez podbijania CPL w %s",
-        "Połącz reklamy i strone dla miasta %s",
+        "Połącz reklamy i stronę dla miasta %s",
         "Przygotuj lokalny plan SEO i Ads dla %s",
-        "Ustaw proces lead generation dla %s",
+        "Ustaw proces pozyskiwania klientów dla %s",
     ];
     $ctaBenefitPool = [
         "i otrzymaj konkretne rekomendacje na pierwsze 2 tygodnie.",
-        "bez ogolnikow i bez przepalania budzetu reklamowego.",
-        "z priorytetami wdrozen pod realna sprzedaz.",
+        "bez ogólników i bez przepalania budżetu reklamowego.",
+        "z priorytetami wdrożeń pod realną sprzedaż.",
         "z szybkim audytem strony, reklam i analityki.",
-        "z naciskiem na jakosc leadow, nie tylko ich ilosc.",
-        "aby kampanie i oferta dzialaly jako jeden system.",
-        "z planem testow komunikatu i kreacji reklamowych.",
-        "z jasnym podzialem: co poprawic od razu, co skalowac dalej.",
-        "z mierzeniem pelnej sciezki: klik, lead, rozmowa, sprzedaż.",
-        "aby szybciej domykac zapytania od klientow B2B.",
+        "z naciskiem na jakość leadów, nie tylko ich ilość.",
+        "aby kampanie i oferta działały jako jeden system.",
+        "z planem testów komunikatu i kreacji reklamowych.",
+        "z jasnym podziałem: co poprawić od razu, co skalować dalej.",
+        "z mierzeniem pełnej ścieżki: klik, lead, rozmowa, sprzedaż.",
+        "aby szybciej domykać zapytania od klientów B2B.",
     ];
     $ctaLibrary = [];
     foreach ($ctaActionPool as $actionText) {
@@ -107,8 +125,12 @@ while (have_posts()) :
             if ((int) $cityPostId === (int) $postId) {
                 continue;
             }
+            $linkedCitySlug = get_post_meta($cityPostId, "_upsellio_city_slug", true) ?: get_post_field("post_name", $cityPostId);
+            $linkedCityDatasetItem = function_exists("upsellio_get_city_by_slug") ? upsellio_get_city_by_slug($linkedCitySlug) : null;
             $cityLinks[] = [
-                "name" => get_post_meta($cityPostId, "_upsellio_city_name", true) ?: get_the_title($cityPostId),
+                "name" => is_array($linkedCityDatasetItem) && !empty($linkedCityDatasetItem["name"])
+                    ? $linkedCityDatasetItem["name"]
+                    : (get_post_meta($cityPostId, "_upsellio_city_name", true) ?: get_the_title($cityPostId)),
                 "url" => get_permalink($cityPostId),
             ];
         }
@@ -181,59 +203,64 @@ while (have_posts()) :
 
             $linksHtml = "";
             if (is_array($cityLink) && !empty($cityLink["url"])) {
-                $linksHtml .= '<a href="' . esc_url($cityLink["url"]) . '">Zobacz tez: ' . esc_html("Marketing i strony WWW " . $cityLink["name"]) . "</a>";
+                $linksHtml .= '<a href="' . esc_url($cityLink["url"]) . '">Zobacz też: ' . esc_html("Marketing i strony WWW " . $cityLink["name"]) . "</a>";
             }
             if (is_array($definitionLink) && !empty($definitionLink["url"])) {
-                $linksHtml .= '<a href="' . esc_url($definitionLink["url"]) . '">Przeczytaj definicje: ' . esc_html($definitionLink["name"]) . "</a>";
+                $linksHtml .= '<a href="' . esc_url($definitionLink["url"]) . '">Przeczytaj definicję: ' . esc_html($definitionLink["name"]) . "</a>";
             }
 
             return $matches[0] .
                 '<aside class="city-inline-cta">' .
                     '<strong>' . esc_html($ctaText) . "</strong>" .
                     '<div class="city-inline-cta-links">' . $linksHtml . "</div>" .
-                    '<a class="city-inline-cta-btn" href="' . esc_url(home_url("/kontakt/")) . '">Umow rozmowe</a>' .
+                    '<a class="city-inline-cta-btn" href="' . esc_url(home_url("/kontakt/")) . '">Umów rozmowę</a>' .
                 "</aside>";
         },
         $articleHtml
     );
     ?>
     <style>
-      .city-wrap{width:min(1180px,calc(100% - 32px));margin:0 auto}
-      .city-hero{padding:72px 0 48px;border-bottom:1px solid var(--border,#e6e6e1);background:radial-gradient(circle at top right,rgba(29,158,117,.08),transparent 32%),var(--bg-soft,#f8f8f6)}
-      .city-breadcrumbs{font-size:12px;color:var(--text-3,#7c7c74);margin-bottom:14px}
+      .city-wrap{width:min(1240px,calc(100% - 32px));margin:0 auto}
+      .city-hero{padding:72px 0 48px;border-bottom:1px solid var(--border,#e2e8f0);background:radial-gradient(circle at top right,rgba(20,184,166,.12),transparent 32%),var(--bg-soft,#f1f5f9)}
+      .city-breadcrumbs{font-size:12px;color:var(--text-3,#64748b);margin-bottom:14px}
       .city-h1{font-family:var(--font-display, "Syne", sans-serif);font-weight:800;font-size:clamp(36px,5vw,62px);line-height:1.02;letter-spacing:-1.5px}
-      .city-lead{margin-top:18px;font-size:18px;line-height:1.8;color:var(--text-2,#3d3d38);max-width:860px}
+      .city-lead{margin-top:18px;font-size:18px;line-height:1.8;color:var(--text-2,#334155);max-width:860px}
       .city-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
       .city-pill{font-size:12px;border:1px solid var(--border-strong,#c9c9c3);border-radius:999px;padding:6px 12px;background:var(--surface,#fff)}
       .city-main{padding:56px 0 72px;display:grid;grid-template-columns:1fr;gap:34px}
       .city-content{line-height:1.8;color:#262624;padding:26px;border:1px solid var(--border,#e6e6e1);border-radius:18px;background:var(--surface,#fff)}
-      .city-content h2,.city-content h3{font-family:var(--font-display, "Syne", sans-serif);line-height:1.2;color:#111110}
+      .city-content h2,.city-content h3{font-family:var(--font-display, "Syne", sans-serif);line-height:1.2;color:#071426}
       .city-content h2{font-size:32px;margin:0 0 16px}
       .city-content h3{font-size:23px;margin:28px 0 10px}
       .city-content p{margin:0 0 14px}
       .city-content ul{margin:0 0 16px 20px}
       .city-content li{margin:0 0 8px}
-      .city-content .city-inline-cta{margin:18px 0 22px;padding:16px 16px 14px;border:1px solid var(--teal-line,#c3eddd);background:var(--teal-soft,#e8f8f2);border-radius:12px}
+      .city-content .city-inline-cta{margin:18px 0 22px;padding:16px 16px 14px;border:1px solid var(--teal-line,#99f6e4);background:var(--teal-soft,#ecfeff);border-radius:12px}
       .city-content .city-inline-cta strong{display:block;font-size:15px;line-height:1.5;margin-bottom:8px;color:#0d4637}
       .city-inline-cta-links{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
       .city-inline-cta-links a{font-size:12px;color:#145f49;font-weight:500}
-      .city-inline-cta-btn{display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;padding:7px 12px;border-radius:999px;background:var(--teal,#1d9e75);color:#fff}
+      .city-inline-cta-btn{display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;padding:7px 12px;border-radius:999px;background:var(--teal,#0d9488);color:#fff}
       .city-side-card{border:1px solid var(--border,#e6e6e1);border-radius:18px;padding:22px;background:var(--surface,#fff);position:static;top:96px}
       .city-side-title{font-family:var(--font-display, "Syne", sans-serif);font-size:22px;margin-bottom:10px}
       .city-side-list{display:grid;gap:8px;margin-top:14px}
       .city-side-link{font-size:14px;color:#5f5f58}
-      .city-side-link:hover{color:var(--teal,#1d9e75)}
-      .city-cta{margin-top:22px;padding:16px;border-radius:12px;background:var(--teal-soft,#e8f8f2);border:1px solid var(--teal-line,#c3eddd)}
+      .city-side-link:hover{color:var(--teal,#0d9488)}
+      .city-cta{margin-top:22px;padding:16px;border-radius:12px;background:var(--teal-soft,#ecfeff);border:1px solid var(--teal-line,#99f6e4)}
       .city-cta strong{display:block;margin-bottom:8px}
       .city-cta-meta{display:flex;flex-direction:column;gap:5px;font-size:13px;margin-top:10px}
       .city-cta-meta a{color:#125f47}
-      .city-btn{display:inline-flex;margin-top:12px;background:var(--teal,#1d9e75);color:#fff;padding:11px 16px;border-radius:10px}
-      .city-btn:hover{background:var(--teal-hover,#17885f)}
+      .city-btn{display:inline-flex;margin-top:12px;background:var(--teal,#0d9488);color:#fff;padding:11px 16px;border-radius:10px}
+      .city-btn:hover{background:var(--teal-hover,#0f766e)}
       .city-faq{margin-top:42px;border-top:1px solid var(--border,#e6e6e1);padding-top:28px}
       .city-faq-item + .city-faq-item{margin-top:16px}
-      .city-band{margin-top:26px;padding:24px;border-radius:16px;background:var(--teal-soft,#e8f8f2);border:1px solid var(--teal-line,#c3eddd)}
+      .city-band{margin-top:26px;padding:24px;border-radius:16px;background:var(--teal-soft,#ecfeff);border:1px solid var(--teal-line,#99f6e4)}
       .city-band h2{font-size:26px;margin:0 0 8px}
-      .city-band p{margin:0;color:#085041}
+      .city-band p{margin:0;color:#0f766e}
+      .city-local-context{margin:28px 0;padding:24px;border:1px solid var(--border,#e6e6e1);border-radius:16px;background:#f8fafc}
+      .city-local-context h2{font-size:26px;margin:0 0 12px}
+      .city-local-context-grid{display:grid;gap:12px;margin-top:18px}
+      .city-local-context-item{padding:14px;border-radius:12px;background:#fff;border:1px solid var(--border,#e6e6e1)}
+      .city-local-context-item strong{display:block;margin-bottom:6px;color:#071426}
       .city-conversion-form{margin-top:28px;padding:22px;border:1px solid var(--border,#e6e6e1);border-radius:16px;background:#fff}
       .city-conversion-form h2{font-size:26px;margin:0 0 8px}
       .city-conversion-form p{margin:0 0 14px;color:#484842}
@@ -250,9 +277,9 @@ while (have_posts()) :
       .city-local-links h2{font-size:24px;margin:0 0 10px}
       .city-link-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}
       .city-link-grid a{font-size:13px;color:#5f5f58}
-      .city-link-grid a:hover{color:var(--teal,#1d9e75)}
-      @media(min-width:761px){.city-wrap{width:min(1180px,calc(100% - 48px))}}
-      @media(min-width:761px){.city-form-grid.two{grid-template-columns:1fr 1fr}.city-link-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+      .city-link-grid a:hover{color:var(--teal,#0d9488)}
+      @media(min-width:761px){.city-wrap{width:min(1240px,calc(100% - 48px))}}
+      @media(min-width:761px){.city-form-grid.two{grid-template-columns:1fr 1fr}.city-link-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.city-local-context-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
       @media(min-width:961px){.city-main{grid-template-columns:minmax(0,1fr) 340px}.city-side-card{position:sticky}}
     </style>
 
@@ -281,6 +308,28 @@ while (have_posts()) :
         <article class="city-content">
           <?php echo $articleHtml; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 
+          <section class="city-local-context" aria-labelledby="city-local-context-title">
+            <h2 id="city-local-context-title">Lokalny kontekst dla <?php echo esc_html($cityName); ?></h2>
+            <p>
+              Każda strona miasta ma osobny kontekst: rynek, wyzwanie, przewagę i sezonowość.
+              Dla <?php echo esc_html($cityName); ?> plan kampanii i strony opieram o realne bariery, a nie o ten sam szablon dla każdego miasta.
+            </p>
+            <div class="city-local-context-grid">
+              <div class="city-local-context-item">
+                <strong>Najczęstsze wyzwanie</strong>
+                <?php echo esc_html($localChallenge); ?>
+              </div>
+              <div class="city-local-context-item">
+                <strong>Lokalna przewaga</strong>
+                <?php echo esc_html($localAdvantage); ?>
+              </div>
+              <div class="city-local-context-item">
+                <strong>Sezonowość popytu</strong>
+                <?php echo esc_html($seasonalityAngle); ?>
+              </div>
+            </div>
+          </section>
+
           <div class="city-band">
             <h2>Potrzebujesz planu działań dla <?php echo esc_html($cityName); ?>?</h2>
             <p>W 30 minut pokażę, co warto poprawić najpierw, żeby szybciej podnieść jakość leadów i skuteczność sprzedaży.</p>
@@ -291,7 +340,7 @@ while (have_posts()) :
             <p>Zostaw krótki opis sytuacji firmy. Otrzymasz konkretną rekomendację działań dla rynku lokalnego.</p>
             <div class="city-conversion-links">
               <?php if ($contactPhone !== "" && $phoneHref !== "") : ?>
-                <a href="<?php echo esc_url("tel:" . $phoneHref); ?>">Zadzwon: <?php echo esc_html($contactPhone); ?></a>
+                <a href="<?php echo esc_url("tel:" . $phoneHref); ?>">Zadzwoń: <?php echo esc_html($contactPhone); ?></a>
               <?php endif; ?>
               <a href="<?php echo esc_url($contactEmailHref); ?>">Napisz: <?php echo esc_html($contactEmailDisplay); ?></a>
             </div>
@@ -310,7 +359,7 @@ while (have_posts()) :
               <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
               <div class="city-form-grid two">
                 <label>
-                  Imie i firma *
+                  Imię i firma *
                   <input type="text" name="lead_name" autocomplete="name organization" required />
                 </label>
                 <label>
@@ -324,20 +373,20 @@ while (have_posts()) :
                   <input type="tel" name="lead_phone" autocomplete="tel" />
                 </label>
                 <label>
-                  Co chcesz poprawic? *
-                  <textarea name="lead_message" required>Chce omowic dzialania marketingowe dla firmy z miasta <?php echo esc_textarea($cityName); ?>.</textarea>
+                  Co chcesz poprawić? *
+                  <textarea name="lead_message" required>Chcę omówić działania marketingowe dla firmy z miasta <?php echo esc_textarea($cityName); ?>.</textarea>
                 </label>
               </div>
               <label class="city-form-consent">
                 <input type="checkbox" name="lead_consent" value="1" required />
-                <span>Wyrazam zgode na kontakt w sprawie mojego zapytania.</span>
+                <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
               </label>
-              <button class="city-btn" type="submit">Wyslij formularz</button>
+              <button class="city-btn" type="submit">Wyślij formularz</button>
             </form>
           </section>
 
-          <section class="city-local-links" aria-label="Linkowanie wewnetrzne lokalne">
-            <h2>Sprawdz tez inne miasta i tematy</h2>
+          <section class="city-local-links" aria-label="Linkowanie wewnętrzne lokalne">
+            <h2>Sprawdź też inne miasta i tematy</h2>
             <div class="city-link-grid">
               <?php foreach ($cityInternalLinks as $cityLink) : ?>
                 <a href="<?php echo esc_url($cityLink["url"]); ?>">

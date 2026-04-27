@@ -55,7 +55,7 @@ if (have_posts()) :
             position: absolute;
             inset: 0;
             background:
-              radial-gradient(circle at top right, rgba(29, 158, 117, 0.24), transparent 32%),
+              radial-gradient(circle at top right, rgba(20, 184, 166, 0.24), transparent 32%),
               linear-gradient(180deg, rgba(7, 10, 10, 0.6), rgba(7, 10, 10, 0.82));
           }
           .ups-post-hero-inner {
@@ -177,7 +177,7 @@ if (have_posts()) :
           .ups-post-panel {
             border: 1px solid var(--border);
             border-radius: 24px;
-            background: #f8f8f6;
+            background: #f1f5f9;
             padding: 18px;
             box-shadow: var(--shadow-sm);
           }
@@ -339,7 +339,7 @@ if (have_posts()) :
             margin-top: 18px;
             border: 1px solid var(--border);
             border-radius: 20px;
-            background: #f8f8f6;
+            background: #f1f5f9;
             padding: 18px;
           }
           .ups-inline-links h3 {
@@ -367,7 +367,7 @@ if (have_posts()) :
             margin-top: 22px;
             border: 1px solid var(--border);
             border-radius: 22px;
-            background: #f8f8f6;
+            background: #f1f5f9;
             padding: 22px;
           }
           .ups-inline-contact-head h3 {
@@ -487,7 +487,7 @@ if (have_posts()) :
             display: inline-flex;
             border: 1px solid var(--border);
             border-radius: 999px;
-            background: #f8f8f6;
+            background: #f1f5f9;
             padding: 4px 10px;
             font-size: 11px;
             font-weight: 700;

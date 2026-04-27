@@ -22,7 +22,7 @@ if (!defined("ABSPATH")) {
       <?php endwhile; ?>
     <?php else : ?>
       <h1>Upsellio</h1>
-      <p>Motyw aktywny. Ustaw strone glowna i landing w panelu WordPress.</p>
+      <p>Motyw aktywny. Ustaw stronę główną i landing w panelu WordPress.</p>
     <?php endif; ?>
   </main>
   <?php wp_footer(); ?>

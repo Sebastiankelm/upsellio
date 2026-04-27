@@ -37,68 +37,82 @@ $custom_js = (string) ($custom_payload["js"] ?? "");
 $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? upsellio_get_portfolio_page_url() : home_url("/portfolio/");
 ?>
 <style>
-  .ports-page { background:#f6f7f5; color:#101312; }
-  .ports-wrap { width:min(1060px, calc(100% - 32px)); margin:0 auto; }
-  .ports-hero { border-bottom:1px solid #e5e7e4; background:linear-gradient(180deg, rgba(29,158,117,0.08), rgba(255,255,255,0)); }
+  .ports-page { background:#f8fafc; color:#071426; }
+  .ports-wrap { width:min(1240px, calc(100% - 32px)); margin:0 auto; }
+  .ports-hero { border-bottom:1px solid #e2e8f0; background:linear-gradient(180deg, rgba(20,184,166,0.12), rgba(255,255,255,0)); }
   .ports-hero-inner { padding:56px 0 42px; }
-  .ports-back { color:#5f635f; font-size:14px; font-weight:600; }
-  .ports-badge { display:inline-flex; margin-top:12px; border-radius:999px; border:1px solid #cde9dd; background:#e8f8f2; color:#085041; font-size:12px; font-weight:700; padding:6px 12px; }
+  .ports-back { color:#64748b; font-size:14px; font-weight:600; }
+  .ports-badge { display:inline-flex; margin-top:12px; border-radius:999px; border:1px solid #99f6e4; background:#ecfeff; color:#0f766e; font-size:12px; font-weight:700; padding:6px 12px; }
   .ports-title { margin:16px 0 14px; max-width:830px; font-family:"Syne",sans-serif; font-size:clamp(34px, 6vw, 62px); line-height:.98; letter-spacing:-.05em; }
-  .ports-excerpt { margin:0; max-width:850px; color:#565a56; font-size:19px; line-height:1.72; }
-  .ports-meta { margin-top:15px; color:#6c706c; font-size:14px; }
+  .ports-excerpt { margin:0; max-width:850px; color:#334155; font-size:19px; line-height:1.72; }
+  .ports-meta { margin-top:15px; color:#64748b; font-size:14px; }
   .ports-metrics { margin-top:14px; display:flex; flex-wrap:wrap; gap:8px; }
-  .ports-metric { border:1px solid #dce6e0; background:#f2f8f5; color:#3f5248; border-radius:999px; font-size:12px; padding:6px 10px; }
+  .ports-metric { border:1px solid #e2e8f0; background:#f8fafc; color:#334155; border-radius:999px; font-size:12px; padding:6px 10px; }
   .ports-main { padding:36px 0 52px; }
   .ports-layout { display:grid; grid-template-columns:1fr; gap:16px; }
-  .ports-card { border:1px solid #e5e7e4; border-radius:24px; background:#fff; padding:22px; overflow:hidden; }
+  .ports-card { border:1px solid #e2e8f0; border-radius:24px; background:#fff; padding:22px; overflow:hidden; }
   .ports-cover { border-radius:18px; overflow:hidden; margin-bottom:18px; max-height:390px; }
   .ports-cover img { width:100%; height:100%; object-fit:cover; display:block; }
-  .ports-content { color:#313531; line-height:1.85; }
-  .ports-content h2, .ports-content h3 { font-family:"Syne",sans-serif; letter-spacing:-.03em; color:#111412; margin:20px 0 8px; }
+  .ports-content { color:#334155; line-height:1.85; }
+  .ports-content h2, .ports-content h3 { font-family:"Syne",sans-serif; letter-spacing:-.03em; color:#071426; margin:20px 0 8px; }
   .ports-sections { margin-top:18px; display:grid; gap:10px; }
-  .ports-section { border:1px solid #e4ebe6; background:#fafdfb; border-radius:14px; padding:14px; }
+  .ports-section { border:1px solid #e2e8f0; background:#f8fafc; border-radius:14px; padding:14px; }
   .ports-section-title { margin:0 0 6px; font-family:"Syne",sans-serif; font-size:20px; letter-spacing:-.02em; }
-  .ports-section-copy { margin:0; color:#4f5752; line-height:1.74; }
-  .ports-custom-block { margin-top:16px; border:1px solid #dce6e0; border-radius:18px; padding:14px; background:#fafdfb; }
-  .ports-live-block { margin-top:16px; border:1px solid #dce6e0; border-radius:18px; padding:14px; background:#fafdfb; }
+  .ports-section-copy { margin:0; color:#334155; line-height:1.74; }
+  .ports-custom-block { margin-top:16px; border:1px solid #e2e8f0; border-radius:18px; padding:14px; background:#f8fafc; }
+  .ports-live-block { margin-top:16px; border:1px solid #e2e8f0; border-radius:18px; padding:14px; background:#f8fafc; }
   .ports-live-head { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
-  .ports-live-title { margin:0; font-family:"Syne",sans-serif; font-size:22px; letter-spacing:-.02em; color:#111412; }
-  .ports-live-copy { margin:0; color:#5a625d; font-size:14px; line-height:1.6; }
+  .ports-live-title { margin:0; font-family:"Syne",sans-serif; font-size:22px; letter-spacing:-.02em; color:#071426; }
+  .ports-live-copy { margin:0; color:#64748b; font-size:14px; line-height:1.6; }
   .ports-live-switch { display:flex; gap:8px; }
-  .ports-live-btn { border:1px solid #d1ddd6; background:#fff; color:#3e4f46; border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; transition:.18s ease; }
-  .ports-live-btn.is-active { border-color:#1d9e75; background:#e8f8f2; color:#085041; }
-  .ports-live-frame-wrap { border:1px solid #dce6e0; border-radius:14px; background:#fff; padding:10px; transition:.2s ease; }
+  .ports-live-btn { border:1px solid #e2e8f0; background:#fff; color:#334155; border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; transition:.18s ease; }
+  .ports-live-btn.is-active { border-color:#0d9488; background:#ecfeff; color:#0f766e; }
+  .ports-live-frame-wrap { border:1px solid #e2e8f0; border-radius:14px; background:#fff; padding:10px; transition:.2s ease; }
   .ports-live-frame { width:100%; height:640px; border:0; border-radius:10px; display:block; background:#fff; }
   .ports-live-frame-wrap.is-mobile { max-width:410px; margin:0 auto; }
   .ports-live-frame-wrap.is-mobile .ports-live-frame { height:760px; }
   .ports-live-note { margin:10px 0 0; color:#69726d; font-size:12px; line-height:1.6; }
   .ports-form-title { margin:0 0 7px; font-family:"Syne",sans-serif; font-size:28px; line-height:1.05; letter-spacing:-.03em; }
-  .ports-form-text { margin:0 0 14px; color:#5e635e; line-height:1.7; }
+  .ports-form-text { margin:0 0 14px; color:#334155; line-height:1.7; }
   .ports-form .field { margin-bottom:12px; }
-  .ports-form label { display:block; margin-bottom:6px; color:#3d3d38; font-size:12px; font-weight:600; }
+  .ports-form label { display:block; margin-bottom:6px; color:#334155; font-size:12px; font-weight:600; }
   .ports-form input,.ports-form textarea {
     width:100%;
-    border:1px solid #c9c9c3;
+    border:1px solid #cbd5e1;
     border-radius:12px;
     min-height:46px;
     padding:13px 15px;
     font-size:15px;
     outline:none;
     background:#fff;
-    color:#111110;
+    color:#071426;
     transition:border-color .18s,box-shadow .18s;
   }
   .ports-form textarea { min-height:110px; resize:vertical; line-height:1.6; }
-  .ports-form input:focus,.ports-form textarea:focus { border-color:#1d9e75; box-shadow:0 0 0 3px rgba(29,158,117,.13); }
-  .ports-submit { width:100%; margin-top:4px; min-height:46px; border:none; border-radius:12px; background:#1d9e75; color:#fff; font-size:15px; font-weight:700; cursor:pointer; transition:background .18s,transform .18s; }
-  .ports-submit:hover { background:#17885f; transform:translateY(-1px); }
-  .ports-side-note { margin-top:14px; padding-top:12px; border-top:1px solid #e5e7e4; color:#647064; font-size:13px; line-height:1.6; }
+  .ports-form input:focus,.ports-form textarea:focus { border-color:#0d9488; box-shadow:0 0 0 3px rgba(20,184,166,.13); }
+  .ports-submit { width:100%; margin-top:4px; min-height:46px; border:none; border-radius:12px; background:linear-gradient(135deg,#0d9488,#14b8a6); color:#fff; font-size:15px; font-weight:700; cursor:pointer; transition:background .18s,transform .18s; }
+  .ports-submit:hover { background:#0f766e; transform:translateY(-1px); }
+  .ports-side-note { margin-top:14px; padding-top:12px; border-top:1px solid #e2e8f0; color:#64748b; font-size:13px; line-height:1.6; }
   .ports-side-actions { margin-top:10px; display:grid; gap:8px; }
   .ports-side-link { display:inline-flex; align-items:center; justify-content:center; min-height:42px; border-radius:10px; font-size:14px; font-weight:700; }
-  .ports-side-link.secondary { border:1px solid #d8dfda; background:#fff; color:#4c534d; }
-  .ports-side-link.secondary:hover { border-color:#1d9e75; color:#1d9e75; }
-  @media (min-width:761px){ .ports-wrap{width:min(1060px, calc(100% - 48px));} }
-  @media (min-width:981px){ .ports-layout{grid-template-columns:1.18fr .82fr;} }
+  .ports-side-link.secondary { border:1px solid #e2e8f0; background:#fff; color:#334155; }
+  .ports-side-link.secondary:hover { border-color:#0d9488; color:#0d9488; }
+  @media (min-width:761px){ .ports-wrap{width:min(1240px, calc(100% - 48px));} }
+  @media (min-width:1100px){
+    .ports-layout{grid-template-columns:minmax(0, 1fr) 350px;align-items:start;gap:22px;}
+    .ports-sidebar{position:sticky;top:104px;align-self:start;padding:18px;}
+    .ports-sidebar .ports-form-title{font-size:24px;line-height:1.08;margin-bottom:6px;}
+    .ports-sidebar .ports-form-text{font-size:14px;line-height:1.55;margin-bottom:10px;}
+    .ports-sidebar .ports-form .field{margin-bottom:8px;}
+    .ports-sidebar .ports-form label{margin-bottom:4px;font-size:11px;}
+    .ports-sidebar .ports-form input,
+    .ports-sidebar .ports-form textarea{min-height:40px;padding:10px 12px;font-size:14px;border-radius:10px;}
+    .ports-sidebar .ports-form textarea{min-height:74px;line-height:1.45;}
+    .ports-sidebar .ports-submit{min-height:42px;font-size:14px;}
+    .ports-sidebar .ports-side-note{margin-top:10px;padding-top:10px;font-size:12px;line-height:1.45;}
+    .ports-sidebar .ports-side-actions{margin-top:8px;gap:6px;}
+    .ports-sidebar .ports-side-link{min-height:38px;font-size:13px;}
+  }
 </style>
 
 <main class="ports-page">
@@ -197,7 +211,7 @@ $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? upsellio_g
         <?php endif; ?>
       </article>
 
-      <aside class="ports-card">
+      <aside class="ports-card ports-sidebar">
         <h2 class="ports-form-title">Chcesz podobny efekt w swojej firmie?</h2>
         <p class="ports-form-text">Wypełnij krótki formularz. Wrócę z rekomendacją, jak przełożyć podobne podejście na Twój biznes.</p>
         <form class="ports-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-upsellio-lead-form="1" data-upsellio-server-form="1">
@@ -238,7 +252,7 @@ $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? upsellio_g
           <button class="ports-submit" type="submit">Wyślij zapytanie</button>
         </form>
 
-        <div class="ports-side-note">Ta podstrona jest przygotowana jako case study pod SEO i lead generation: intencja biznesowa + dowód realizacji + CTA.</div>
+        <div class="ports-side-note">Jeśli podoba Ci się kierunek tej realizacji, możemy przełożyć podobne podejście na Twoją ofertę, proces sprzedaży i potrzeby klientów.</div>
         <div class="ports-side-actions">
           <?php if ($external_url !== "") : ?>
             <a class="ports-side-link secondary" href="<?php echo esc_url($external_url); ?>" target="_blank" rel="noopener">Zobacz projekt online</a>

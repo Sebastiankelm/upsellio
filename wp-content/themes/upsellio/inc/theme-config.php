@@ -8,10 +8,10 @@ function upsellio_get_theme_config_defaults()
     return [
         "template_seo" => [
             "audyt_meta" => [
-                "title" => "Darmowy audyt wynikow reklam Meta | Upsellio",
-                "description" => "Darmowy audyt wynikow reklam Meta dla firm, ktore chca wiedziec, co dziala, co przepala budzet i co poprawic, zeby pozyskiwac lepsze leady.",
-                "og_title" => "Darmowy audyt wynikow reklam Meta | Upsellio",
-                "og_description" => "Sprawdze Twoje kampanie Meta Ads i pokaze, co poprawic, zeby zwiekszyc skutecznosc reklam i jakosc zapytan.",
+                "title" => "Darmowy audyt wyników reklam Meta | Upsellio",
+                "description" => "Darmowy audyt wyników reklam Meta dla firm, które chcą wiedzieć, co działa, co przepala budżet i co poprawić, żeby pozyskiwać lepsze leady.",
+                "og_title" => "Darmowy audyt wyników reklam Meta | Upsellio",
+                "og_description" => "Sprawdzę Twoje kampanie Meta Ads i pokażę, co poprawić, żeby zwiększyć skuteczność reklam i jakość zapytań.",
                 "og_type" => "website",
                 "og_url" => "/audyt-meta",
                 "twitter_card" => "summary_large_image",
@@ -19,14 +19,14 @@ function upsellio_get_theme_config_defaults()
                 "schema_name" => "Upsellio",
                 "schema_url" => "/audyt-meta",
                 "schema_email" => "kontakt@upsellio.pl",
-                "schema_description" => "Darmowy audyt wynikow reklam Meta dla malych i srednich firm.",
+                "schema_description" => "Darmowy audyt wyników reklam Meta dla małych i średnich firm.",
                 "schema_founder_name" => "Sebastian Kelm",
             ],
             "error_modern" => [
-                "title" => "Wystapil blad {code} | Upsellio",
-                "description" => "Wystapil blad podczas ladowania zasobu. Wroc do strony glownej lub przejdz do portfolio i bloga.",
-                "og_title" => "Wystapil blad | Upsellio",
-                "og_description" => "Ta strona jest chwilowo niedostepna lub nie istnieje.",
+                "title" => "Wystąpił błąd {code} | Upsellio",
+                "description" => "Wystąpił błąd podczas ładowania zasobu. Wróć do strony głównej lub przejdź do portfolio i bloga.",
+                "og_title" => "Wystąpił błąd | Upsellio",
+                "og_description" => "Ta strona jest chwilowo niedostępna lub nie istnieje.",
                 "og_type" => "website",
                 "og_url" => "/",
                 "twitter_card" => "summary",
@@ -35,7 +35,7 @@ function upsellio_get_theme_config_defaults()
                 "title" => "Portfolio stron i aplikacji | Upsellio",
                 "description" => "Portfolio realizacji Upsellio: strony, sklepy i aplikacje webowe tworzone pod cele biznesowe, konwersje i SEO.",
                 "og_title" => "Portfolio stron i aplikacji | Upsellio",
-                "og_description" => "Zobacz realizacje stron, sklepow i aplikacji webowych wraz z opisem zakresu i efektu projektu.",
+                "og_description" => "Zobacz realizacje stron, sklepów i aplikacji webowych wraz z opisem zakresu i efektu projektu.",
                 "og_type" => "website",
                 "og_url" => "/portfolio/",
                 "twitter_card" => "summary_large_image",
@@ -44,16 +44,16 @@ function upsellio_get_theme_config_defaults()
                 "title" => "Portfolio marketingowe i case studies | Upsellio",
                 "description" => "Case studies kampanii marketingowych: Meta Ads, Google Ads, strony i e-commerce z naciskiem na wynik biznesowy.",
                 "og_title" => "Portfolio marketingowe i case studies | Upsellio",
-                "og_description" => "Przeglad case studies marketingowych z KPI, kontekstem i rekomendacjami wdrozen.",
+                "og_description" => "Przegląd case studies marketingowych z KPI, kontekstem i rekomendacjami wdrożeń.",
                 "og_type" => "website",
                 "og_url" => "/portfolio-marketingowe/",
                 "twitter_card" => "summary_large_image",
             ],
             "lead_magnety" => [
-                "title" => "Biblioteka materialow marketingowych | Upsellio",
-                "description" => "Checklisty, audyty i materialy do pobrania dla firm B2B, ktore chca poprawic marketing i jakosc leadow.",
-                "og_title" => "Biblioteka materialow marketingowych | Upsellio",
-                "og_description" => "Praktyczne materialy: checklisty, szablony i audyty wspierajace decyzje marketingowe.",
+                "title" => "Checklisty i materiały marketingowe do pobrania | Upsellio",
+                "description" => "Darmowe checklisty, audyty i szablony dla firm B2B: Meta Ads, Google Ads, landing page i lead generation. Pobierz i popraw wyniki kampanii bez zgadywania.",
+                "og_title" => "Checklisty i materiały marketingowe do pobrania | Upsellio",
+                "og_description" => "Darmowe checklisty, audyty i szablony dla firm B2B: Meta Ads, Google Ads, landing page i lead generation.",
                 "og_type" => "website",
                 "og_url" => "/lead-magnety/",
                 "twitter_card" => "summary_large_image",
@@ -67,10 +67,10 @@ function upsellio_get_theme_config_defaults()
         ],
         "front_page_sections" => [
             "seo" => [
-                "title" => "Upsellio | Marketing B2B i strony WWW, ktore sprzedaja",
-                "description" => "Meta Ads, Google Ads i strony WWW dla firm B2B. Ponad 10 lat praktyki i nacisk na jakosc leadow oraz wzrost sprzedazy.",
-                "og_title" => "Upsellio - Marketing internetowy i strony WWW dla firm B2B",
-                "og_description" => "Kampanie Meta Ads i Google Ads, strony i sklepy internetowe. 10 lat praktyki w sprzedazy B2B. Bezplatna rozmowa wstepna.",
+                "title" => "Marketing B2B, Google Ads i Meta Ads | Upsellio",
+                "description" => "Prowadzę kampanie Google Ads, Meta Ads i tworzę strony WWW nastawione na leady. Marketing B2B, CRO i sprzedaż w jednym procesie.",
+                "og_title" => "Marketing B2B, Google Ads i Meta Ads | Upsellio",
+                "og_description" => "Prowadzę kampanie Google Ads, Meta Ads i tworzę strony WWW nastawione na leady. Marketing B2B, CRO i sprzedaż w jednym procesie.",
                 "og_type" => "website",
                 "og_url" => "/",
                 "twitter_card" => "summary_large_image",
@@ -78,81 +78,81 @@ function upsellio_get_theme_config_defaults()
                 "schema_name" => "Upsellio",
                 "schema_url" => "/",
                 "schema_email" => "kontakt@upsellio.pl",
-                "schema_description" => "Marketing internetowy, strony internetowe, sklepy online i doradztwo sprzedazowe dla malych i srednich firm.",
+                "schema_description" => "Marketing internetowy, strony internetowe, sklepy online i doradztwo sprzedażowe dla małych i średnich firm.",
                 "schema_founder_name" => "Sebastian Kelm",
             ],
             "nav_links" => [
-                ["title" => "Uslugi", "url" => "/#uslugi"],
-                ["title" => "Jak dzialam", "url" => "/#jak-dzialam"],
+                ["title" => "Usługi", "url" => "/#uslugi"],
+                ["title" => "Jak działam", "url" => "/#jak-dzialam"],
                 ["title" => "Wyniki", "url" => "/#wyniki"],
                 ["title" => "FAQ", "url" => "/#faq"],
                 ["title" => "Blog", "url" => "/blog"],
             ],
             "hero" => [
-                "pill" => "Dla malych i srednich firm B2B, ktore chca poukladac marketing i sprzedaz",
-                "title" => "Marketing internetowy i strony WWW, ktore realnie sprzedaja",
+                "pill" => "Dla małych i średnich firm B2B, które chcą poukładać marketing i sprzedaż",
+                "title" => "Marketing internetowy i strony WWW, które realnie sprzedają",
                 "lead" => "Kampanie Meta Ads i Google Ads, strony i sklepy internetowe dla firm B2B.",
-                "micro" => "Bez zobowiazan. 30 minut rozmowy, zeby sprawdzic czy i jak moge pomoc.",
+                "micro" => "Bez zobowiązań. 30 minut rozmowy, żeby sprawdzić, czy i jak mogę pomóc.",
                 "trust_items" => [
                     "Ponad 10 lat praktyki",
-                    "Doradztwo sprzedazowe w cenie",
-                    "Odpowiedz w 24h",
+                    "Doradztwo sprzedażowe w cenie",
+                    "Odpowiedź w 24h",
                 ],
                 "aside_label" => "Doswiadczenie z praktyki",
                 "aside_stats" => [
-                    ["number" => "~1 mln PLN", "text" => "miesieczna sprzedaz zbudowana jako handlowiec B2B - w 2 lata"],
-                    ["number" => "~500k PLN", "text" => "obrot sklepu internetowego zbudowanego od zera - po 3 latach"],
-                    ["number" => "3x", "text" => "wyzsza marza sklepu vs. ten sam produkt sprzedawany przez handlowcow"],
-                    ["number" => "15 osob", "text" => "dzial sprzedazy zbudowany i zarzadzany - od rekrutacji po wyniki"],
+                    ["number" => "~1 mln PLN", "text" => "miesięczna sprzedaż zbudowana jako handlowiec B2B - w 2 lata"],
+                    ["number" => "~500k PLN", "text" => "obrót sklepu internetowego zbudowanego od zera - po 3 latach"],
+                    ["number" => "3x", "text" => "wyższa marża sklepu vs. ten sam produkt sprzedawany przez handlowców"],
+                    ["number" => "15 osób", "text" => "dział sprzedaży zbudowany i zarządzany - od rekrutacji po wyniki"],
                 ],
-                "primary_cta_label" => "Umow bezplatna rozmowe",
+                "primary_cta_label" => "Umów bezpłatną rozmowę",
                 "primary_cta_url" => "/#kontakt",
-                "secondary_cta_label" => "Zobacz co robie",
+                "secondary_cta_label" => "Zobacz co robię",
                 "secondary_cta_url" => "/#uslugi",
             ],
             "problem" => [
                 "eyebrow" => "Problem",
-                "title" => "Technicznie poprawne dzialania, ktore nie przynosza klientow",
-                "lead" => "Kampania lub strona moze byc poprawna technicznie i nadal nie dowozic wyniku biznesowego.",
+                "title" => "Technicznie poprawne działania, które nie przynoszą klientów",
+                "lead" => "Kampania lub strona może być poprawna technicznie i nadal nie dowozić wyniku biznesowego.",
                 "items" => [
-                    "Placisz za reklamy, ale malo wartosciowych klientow sie odzywa",
-                    "Strona wyglada profesjonalnie, ale nie generuje zapytan",
+                    "Płacisz za reklamy, ale mało wartościowych klientów się odzywa",
+                    "Strona wygląda profesjonalnie, ale nie generuje zapytań",
                     "Sklep ma ruch, ale konwersja jest zbyt niska",
-                    "Nie wiesz, co faktycznie dziala, a co jest strata budzetu",
+                    "Nie wiesz, co faktycznie działa, a co jest stratą budżetu",
                 ],
             ],
             "why" => [
-                "eyebrow" => "Dlaczego to dziala",
-                "title" => "Lacze rzeczy, ktore rzadko ida razem",
-                "lead" => "Marketing, strona i praktyka sprzedazy B2B pracuja razem, dlatego latwiej o wyniki.",
+                "eyebrow" => "Dlaczego to działa",
+                "title" => "Łączę rzeczy, które rzadko idą razem",
+                "lead" => "Marketing, strona i praktyka sprzedaży B2B pracują razem, dlatego łatwiej o wyniki.",
                 "features" => [
                     [
                         "title" => "Marketing nastawiony na wynik",
-                        "description" => "Kampanie sa optymalizowane pod wartosciowe zapytania i klientow.",
+                        "description" => "Kampanie są optymalizowane pod wartościowe zapytania i klientów.",
                     ],
                     [
-                        "title" => "Strony i sklepy pod konwersje",
-                        "description" => "Widoki i komunikaty prowadza uzytkownika do konkretnej akcji.",
+                        "title" => "Strony i sklepy pod konwersję",
+                        "description" => "Widoki i komunikaty prowadzą użytkownika do konkretnej akcji.",
                     ],
                     [
-                        "title" => "Praktyka sprzedazy B2B",
-                        "description" => "Decyzje marketingowe sa osadzone w realnym procesie handlowym.",
+                        "title" => "Praktyka sprzedaży B2B",
+                        "description" => "Decyzje marketingowe są osadzone w realnym procesie handlowym.",
                     ],
                 ],
             ],
             "services" => [
-                "eyebrow" => "Uslugi",
+                "eyebrow" => "Usługi",
                 "title" => "Co konkretnie dostajesz",
-                "lead" => "Praca bezposrednio z osoba odpowiedzialna za efekt, bez warstwy posrednikow.",
+                "lead" => "Praca bezpośrednio z osobą odpowiedzialną za efekt, bez warstwy pośredników.",
                 "primary_service" => [
                     "title" => "Marketing - Meta i Google Ads",
-                    "badge" => "Glowna usluga",
-                    "description" => "Kampanie reklamowe i iteracyjna optymalizacja pod jakosc leadow oraz sprzedaz.",
-                    "checklist_title" => "W ramach tej uslugi",
+                    "badge" => "Główna usługa",
+                    "description" => "Kampanie reklamowe i iteracyjna optymalizacja pod jakość leadów oraz sprzedaż.",
+                    "checklist_title" => "W ramach tej usługi",
                     "checklist" => [
-                        "Staly nadzor i optymalizacja kampanii",
+                        "Stały nadzór i optymalizacja kampanii",
                         "Raport z wnioskami i rekomendacjami",
-                        "Bezposredni kontakt i szybkie decyzje",
+                        "Bezpośredni kontakt i szybkie decyzje",
                     ],
                     "cta_label" => "Zapytaj o kampanie",
                     "cta_url" => "/#kontakt",
@@ -160,113 +160,113 @@ function upsellio_get_theme_config_defaults()
                 "cards" => [
                     [
                         "title" => "Strony i sklepy internetowe",
-                        "badge" => "Usluga",
-                        "description" => "Projektowanie i wdrozenie stron nastawionych na konwersje i cele biznesowe.",
+                        "badge" => "Usługa",
+                        "description" => "Projektowanie i wdrożenie stron nastawionych na konwersję i cele biznesowe.",
                         "chips" => ["Landing page", "Strony firmowe", "WooCommerce", "Shopify", "UX"],
                     ],
                     [
-                        "title" => "Rozwiazania webowe i automatyzacje",
+                        "title" => "Rozwiązania webowe i automatyzacje",
                         "badge" => "Dodatkowo",
-                        "description" => "Aplikacje i automatyzacje wspierajace zespoly sprzedazy i marketingu.",
+                        "description" => "Aplikacje i automatyzacje wspierające zespoły sprzedaży i marketingu.",
                         "chips" => ["Aplikacje webowe", "Automatyzacje", "Integracje API"],
                     ],
                 ],
                 "bonus" => [
-                    "title" => "Doradztwo sprzedazowe - w ramach kazdej wspolpracy",
+                    "title" => "Doradztwo sprzedażowe - w ramach każdej współpracy",
                     "tag" => "W cenie",
-                    "body" => "Wiedza handlowa i zarzadcza wspiera kazdy projekt, a nie tylko wybrane uslugi.",
+                    "body" => "Wiedza handlowa i zarządcza wspiera każdy projekt, a nie tylko wybrane usługi.",
                     "chips" => [
-                        "Audyt procesow sprzedazy",
-                        "Analiza danych sprzedazowych",
-                        "Identyfikacja waskich gardel",
+                        "Audyt procesów sprzedaży",
+                        "Analiza danych sprzedażowych",
+                        "Identyfikacja wąskich gardeł",
                         "Optymalizacja kosztowa",
                     ],
                 ],
             ],
             "results" => [
-                "eyebrow" => "Doswiadczenie i wyniki",
-                "title" => "Podejscie oparte na praktyce",
-                "lead" => "Wyniki budowane na bazie wieloletniej pracy w sprzedazy i ecommerce.",
+                "eyebrow" => "Doświadczenie i wyniki",
+                "title" => "Podejście oparte na praktyce",
+                "lead" => "Wyniki budowane na bazie wieloletniej pracy w sprzedaży i ecommerce.",
                 "stats" => [
-                    ["number" => "~1 mln", "text" => "PLN / mies. sprzedazy B2B po 2 latach pracy"],
-                    ["number" => "~500k", "text" => "PLN / mies. obrot sklepu internetowego"],
-                    ["number" => "3x", "text" => "wyzsza marza sklepu wzgledem kanalu handlowego"],
-                    ["number" => "15 os.", "text" => "zbudowany zespol sprzedazy z procesami i KPI"],
+                    ["number" => "~1 mln", "text" => "PLN / mies. sprzedaży B2B po 2 latach pracy"],
+                    ["number" => "~500k", "text" => "PLN / mies. obrót sklepu internetowego"],
+                    ["number" => "3x", "text" => "wyższa marża sklepu względem kanału handlowego"],
+                    ["number" => "15 os.", "text" => "zbudowany zespół sprzedaży z procesami i KPI"],
                 ],
                 "cases" => [
                     [
-                        "tag" => "Sprzedaz B2B",
-                        "title" => "Budowa sprzedazy od zera",
+                        "tag" => "Sprzedaż B2B",
+                        "title" => "Budowa sprzedaży od zera",
                         "body" => "Budowa lejka, targetingu i procesu handlowego od podstaw.",
-                        "result" => "Efekt: ok. 1 mln PLN / mies. w 24 miesiace",
+                        "result" => "Efekt: ok. 1 mln PLN / mies. w 24 miesiące",
                     ],
                     [
                         "tag" => "E-commerce",
-                        "title" => "Sklep z wyzsza marza",
+                        "title" => "Sklep z wyższą marżą",
                         "body" => "Sklep zbudowany od zera dla produktu sprzedawanego tradycyjnie.",
-                        "result" => "Efekt: 500k PLN / mies. i 3x wyzsza marza",
+                        "result" => "Efekt: 500k PLN / mies. i 3x wyższa marża",
                     ],
                 ],
             ],
             "fit" => [
                 "eyebrow" => "Dla kogo",
-                "title" => "Sprawdz, czy do siebie pasujemy",
-                "good_label" => "Dobry fit, jesli:",
+                "title" => "Sprawdź, czy do siebie pasujemy",
+                "good_label" => "Dobry fit, jeśli:",
                 "good_items" => [
-                    "Prowadzisz firme B2B lub uslugowa",
-                    "Chcesz rozumiec dzialania marketingowe i ich sens",
+                    "Prowadzisz firmę B2B lub usługową",
+                    "Chcesz rozumieć działania marketingowe i ich sens",
                     "Szukasz partnera, nie tylko wykonawcy",
                 ],
-                "good_cta_label" => "Umow bezplatna rozmowe",
+                "good_cta_label" => "Umów bezpłatną rozmowę",
                 "good_cta_url" => "/#kontakt",
-                "bad_label" => "Mniejszy fit, jesli:",
+                "bad_label" => "Mniejszy fit, jeśli:",
                 "bad_items" => [
-                    "Szukasz tylko najtanszej opcji",
-                    "Potrzebujesz wielu specjalistow naraz",
-                    "Nie masz czasu na rozmowe o celach",
+                    "Szukasz tylko najtańszej opcji",
+                    "Potrzebujesz wielu specjalistów naraz",
+                    "Nie masz czasu na rozmowę o celach",
                 ],
             ],
             "cta_band" => [
-                "title" => "Nie wiesz, od czego zaczac?",
-                "text" => "Powiedz kilka zdan o firmie - otrzymasz konkretna rekomendacje pierwszego kroku.",
-                "cta_label" => "Umow bezplatna rozmowe",
+                "title" => "Nie wiesz, od czego zacząć?",
+                "text" => "Powiedz kilka zdań o firmie - otrzymasz konkretną rekomendację pierwszego kroku.",
+                "cta_label" => "Umów bezpłatną rozmowę",
                 "cta_url" => "/#kontakt",
             ],
             "process" => [
-                "eyebrow" => "Jak dzialam",
+                "eyebrow" => "Jak działam",
                 "title" => "Nie zaczynam od ustawiania kampanii",
-                "lead" => "Zaczynam od diagnozy: co blokuje wzrost i gdzie najszybciej dowiezc efekt.",
+                "lead" => "Zaczynam od diagnozy: co blokuje wzrost i gdzie najszybciej dowieźć efekt.",
                 "steps" => [
                     [
                         "number" => "01",
-                        "title" => "Poznaje firme i diagnozuje problem",
-                        "description" => "Krotka rozmowa i analiza zrodel problemu: oferta, komunikacja, lejek, strona lub proces sprzedazy.",
+                        "title" => "Poznaję firmę i diagnozuję problem",
+                        "description" => "Krótka rozmowa i analiza źródeł problemu: oferta, komunikacja, lejek, strona lub proces sprzedaży.",
                     ],
                     [
                         "number" => "02",
-                        "title" => "Wybieram najlepsza droge",
-                        "description" => "Rekomendacja wynika z potrzeb i danych, a nie z gotowego pakietu uslug.",
+                        "title" => "Wybieram najlepszą drogę",
+                        "description" => "Rekomendacja wynika z potrzeb i danych, a nie z gotowego pakietu usług.",
                     ],
                     [
                         "number" => "03",
-                        "title" => "Wdrazam i raportuje postep",
-                        "description" => "Bezposrednia wspolpraca, stale usprawnienia i transparentna komunikacja.",
+                        "title" => "Wdrażam i raportuję postęp",
+                        "description" => "Bezpośrednia współpraca, stałe usprawnienia i transparentna komunikacja.",
                     ],
                     [
                         "number" => "04",
-                        "title" => "Mierze i optymalizuje",
-                        "description" => "Regularna optymalizacja na bazie wynikow oraz rekomendacje dla sprzedazy.",
+                        "title" => "Mierzę i optymalizuję",
+                        "description" => "Regularna optymalizacja na bazie wyników oraz rekomendacje dla sprzedaży.",
                     ],
                 ],
             ],
             "faq_items" => [
                 [
-                    "question" => "Co zyskuje, wspolpracujac z Upsellio zamiast z agencja?",
-                    "answer" => "Masz bezposredni kontakt i pelna przejrzystosc wspolpracy, bez warstwy posrednikow.",
+                    "question" => "Co zyskuję, współpracując z Upsellio zamiast z agencją?",
+                    "answer" => "Masz bezpośredni kontakt i pełną przejrzystość współpracy, bez warstwy pośredników.",
                 ],
                 [
-                    "question" => "Jak wyglada bezplatna rozmowa wstepna?",
-                    "answer" => "30 minut rozmowy o sytuacji i celach. Bez presji sprzedazowej i gotowych pakietow.",
+                    "question" => "Jak wygląda bezpłatna rozmowa wstępna?",
+                    "answer" => "30 minut rozmowy o sytuacji i celach. Bez presji sprzedażowej i gotowych pakietów.",
                 ],
             ],
             "contact_service_options" => [
@@ -274,7 +274,7 @@ function upsellio_get_theme_config_defaults()
                 "Strona lub sklep internetowy",
                 "Marketing + strona (oba)",
                 "Aplikacja lub automatyzacja",
-                "Nie wiem - chce porozmawiac",
+                "Nie wiem - chcę porozmawiać",
             ],
             "contact_phone" => "+48 575 522 595",
             "contact_email" => "kontakt@upsellio.pl",
@@ -687,7 +687,7 @@ function upsellio_send_csv_download_headers($filename)
 function upsellio_handle_theme_text_csv_export()
 {
     if (!current_user_can("manage_options")) {
-        wp_die(esc_html__("Nie masz uprawnien do tego dzialania.", "upsellio"));
+        wp_die(esc_html__("Nie masz uprawnień do tego działania.", "upsellio"));
     }
 
     check_admin_referer("upsellio_export_theme_text_csv");
@@ -743,7 +743,7 @@ function upsellio_find_theme_import_text_from_csv_row($row, $header_map)
 function upsellio_handle_theme_text_csv_import()
 {
     if (!current_user_can("manage_options")) {
-        wp_die(esc_html__("Nie masz uprawnien do tego dzialania.", "upsellio"));
+        wp_die(esc_html__("Nie masz uprawnień do tego działania.", "upsellio"));
     }
 
     check_admin_referer("upsellio_import_theme_text_csv");
@@ -977,7 +977,7 @@ function upsellio_collect_content_text_rows($post_types)
 function upsellio_handle_content_text_csv_export()
 {
     if (!current_user_can("manage_options")) {
-        wp_die(esc_html__("Nie masz uprawnien do tego dzialania.", "upsellio"));
+        wp_die(esc_html__("Nie masz uprawnień do tego działania.", "upsellio"));
     }
 
     check_admin_referer("upsellio_export_content_text_csv");
@@ -1015,7 +1015,7 @@ add_action("admin_post_upsellio_export_content_text_csv", "upsellio_handle_conte
 function upsellio_handle_content_text_csv_import()
 {
     if (!current_user_can("manage_options")) {
-        wp_die(esc_html__("Nie masz uprawnien do tego dzialania.", "upsellio"));
+        wp_die(esc_html__("Nie masz uprawnień do tego działania.", "upsellio"));
     }
 
     check_admin_referer("upsellio_import_content_text_csv");
@@ -1152,12 +1152,14 @@ add_action("admin_post_upsellio_import_content_text_csv", "upsellio_handle_conte
 
 function upsellio_register_theme_config_menu()
 {
-    add_theme_page(
+    add_submenu_page(
+        "themes.php",
         "Konfiguracja dynamiczna",
         "Konfiguracja dynamiczna",
         "manage_options",
         "upsellio-theme-config",
-        "upsellio_render_theme_config_screen"
+        "upsellio_render_theme_config_screen",
+        11
     );
 }
 add_action("admin_menu", "upsellio_register_theme_config_menu");

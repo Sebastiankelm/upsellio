@@ -12,26 +12,26 @@ function upsellio_get_cities_dataset()
     }
 
     $cityNames = [
-        "Warszawa", "Krakow", "Wroclaw", "Lodz", "Poznan", "Gdansk", "Szczecin", "Bydgoszcz", "Lublin", "Bialystok",
-        "Katowice", "Gdynia", "Czestochowa", "Radom", "Sosnowiec", "Torun", "Kielce", "Rzeszow", "Gliwice", "Zabrze",
-        "Olsztyn", "Bielsko-Biala", "Bytom", "Zielona Gora", "Rybnik", "Ruda Slaska", "Tychy", "Dabrowa Gornicza", "Opole", "Elblag",
-        "Plock", "Walbrzych", "Wloclawek", "Gorzow Wielkopolski", "Tarnow", "Chorzow", "Koszalin", "Kalisz", "Legnica", "Grudziadz",
-        "Slupsk", "Jaworzno", "Jastrzebie-Zdroj", "Nowy Sacz", "Jelenia Gora", "Siedlce", "Konin", "Pila", "Ostrowiec Swietokrzyski", "Inowroclaw",
-        "Lubin", "Ostroleka", "Stargard", "Gniezno", "Suwalki", "Pabianice", "Chelm", "Przemysl", "Zamosc", "Tomaszow Mazowiecki",
-        "Lomza", "Leszno", "Stalowa Wola", "Pulawy", "Tarnowskie Gory", "Bedzin", "Zgierz", "Biala Podlaska", "Ełk", "Pruszkow",
-        "Nowy Targ", "Piekary Slaskie", "Raciborz", "Mielec", "Swidnica", "Siemianowice Slaskie", "Tczew", "Piotrkow Trybunalski", "Belchatow", "Starachowice",
-        "Boleslawiec", "Wejherowo", "Skierniewice", "Ostrow Wielkopolski", "Swinoujscie", "Kedzierzyn-Kozle", "Sopot", "Zawiercie", "Knurow", "Rumia",
-        "Przemkow", "Zory", "Wodzislaw Slaski", "Marki", "Piaseczno", "Myslowice", "Sanok", "Ciechanow", "Reda", "Radzionkow",
-        "Radzyn Podlaski", "Nysa", "Jaroslaw", "Leczna", "Pszczyna", "Cieszyn", "Mikolow", "Srem", "Kutno", "Wyszkow",
-        "Ilawa", "Augustow", "Brzeg", "Namyslow", "Krosno", "Krapkowice", "Mlawa", "Olecko", "Bochnia", "Andrychow",
-        "Wadowice", "Koscian", "Wrzesnia", "Szamotuly", "Jarocin", "Wagrowiec", "Sieradz", "Zdunska Wola", "Glogow", "Lubartow",
-        "Polkowice", "Brodnica", "Bielawa", "Luban", "Leba", "Szczytno", "Lidzbark Warminski", "Mragowo", "Pisz", "Ketrzyn",
-        "Bartoszyce", "Ostroda", "Nidzica", "Kolobrzeg", "Bialogard", "Drawsko Pomorskie", "Gryfino", "Police", "Goleniow", "Kamien Pomorski",
-        "Myslenice", "Limanowa", "Gorlice", "Brzesko", "Nowy Dwor Mazowiecki", "Legionowo", "Mińsk Mazowiecki", "Wolomin", "Otwock", "Sochaczew",
-        "Grodzisk Mazowiecki", "Zyrardow", "Pultusk", "Sandomierz", "Busko-Zdroj", "Skarzysko-Kamienna", "Konskie", "Bilgoraj", "Hrubieszow", "Debica",
-        "Jaslo", "Krosno Odrzanskie", "Zary", "Nowa Sol", "Swiebodzin", "Miedzyrzecz", "Sulechow", "Lukow", "Turek", "Kolo",
-        "Zlotow", "Chojnice", "Starogard Gdanski", "Kwidzyn", "Malbork", "Prudnik", "Kluczbork", "Szczecinek", "Walcz", "Bytow",
-        "Czluchow", "Puck", "Lębork", "Sierpc", "Gostynin", "Plonsk", "Czestochowa Polnoc", "Myszkow", "Radzymia", "Wielun",
+        "Warszawa", "Kraków", "Wrocław", "Łódź", "Poznań", "Gdańsk", "Szczecin", "Bydgoszcz", "Lublin", "Białystok",
+        "Katowice", "Gdynia", "Częstochowa", "Radom", "Sosnowiec", "Toruń", "Kielce", "Rzeszów", "Gliwice", "Zabrze",
+        "Olsztyn", "Bielsko-Biała", "Bytom", "Zielona Góra", "Rybnik", "Ruda Śląska", "Tychy", "Dąbrowa Górnicza", "Opole", "Elbląg",
+        "Płock", "Wałbrzych", "Włocławek", "Gorzów Wielkopolski", "Tarnów", "Chorzów", "Koszalin", "Kalisz", "Legnica", "Grudziądz",
+        "Słupsk", "Jaworzno", "Jastrzębie-Zdrój", "Nowy Sącz", "Jelenia Góra", "Siedlce", "Konin", "Piła", "Ostrowiec Świętokrzyski", "Inowrocław",
+        "Lubin", "Ostrołęka", "Stargard", "Gniezno", "Suwałki", "Pabianice", "Chełm", "Przemyśl", "Zamość", "Tomaszów Mazowiecki",
+        "Łomża", "Leszno", "Stalowa Wola", "Puławy", "Tarnowskie Góry", "Będzin", "Zgierz", "Biała Podlaska", "Ełk", "Pruszków",
+        "Nowy Targ", "Piekary Śląskie", "Racibórz", "Mielec", "Świdnica", "Siemianowice Śląskie", "Tczew", "Piotrków Trybunalski", "Bełchatów", "Starachowice",
+        "Bolesławiec", "Wejherowo", "Skierniewice", "Ostrów Wielkopolski", "Świnoujście", "Kędzierzyn-Koźle", "Sopot", "Zawiercie", "Knurów", "Rumia",
+        "Przemków", "Żory", "Wodzisław Śląski", "Marki", "Piaseczno", "Mysłowice", "Sanok", "Ciechanów", "Reda", "Radzionków",
+        "Radzyń Podlaski", "Nysa", "Jarosław", "Łęczna", "Pszczyna", "Cieszyn", "Mikołów", "Śrem", "Kutno", "Wyszków",
+        "Iława", "Augustów", "Brzeg", "Namysłów", "Krosno", "Krapkowice", "Mława", "Olecko", "Bochnia", "Andrychów",
+        "Wadowice", "Kościan", "Września", "Szamotuły", "Jarocin", "Wągrowiec", "Sieradz", "Zduńska Wola", "Głogów", "Lubartów",
+        "Polkowice", "Brodnica", "Bielawa", "Lubań", "Łeba", "Szczytno", "Lidzbark Warmiński", "Mrągowo", "Pisz", "Kętrzyn",
+        "Bartoszyce", "Ostróda", "Nidzica", "Kołobrzeg", "Białogard", "Drawsko Pomorskie", "Gryfino", "Police", "Goleniów", "Kamień Pomorski",
+        "Myślenice", "Limanowa", "Gorlice", "Brzesko", "Nowy Dwór Mazowiecki", "Legionowo", "Mińsk Mazowiecki", "Wołomin", "Otwock", "Sochaczew",
+        "Grodzisk Mazowiecki", "Żyrardów", "Pułtusk", "Sandomierz", "Busko-Zdrój", "Skarżysko-Kamienna", "Końskie", "Biłgoraj", "Hrubieszów", "Dębica",
+        "Jasło", "Krosno Odrzańskie", "Żary", "Nowa Sól", "Świebodzin", "Międzyrzecz", "Sulechów", "Łuków", "Turek", "Koło",
+        "Złotów", "Chojnice", "Starogard Gdański", "Kwidzyn", "Malbork", "Prudnik", "Kluczbork", "Szczecinek", "Wałcz", "Bytów",
+        "Człuchów", "Puck", "Lębork", "Sierpc", "Gostynin", "Płońsk", "Częstochowa Północ", "Myszków", "Radzymin", "Wieluń",
     ];
 
     $voivodeships = [
@@ -55,12 +55,12 @@ function upsellio_get_cities_dataset()
 
     $marketAngles = [
         "firmy produkcyjne i B2B",
-        "lokalne uslugi premium",
+        "lokalne usługi premium",
         "e-commerce i sklepy specjalistyczne",
         "firmy technologiczne i SaaS",
         "firmy handlowe i dystrybucja",
-        "uslugi medyczne i beauty",
-        "nieruchomosci i deweloperzy",
+        "usługi medyczne i beauty",
+        "nieruchomości i deweloperzy",
         "edukacja i szkolenia",
     ];
 
@@ -68,42 +68,42 @@ function upsellio_get_cities_dataset()
         "Meta Ads + landing page",
         "Google Ads + strona firmowa",
         "Meta Ads + Google Ads + CRO",
-        "strona www + automatyzacje leadow",
-        "kampanie lead generation + analityka",
+        "strona WWW + automatyzacje leadów",
+        "kampanie pozyskujące klientów + analityka",
         "skalowanie ecommerce + performance",
     ];
 
     $localChallenges = [
-        "duza konkurencja cenowa",
-        "niewystarczajaca widocznosc oferty",
-        "niska jakosc leadow z kampanii",
-        "slaba konwersja na stronie",
+        "duża konkurencja cenowa",
+        "niewystarczająca widoczność oferty",
+        "niska jakość leadów z kampanii",
+        "słaba konwersja na stronie",
         "rozproszona komunikacja marketingowa",
-        "brak spojnego lejka sprzedazy",
+        "brak spójnego lejka sprzedaży",
         "niewykorzystany ruch remarketingowy",
-        "trudnosc w skalowaniu kosztu pozyskania",
+        "trudność w skalowaniu kosztu pozyskania",
     ];
 
     $localAdvantages = [
-        "silny rynek lokalnych uslug",
-        "duza liczba firm B2B",
-        "wysoka aktywnosc zakupowa online",
-        "dostep do specjalistow i partnerow",
-        "rosnaca liczba zapytan z wyszukiwarki",
-        "potencjal do sprzedazy premium",
-        "stabilny popyt na uslugi specjalistyczne",
-        "dobry punkt startu do skalowania ogolnopolskiego",
+        "silny rynek lokalnych usług",
+        "duża liczba firm B2B",
+        "wysoka aktywność zakupowa online",
+        "dostęp do specjalistów i partnerów",
+        "rosnąca liczba zapytań z wyszukiwarki",
+        "potencjał do sprzedaży premium",
+        "stabilny popyt na usługi specjalistyczne",
+        "dobry punkt startu do skalowania ogólnopolskiego",
     ];
 
     $seasonalityAngles = [
         "mocne Q1 i Q4",
         "wzrost popytu przed sezonem letnim",
-        "wieksza aktywnosc klientow po wakacjach",
-        "stabilny popyt przez caly rok",
-        "duze znaczenie kampanii okresowych",
-        "silna sezonowosc e-commerce",
-        "wzrost leadow w okresach promocyjnych",
-        "przesuniecia budzetow miedzy kanalami w ciagu roku",
+        "większa aktywność klientów po wakacjach",
+        "stabilny popyt przez cały rok",
+        "duże znaczenie kampanii okresowych",
+        "silna sezonowość e-commerce",
+        "wzrost leadów w okresach promocyjnych",
+        "przesunięcia budżetów między kanałami w ciągu roku",
     ];
 
     $cities = [];

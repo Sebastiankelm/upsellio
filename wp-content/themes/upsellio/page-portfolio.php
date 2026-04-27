@@ -43,76 +43,76 @@ foreach ($portfolio_items as $index => $item) {
 }
 ?>
 <style>
-  .port-page { background:#f6f7f5; color:#101413; }
-  .port-wrap { width:min(1180px, calc(100% - 32px)); margin:0 auto; }
-  .port-hero { border-bottom:1px solid #e8e8e3; background:linear-gradient(180deg, rgba(29,158,117,0.08), rgba(255,255,255,0) 58%); }
+  .port-page { background:#f8fafc; color:#071426; }
+  .port-wrap { width:min(1240px, calc(100% - 32px)); margin:0 auto; }
+  .port-hero { border-bottom:1px solid #e2e8f0; background:linear-gradient(180deg, rgba(20,184,166,0.12), rgba(255,255,255,0) 58%); }
   .port-hero-inner { padding:64px 0 52px; }
-  .port-pill { display:inline-flex; align-items:center; gap:10px; border:1px solid #e8e8e3; background:#fff; color:#646a65; font-size:12px; font-weight:600; border-radius:999px; padding:9px 14px; }
-  .port-pill-dot { width:8px; height:8px; border-radius:50%; background:#1d9e75; }
+  .port-pill { display:inline-flex; align-items:center; gap:10px; border:1px solid #99f6e4; background:#ecfeff; color:#0f766e; font-size:12px; font-weight:600; border-radius:999px; padding:9px 14px; }
+  .port-pill-dot { width:8px; height:8px; border-radius:50%; background:#0d9488; }
   .port-h1 { margin:18px 0 16px; max-width:920px; font-family:"Syne",sans-serif; font-size:clamp(38px, 6vw, 66px); line-height:.96; letter-spacing:-0.06em; }
-  .port-accent { color:#1d9e75; }
-  .port-lead { margin:0; max-width:890px; font-size:19px; line-height:1.72; color:#5b615c; }
+  .port-accent { color:#0d9488; }
+  .port-lead { margin:0; max-width:890px; font-size:19px; line-height:1.72; color:#334155; }
   .port-search { margin-top:30px; display:grid; gap:12px; grid-template-columns:1fr; }
-  .port-search-input { width:100%; border:1px solid #e8e8e3; border-radius:16px; background:#fff; padding:13px 16px; font-size:15px; outline:none; }
-  .port-search-input:focus { border-color:#1d9e75; box-shadow:0 0 0 3px rgba(29,158,117,.14); }
-  .port-btn { display:inline-flex; align-items:center; justify-content:center; min-height:46px; border-radius:12px; background:#1d9e75; color:#fff; font-size:14px; font-weight:700; padding:10px 18px; }
-  .port-btn:hover { background:#17885f; }
-  .port-cats-wrap { background:#fff; border-bottom:1px solid #e8e8e3; }
+  .port-search-input { width:100%; border:1px solid #e2e8f0; border-radius:16px; background:#fff; padding:13px 16px; font-size:15px; outline:none; }
+  .port-search-input:focus { border-color:#0d9488; box-shadow:0 0 0 3px rgba(20,184,166,.14); }
+  .port-btn { display:inline-flex; align-items:center; justify-content:center; min-height:46px; border-radius:12px; background:linear-gradient(135deg,#0d9488,#14b8a6); color:#fff; font-size:14px; font-weight:700; padding:10px 18px; }
+  .port-btn:hover { background:#0f766e; }
+  .port-cats-wrap { background:#fff; border-bottom:1px solid #e2e8f0; }
   .port-cats { padding:18px 0; display:flex; flex-wrap:wrap; gap:10px; }
-  .port-cat-btn { border:1px solid #e8e8e3; background:#fff; color:#5c615c; border-radius:999px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; }
-  .port-cat-btn.is-active, .port-cat-btn:hover { border-color:#1d9e75; background:#e8f8f2; color:#085041; }
-  .port-featured-section { border-bottom:1px solid #e8e8e3; background:#f8f8f6; }
+  .port-cat-btn { border:1px solid #e2e8f0; background:#fff; color:#334155; border-radius:999px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+  .port-cat-btn.is-active, .port-cat-btn:hover { border-color:#99f6e4; background:#ecfeff; color:#0f766e; }
+  .port-featured-section { border-bottom:1px solid #e2e8f0; background:#f1f5f9; }
   .port-featured-grid { display:grid; grid-template-columns:1fr; gap:18px; padding:46px 0; }
-  .port-featured-card { overflow:hidden; border:1px solid #e8e8e3; border-radius:28px; background:#fff; display:grid; grid-template-columns:1fr; }
+  .port-featured-card { overflow:hidden; border:1px solid #e2e8f0; border-radius:28px; background:#fff; display:grid; grid-template-columns:1fr; }
   .port-featured-visual { min-height:270px; position:relative; background:#d8dfdc; }
   .port-featured-visual img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
   .port-featured-overlay { position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.32)); }
   .port-featured-badge { position:absolute; left:20px; top:20px; border:1px solid rgba(255,255,255,.28); border-radius:999px; background:rgba(255,255,255,.16); color:#fff; padding:6px 12px; font-size:12px; font-weight:700; backdrop-filter:blur(6px); }
   .port-featured-body { padding:28px; }
-  .port-featured-category { display:inline-flex; border-radius:999px; border:1px solid #e8e8e3; background:#f8f8f6; color:#5e645f; font-size:11px; font-weight:700; padding:5px 11px; }
+  .port-featured-category { display:inline-flex; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; color:#334155; font-size:11px; font-weight:700; padding:5px 11px; }
   .port-featured-title { margin:14px 0 12px; font-family:"Syne",sans-serif; font-size:clamp(30px, 3.5vw, 44px); line-height:1.01; letter-spacing:-.045em; }
-  .port-featured-excerpt { margin:0; color:#595f5a; line-height:1.78; }
+  .port-featured-excerpt { margin:0; color:#334155; line-height:1.78; }
   .port-metrics { margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; }
-  .port-metric { border:1px solid #e8e8e3; background:#f8f8f6; color:#545b55; border-radius:999px; font-size:12px; padding:6px 10px; }
+  .port-metric { border:1px solid #e2e8f0; background:#f8fafc; color:#334155; border-radius:999px; font-size:12px; padding:6px 10px; }
   .port-featured-actions { margin-top:18px; display:flex; flex-wrap:wrap; gap:10px; }
   .port-featured-link { display:inline-flex; align-items:center; justify-content:center; min-height:44px; border-radius:12px; font-size:14px; font-weight:700; padding:10px 16px; }
-  .port-featured-link.primary { background:#1d9e75; color:#fff; }
-  .port-featured-link.secondary { border:1px solid #e8e8e3; background:#fff; color:#525853; }
-  .port-featured-link.primary:hover { background:#17885f; }
-  .port-featured-link.secondary:hover { border-color:#1d9e75; color:#1d9e75; }
+  .port-featured-link.primary { background:#0d9488; color:#fff; }
+  .port-featured-link.secondary { border:1px solid #e2e8f0; background:#fff; color:#334155; }
+  .port-featured-link.primary:hover { background:#0f766e; }
+  .port-featured-link.secondary:hover { border-color:#0d9488; color:#0d9488; }
   .port-side { display:flex; flex-direction:column; gap:12px; }
-  .port-side-card { border:1px solid #e8e8e3; border-radius:22px; background:#fff; padding:22px; }
+  .port-side-card { border:1px solid #e2e8f0; border-radius:22px; background:#fff; padding:22px; }
   .port-side-eyebrow { font-size:11px; letter-spacing:.18em; text-transform:uppercase; font-weight:700; color:#707670; }
   .port-side-title { margin:10px 0 8px; font-family:"Syne",sans-serif; font-size:28px; line-height:1.03; letter-spacing:-.04em; }
   .port-side-copy { margin:0; color:#5f645f; line-height:1.76; }
   .port-side-list { margin:14px 0 0; padding:0; list-style:none; display:grid; gap:10px; }
   .port-side-list li { display:flex; gap:8px; color:#5b615b; line-height:1.68; }
-  .port-side-list span { color:#1d9e75; font-weight:700; }
+  .port-side-list span { color:#0d9488; font-weight:700; }
   .port-grid-section { background:#fff; }
   .port-grid-head { display:flex; justify-content:space-between; align-items:end; gap:16px; flex-wrap:wrap; padding:42px 0 14px; }
   .port-eyebrow { font-size:11px; letter-spacing:.18em; text-transform:uppercase; font-weight:700; color:#727872; }
   .port-h2 { margin:10px 0 0; font-family:"Syne",sans-serif; font-size:clamp(32px, 4vw, 46px); line-height:1.05; letter-spacing:-.045em; }
   .port-grid-meta { color:#7a817a; font-size:14px; }
   .port-grid { display:grid; gap:14px; padding:16px 0 54px; grid-template-columns:1fr; }
-  .port-card { border:1px solid #e8e8e3; border-radius:24px; background:#fff; padding:22px; display:flex; flex-direction:column; transition:.2s ease; min-height:100%; }
-  .port-card:hover { border-color:#1d9e75; transform:translateY(-2px); box-shadow:0 12px 25px rgba(12,23,18,.08); }
+  .port-card { border:1px solid #e2e8f0; border-radius:24px; background:#fff; padding:22px; display:flex; flex-direction:column; transition:.2s ease; min-height:100%; }
+  .port-card:hover { border-color:#0d9488; transform:translateY(-2px); box-shadow:0 14px 40px rgba(15,23,42,.08); }
   .port-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
   .port-card-category { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#6d736d; font-weight:700; }
   .port-card-type { font-size:12px; color:#596059; margin-top:5px; }
   .port-card-title { margin:14px 0 8px; font-family:"Syne",sans-serif; font-size:26px; line-height:1.06; letter-spacing:-.04em; }
   .port-card-excerpt { margin:0; color:#5a605a; line-height:1.73; font-size:15px; }
   .port-card-meta { margin-top:10px; font-size:13px; color:#768076; }
-  .port-card-link { margin-top:auto; padding-top:18px; color:#1d9e75; font-size:14px; font-weight:700; }
+  .port-card-link { margin-top:auto; padding-top:18px; color:#0d9488; font-size:14px; font-weight:700; }
   .port-empty { padding:18px; border:1px dashed #d8d8d3; border-radius:14px; color:#676d67; }
   .port-hidden { display:none !important; }
-  .port-seo { border-top:1px solid #e8e8e3; background:#f8f8f6; }
+  .port-seo { border-top:1px solid #e2e8f0; background:#f1f5f9; }
   .port-seo-grid { display:grid; grid-template-columns:1fr; gap:14px; padding:46px 0; }
-  .port-seo-card { border:1px solid #e8e8e3; border-radius:22px; background:#fff; padding:22px; }
+  .port-seo-card { border:1px solid #e2e8f0; border-radius:22px; background:#fff; padding:22px; }
   .port-seo-card h3 { margin:8px 0 10px; font-family:"Syne",sans-serif; font-size:28px; line-height:1.06; letter-spacing:-.03em; }
   .port-seo-card p { margin:0; color:#5f645f; line-height:1.75; }
   .port-seo-list { margin:14px 0 0; padding-left:17px; color:#555c55; line-height:1.8; }
   @media (min-width:760px) {
-    .port-wrap { width:min(1180px, calc(100% - 48px)); }
+    .port-wrap { width:min(1240px, calc(100% - 48px)); }
     .port-search { grid-template-columns:1fr 220px; }
   }
   @media (min-width:982px) {
@@ -180,18 +180,18 @@ foreach ($portfolio_items as $index => $item) {
           <article class="port-side-card">
             <div class="port-side-eyebrow">Jak czytać to portfolio</div>
             <h3 class="port-side-title">Nie pokazuję tu tylko wyglądu. Pokazuję sens projektu.</h3>
-            <p class="port-side-copy">Każdy case study opisuje kontekst biznesowy, problem klienta, zakres wdrożenia, zastosowane rozwiązania i finalny efekt. To podejście wspiera SEO, buduje zaufanie i skraca drogę do kontaktu.</p>
+            <p class="port-side-copy">Każda realizacja pokazuje punkt wyjścia, decyzje projektowe i efekt po wdrożeniu. Dzięki temu łatwiej ocenić, czy podobne podejście pasuje do Twojej firmy.</p>
             <ul class="port-side-list">
-              <li><span>✓</span>Realizacje pod lead generation i sprzedaż.</li>
-              <li><span>✓</span>Podstrony zoptymalizowane pod frazy transakcyjne i informacyjne.</li>
-              <li><span>✓</span>CTA osadzone kontekstowo na każdym etapie strony.</li>
+              <li><span>✓</span>Realizacje nastawione na kontakt, sprzedaż i wygodę użytkownika.</li>
+              <li><span>✓</span>Przejrzysty opis celu, zakresu prac i efektów projektu.</li>
+              <li><span>✓</span>Możliwość szybkiego przejścia od inspiracji do rozmowy.</li>
             </ul>
           </article>
 
-          <article class="port-side-card" style="background:#e8f8f2;border-color:#c3eddd;">
-            <div class="port-side-eyebrow" style="color:#085041;">Micro CTA</div>
-            <h3 class="port-side-title" style="color:#085041;">Chcesz podobny projekt dla swojej firmy?</h3>
-            <p class="port-side-copy" style="color:#0f5e4e;">Podczas krótkiej rozmowy ustalimy, czy potrzebujesz strony pod leady, sklepu pod sprzedaż czy aplikacji pod procesy.</p>
+          <article class="port-side-card" style="background:#ecfeff;border-color:#99f6e4;">
+            <div class="port-side-eyebrow" style="color:#0f766e;">Micro CTA</div>
+            <h3 class="port-side-title" style="color:#0f766e;">Chcesz podobny projekt dla swojej firmy?</h3>
+            <p class="port-side-copy" style="color:#334155;">Podczas krótkiej rozmowy ustalimy, czy potrzebujesz strony pod leady, sklepu pod sprzedaż czy aplikacji pod procesy.</p>
             <a class="port-btn" style="margin-top:14px;" href="<?php echo esc_url(home_url("/#kontakt")); ?>">Umów rozmowę</a>
           </article>
         </aside>
@@ -244,18 +244,18 @@ foreach ($portfolio_items as $index => $item) {
   <section class="port-seo">
     <div class="port-wrap port-seo-grid">
       <article class="port-seo-card">
-        <div class="port-eyebrow">SEO + Lead generation</div>
-        <h3>Każdy projekt działa jak osobny landing sprzedażowy.</h3>
-        <p>Podstrony realizacji budują topical authority i odpowiadają na pytania klientów na etapie decyzji. Dzięki temu portfolio nie tylko „wygląda”, ale realnie wspiera pozycjonowanie i generowanie zapytań ofertowych.</p>
+        <div class="port-eyebrow">Jak wygląda realizacja</div>
+        <h3>Od problemu do działającego rozwiązania.</h3>
+        <p>W opisach projektów pokazuję nie tylko wygląd strony, ale też powód zmian, najważniejsze decyzje i efekt, jaki miały dać po wdrożeniu. To pomaga szybko porównać realizacje z sytuacją we własnej firmie.</p>
       </article>
       <article class="port-seo-card">
-        <div class="port-eyebrow">Rekomendowana struktura case study</div>
+        <div class="port-eyebrow">Co znajdziesz w projekcie</div>
         <ul class="port-seo-list">
-          <li>Hero z nazwą projektu i celem biznesowym.</li>
-          <li>Sekcja: problem / kontekst / punkt wyjścia.</li>
-          <li>Zakres prac, wdrożenia i użyte technologie.</li>
-          <li>Wynik biznesowy i metryki.</li>
-          <li>CTA: „chcesz podobny efekt?” + formularz kontaktowy.</li>
+          <li>Krótkie podsumowanie celu i sytuacji klienta.</li>
+          <li>Opis najważniejszych problemów przed wdrożeniem.</li>
+          <li>Zakres prac oraz kluczowe decyzje projektowe.</li>
+          <li>Efekt końcowy, wyniki i link do działającej realizacji, jeśli jest dostępny.</li>
+          <li>Prosty sposób, aby zapytać o podobny projekt.</li>
         </ul>
       </article>
     </div>
@@ -269,7 +269,7 @@ echo wp_json_encode([
     "@context" => "https://schema.org",
     "@type" => "ItemList",
     "name" => "Portfolio Upsellio",
-    "description" => "Katalog realizacji stron internetowych, sklepów i aplikacji webowych tworzonych pod lead generation i sprzedaż.",
+    "description" => "Katalog realizacji stron internetowych, sklepów i aplikacji webowych tworzonych z myślą o sprzedaży i wygodzie użytkownika.",
     "itemListElement" => $schema_items,
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
 ?>

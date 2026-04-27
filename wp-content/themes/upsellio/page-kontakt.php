@@ -22,10 +22,43 @@ $contact_email = trim((string) ($front_page_sections["contact_email"] ?? "kontak
 $contact_page_url = home_url("/kontakt/");
 $contact_email_href = function_exists("upsellio_get_mailto_href") ? upsellio_get_mailto_href($contact_email) : ("mailto:" . $contact_email);
 $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address($contact_email) : $contact_email;
+$contact_service_options = [
+    "Kampanie Meta Ads",
+    "Kampanie Google Ads",
+    "Tworzenie strony lub landing page",
+    "Marketing + strona (oba)",
+    "Nie wiem — chcę porozmawiać",
+];
+$contact_faq_items = [
+    [
+        "question" => "Jak szybko wracasz z odpowiedzią?",
+        "answer" => "Zazwyczaj do końca kolejnego dnia roboczego, często szybciej, jeśli opis sytuacji jest konkretny i nie mam dodatkowych pytań. Jeśli sprawa jest pilna, napisz to wprost w formularzu.",
+    ],
+    [
+        "question" => "Czy muszę mieć gotowy budżet, zanim się skontaktuję?",
+        "answer" => "Nie. Najpierw ustalamy, co realnie warto zrobić i jaki zakres ma sens w Twojej sytuacji. O budżecie rozmawiamy dopiero wtedy, gdy wiemy, co ma być robione i po co.",
+    ],
+    [
+        "question" => "Czy to kontakt tylko dla nowych klientów?",
+        "answer" => "Nie. Formularz jest również dla firm, które już prowadzą kampanie reklamowe albo mają stronę i chcą je poprawić. Audyt kampanii i analiza konwersji strony to częsty powód kontaktu.",
+    ],
+    [
+        "question" => "Czy po wysłaniu formularza dostanę automatyczną ofertę?",
+        "answer" => "Nie. Po wysłaniu formularza przeglądam opisaną sytuację i wracam z personalną odpowiedzią. Celem pierwszego kontaktu jest zrozumienie problemu, a nie wysłanie szablonowego cennika.",
+    ],
+    [
+        "question" => "Z kim będę rozmawiać?",
+        "answer" => "Bezpośrednio ze mną, Sebastianem Kelmem. Nie ma asystenta, który zbiera briefy i przekazuje dalej. Od pierwszej wiadomości masz jeden punkt kontaktu.",
+    ],
+    [
+        "question" => "Czy współpraca jest możliwa zdalnie, z dowolnego miasta Polski?",
+        "answer" => "Tak. Cała współpraca może odbywać się zdalnie przez e-mail, wideokonferencje i współdzielone narzędzia. Lokalizacja firmy nie ma znaczenia dla zakresu i jakości współpracy.",
+    ],
+];
 ?>
 <style>
   .contact-page { background:#fff; }
-  .contact-hero { border-bottom:1px solid var(--border); background:linear-gradient(180deg, rgba(29,158,117,0.08), rgba(255,255,255,0) 60%); }
+  .contact-hero { border-bottom:1px solid var(--border); background:linear-gradient(180deg, rgba(20,184,166,0.12), rgba(255,255,255,0) 60%); }
   .contact-hero-inner { padding:56px 0 44px; display:grid; gap:26px; }
   .contact-hero-points { display:grid; gap:10px; margin-top:20px; }
   .contact-hero-point { display:flex; gap:8px; align-items:flex-start; color:var(--text-2); font-size:14px; line-height:1.65; }
@@ -36,10 +69,13 @@ $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? u
   .contact-card-title { margin:10px 0 8px; font-family:var(--font-display); font-size:24px; line-height:1.04; letter-spacing:-.03em; }
   .contact-card-copy { color:var(--text-2); font-size:14px; line-height:1.72; }
   .contact-card-link { display:inline-flex; margin-top:14px; color:var(--teal); font-weight:700; font-size:14px; }
+  .contact-seo-copy { margin-top:18px; max-width:900px; display:grid; gap:14px; color:var(--text-2); line-height:1.78; }
   .contact-form-shell { border:1px solid var(--border); border-top:3px solid var(--teal); border-radius:24px; padding:26px; background:linear-gradient(180deg, var(--bg-soft), #fff); box-shadow:var(--shadow-md); }
   .contact-form-grid { display:grid; gap:12px; grid-template-columns:1fr; }
   .contact-form-note { margin-top:8px; color:var(--text-3); font-size:12px; text-align:center; }
   .contact-form-alt { margin-top:16px; padding-top:16px; border-top:1px solid var(--border); display:grid; gap:8px; color:var(--text-2); font-size:13px; }
+  .contact-process-grid { margin-top:28px; display:grid; gap:12px; }
+  .contact-process-card strong { display:block; margin-bottom:8px; color:var(--text); }
   .contact-faq { max-width:900px; }
   .contact-cta { border:1px solid var(--teal-line); background:var(--teal-soft); border-radius:22px; padding:26px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:16px; }
   .contact-cta-copy { max-width:700px; color:var(--teal-dark); }
@@ -50,23 +86,58 @@ $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? u
     .contact-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); }
     .contact-form-grid { grid-template-columns:1fr 1fr; }
     .contact-form-grid .field.full { grid-column:1 / -1; }
+    .contact-process-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  }
+  /* Mobile-first UX correction layer */
+  .contact-page .h1 { font-size:clamp(34px,10vw,40px); line-height:1.09; letter-spacing:-1px; }
+  .contact-page .h2 { font-size:clamp(28px,8vw,34px); line-height:1.12; letter-spacing:-.8px; }
+  .contact-page .lead { font-size:17px; line-height:1.65; }
+  .contact-page .section { padding:48px 0; }
+  .contact-hero-inner { padding:48px 0 42px; }
+  .contact-grid,.contact-form-grid,.contact-process-grid { grid-template-columns:1fr; }
+  .contact-card,.contact-form-shell,.contact-cta { padding:20px; border-radius:20px; }
+  .contact-seo-copy { gap:10px; line-height:1.72; }
+  .contact-cta-copy h3 { font-size:clamp(22px,7vw,28px); line-height:1.12; }
+  @media (min-width: 761px) {
+    .contact-page .h1 { font-size:clamp(44px,6vw,58px); line-height:1.05; }
+    .contact-page .h2 { font-size:clamp(34px,4vw,46px); }
+    .contact-page .section { padding:72px 0; }
+    .contact-hero-inner { padding:70px 0 56px; }
+    .contact-grid,.contact-process-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .contact-form-grid { grid-template-columns:1fr 1fr; }
+  }
+  @media (min-width: 1024px) {
+    .contact-page .h1 { font-size:64px; }
+    .contact-page .h2 { font-size:50px; }
+    .contact-page .section { padding:92px 0; }
   }
 </style>
 
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "ContactPage",
-  "name": "Kontakt Upsellio",
-  "url": "<?php echo esc_url($contact_page_url); ?>",
-  "mainEntity": {
-    "@type": "ProfessionalService",
-    "name": "Upsellio",
-    "url": "<?php echo esc_url(home_url("/")); ?>",
-    "email": "<?php echo esc_html($contact_email); ?>",
-    "telephone": "<?php echo esc_html($contact_phone); ?>"
-  }
-}
+<?php
+echo wp_json_encode([
+    "@context" => "https://schema.org",
+    "@type" => "ContactPage",
+    "name" => "Kontakt Upsellio",
+    "url" => $contact_page_url,
+    "description" => "Kontakt i bezpłatna diagnoza marketingu B2B, kampanii Meta Ads, Google Ads oraz stron internetowych.",
+    "mainEntity" => [
+        "@type" => "LocalBusiness",
+        "name" => "Upsellio",
+        "url" => home_url("/"),
+        "email" => $contact_email,
+        "telephone" => $contact_phone,
+        "areaServed" => "Polska",
+        "availableLanguage" => "Polish",
+        "founder" => [
+            "@type" => "Person",
+            "name" => "Sebastian Kelm",
+            "jobTitle" => "Specjalista ds. marketingu B2B",
+            "sameAs" => "https://www.linkedin.com/in/sebastiankelm/",
+        ],
+    ],
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+?>
 </script>
 
 <main class="contact-page">
@@ -74,12 +145,16 @@ $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? u
     <div class="wrap contact-hero-inner">
       <div class="content">
         <div class="eyebrow reveal visible">Kontakt</div>
-        <h1 class="h1 reveal visible">Porozmawiajmy o tym, jak zwiększyć <span class="accent">liczbę jakościowych leadów</span></h1>
-        <p class="lead reveal visible" style="margin-top:16px;">Wypełnij formularz i opisz krótko sytuację firmy. Wrócę z konkretną rekomendacją, od czego zacząć i gdzie najszybciej możesz poprawić wynik.</p>
+        <h1 class="h1 reveal visible">Porozmawiajmy o tym, co blokuje wzrost Twojej firmy — i co warto zrobić najpierw.</h1>
+        <p class="lead reveal visible" style="margin-top:16px;">Opisz krótko sytuację firmy, ofertę i główny problem. Wrócę z konkretną rekomendacją — nie z ofertą sprzedażową. Bez zobowiązań, bez ogólników.</p>
+        <div class="contact-seo-copy reveal visible">
+          <p>Strona kontaktowa Upsellio to początek konkretnej rozmowy o tym, gdzie Twoja firma traci potencjalnych klientów i co warto poprawić najpierw: w kampaniach reklamowych, stronie internetowej albo samej ofercie.</p>
+          <p>Nie zaczynam współpracy od wysyłania gotowych pakietów. Najpierw chcę zrozumieć, co sprzedajesz, do kogo, co dziś nie działa i jaki efekt chcesz osiągnąć. Na tej podstawie daję rekomendację, który kanał ma sens, od czego zacząć i czego realnie można oczekiwać.</p>
+        </div>
         <div class="contact-hero-points reveal visible">
           <div class="contact-hero-point"><span class="contact-check">✓</span><span>Odpowiedź zwykle w 24h robocze.</span></div>
           <div class="contact-hero-point"><span class="contact-check">✓</span><span>Bez presji sprzedażowej i bez gotowych pakietów.</span></div>
-          <div class="contact-hero-point"><span class="contact-check">✓</span><span>Kontakt bezpośrednio z osobą, która prowadzi projekty.</span></div>
+          <div class="contact-hero-point"><span class="contact-check">✓</span><span>Kontakt bezpośrednio z Sebastianem Kelmem, praktykiem sprzedaży i marketingu B2B.</span></div>
         </div>
       </div>
       <a href="#formularz-kontaktowy" class="btn btn-primary reveal visible" style="width:fit-content;">Przejdź do formularza →</a>
@@ -91,20 +166,20 @@ $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? u
       <article class="contact-card reveal">
         <div class="contact-card-label">E-mail</div>
         <h2 class="contact-card-title">Napisz wiadomość</h2>
-        <p class="contact-card-copy">Jeśli wolisz klasyczny kontakt, napisz bezpośrednio na skrzynkę. Każda wiadomość trafia do mnie.</p>
+        <p class="contact-card-copy">Każda wiadomość trafia bezpośrednio do mnie. Odpisuję z rekomendacją, nie z szablonową odpowiedzią.</p>
         <a class="contact-card-link" href="<?php echo esc_url($contact_email_href); ?>"><?php echo esc_html($contact_email_display); ?></a>
       </article>
       <article class="contact-card reveal d1">
         <div class="contact-card-label">Telefon</div>
         <h2 class="contact-card-title">Szybka rozmowa</h2>
-        <p class="contact-card-copy">Masz pilny temat? Zadzwoń, a jeśli nie odbiorę, wrócę z kontaktem możliwie szybko.</p>
+        <p class="contact-card-copy">Masz pilny temat lub wolisz porozmawiać zanim wypełnisz formularz? Zadzwoń. Jeśli nie odbiorę, wrócę z kontaktem tego samego dnia.</p>
         <a class="contact-card-link" href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a>
       </article>
       <article class="contact-card reveal d2">
-        <div class="contact-card-label">Lead generation</div>
-        <h2 class="contact-card-title">Formularz strategiczny</h2>
-        <p class="contact-card-copy">Formularz zbiera kontekst biznesowy i dane źródła ruchu, dzięki czemu od pierwszej odpowiedzi przechodzimy do konkretów.</p>
-        <a class="contact-card-link" href="#formularz-kontaktowy">Wypełnij formularz</a>
+        <div class="contact-card-label">Formularz</div>
+        <h2 class="contact-card-title">Bezpłatna diagnoza</h2>
+        <p class="contact-card-copy">Formularz zbiera kontekst biznesowy Twojej firmy, dzięki temu od pierwszej odpowiedzi przechodzimy do konkretów, a nie ogólnych pytań.</p>
+        <a class="contact-card-link" href="#formularz-kontaktowy">Wypełnij formularz i wybierz termin</a>
       </article>
     </div>
   </section>
@@ -114,13 +189,13 @@ $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? u
       <div class="contact-form-shell reveal visible">
         <div class="content" style="margin-bottom:24px;">
           <div class="eyebrow">Formularz kontaktowy</div>
-          <h2 class="h2">Umów <span class="accent">bezpłatną rozmowę wstępną</span></h2>
-          <p class="body" style="margin-top:14px;">Im lepiej opiszesz cel i problem, tym precyzyjniejszą rekomendację dostaniesz w pierwszej odpowiedzi.</p>
+          <h2 class="h2">Opisz sytuację firmy — <span class="accent">wrócę z konkretną rekomendacją.</span></h2>
+          <p class="body" style="margin-top:14px;">Im więcej kontekstu podasz, tym precyzyjniejszą odpowiedź dostaniesz. Nie musisz wiedzieć, czego konkretnie potrzebujesz — wystarczy opisać problem i cel.</p>
         </div>
 
         <?php $ups_form_status = isset($_GET["ups_lead_status"]) ? sanitize_text_field(wp_unslash($_GET["ups_lead_status"])) : ""; ?>
         <?php if ($ups_form_status === "success") : ?>
-          <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #c3eddd;background:#e8f8f2;border-radius:10px;color:#085041;font-size:13px;">Dziękuję! Wiadomość została zapisana i odezwę się możliwie szybko.</div>
+          <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #99f6e4;background:#ecfeff;border-radius:10px;color:#0f766e;font-size:13px;">Dziękuję! Formularz dotarł. Przejrzę opisaną sytuację i odpiszę z konkretną rekomendacją — zazwyczaj do końca kolejnego dnia roboczego. Jeśli masz pilną sprawę, możesz zadzwonić: <?php echo esc_html($contact_phone); ?>.</div>
         <?php elseif ($ups_form_status === "error") : ?>
           <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #edcccc;background:#fff2f2;border-radius:10px;color:#b13a3a;font-size:13px;">Nie udało się wysłać formularza. Sprawdź pola i spróbuj ponownie.</div>
         <?php endif; ?>
@@ -141,12 +216,12 @@ $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? u
           <div class="contact-form-grid">
             <div class="field">
               <label for="fname">Imię i nazwa firmy *</label>
-              <input class="input" type="text" id="fname" name="lead_name" placeholder="np. Marek Kowalski, firma XYZ" required />
+              <input class="input" type="text" id="fname" name="lead_name" placeholder="np. Marek Kowalski, firma XYZ" required autocomplete="name organization" />
               <span class="field-error" id="fname-err">Podaj imię i nazwę firmy</span>
             </div>
             <div class="field">
               <label for="femail">E-mail służbowy *</label>
-              <input class="input" type="email" id="femail" name="lead_email" placeholder="adres@twojafirma.pl" required />
+              <input class="input" type="email" id="femail" name="lead_email" placeholder="adres@twojafirma.pl" required autocomplete="email" />
               <span class="field-error" id="femail-err">Podaj poprawny adres e-mail</span>
             </div>
             <div class="field">
@@ -154,7 +229,7 @@ $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? u
               <input class="input" type="tel" id="fphone" name="lead_phone" placeholder="+48 575 522 595" autocomplete="tel" />
             </div>
             <div class="field">
-              <label for="fservice">Zakres wsparcia</label>
+              <label for="fservice">Czego szukasz?</label>
               <select class="select" id="fservice" name="lead_service">
                 <option value="">— wybierz —</option>
                 <?php foreach ($contact_service_options as $service_option) : ?>
@@ -168,24 +243,24 @@ $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? u
             </div>
             <div class="field full">
               <label for="fmsg">Co chcesz poprawić lub osiągnąć? *</label>
-              <textarea class="textarea" id="fmsg" name="lead_message" placeholder="np. potrzebuję więcej wartościowych zapytań, chcę poprawić konwersję strony albo uporządkować działania reklamowe..." required></textarea>
+              <textarea class="textarea" id="fmsg" name="lead_message" placeholder="np. mam aktywne kampanie, ale za mało zapytań, chcę zbudować nową stronę pod reklamy albo kompletnie nie wiem od czego zacząć..." required></textarea>
               <span class="field-error" id="fmsg-err">Opisz w kilku słowach swoją sytuację</span>
             </div>
             <div class="field full">
               <label style="display:flex;gap:8px;align-items:flex-start;">
                 <input type="checkbox" name="lead_consent" value="1" required style="margin-top:3px;" />
-                <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
+                <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania i przetwarzanie danych w celu przygotowania odpowiedzi.</span>
               </label>
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;justify-content:center;margin-top:10px;">Wyślij i umów rozmowę →</button>
-          <p class="contact-form-note">Dane z formularza służą wyłącznie do kontaktu i przygotowania rekomendacji.</p>
+          <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;justify-content:center;margin-top:10px;">Wyślij i umów bezpłatną rozmowę →</button>
+          <p class="contact-form-note">Dane z formularza służą wyłącznie do kontaktu. Nie wysyłam spamu. Odpowiedź zazwyczaj w ciągu 24h roboczych.</p>
         </form>
 
         <div class="contact-form-alt">
-          <div>✓ Lead trafia od razu do CRM i dostaje priorytet kontaktu.</div>
-          <div>✓ Źródło ruchu (UTM) zapisuje się automatycznie dla lepszej analityki leadów.</div>
+          <div>✓ Współpraca zaczyna się od rozmowy, nie od umowy.</div>
+          <div>✓ Po wysłaniu formularza analizuję sytuację i wracam z odpowiedzią: co warto zrobić najpierw, który kanał ma sens i jakich efektów można realnie oczekiwać.</div>
           <div>✓ Jeśli wygodniej, napisz bezpośrednio: <a href="<?php echo esc_url($contact_email_href); ?>" style="color:var(--teal);font-weight:700;"><?php echo esc_html($contact_email_display); ?></a></div>
         </div>
       </div>
@@ -196,12 +271,13 @@ $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? u
     <div class="wrap">
       <div class="content">
         <div class="eyebrow reveal">Proces</div>
-        <h2 class="h2 reveal d1">Co dzieje się <span class="accent">po wysłaniu formularza</span></h2>
+        <h2 class="h2 reveal d1">Co dzieje się po wysłaniu formularza — trzy kroki od zapytania do konkretnej odpowiedzi.</h2>
+        <p class="body reveal d2" style="margin-top:14px;">Wiele firm obawia się kontaktu z agencją marketingową, bo spodziewa się automatycznej odpowiedzi z cennikiem i presji na szybką decyzję. U mnie wygląda to inaczej.</p>
       </div>
-      <div style="margin-top:28px;display:grid;gap:10px;">
-        <div class="contact-card reveal"><strong>1. Analiza zgłoszenia</strong><p class="contact-card-copy">Sprawdzam kontekst i cel biznesowy, żeby wrócić z konkretem, a nie z automatyczną odpowiedzią.</p></div>
-        <div class="contact-card reveal d1"><strong>2. Odpowiedź z rekomendacją</strong><p class="contact-card-copy">Dostajesz informację, co warto zrobić najpierw, gdzie jest największa dźwignia i jaki kolejny krok ma sens.</p></div>
-        <div class="contact-card reveal d2"><strong>3. Decyzja bez presji</strong><p class="contact-card-copy">Jeśli chcesz, przechodzimy dalej. Jeśli nie, zostajesz z jasnym kierunkiem działań.</p></div>
+      <div class="contact-process-grid">
+        <div class="contact-card contact-process-card reveal"><strong>1. Analiza zgłoszenia</strong><p class="contact-card-copy">Po otrzymaniu formularza czytam opisaną sytuację i przygotowuję się do odpowiedzi. Analizuję problem, obecne działania i najbardziej logiczny następny krok.</p></div>
+        <div class="contact-card contact-process-card reveal d1"><strong>2. Odpowiedź z rekomendacją</strong><p class="contact-card-copy">Wracam z konkretnymi obserwacjami: co warto sprawdzić lub poprawić najpierw, który kanał ma sens i jaki następny krok proponuję.</p></div>
+        <div class="contact-card contact-process-card reveal d2"><strong>3. Decyzja bez presji</strong><p class="contact-card-copy">Po wymianie informacji decydujesz, czy chcesz kontynuować. Jeśli nie, zostajesz z wiedzą, którą możesz wdrożyć samodzielnie lub porównać z innymi ofertami.</p></div>
       </div>
     </div>
   </section>
@@ -213,18 +289,12 @@ $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? u
         <h2 class="h2 reveal d1">Najczęstsze pytania przed <span class="accent">pierwszym kontaktem</span></h2>
       </div>
       <div class="contact-faq" style="margin-top:26px;">
-        <div class="faq-item reveal">
-          <button class="faq-q" type="button"><span>Jak szybko wracasz z odpowiedzią?</span><span class="faq-icon">+</span></button>
-          <div class="faq-a">Zazwyczaj do końca kolejnego dnia roboczego. W pilniejszych tematach często szybciej.</div>
-        </div>
-        <div class="faq-item reveal d1">
-          <button class="faq-q" type="button"><span>Czy muszę mieć gotowy budżet na start?</span><span class="faq-icon">+</span></button>
-          <div class="faq-a">Nie. Najpierw ustalamy, co realnie warto zrobić i jaki zakres ma sens przy Twojej sytuacji.</div>
-        </div>
-        <div class="faq-item reveal d2">
-          <button class="faq-q" type="button"><span>Czy to kontakt tylko dla nowych klientów?</span><span class="faq-icon">+</span></button>
-          <div class="faq-a">Nie. Formularz jest także dla firm, które mają już działania marketingowe i chcą je poprawić.</div>
-        </div>
+        <?php foreach ($contact_faq_items as $faq_index => $faq_item) : ?>
+          <div class="faq-item reveal <?php echo esc_attr($faq_index > 0 ? "d" . min($faq_index, 2) : ""); ?>">
+            <button class="faq-q" type="button"><span><?php echo esc_html((string) $faq_item["question"]); ?></span><span class="faq-icon">+</span></button>
+            <div class="faq-a"><?php echo esc_html((string) $faq_item["answer"]); ?></div>
+          </div>
+        <?php endforeach; ?>
       </div>
     </div>
   </section>
@@ -233,14 +303,35 @@ $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? u
     <div class="wrap">
       <div class="contact-cta reveal">
         <div class="contact-cta-copy">
-          <h3>Masz temat do omówienia?</h3>
-          <p>Wystarczy krótki opis. Odpowiem konkretnie, czy i jak mogę pomóc, oraz jaki pierwszy krok da największy efekt.</p>
+          <h3>Masz temat do omówienia? Wystarczy krótki opis — wrócę z konkretną odpowiedzią.</h3>
+          <p>Jeśli czujesz, że marketing może dawać lepsze wyniki, ale nie wiesz, co poprawić najpierw, wyślij formularz, napisz maila albo zadzwoń. Bez zobowiązań i bez presji.</p>
         </div>
         <a href="#formularz-kontaktowy" class="btn btn-primary">Przejdź do formularza →</a>
       </div>
     </div>
   </section>
 </main>
+
+<?php if (!empty($contact_faq_items)) : ?>
+<script type="application/ld+json">
+<?php
+echo wp_json_encode([
+    "@context" => "https://schema.org",
+    "@type" => "FAQPage",
+    "mainEntity" => array_map(static function ($faq_item) {
+        return [
+            "@type" => "Question",
+            "name" => (string) $faq_item["question"],
+            "acceptedAnswer" => [
+                "@type" => "Answer",
+                "text" => (string) $faq_item["answer"],
+            ],
+        ];
+    }, $contact_faq_items),
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+?>
+</script>
+<?php endif; ?>
 
 <?php
 get_footer();

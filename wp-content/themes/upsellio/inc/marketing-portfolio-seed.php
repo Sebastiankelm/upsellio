@@ -12,7 +12,7 @@ function upsellio_marketing_portfolio_interactive_variants()
     ];
     $variant_b = [
         "html" => '<div class="mshot mshot-b"><strong>Quality Score leadów</strong><div class="mshot-tabs"><button data-q="cold" class="is-active">Cold</button><button data-q="warm">Warm</button><button data-q="hot">Hot</button></div><p data-q-copy>Cold: 22% leadów sprzedażowych</p></div>',
-        "css" => '.mshot-b{border:1px solid #dce7e1;border-radius:12px;padding:12px;background:#f8fcfa}.mshot-tabs{display:flex;gap:8px;margin:10px 0}.mshot-tabs button{border:1px solid #cde5da;background:#fff;padding:6px 10px;border-radius:999px;cursor:pointer}.mshot-tabs .is-active{background:#1d9e75;color:#fff}',
+        "css" => '.mshot-b{border:1px solid #e2e8f0;border-radius:12px;padding:12px;background:#f8fafc}.mshot-tabs{display:flex;gap:8px;margin:10px 0}.mshot-tabs button{border:1px solid #99f6e4;background:#fff;padding:6px 10px;border-radius:999px;cursor:pointer}.mshot-tabs .is-active{background:#0d9488;color:#fff}',
         "js" => '(function(){const map={cold:"Cold: 22% leadów sprzedażowych",warm:"Warm: 47% leadów sprzedażowych",hot:"Hot: 71% leadów sprzedażowych"};const c=document.querySelector("[data-q-copy]");document.querySelectorAll("[data-q]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("[data-q]").forEach(x=>x.classList.remove("is-active"));b.classList.add("is-active");if(c)c.textContent=map[b.getAttribute("data-q")]||"";}));})();',
     ];
     $variant_c = [
@@ -51,11 +51,11 @@ function upsellio_get_seeded_marketing_portfolio_projects()
         $projects[] = [
             "slug" => $project["slug"],
             "title" => $project["title"],
-            "excerpt" => "Case study pokazujące pełny proces: diagnoza, wdrożenie, optymalizacja i wynik biznesowy pod lead generation.",
+            "excerpt" => "Realizacja pokazująca pełny proces: diagnozę, wdrożenie, optymalizację i wynik biznesowy.",
             "category" => $project["category_label"],
             "category_slug" => $project["category"],
             "type" => $project["category_label"],
-            "meta" => "Lead generation · SEO · " . strtoupper("Q" . (($index % 4) + 1)) . " 2024",
+            "meta" => "Kampania · Optymalizacja · " . strtoupper("Q" . (($index % 4) + 1)) . " 2024",
             "badge" => $project["category_label"],
             "cta" => "Zobacz case study",
             "image" => "https://images.unsplash.com/photo-1551281044-8b5bd6fddf8f?auto=format&fit=crop&w=1600&q=80",
@@ -65,7 +65,7 @@ function upsellio_get_seeded_marketing_portfolio_projects()
             "problem" => "Niska jakość leadów i rosnący koszt pozyskania blokowały efektywność kampanii oraz pracę działu sprzedaży.",
             "solution" => "Przebudowano komunikację reklam, stronę docelową i strukturę lejka wraz z pełnym trackingiem jakości leadów.",
             "result" => "W ciągu 3-4 miesięcy poprawiono kluczowe KPI kampanii i zwiększono udział leadów sprzedażowych.",
-            "tags" => ["Lead generation", $project["category_label"], "Kampanie performance", "Optymalizacja konwersji"],
+            "tags" => ["Pozyskiwanie klientów", $project["category_label"], "Kampanie performance", "Optymalizacja konwersji"],
             "kpis" => [
                 "CPL|312 PLN|150 PLN|-52%|w 4 miesiące",
                 "Jakość leadów|20%|65%|x3|ocena działu sprzedaży",
@@ -215,7 +215,8 @@ function upsellio_register_marketing_portfolio_seed_menu()
         "Generator 15 wpisów",
         "manage_options",
         "upsellio-marketing-portfolio-seed",
-        "upsellio_marketing_portfolio_seed_screen"
+        "upsellio_marketing_portfolio_seed_screen",
+        31
     );
 }
 add_action("admin_menu", "upsellio_register_marketing_portfolio_seed_menu");
@@ -228,7 +229,7 @@ function upsellio_marketing_portfolio_seed_screen()
     ?>
     <div class="wrap">
       <h1>Generator: 15 wpisów portfolio marketingowego</h1>
-      <p>Tworzy 15 rozbudowanych case studies SEO + lead generation z metrykami KPI oraz osadzonymi blokami interaktywnymi HTML/CSS/JS.</p>
+      <p>Tworzy 15 rozbudowanych wpisów portfolio marketingowego z metrykami KPI oraz osadzonymi blokami interaktywnymi HTML/CSS/JS.</p>
       <p><a class="button button-primary" href="<?php echo esc_url(upsellio_get_marketing_portfolio_seed_url(false)); ?>">Wygeneruj brakujące wpisy</a></p>
       <p><a class="button" href="<?php echo esc_url(upsellio_get_marketing_portfolio_seed_url(true)); ?>">Nadpisz i odśwież wszystkie 15 wpisów</a></p>
     </div>
