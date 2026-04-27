@@ -20,6 +20,11 @@ add_action("wp_head", static function () {
     echo '<meta property="og:description" content="Strony internetowe i landing pages pod konwersję, SEO oraz kampanie reklamowe dla firm B2B, usługowych i e-commerce.">' . "\n";
     echo '<meta property="og:type" content="website">' . "\n";
     echo '<meta property="og:url" content="' . esc_url($url) . '">' . "\n";
+    $og_image = function_exists("upsellio_get_default_og_image_url") ? upsellio_get_default_og_image_url() : "";
+    if ($og_image !== "") {
+        echo '<meta property="og:image" content="' . esc_url($og_image) . '">' . "\n";
+        echo '<meta name="twitter:image" content="' . esc_url($og_image) . '">' . "\n";
+    }
     echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
     echo '<link rel="canonical" href="' . esc_url($url) . '">' . "\n";
 }, 1);
@@ -64,6 +69,7 @@ $faq_items = [
         "answer" => "Copywriting sprzedażowy i SEO może być częścią pracy nad stroną. Zdjęcia firmowe, produktowe i realizacyjne najlepiej dostarczyć po stronie klienta, bo autentyczne materiały zwykle budują większe zaufanie niż stocki.",
     ],
 ];
+$portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_slice(upsellio_get_portfolio_list(12), 0, 3) : [];
 ?>
 
 <style>
@@ -118,20 +124,36 @@ $faq_items = [
   .web-hero-grid { position:relative; display:grid; grid-template-columns:minmax(0,1.08fr) minmax(330px,.92fr); gap:clamp(34px,5vw,64px); align-items:center; }
   .web-blueprint { border:1px solid var(--web-border); border-radius:34px; background:#fff; box-shadow:var(--web-shadow); overflow:hidden; }
   .web-browser { display:flex; align-items:center; gap:8px; padding:16px 18px; border-bottom:1px solid var(--web-border); background:#f8fafc; }
-  .web-browser span { width:12px; height:12px; border-radius:50%; background:#ef6155; box-shadow:20px 0 0 #f4c14f, 40px 0 0 #46b37d; }
+  .web-browser-dots { display:inline-flex; gap:6px; }
+  .web-browser-dots span { width:11px; height:11px; border-radius:50%; }
+  .web-browser-dots span:nth-child(1){ background:#ef6155; }
+  .web-browser-dots span:nth-child(2){ background:#f4c14f; }
+  .web-browser-dots span:nth-child(3){ background:#46b37d; }
+  .web-browser-url { flex:1; height:18px; border-radius:8px; background:#fff; border:1px solid var(--web-border); margin-left:6px; }
   .web-wireframe { padding:24px; display:grid; gap:14px; }
   .web-wire-hero { padding:22px; border:1px dashed #99f6e4; border-radius:22px; background:linear-gradient(135deg,#ecfeff,#fff); }
   .web-wire-hero strong { display:block; font-family:var(--font-display); font-size:25px; line-height:1.08; color:var(--web-ink); }
   .web-wire-hero p { margin-top:8px; font-size:14px; }
   .web-wire-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-  .web-wire-card { min-height:96px; padding:14px; border:1px solid var(--web-border); border-radius:16px; background:#f8fafc; }
-  .web-wire-card b { display:block; color:var(--web-green-dark); }
-  .web-wire-card small { display:block; color:var(--web-muted); margin-top:4px; line-height:1.4; }
+  .web-wire-card { padding:12px; border:1px solid var(--web-border); border-radius:14px; background:#fff; display:flex; flex-direction:column; gap:8px; }
+  .web-wire-card b { display:block; font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--web-green-dark); }
+  .web-wire-card-mock { display:flex; flex-direction:column; gap:5px; min-height:50px; }
+  .web-wire-mock-line { height:5px; border-radius:3px; background:linear-gradient(90deg,#e2e8f0,#f1f5f9); }
+  .web-wire-mock-line.short { width:55%; }
+  .web-wire-mock-pill { height:10px; width:65%; border-radius:6px; background:linear-gradient(90deg,#0d9488,#14b8a6); }
+  .web-wire-mock-stars { display:flex; gap:2px; }
+  .web-wire-mock-stars span { width:8px; height:8px; border-radius:50%; background:#fbbf24; }
+  .web-wire-mock-cta { height:14px; border-radius:6px; background:linear-gradient(90deg,#0d9488,#14b8a6); width:80%; }
+  .web-wire-card small { display:block; color:var(--web-muted); margin-top:auto; line-height:1.4; font-size:11px; }
   .web-problem-grid { margin-top:38px; display:grid; grid-template-columns:1fr 1fr; gap:18px; }
   .web-problem-card { padding:26px; border:1px solid var(--web-border); border-radius:26px; background:#fff; box-shadow:var(--web-shadow-soft); transition:.2s ease; }
   .web-problem-card:hover { transform:translateY(-4px); border-color:#99f6e4; box-shadow:var(--web-shadow); }
+  .web-problem-card.is-feature { grid-column:span 2; border-top:4px solid var(--web-green-dark); background:linear-gradient(135deg,#ecfeff,#fff); display:grid; grid-template-columns:1fr; gap:14px; align-items:center; }
+  .web-problem-card.is-feature::before { content:"Najczęstsza przyczyna"; display:inline-flex; align-items:center; padding:4px 10px; border-radius:999px; background:var(--web-green-dark); color:#fff; font-size:10px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; width:fit-content; }
   .web-problem-card strong { display:block; margin-bottom:10px; color:var(--web-ink); font-size:18px; }
+  .web-problem-card.is-feature strong { font-size:22px; }
   .web-problem-card p { font-size:15px; }
+  @media(min-width:760px){ .web-problem-card.is-feature { grid-template-columns:1.2fr 1fr; gap:30px; padding:32px; } }
   .web-mid-note { margin-top:34px; display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center; padding:28px; border:1px solid #99f6e4; border-radius:28px; background:linear-gradient(135deg,#ecfeff,#fff); box-shadow:var(--web-shadow-soft); }
   .web-mid-note strong { display:block; font-family:var(--font-display); font-size:clamp(24px,3vw,36px); line-height:1.05; letter-spacing:-1px; color:var(--web-ink); margin-bottom:8px; }
   .web-service { background:#fff; border-top:1px solid var(--web-border); border-bottom:1px solid var(--web-border); }
@@ -141,11 +163,17 @@ $faq_items = [
   .web-check-list { display:grid; gap:10px; list-style:none; padding:0; }
   .web-check-list li { position:relative; padding-left:26px; color:var(--web-text); font-size:15px; }
   .web-check-list li::before { content:"✓"; position:absolute; left:0; color:var(--web-green-dark); font-weight:900; }
-  .web-elements { margin-top:40px; display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .web-elements { margin-top:40px; display:grid; gap:24px; }
+  .web-elements-group { display:grid; gap:14px; grid-template-columns:repeat(4,1fr); }
+  .web-elements-group-title { grid-column:1 / -1; display:flex; align-items:center; gap:14px; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--web-green-dark); font-weight:800; margin:0; }
+  .web-elements-group-title::after { content:""; flex:1; height:1px; background:linear-gradient(90deg,#99f6e4,transparent); }
   .web-element { padding:22px; border:1px solid var(--web-border); border-radius:22px; background:#fff; box-shadow:var(--web-shadow-soft); }
-  .web-element b { display:inline-grid; place-items:center; width:34px; height:34px; margin-bottom:14px; border-radius:50%; background:var(--web-blue-soft); color:var(--web-blue); font-family:var(--font-display); }
+  .web-element-icon { display:inline-grid; place-items:center; width:42px; height:42px; margin-bottom:14px; border-radius:12px; background:var(--web-green-soft); color:var(--web-green-dark); }
+  .web-element-icon svg { width:22px; height:22px; }
   .web-element strong { display:block; margin-bottom:8px; color:var(--web-ink); }
   .web-element p { font-size:14px; }
+  @media(max-width:1060px){ .web-elements-group { grid-template-columns:repeat(2,1fr); } }
+  @media(max-width:620px){ .web-elements-group { grid-template-columns:1fr; } }
   .web-dark-split { background:radial-gradient(circle at right top,rgba(20,184,166,.22),transparent 35%),linear-gradient(145deg,#081827,#0f172a); border-radius:34px; padding:clamp(34px,5vw,56px); color:#fff; display:grid; grid-template-columns:.9fr 1.1fr; gap:34px; align-items:center; box-shadow:var(--web-shadow); }
   .web-dark-split .web-h2 { color:#fff; }
   .web-dark-split p,.web-dark-split .web-lead { color:rgba(255,255,255,.74); }
@@ -158,12 +186,27 @@ $faq_items = [
   .web-types { margin-top:40px; display:grid; grid-template-columns:1.1fr .9fr; gap:22px; }
   .web-type-feature { padding:34px; border-radius:30px; background:linear-gradient(135deg,#fff,#ecfeff); border:1px solid #99f6e4; box-shadow:var(--web-shadow); }
   .web-type-feature .web-h3 { margin-bottom:12px; }
+  .web-type-feature-illo { display:block; width:100%; max-width:280px; margin-bottom:14px; height:auto; }
   .web-type-stack { display:grid; gap:14px; }
-  .web-type-card { padding:24px; border:1px solid var(--web-border); border-radius:24px; background:#fff; box-shadow:var(--web-shadow-soft); }
+  .web-type-card { padding:24px; border:1px solid var(--web-border); border-radius:24px; background:#fff; box-shadow:var(--web-shadow-soft); display:flex; gap:14px; align-items:flex-start; }
+  .web-type-card-illo { flex:0 0 60px; }
+  .web-type-card-body strong { display:block; color:var(--web-ink); margin-bottom:8px; }
   .web-type-card strong { display:block; color:var(--web-ink); margin-bottom:8px; }
+  .web-portfolio-grid { margin-top:40px; display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+  .web-portfolio-card { display:grid; gap:14px; padding:24px; border:1px solid var(--web-border); border-radius:24px; background:#fff; box-shadow:var(--web-shadow-soft); color:inherit; text-decoration:none; transition:.2s ease; }
+  .web-portfolio-card:hover { transform:translateY(-4px); border-color:#99f6e4; box-shadow:var(--web-shadow); }
+  .web-portfolio-thumb { min-height:150px; border-radius:18px; background:linear-gradient(135deg,#ecfeff,#f8fafc); overflow:hidden; }
+  .web-portfolio-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .web-compare-grid { margin-top:34px; display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .web-compare-card { padding:22px; border:1px solid var(--web-border); border-radius:22px; background:#fff; box-shadow:var(--web-shadow-soft); }
+  .web-compare-card strong { display:block; color:var(--web-ink); margin-bottom:8px; }
   .web-process { background:linear-gradient(180deg,#fff,var(--web-soft)); border-top:1px solid var(--web-border); border-bottom:1px solid var(--web-border); }
-  .web-process-grid { margin-top:38px; display:grid; grid-template-columns:repeat(5,1fr); gap:14px; }
+  .web-process-grid { margin-top:38px; display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
   .web-step { padding:22px; border:1px solid var(--web-border); border-radius:24px; background:#fff; box-shadow:var(--web-shadow-soft); }
+  .web-step-head { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .web-step-num { width:34px; height:34px; display:grid; place-items:center; border-radius:50%; background:var(--web-green-soft); color:var(--web-green-dark); font-family:var(--font-display); font-weight:800; }
+  .web-step-icon { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:#f1f5f9; color:var(--web-green-dark); }
+  .web-step-icon svg { width:18px; height:18px; }
   .web-step b { width:34px; height:34px; display:grid; place-items:center; margin-bottom:14px; border-radius:50%; background:var(--web-green-soft); color:var(--web-green-dark); font-family:var(--font-display); }
   .web-step strong { display:block; color:var(--web-ink); margin-bottom:8px; }
   .web-step p { font-size:14px; }
@@ -178,19 +221,19 @@ $faq_items = [
   .web-internal-links { margin-top:22px; display:flex; flex-wrap:wrap; justify-content:center; gap:10px; }
   .web-internal-links a { display:inline-flex; min-height:38px; align-items:center; border:1px solid var(--web-border); border-radius:999px; padding:0 14px; background:#fff; color:var(--web-green-dark); font-size:13px; font-weight:800; }
   @media(max-width:1060px){
-    .web-process-grid { grid-template-columns:repeat(3,1fr); }
-    .web-elements { grid-template-columns:repeat(2,1fr); }
+    .web-process-grid { grid-template-columns:repeat(2,1fr); }
   }
   @media(max-width:980px){
     html { scroll-padding-top:130px; }
-    .web-hero-grid,.web-dark-split,.web-types { grid-template-columns:1fr; }
+    .web-hero-grid,.web-dark-split,.web-types,.web-portfolio-grid,.web-compare-grid { grid-template-columns:1fr; }
     .web-service-grid { grid-template-columns:1fr 1fr; }
     .web-mid-note { grid-template-columns:1fr; }
   }
   @media(max-width:620px){
     html { scroll-padding-top:125px; }
     .web-wrap { width:min(100% - 28px,1240px); }
-    .web-wire-grid,.web-problem-grid,.web-service-grid,.web-elements,.web-fit-grid,.web-process-grid { grid-template-columns:1fr; }
+    .web-wire-grid,.web-problem-grid,.web-service-grid,.web-fit-grid,.web-process-grid { grid-template-columns:1fr; }
+    .web-problem-card.is-feature { grid-column:auto; }
     .web-btn { width:100%; }
     .web-quick-cta { display:none; }
     .web-quick-inner { padding:10px 0; }
@@ -207,7 +250,7 @@ $faq_items = [
   .web-btn-row { margin-top:22px; }
   .web-quick { position:static; }
   .web-quick-inner { min-height:auto; padding:10px 0; }
-  .web-hero-grid,.web-wire-grid,.web-problem-grid,.web-service-grid,.web-elements,.web-fit-grid,.web-types,.web-process-grid { grid-template-columns:1fr; }
+  .web-hero-grid,.web-wire-grid,.web-problem-grid,.web-service-grid,.web-fit-grid,.web-types,.web-process-grid,.web-portfolio-grid,.web-compare-grid { grid-template-columns:1fr; }
   .web-blueprint,.web-problem-card,.web-service-card,.web-element,.web-dark-split,.web-fit-card,.web-type-feature,.web-type-card,.web-step,.web-final { border-radius:20px; }
   .web-problem-card,.web-service-card,.web-element,.web-type-card,.web-step { padding:18px; }
   .web-dark-split,.web-type-feature,.web-final,.web-mid-note { padding:20px; }
@@ -221,7 +264,9 @@ $faq_items = [
     .web-h1 { font-size:clamp(44px,6vw,58px); line-height:1.05; }
     .web-h2 { font-size:clamp(34px,4vw,46px); }
     .web-h3 { font-size:clamp(23px,3vw,30px); }
-    .web-wire-grid,.web-problem-grid,.web-service-grid,.web-elements,.web-fit-grid,.web-process-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .web-wire-grid,.web-problem-grid,.web-service-grid,.web-fit-grid,.web-process-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .web-portfolio-grid,.web-compare-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .web-problem-card.is-feature { grid-column:span 2; }
   }
   @media(min-width:1024px){
     .web-section { padding:96px 0; }
@@ -230,8 +275,7 @@ $faq_items = [
     .web-h2 { font-size:50px; }
     .web-hero-grid { grid-template-columns:minmax(0,1.05fr) minmax(300px,.85fr); }
     .web-service-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
-    .web-elements { grid-template-columns:repeat(4,minmax(0,1fr)); }
-    .web-process-grid { grid-template-columns:repeat(5,minmax(0,1fr)); }
+    .web-process-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
     .web-types,.web-dark-split { grid-template-columns:1.05fr .95fr; }
     .web-problem-card,.web-service-card,.web-element,.web-type-card,.web-step { padding:22px; }
   }
@@ -246,6 +290,8 @@ $faq_items = [
         <a href="#zakres">Zakres</a>
         <a href="#elementy">Elementy</a>
         <a href="#typy">Typy stron</a>
+        <a href="#realizacje">Realizacje</a>
+        <a href="#technologie">Technologie</a>
         <a href="#proces">Proces</a>
         <a href="#faq">FAQ</a>
       </div>
@@ -271,16 +317,43 @@ $faq_items = [
       </div>
 
       <aside class="web-blueprint" aria-label="Blueprint skutecznej strony">
-        <div class="web-browser"><span></span></div>
+        <div class="web-browser">
+          <span class="web-browser-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="web-browser-url" aria-hidden="true"></span>
+        </div>
         <div class="web-wireframe">
           <div class="web-wire-hero">
             <strong>Hero, które mówi: dla kogo, co i dlaczego teraz.</strong>
             <p>Nagłówek, jasna propozycja wartości, dowód zaufania i jedno główne CTA.</p>
           </div>
           <div class="web-wire-grid">
-            <div class="web-wire-card"><b>Problem</b><small>Nazywa sytuację klienta.</small></div>
-            <div class="web-wire-card"><b>Dowód</b><small>Opinie, liczby, realizacje.</small></div>
-            <div class="web-wire-card"><b>CTA</b><small>Prosty następny krok.</small></div>
+            <div class="web-wire-card">
+              <b>Problem</b>
+              <div class="web-wire-card-mock" aria-hidden="true">
+                <span class="web-wire-mock-line"></span>
+                <span class="web-wire-mock-line short"></span>
+                <span class="web-wire-mock-line"></span>
+              </div>
+              <small>Nazywa sytuację klienta.</small>
+            </div>
+            <div class="web-wire-card">
+              <b>Dowód</b>
+              <div class="web-wire-card-mock" aria-hidden="true">
+                <span class="web-wire-mock-stars"><span></span><span></span><span></span><span></span><span></span></span>
+                <span class="web-wire-mock-line short"></span>
+                <span class="web-wire-mock-line"></span>
+              </div>
+              <small>Opinie, liczby, realizacje.</small>
+            </div>
+            <div class="web-wire-card">
+              <b>CTA</b>
+              <div class="web-wire-card-mock" aria-hidden="true">
+                <span class="web-wire-mock-line short"></span>
+                <span class="web-wire-mock-line"></span>
+                <span class="web-wire-mock-cta"></span>
+              </div>
+              <small>Prosty następny krok.</small>
+            </div>
           </div>
         </div>
       </aside>
@@ -297,7 +370,13 @@ $faq_items = [
       </div>
 
       <div class="web-problem-grid">
-        <div class="web-problem-card"><strong>Niejasny komunikat na górze strony</strong><p>Nagłówek powinien od razu wyjaśniać, co oferujesz, komu pomagasz i jaki problem rozwiązujesz.</p></div>
+        <div class="web-problem-card is-feature">
+          <div>
+            <strong>Niejasny komunikat na górze strony</strong>
+            <p>Nagłówek powinien od razu wyjaśniać, co oferujesz, komu pomagasz i jaki problem rozwiązujesz. To pojedyncza zmiana, która ma największy wpływ na konwersję — jeśli pierwsze 3 sekundy nie tłumaczą oferty, użytkownik wraca do Google.</p>
+          </div>
+          <p>Najczęściej spotykany błąd: hero zaczyna się od „Witamy na naszej stronie” lub od opisu firmy. Tymczasem powinien zaczynać się od pytania albo problemu klienta i obiecywać konkretny rezultat.</p>
+        </div>
         <div class="web-problem-card"><strong>Strona mówi o firmie, nie o kliencie</strong><p>Klient nie szuka opisu firmy, tylko rozwiązania swojego problemu i powodu, żeby zaufać właśnie Tobie.</p></div>
         <div class="web-problem-card"><strong>Brak lub słabe CTA</strong><p>Wezwanie do działania musi być widoczne, konkretne i pojawiać się w kilku miejscach ścieżki.</p></div>
         <div class="web-problem-card"><strong>Brak elementów zaufania</strong><p>Liczby, opinie, case studies i logotypy klientów obniżają opór przed kontaktem.</p></div>
@@ -363,14 +442,52 @@ $faq_items = [
         <p>Skuteczna strona internetowa to nie kwestia samej estetyki. To kwestia struktury i komunikatu. Brak kilku elementów bezpośrednio obniża konwersję i sprawia, że ruch z SEO lub reklam nie zamienia się w kontakt.</p>
       </div>
       <div class="web-elements">
-        <div class="web-element"><b>1</b><strong>Jasny nagłówek</strong><p>Odpowiada, czym się zajmujesz, dla kogo jest oferta i jaka jest główna korzyść.</p></div>
-        <div class="web-element"><b>2</b><strong>Propozycja wartości</strong><p>Pokazuje, dlaczego warto wybrać Twoją firmę, a nie konkurencję.</p></div>
-        <div class="web-element"><b>3</b><strong>Dowody zaufania</strong><p>Liczby, opinie, case studies i logotypy klientów obniżają ryzyko kontaktu.</p></div>
-        <div class="web-element"><b>4</b><strong>Widoczne CTA</strong><p>Jeden główny cel pojawia się w pierwszej sekcji, po usługach i po dowodach.</p></div>
-        <div class="web-element"><b>5</b><strong>Odpowiedzi na obiekcje</strong><p>FAQ, proces i sekcje dla kogo zatrzymują użytkownika przed powrotem do Google.</p></div>
-        <div class="web-element"><b>6</b><strong>Szybkość i mobile</strong><p>Core Web Vitals, responsywność i szybkie ładowanie wpływają na SEO i konwersję.</p></div>
-        <div class="web-element"><b>7</b><strong>Struktura SEO</strong><p>Poprawne nagłówki, meta tagi, URL, alt texty i linkowanie pomagają Google zrozumieć temat.</p></div>
-        <div class="web-element"><b>8</b><strong>Integracja z reklamami</strong><p>Spójny przekaz z Google Ads i Meta Ads oraz śledzenie konwersji zwiększają zwrot z budżetu.</p></div>
+        <div class="web-elements-group">
+          <h3 class="web-elements-group-title">Przekaz</h3>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span>
+            <strong>Jasny nagłówek</strong>
+            <p>Odpowiada, czym się zajmujesz, dla kogo jest oferta i jaka jest główna korzyść.</p>
+          </div>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15 8l6 .9-4.5 4.4 1.1 6.2L12 17l-5.6 2.5L7.5 13.3 3 8.9 9 8z"/></svg></span>
+            <strong>Propozycja wartości</strong>
+            <p>Pokazuje, dlaczego warto wybrać Twoją firmę, a nie konkurencję.</p>
+          </div>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
+            <strong>Dowody zaufania</strong>
+            <p>Liczby, opinie, case studies i logotypy klientów obniżają ryzyko kontaktu.</p>
+          </div>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+            <strong>Widoczne CTA</strong>
+            <p>Jeden główny cel pojawia się w pierwszej sekcji, po usługach i po dowodach.</p>
+          </div>
+        </div>
+        <div class="web-elements-group">
+          <h3 class="web-elements-group-title">Technika i SEO</h3>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+            <strong>Odpowiedzi na obiekcje</strong>
+            <p>FAQ, proces i sekcje dla kogo zatrzymują użytkownika przed powrotem do Google.</p>
+          </div>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 2 13 10 21 10"/><polyline points="11 22 11 14 3 14"/></svg></span>
+            <strong>Szybkość i mobile</strong>
+            <p>Core Web Vitals, responsywność i szybkie ładowanie wpływają na SEO i konwersję.</p>
+          </div>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
+            <strong>Struktura SEO</strong>
+            <p>Poprawne nagłówki, meta tagi, URL, alt texty i linkowanie pomagają Google zrozumieć temat.</p>
+          </div>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
+            <strong>Integracja z reklamami</strong>
+            <p>Spójny przekaz z Google Ads i Meta Ads oraz śledzenie konwersji zwiększają zwrot z budżetu.</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -399,15 +516,115 @@ $faq_items = [
       <h2 class="web-h2">Strona firmowa, landing page czy sklep internetowy: które rozwiązanie ma większy sens dla Twojego celu?</h2>
       <div class="web-types">
         <div class="web-type-feature">
+          <svg class="web-type-feature-illo" viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="2" y="2" width="196" height="106" rx="10" fill="#fff" stroke="#99f6e4" />
+            <rect x="2" y="2" width="196" height="16" rx="10" fill="#ecfeff" />
+            <circle cx="12" cy="10" r="2" fill="#ef6155"/><circle cx="20" cy="10" r="2" fill="#f4c14f"/><circle cx="28" cy="10" r="2" fill="#46b37d"/>
+            <rect x="14" y="28" width="120" height="8" rx="3" fill="#0d9488"/>
+            <rect x="14" y="42" width="160" height="4" rx="2" fill="#cbd5e1"/>
+            <rect x="14" y="50" width="140" height="4" rx="2" fill="#cbd5e1"/>
+            <rect x="14" y="64" width="60" height="14" rx="6" fill="#0d9488"/>
+            <rect x="14" y="86" width="170" height="14" rx="4" fill="#f1f5f9"/>
+          </svg>
           <h3 class="web-h3">Landing page: jeden cel, mniej rozproszeń, szybszy test komunikatu.</h3>
           <p>Landing page jest zaprojektowany pod jeden konkretny cel: formularz, konsultację, wycenę, zapis lub zakup. Nie rozprasza nawigacją, tylko prowadzi użytkownika przez problem, rozwiązanie, dowody i CTA.</p>
           <p>To najlepszy wybór dla kampanii <a href="<?php echo esc_url(home_url("/marketing-google-ads/")); ?>">Google Ads</a> i <a href="<?php echo esc_url(home_url("/marketing-meta-ads/")); ?>">Meta Ads</a>, promocji pojedynczej usługi oraz testowania komunikatów przed budową pełnej strony.</p>
         </div>
         <div class="web-type-stack">
-          <div class="web-type-card"><strong>Strona firmowa wielostronicowa</strong><p>Najlepsza dla SEO, wielu usług, portfolio, bloga i pełnej prezentacji firmy.</p></div>
-          <div class="web-type-card"><strong>Strona one-page</strong><p>Dobra dla jednej głównej usługi, szybkiego startu lub prostszej prezentacji online.</p></div>
-          <div class="web-type-card"><strong>Sklep internetowy B2B</strong><p>Katalogi, zapytania ofertowe, warianty produktów, integracje i proces zamawiania dla firm.</p></div>
+          <div class="web-type-card">
+            <svg class="web-type-card-illo" viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="1" y="1" width="58" height="48" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+              <rect x="1" y="1" width="58" height="8" rx="6" fill="#ecfeff"/>
+              <rect x="6" y="14" width="48" height="3" rx="1" fill="#0d9488"/>
+              <rect x="6" y="20" width="14" height="14" rx="2" fill="#cbd5e1"/>
+              <rect x="22" y="20" width="14" height="14" rx="2" fill="#cbd5e1"/>
+              <rect x="38" y="20" width="14" height="14" rx="2" fill="#cbd5e1"/>
+              <rect x="6" y="38" width="48" height="3" rx="1" fill="#94a3b8"/>
+            </svg>
+            <div class="web-type-card-body">
+              <strong>Strona firmowa wielostronicowa</strong>
+              <p>Najlepsza dla SEO, wielu usług, portfolio, bloga i pełnej prezentacji firmy.</p>
+            </div>
+          </div>
+          <div class="web-type-card">
+            <svg class="web-type-card-illo" viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="1" y="1" width="58" height="48" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+              <rect x="6" y="6" width="48" height="6" rx="2" fill="#0d9488"/>
+              <rect x="6" y="16" width="36" height="3" rx="1" fill="#cbd5e1"/>
+              <rect x="6" y="22" width="40" height="3" rx="1" fill="#cbd5e1"/>
+              <rect x="6" y="30" width="20" height="6" rx="2" fill="#0d9488"/>
+              <rect x="6" y="40" width="48" height="3" rx="1" fill="#cbd5e1"/>
+            </svg>
+            <div class="web-type-card-body">
+              <strong>Strona one-page</strong>
+              <p>Dobra dla jednej głównej usługi, szybkiego startu lub prostszej prezentacji online.</p>
+            </div>
+          </div>
+          <div class="web-type-card">
+            <svg class="web-type-card-illo" viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="1" y="1" width="58" height="48" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+              <path d="M10 14 H50 L46 32 H14 Z" fill="#ecfeff" stroke="#0d9488"/>
+              <circle cx="18" cy="38" r="3" fill="#0d9488"/>
+              <circle cx="42" cy="38" r="3" fill="#0d9488"/>
+              <rect x="14" y="20" width="6" height="6" rx="1" fill="#0d9488"/>
+              <rect x="24" y="20" width="6" height="6" rx="1" fill="#94a3b8"/>
+              <rect x="34" y="20" width="6" height="6" rx="1" fill="#94a3b8"/>
+            </svg>
+            <div class="web-type-card-body">
+              <strong>Sklep internetowy B2B</strong>
+              <p>Katalogi, zapytania ofertowe, warianty produktów, integracje i proces zamawiania dla firm.</p>
+            </div>
+          </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="web-section" id="realizacje">
+    <div class="web-wrap">
+      <span class="web-eyebrow">Przykładowe realizacje</span>
+      <h2 class="web-h2">Zobacz przykłady stron i projektów, zanim zdecydujesz o nowym wdrożeniu.</h2>
+      <div class="web-copy">
+        <p>Przy stronie internetowej liczy się nie tylko estetyka, ale też układ treści, zaufanie, szybkość i to, czy użytkownik rozumie następny krok. Dlatego realizacje traktuję jak case study: cel, zakres, efekt i rekomendacje na kolejne iteracje.</p>
+      </div>
+      <?php if (!empty($portfolio_examples)) : ?>
+        <div class="web-portfolio-grid">
+          <?php foreach ($portfolio_examples as $portfolio_item) :
+            $portfolio_thumb = !empty($portfolio_item["thumbnail"]) ? (string) $portfolio_item["thumbnail"] : (string) ($portfolio_item["image"] ?? "");
+            $portfolio_initials = function_exists("upsellio_get_initials_from_text") ? upsellio_get_initials_from_text((string) ($portfolio_item["title"] ?? "")) : "";
+            ?>
+            <a class="web-portfolio-card" href="<?php echo esc_url((string) ($portfolio_item["url"] ?? "")); ?>">
+              <span class="web-portfolio-thumb">
+                <?php if ($portfolio_thumb !== "") : ?>
+                  <img src="<?php echo esc_url($portfolio_thumb); ?>" alt="<?php echo esc_attr((string) ($portfolio_item["title"] ?? "Realizacja strony internetowej")); ?>" loading="lazy" decoding="async" />
+                <?php else : ?>
+                  <span style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-family:var(--font-display);font-size:32px;font-weight:800;color:var(--web-green-dark);"><?php echo esc_html($portfolio_initials !== "" ? $portfolio_initials : "UP"); ?></span>
+                <?php endif; ?>
+              </span>
+              <strong><?php echo esc_html((string) ($portfolio_item["title"] ?? "")); ?></strong>
+              <p><?php echo esc_html((string) ($portfolio_item["excerpt"] ?? $portfolio_item["result"] ?? "Zobacz zakres i efekt projektu.")); ?></p>
+              <span class="web-btn web-btn-ghost">Zobacz case study</span>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      <?php else : ?>
+        <div class="web-portfolio-grid">
+          <div class="web-portfolio-card"><span class="web-portfolio-thumb"></span><strong>Strona usługowa B2B</strong><p>Układ pod leady, sekcje zaufania, FAQ i prosty formularz kontaktowy.</p></div>
+          <div class="web-portfolio-card"><span class="web-portfolio-thumb"></span><strong>Landing page pod kampanię</strong><p>Jedna ścieżka decyzji, mocny nagłówek i CTA dopasowane do reklamy.</p></div>
+          <div class="web-portfolio-card"><span class="web-portfolio-thumb"></span><strong>Strona z portfolio</strong><p>Prezentacja realizacji, wyników i procesu pracy w formie case study.</p></div>
+        </div>
+      <?php endif; ?>
+    </div>
+  </section>
+
+  <section class="web-section" id="technologie">
+    <div class="web-wrap">
+      <span class="web-eyebrow">WordPress, Webflow czy custom?</span>
+      <h2 class="web-h2">Technologia powinna wynikać z celu strony, a nie z mody na konkretne narzędzie.</h2>
+      <div class="web-compare-grid">
+        <div class="web-compare-card"><strong>WordPress</strong><p>Dobry wybór dla stron firmowych, bloga, SEO, portfolio i samodzielnej edycji treści przez zespół.</p></div>
+        <div class="web-compare-card"><strong>Webflow / no-code</strong><p>Sprawdza się przy szybkich landing pages, prostych stronach marketingowych i testowaniu komunikatu.</p></div>
+        <div class="web-compare-card"><strong>Custom</strong><p>Ma sens przy nietypowych funkcjach, integracjach, aplikacjach webowych albo bardzo specyficznym procesie sprzedaży.</p></div>
       </div>
     </div>
   </section>
@@ -420,11 +637,38 @@ $faq_items = [
         <p>Tworzenie strony zaczyna się od diagnozy, a nie od wyboru szablonu. Najpierw trzeba zrozumieć klienta, obiekcje, proces decyzyjny, konkurencję w Google i cel biznesowy strony.</p>
       </div>
       <div class="web-process-grid">
-        <div class="web-step"><b>1</b><strong>Analiza</strong><p>Obecna strona, oferta, grupa docelowa, konkurencja i frazy w Google.</p></div>
-        <div class="web-step"><b>2</b><strong>Treści</strong><p>Copywriting, propozycja wartości, sekcje zaufania, FAQ, CTA i SEO.</p></div>
-        <div class="web-step"><b>3</b><strong>Projekt</strong><p>Hierarchia informacji, mobile-first, czytelność i prowadzenie do działania.</p></div>
-        <div class="web-step"><b>4</b><strong>Wdrożenie</strong><p>Core Web Vitals, meta tagi, formularze, tracking, sitemap i robots.txt.</p></div>
-        <div class="web-step"><b>5</b><strong>Optymalizacja</strong><p>Analiza zachowań, testy nagłówków, CTA, sekcji i formularzy po uruchomieniu.</p></div>
+        <div class="web-step">
+          <div class="web-step-head">
+            <span class="web-step-num">1</span>
+            <span class="web-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          </div>
+          <strong>Analiza</strong>
+          <p>Obecna strona, oferta, grupa docelowa, konkurencja i frazy w Google.</p>
+        </div>
+        <div class="web-step">
+          <div class="web-step-head">
+            <span class="web-step-num">2</span>
+            <span class="web-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 2 14 8 20 8"/><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></span>
+          </div>
+          <strong>Projekt i treści</strong>
+          <p>Copywriting, propozycja wartości, hierarchia informacji, mobile-first i jasne CTA.</p>
+        </div>
+        <div class="web-step">
+          <div class="web-step-head">
+            <span class="web-step-num">3</span>
+            <span class="web-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+          </div>
+          <strong>Wdrożenie</strong>
+          <p>Core Web Vitals, meta tagi, formularze, tracking, sitemap i robots.txt.</p>
+        </div>
+        <div class="web-step">
+          <div class="web-step-head">
+            <span class="web-step-num">4</span>
+            <span class="web-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
+          </div>
+          <strong>Optymalizacja</strong>
+          <p>Analiza zachowań, testy nagłówków, CTA, sekcji i formularzy po uruchomieniu.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -513,6 +757,16 @@ echo wp_json_encode([
 ?>
 </script>
 <?php endif; ?>
+<?php
+if (function_exists("upsellio_render_service_schema")) {
+    upsellio_render_service_schema(
+        "Tworzenie stron internetowych dla firm",
+        "Tworzenie stron internetowych, landing pages i optymalizacja konwersji dla firm B2B, usługowych i e-commerce.",
+        "/tworzenie-stron-internetowych/",
+        "Web Design and Development"
+    );
+}
+?>
 
 <script>
   (function () {

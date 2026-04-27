@@ -20,6 +20,11 @@ add_action("wp_head", static function () {
     echo '<meta property="og:description" content="Kampanie Google Ads dla firm: Search, Performance Max, słowa kluczowe z intencją zakupową, landing pages i optymalizacja kosztu leada.">' . "\n";
     echo '<meta property="og:type" content="website">' . "\n";
     echo '<meta property="og:url" content="' . esc_url($url) . '">' . "\n";
+    $og_image = function_exists("upsellio_get_default_og_image_url") ? upsellio_get_default_og_image_url() : "";
+    if ($og_image !== "") {
+        echo '<meta property="og:image" content="' . esc_url($og_image) . '">' . "\n";
+        echo '<meta name="twitter:image" content="' . esc_url($og_image) . '">' . "\n";
+    }
     echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
     echo '<link rel="canonical" href="' . esc_url($url) . '">' . "\n";
 }, 1);
@@ -119,7 +124,11 @@ $faq_items = [
   .gads-hero-grid { position:relative; display:grid; grid-template-columns:minmax(0,1.12fr) minmax(330px,.88fr); gap:clamp(34px,5vw,64px); align-items:center; }
   .gads-search-card { border:1px solid var(--gads-border); border-radius:34px; background:#fff; overflow:hidden; box-shadow:var(--gads-shadow); }
   .gads-search-bar { display:flex; align-items:center; gap:10px; padding:18px; border-bottom:1px solid var(--gads-border); background:#f8fafc; color:var(--gads-muted); font-size:14px; }
-  .gads-search-dot { width:12px; height:12px; border-radius:50%; background:var(--gads-blue); box-shadow:20px 0 0 var(--gads-red), 40px 0 0 var(--gads-yellow), 60px 0 0 var(--gads-green); margin-right:58px; }
+  .gads-search-dots { display:inline-flex; align-items:center; gap:6px; margin-right:14px; }
+  .gads-search-dot { width:11px; height:11px; border-radius:50%; display:inline-block; }
+  .gads-search-dot--red { background:var(--gads-red); }
+  .gads-search-dot--yellow { background:var(--gads-yellow); }
+  .gads-search-dot--green { background:var(--gads-green); }
   .gads-serp { padding:24px; display:grid; gap:16px; }
   .gads-ad { padding:18px; border:1px solid var(--gads-border); border-radius:20px; background:#fff; }
   .gads-ad small { display:inline-flex; margin-bottom:8px; padding:4px 8px; border-radius:999px; background:var(--gads-blue-soft); color:var(--gads-blue-dark); font-weight:800; }
@@ -136,19 +145,41 @@ $faq_items = [
   .gads-waste-list { margin-top:22px; display:grid; gap:12px; list-style:none; padding:0; }
   .gads-waste-list li { padding:14px; border:1px solid rgba(255,255,255,.12); border-radius:16px; background:rgba(255,255,255,.06); color:rgba(255,255,255,.82); }
   .gads-card-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
-  .gads-card { padding:24px; border:1px solid var(--gads-border); border-radius:24px; background:#fff; box-shadow:var(--gads-shadow-soft); transition:.2s ease; }
+  .gads-card { position:relative; padding:24px; border:1px solid var(--gads-border); border-radius:24px; background:#fff; box-shadow:var(--gads-shadow-soft); transition:.2s ease; }
   .gads-card:hover { transform:translateY(-4px); border-color:#99f6e4; box-shadow:var(--gads-shadow); }
+  .gads-card-icon { display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:12px; background:var(--gads-blue-soft); color:var(--gads-blue-dark); margin-bottom:12px; }
+  .gads-card-icon svg { width:22px; height:22px; }
   .gads-card strong { display:block; margin-bottom:8px; color:var(--gads-text); font-size:17px; }
   .gads-card p { font-size:15px; }
   .gads-service { background:#fff; border-top:1px solid var(--gads-border); border-bottom:1px solid var(--gads-border); }
   .gads-layers { margin-top:40px; display:grid; grid-template-columns:1fr 1fr; gap:18px; }
-  .gads-layer { padding:28px; border:1px solid var(--gads-border); border-radius:26px; background:#f8fafc; }
+  .gads-layer { position:relative; padding:28px; border:1px solid var(--gads-border); border-radius:26px; background:#f8fafc; }
+  .gads-layer.is-start { background:#fff; border-top:3px solid var(--gads-blue); box-shadow:var(--gads-shadow-soft); }
+  .gads-layer.is-start::before { content:"Start"; position:absolute; top:-12px; left:24px; padding:4px 10px; border-radius:999px; background:var(--gads-blue); color:#fff; font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; box-shadow:0 6px 16px -6px rgba(13,148,136,.5); }
   .gads-layer .gads-h3 { margin-bottom:14px; }
+  .gads-screenshot-slot { margin-top:42px; padding:0; border:1px dashed var(--gads-border); border-radius:24px; background:#fff; overflow:hidden; }
+  .gads-screenshot-head { display:flex; align-items:center; gap:10px; padding:14px 18px; background:#f8fafc; border-bottom:1px solid var(--gads-border); }
+  .gads-screenshot-head .gads-search-dots { margin-right:8px; }
+  .gads-screenshot-head-label { font-size:11px; letter-spacing:.16em; text-transform:uppercase; font-weight:700; color:var(--gads-muted); }
+  .gads-screenshot-body { display:grid; grid-template-columns:1fr; gap:18px; align-items:center; padding:24px 26px; }
+  .gads-screenshot-mock { display:grid; gap:10px; }
+  .gads-screenshot-row { display:grid; grid-template-columns:auto 1fr 1fr 1fr 1fr; gap:8px; align-items:center; padding:10px 12px; border-radius:10px; background:#f8fafc; border:1px solid var(--gads-border); }
+  .gads-screenshot-row.is-head { font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--gads-muted); background:#fff; }
+  .gads-screenshot-cell { height:8px; border-radius:6px; background:linear-gradient(90deg,#e2e8f0,#f1f5f9); }
+  .gads-screenshot-cell.short { width:60%; }
+  .gads-screenshot-cell.value { background:linear-gradient(90deg,#a7f3d0,#5eead4); height:10px; }
+  .gads-screenshot-cell.value.warn { background:linear-gradient(90deg,#fde68a,#fbbf24); }
+  .gads-screenshot-key { width:14px; height:14px; border-radius:4px; background:var(--gads-blue-soft); border:1px solid #99f6e4; }
+  .gads-screenshot-note { font-size:13px; line-height:1.6; color:var(--gads-text-2); }
+  .gads-screenshot-note strong { color:var(--gads-text); display:block; margin-bottom:6px; font-size:14px; }
+  @media(min-width:760px){ .gads-screenshot-body { grid-template-columns:1.4fr .9fr; } }
   .gads-check-list { display:grid; gap:10px; list-style:none; padding:0; }
   .gads-check-list li { position:relative; padding-left:26px; font-size:15px; color:var(--gads-text-2); }
   .gads-check-list li::before { content:"✓"; position:absolute; left:0; color:var(--gads-blue); font-weight:900; }
   .gads-fit-grid { margin-top:38px; display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
   .gads-fit { padding:28px; border-radius:28px; background:#fff; border:1px solid var(--gads-border); box-shadow:var(--gads-shadow-soft); }
+  .gads-fit-icon { display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; margin-bottom:16px; border-radius:14px; background:var(--gads-blue-soft); color:var(--gads-blue-dark); }
+  .gads-fit-icon svg { width:24px; height:24px; }
   .gads-fit b { display:inline-flex; margin-bottom:18px; min-width:42px; height:42px; align-items:center; justify-content:center; border-radius:14px; background:var(--gads-blue-soft); color:var(--gads-blue-dark); font-family:var(--font-display); }
   .gads-fit strong { display:block; margin-bottom:10px; color:var(--gads-text); font-size:18px; }
   .gads-campaign-types { margin-top:40px; display:grid; grid-template-columns:1.08fr .92fr; gap:22px; }
@@ -159,15 +190,23 @@ $faq_items = [
   .gads-type-card { padding:24px; border:1px solid var(--gads-border); border-radius:24px; background:#fff; box-shadow:var(--gads-shadow-soft); }
   .gads-type-card strong { display:block; color:var(--gads-text); margin-bottom:8px; }
   .gads-process { background:linear-gradient(180deg,#fff,var(--gads-cream)); border-top:1px solid var(--gads-border); border-bottom:1px solid var(--gads-border); }
-  .gads-process-grid { margin-top:38px; display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
-  .gads-step { padding:24px; border:1px solid var(--gads-border); border-radius:24px; background:#fff; box-shadow:var(--gads-shadow-soft); }
-  .gads-step b { width:34px; height:34px; display:grid; place-items:center; margin-bottom:16px; border-radius:50%; background:var(--gads-blue-soft); color:var(--gads-blue-dark); font-family:var(--font-display); }
+  .gads-process-grid { position:relative; margin-top:38px; display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .gads-process-grid::before { content:""; display:none; position:absolute; top:48px; left:8%; right:8%; height:2px; background:linear-gradient(90deg,var(--gads-blue-soft),#99f6e4 12%,#99f6e4 88%,var(--gads-blue-soft)); border-radius:2px; }
+  .gads-step { position:relative; z-index:1; padding:24px; border:1px solid var(--gads-border); border-radius:24px; background:#fff; box-shadow:var(--gads-shadow-soft); }
+  .gads-step-head { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .gads-step-num { width:34px; height:34px; display:grid; place-items:center; border-radius:50%; background:var(--gads-blue-soft); color:var(--gads-blue-dark); font-family:var(--font-display); font-weight:800; flex-shrink:0; }
+  .gads-step-icon { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px; background:#f1f5f9; color:var(--gads-blue-dark); }
+  .gads-step-icon svg { width:18px; height:18px; }
   .gads-step strong { display:block; margin-bottom:8px; color:var(--gads-text); }
   .gads-step p { font-size:14px; }
+  @media(min-width:1024px){ .gads-process-grid::before { display:block; } }
   .gads-effects { display:grid; grid-template-columns:.92fr 1.08fr; gap:28px; align-items:start; }
   .gads-kpi-box { padding:30px; border-radius:30px; background:#fff; border:1px solid var(--gads-border); box-shadow:var(--gads-shadow); }
   .gads-kpi-row { display:grid; gap:12px; margin-top:20px; }
-  .gads-kpi { padding:16px; border-radius:18px; background:#fbfbf8; border:1px solid var(--gads-border); }
+  .gads-kpi { padding:16px 18px; border-radius:18px; background:#fff; border:1px solid var(--gads-border); }
+  .gads-kpi-label { display:block; font-size:11px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; color:var(--gads-muted); }
+  .gads-kpi-value { display:block; margin-top:4px; font-family:var(--font-display); font-size:26px; line-height:1; letter-spacing:-.02em; color:var(--gads-blue); font-weight:800; }
+  .gads-kpi-context { display:block; margin-top:6px; font-size:12px; color:var(--gads-text-2); line-height:1.55; }
   .gads-kpi strong { display:block; color:var(--gads-blue); font-size:22px; }
   .gads-effects-list { display:grid; gap:10px; list-style:none; padding:0; }
   .gads-effects-list li { position:relative; padding-left:30px; color:var(--gads-text-2); }
@@ -176,7 +215,7 @@ $faq_items = [
   .gads-page details { border:1px solid var(--gads-border); border-radius:18px; background:#fff; padding:20px 22px; box-shadow:var(--gads-shadow-soft); }
   .gads-page summary { cursor:pointer; font-weight:800; color:var(--gads-text); }
   .gads-page details p { margin-top:12px; font-size:15px; }
-  .gads-final { text-align:center; padding:clamp(42px,5vw,64px); border:1px solid #c6d6ff; border-radius:32px; background:radial-gradient(circle at top,#eef3ff,#fff 62%); box-shadow:var(--gads-shadow-soft); }
+  .gads-final { text-align:center; padding:clamp(42px,5vw,64px); border:1px solid #99f6e4; border-radius:32px; background:radial-gradient(circle at top,#ecfeff,#fff 62%); box-shadow:var(--gads-shadow-soft); }
   .gads-final .gads-h2 { margin:0 auto; }
   .gads-final p { max-width:850px; margin:20px auto 0; font-size:18px; }
   .gads-final .gads-btn-row { justify-content:center; }
@@ -242,6 +281,7 @@ $faq_items = [
         <a href="#start">Start</a>
         <a href="#problemy">Budżet</a>
         <a href="#zakres">Zakres</a>
+        <a href="#lokalnie">Lokalnie</a>
         <a href="#dla-kogo">Dla kogo</a>
         <a href="#typy">Typy kampanii</a>
         <a href="#proces">Proces</a>
@@ -269,7 +309,7 @@ $faq_items = [
       </div>
 
       <aside class="gads-search-card" aria-label="Przykład intencji w Google Ads">
-        <div class="gads-search-bar"><span class="gads-search-dot"></span>serwis maszyn cnc śląsk</div>
+          <div class="gads-search-bar"><span class="gads-search-dots" aria-hidden="true"><span class="gads-search-dot gads-search-dot--red"></span><span class="gads-search-dot gads-search-dot--yellow"></span><span class="gads-search-dot gads-search-dot--green"></span></span>serwis maszyn cnc śląsk</div>
         <div class="gads-serp">
           <div class="gads-ad">
             <small>Reklama</small>
@@ -283,6 +323,21 @@ $faq_items = [
           </div>
         </div>
       </aside>
+    </div>
+  </section>
+
+  <section class="gads-section" id="lokalnie">
+    <div class="gads-wrap">
+      <span class="gads-eyebrow">Google Ads lokalnie i ogólnopolsko</span>
+      <h2 class="gads-h2">Obsługuję kampanie Google Ads dla firm z całej Polski, z naciskiem na lokalną intencję wyszukiwania.</h2>
+      <div class="gads-copy">
+        <p>W wielu branżach usługowych i B2B zapytania typu „Google Ads Poznań”, „agencja Google Ads Trójmiasto” albo „kampanie Google Ads Warszawa” mają niższą konkurencję niż ogólne frazy. Dlatego przy kampaniach i treściach sprawdzam nie tylko kanał reklamowy, ale też potencjał lokalnych podstron, wyników organicznych i dopasowania landing page do miasta lub regionu.</p>
+        <p>Jeśli działasz lokalnie, kampania powinna uwzględniać promień działania, frazy z miastami, wykluczenia lokalizacji i osobne komunikaty dla klientów z konkretnego regionu. Jeśli sprzedajesz ogólnopolsko, lokalne frazy nadal mogą wspierać SEO i obniżać koszt pozyskania ruchu z wysoką intencją.</p>
+      </div>
+      <div class="gads-btn-row">
+        <a href="<?php echo esc_url(home_url("/miasta/")); ?>" class="gads-btn gads-btn-ghost">Zobacz podstrony miast</a>
+        <a href="<?php echo esc_url(home_url("/oferta/")); ?>" class="gads-btn gads-btn-secondary">Zobacz pełną ofertę</a>
+      </div>
     </div>
   </section>
 
@@ -307,11 +362,35 @@ $faq_items = [
           </ul>
         </div>
 
-        <div class="gads-card-grid">
-          <div class="gads-card"><strong>Zły dobór słów kluczowych</strong><p>Szerokie frazy generują ruch od osób, które dopiero orientują się w temacie, a nie są gotowe na kontakt.</p></div>
-          <div class="gads-card"><strong>Brak wykluczeń</strong><p>Kampania bez wykluczeń wyświetla reklamy na przypadkowe i kosztowne zapytania.</p></div>
-          <div class="gads-card"><strong>Słaby landing page</strong><p>Użytkownik klika reklamę, ale strona nie kontynuuje przekazu i nie prowadzi do CTA.</p></div>
-          <div class="gads-card"><strong>Brak danych o konwersjach</strong><p>Bez wiedzy, które kliknięcia dają leady, optymalizacja opiera się na domysłach.</p></div>
+          <div class="gads-card-grid">
+          <div class="gads-card">
+            <div class="gads-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <strong>Zły dobór słów kluczowych</strong>
+            <p>Szerokie frazy generują ruch od osób, które dopiero orientują się w temacie, a nie są gotowe na kontakt.</p>
+          </div>
+          <div class="gads-card">
+            <div class="gads-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            </div>
+            <strong>Brak wykluczeń</strong>
+            <p>Kampania bez wykluczeń wyświetla reklamy na przypadkowe i kosztowne zapytania.</p>
+          </div>
+          <div class="gads-card">
+            <div class="gads-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <strong>Słaby landing page</strong>
+            <p>Użytkownik klika reklamę, ale strona nie kontynuuje przekazu i nie prowadzi do CTA.</p>
+          </div>
+          <div class="gads-card">
+            <div class="gads-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <strong>Brak danych o konwersjach</strong>
+            <p>Bez wiedzy, które kliknięcia dają leady, optymalizacja opiera się na domysłach.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -326,7 +405,7 @@ $faq_items = [
       </div>
 
       <div class="gads-layers">
-        <div class="gads-layer">
+        <div class="gads-layer is-start">
           <h3 class="gads-h3">Audyt i strategia</h3>
           <ul class="gads-check-list">
             <li>analiza struktury konta, słów kluczowych i wykluczeń</li>
@@ -363,6 +442,57 @@ $faq_items = [
           </ul>
         </div>
       </div>
+
+      <?php
+      $gads_screenshot_url = function_exists("upsellio_get_template_asset_url") ? upsellio_get_template_asset_url("service_google_screenshot", "large") : "";
+      $gads_screenshot_caption = function_exists("upsellio_template_asset_caption") ? upsellio_template_asset_caption("service_google_screenshot") : "";
+      ?>
+      <div class="gads-screenshot-slot" aria-label="Przykładowy widok z panelu Google Ads (zanonimizowany)">
+        <div class="gads-screenshot-head">
+          <span class="gads-search-dots" aria-hidden="true"><span class="gads-search-dot gads-search-dot--red"></span><span class="gads-search-dot gads-search-dot--yellow"></span><span class="gads-search-dot gads-search-dot--green"></span></span>
+          <span class="gads-screenshot-head-label">Panel Google Ads · widok zanonimizowany</span>
+        </div>
+        <div class="gads-screenshot-body">
+          <?php if ($gads_screenshot_url !== "") : ?>
+            <img src="<?php echo esc_url($gads_screenshot_url); ?>" alt="Panel kampanii Google Ads" loading="lazy" decoding="async" style="width:100%;height:auto;display:block;border-bottom:1px solid var(--gads-border);" />
+          <?php else : ?>
+          <div class="gads-screenshot-mock" aria-hidden="true">
+            <div class="gads-screenshot-row is-head">
+              <span></span><span>Kampania</span><span>Kliknięcia</span><span>CPL</span><span>Konwersje</span>
+            </div>
+            <div class="gads-screenshot-row">
+              <span class="gads-screenshot-key"></span>
+              <span class="gads-screenshot-cell"></span>
+              <span class="gads-screenshot-cell short"></span>
+              <span class="gads-screenshot-cell value"></span>
+              <span class="gads-screenshot-cell short"></span>
+            </div>
+            <div class="gads-screenshot-row">
+              <span class="gads-screenshot-key"></span>
+              <span class="gads-screenshot-cell short"></span>
+              <span class="gads-screenshot-cell"></span>
+              <span class="gads-screenshot-cell value"></span>
+              <span class="gads-screenshot-cell"></span>
+            </div>
+            <div class="gads-screenshot-row">
+              <span class="gads-screenshot-key"></span>
+              <span class="gads-screenshot-cell"></span>
+              <span class="gads-screenshot-cell"></span>
+              <span class="gads-screenshot-cell value warn"></span>
+              <span class="gads-screenshot-cell short"></span>
+            </div>
+          </div>
+          <?php endif; ?>
+          <div class="gads-screenshot-note">
+            <strong>Co czytamy z panelu</strong>
+            <?php if ($gads_screenshot_caption !== "") : ?>
+              <?php echo esc_html($gads_screenshot_caption); ?>
+            <?php else : ?>
+              Co tydzień patrzę na search terms, CPL per kampania, jakość konwersji i Quality Score. Dane z konta klienta omawiamy w cyklu raportów; powyżej widok poglądowy z zanonimizowanymi etykietami.
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -376,9 +506,27 @@ $faq_items = [
       </div>
 
       <div class="gads-fit-grid">
-        <div class="gads-fit"><b>B2B</b><strong>Usługi specjalistyczne</strong><p>Produkcja, IT, logistyka, finanse, doradztwo i prawo, gdzie pojedynczy klient ma wysoką wartość.</p></div>
-        <div class="gads-fit"><b>LOC</b><strong>Firmy lokalne</strong><p>Precyzyjne dotarcie do osób z miasta, regionu lub dzielnicy, które aktywnie szukają usługi.</p></div>
-        <div class="gads-fit"><b>ROAS</b><strong>E-commerce</strong><p>Shopping, Performance Max i optymalizacja pod ROAS przy kontrolowanym koszcie sprzedaży.</p></div>
+        <div class="gads-fit">
+          <div class="gads-fit-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V7l9-4 9 4v14"/><path d="M9 21V12h6v9"/><path d="M3 21h18"/></svg>
+          </div>
+          <strong>Firmy B2B</strong>
+          <p>Produkcja, IT, logistyka, finanse, doradztwo i prawo, gdzie pojedynczy klient ma wysoką wartość.</p>
+        </div>
+        <div class="gads-fit">
+          <div class="gads-fit-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <strong>Lokalne usługi</strong>
+          <p>Precyzyjne dotarcie do osób z miasta, regionu lub dzielnicy, które aktywnie szukają usługi.</p>
+        </div>
+        <div class="gads-fit">
+          <div class="gads-fit-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          </div>
+          <strong>E-commerce</strong>
+          <p>Shopping, Performance Max i optymalizacja pod ROAS przy kontrolowanym koszcie sprzedaży.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -410,10 +558,38 @@ $faq_items = [
         <p>Każda współpraca przy Google Ads zaczyna się od diagnozy, a nie od uruchomienia kampanii. Muszę zrozumieć, co sprzedajesz, kto jest Twoim klientem, jaki jest średni zysk na kliencie, czy masz aktywne kampanie i jaka jest jakość strony docelowej.</p>
       </div>
       <div class="gads-process-grid">
-        <div class="gads-step"><b>1</b><strong>Audyt i diagnoza</strong><p>Konto, słowa kluczowe, wykluczenia, reklamy, Quality Score, landing pages i konwersje.</p></div>
-        <div class="gads-step"><b>2</b><strong>Strategia</strong><p>Typ kampanii, budżet, struktura konta, KPI, słowa kluczowe i wykluczenia.</p></div>
-        <div class="gads-step"><b>3</b><strong>Wdrożenie</strong><p>Kampanie, grupy reklam, rozszerzenia, stawki, budżety i śledzenie konwersji.</p></div>
-        <div class="gads-step"><b>4</b><strong>Optymalizacja</strong><p>Search terms, nowe wykluczenia, testy komunikatów, stawki, raporty i landing pages.</p></div>
+        <div class="gads-step">
+          <div class="gads-step-head">
+            <span class="gads-step-num">1</span>
+            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          </div>
+          <strong>Audyt i diagnoza</strong>
+          <p>Konto, słowa kluczowe, wykluczenia, reklamy, Quality Score, landing pages i konwersje.</p>
+        </div>
+        <div class="gads-step">
+          <div class="gads-step-head">
+            <span class="gads-step-num">2</span>
+            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></span>
+          </div>
+          <strong>Strategia</strong>
+          <p>Typ kampanii, budżet, struktura konta, KPI, słowa kluczowe i wykluczenia.</p>
+        </div>
+        <div class="gads-step">
+          <div class="gads-step-head">
+            <span class="gads-step-num">3</span>
+            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+          </div>
+          <strong>Wdrożenie</strong>
+          <p>Kampanie, grupy reklam, rozszerzenia, stawki, budżety i śledzenie konwersji.</p>
+        </div>
+        <div class="gads-step">
+          <div class="gads-step-head">
+            <span class="gads-step-num">4</span>
+            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
+          </div>
+          <strong>Optymalizacja</strong>
+          <p>Search terms, nowe wykluczenia, testy komunikatów, stawki, raporty i landing pages.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -429,11 +605,23 @@ $faq_items = [
         </div>
       </div>
       <div class="gads-kpi-box">
-        <h3 class="gads-h3">Na czym skupiam optymalizację</h3>
+        <h3 class="gads-h3">Realne benchmarki, na których pracujemy</h3>
         <div class="gads-kpi-row">
-          <div class="gads-kpi"><strong>CPL</strong><span>Koszt pozyskania wartościowego leada.</span></div>
-          <div class="gads-kpi"><strong>Quality</strong><span>Jakość zapytań i realny potencjał sprzedażowy.</span></div>
-          <div class="gads-kpi"><strong>ROAS</strong><span>Zwrot z wydatków reklamowych w e-commerce.</span></div>
+          <div class="gads-kpi">
+            <span class="gads-kpi-label">CPL</span>
+            <span class="gads-kpi-value">37–89 zł</span>
+            <span class="gads-kpi-context">Średni koszt wartościowego leada w kampaniach B2B (usługi i IT, 2024).</span>
+          </div>
+          <div class="gads-kpi">
+            <span class="gads-kpi-label">Quality Score</span>
+            <span class="gads-kpi-value">+2 / +3 pkt</span>
+            <span class="gads-kpi-context">Typowa poprawa jakości fraz po pierwszym cyklu optymalizacji i nowych landingach.</span>
+          </div>
+          <div class="gads-kpi">
+            <span class="gads-kpi-label">ROAS (e-com)</span>
+            <span class="gads-kpi-value">300–600%</span>
+            <span class="gads-kpi-context">Realistyczny zakres dla sklepów z marżą i poprawnym śledzeniem zakupów.</span>
+          </div>
         </div>
         <ul class="gads-effects-list" style="margin-top:22px;">
           <li>Niższy koszt pozyskania wartościowego leada względem obecnych wyników lub benchmarków.</li>
@@ -514,6 +702,16 @@ echo wp_json_encode([
 ?>
 </script>
 <?php endif; ?>
+<?php
+if (function_exists("upsellio_render_service_schema")) {
+    upsellio_render_service_schema(
+        "Kampanie Google Ads dla firm",
+        "Prowadzenie kampanii Google Ads Search i Performance Max dla firm B2B, usługowych i e-commerce.",
+        "/marketing-google-ads/",
+        "Google Ads"
+    );
+}
+?>
 
 <script>
   (function () {
