@@ -1,17 +1,17 @@
 ﻿:root {
-  --bg: #ffffff;
+  --bg: #fafaf7;
   --bg-soft: #f8f8f6;
   --surface: #ffffff;
-  --text: #111110;
+  --text: #0a1410;
   --text-2: #3d3d38;
   --text-3: #7c7c74;
-  --border: #e6e6e1;
+  --border: #e7e7e1;
   --border-strong: #c9c9c3;
-  --teal: #1d9e75;
-  --teal-hover: #17885f;
-  --teal-dark: #085041;
-  --teal-soft: #e8f8f2;
-  --teal-line: #c3eddd;
+  --teal: #0d9488;
+  --teal-hover: #0f766e;
+  --teal-dark: #0f766e;
+  --teal-soft: #ccfbf1;
+  --teal-line: #99f6e4;
   --danger: #d94c4c;
   --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.07), 0 2px 6px rgba(0, 0, 0, 0.04);
@@ -44,13 +44,13 @@
   --uf-text: #111;
   --uf-text-2: #4d524b;
   --uf-text-3: #71776f;
-  --uf-teal: #1d9e75;
-  --uf-teal-dark: #15785a;
+  --uf-teal: #0d9488;
+  --uf-teal-dark: #0f766e;
   --uf-shadow: 0 20px 50px rgba(18, 24, 18, 0.06);
   --uf-radius: 28px;
   padding: clamp(52px, 8vw, 72px) 0 28px;
   border-top: 1px solid var(--uf-border);
-  background: radial-gradient(circle at top left, rgba(29, 158, 117, 0.09), transparent 24%), linear-gradient(180deg, #fcfcfa 0%, #f6f6f2 100%);
+  background: radial-gradient(circle at top left, rgba(13, 148, 136, 0.09), transparent 24%), linear-gradient(180deg, #fcfcfa 0%, #f6f6f2 100%);
   color: var(--uf-text);
 }
 .ups-footer .wrap { width: min(1360px, calc(100% - 32px)); max-width: none; margin: 0 auto; padding: 0; }
@@ -62,7 +62,7 @@
 .ups-footer__brand { min-width: 0; padding: clamp(22px, 2.6vw, 30px); }
 .ups-footer__logo { display: inline-flex; align-items: center; gap: 14px; text-decoration: none; color: inherit; }
 .ups-footer__logo-image { display: block; width: min(100%, 320px); height: auto; object-fit: contain; background: transparent; }
-.ups-footer__logo-mark { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #21ab82 0%, #177358 100%); color: #fff; font-family: Syne, sans-serif; font-weight: 800; font-size: 20px; box-shadow: 0 10px 24px rgba(29, 158, 117, 0.22); }
+  .ups-footer__logo-mark { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #0d9488 0%, #0f766e 100%); color: #fff; font-family: Syne, sans-serif; font-weight: 800; font-size: 20px; box-shadow: 0 10px 24px rgba(13, 148, 136, 0.22); }
 .ups-footer__logo-copy { display: flex; flex-direction: column; line-height: 1.1; }
 .ups-footer__logo-name { font-family: Syne, sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
 .ups-footer__logo-sub { margin-top: 4px; font-size: 13px; color: var(--uf-text-3); }
@@ -71,8 +71,8 @@
 .ups-footer__trust-item { padding: 14px 16px; border: 1px solid var(--uf-border); border-radius: 16px; background: #fbfcfa; }
 .ups-footer__trust-item strong { display: block; font-size: 14px; line-height: 1.35; }
 .ups-footer__trust-item span { display: block; margin-top: 4px; font-size: 13px; line-height: 1.6; color: var(--uf-text-3); }
-.ups-footer__cta { margin-top: 22px; padding: clamp(18px, 2.3vw, 24px); border-radius: 20px; border: 1px solid rgba(29, 158, 117, 0.24); background: linear-gradient(180deg, rgba(29, 158, 117, 0.11), rgba(255, 255, 255, 0.99)); }
-.ups-footer__newsletter { margin-top: 22px; padding: clamp(18px, 2.3vw, 24px); border-radius: 20px; border: 1px solid rgba(29, 158, 117, 0.24); background: linear-gradient(180deg, rgba(29, 158, 117, 0.11), rgba(255, 255, 255, 0.99)); }
+  .ups-footer__cta { margin-top: 22px; padding: clamp(18px, 2.3vw, 24px); border-radius: 20px; border: 1px solid rgba(13, 148, 136, 0.24); background: linear-gradient(180deg, rgba(13, 148, 136, 0.11), rgba(255, 255, 255, 0.99)); }
+  .ups-footer__newsletter { margin-top: 22px; padding: clamp(18px, 2.3vw, 24px); border-radius: 20px; border: 1px solid rgba(13, 148, 136, 0.24); background: linear-gradient(180deg, rgba(13, 148, 136, 0.11), rgba(255, 255, 255, 0.99)); }
 .ups-footer__cta-copy h2 { margin: 0; font-family: Syne, sans-serif; font-size: clamp(22px, 2.2vw, 28px); line-height: 1.08; letter-spacing: -0.03em; max-width: 20ch; }
 .ups-footer__cta-copy p { margin: 10px 0 0; font-size: 14px; line-height: 1.75; color: var(--uf-text-2); }
 .ups-footer__cta-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
@@ -171,23 +171,23 @@
 
 /* Homepage styles moved from front-page.php. */
 :root {
-  --bg: #ffffff;
+  --bg: #fafaf7;
   --bg-soft: #f8f8f6;
   --bg-muted: #f1f1ee;
   --surface: #ffffff;
 
-  --text: #111110;
+  --text: #0a1410;
   --text-2: #3d3d38;
   --text-3: #7c7c74;
 
-  --border: #e6e6e1;
+  --border: #e7e7e1;
   --border-strong: #c9c9c3;
 
-  --teal: #1d9e75;
-  --teal-hover: #17885f;
-  --teal-dark: #085041;
-  --teal-soft: #e8f8f2;
-  --teal-line: #c3eddd;
+  --teal: #0d9488;
+  --teal-hover: #0f766e;
+  --teal-dark: #0f766e;
+  --teal-soft: #ccfbf1;
+  --teal-line: #99f6e4;
 
   --danger: #d94c4c;
 
@@ -756,6 +756,7 @@ select {
   font-size: 13px;
   font-weight: 700;
   flex-shrink: 0;
+  animation: pulse 1.9s ease-in-out infinite;
 }
 
 .hero-pill span {
@@ -3423,6 +3424,17 @@ select {
   font-size: 14px;
 }
 
+.service-card-cta-link {
+  color: var(--teal-dark);
+  font-weight: 800;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.service-card-cta-link:hover {
+  border-bottom-color: var(--teal-dark);
+}
+
 .service-top {
   display: flex;
   justify-content: space-between;
@@ -3598,6 +3610,32 @@ select {
   font-size: 16px;
   color: rgba(255,255,255,0.55);
   line-height: 1.7;
+}
+
+.cta-dark-proof {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cta-dark-proof-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(153, 246, 228, 0.28);
+  background: rgba(7, 20, 38, 0.3);
+  color: rgba(226, 232, 240, 0.9);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.cta-dark-proof-item strong {
+  color: #99f6e4;
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
 .btn-white {

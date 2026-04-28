@@ -86,7 +86,7 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
     --web-green-soft:#ecfeff;
     --web-blue:#081827;
     --web-blue-soft:#ecfeff;
-    --web-amber:#f59e0b;
+    --web-amber:#0d9488;
     --web-dark:#081827;
     --web-shadow:0 24px 70px rgba(15,23,42,.12);
     --web-shadow-soft:0 14px 40px rgba(15,23,42,.08);

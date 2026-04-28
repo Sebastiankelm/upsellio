@@ -8,7 +8,7 @@
  *
  * Konwencja:
  *   --lp-*           tokeny wspólne dla landing pages
- *   --lp-accent-*    akcent kolorystyczny per usługa (Google teal, Meta indigo, WWW amber)
+ *   --lp-accent-*    jeden akcent systemowy (teal) dla wszystkich usług
  *   .lp-*            klasy komponentowe gotowe do użycia
  */
 
@@ -27,12 +27,12 @@
   --lp-accent-google: #0d9488;
   --lp-accent-google-soft: #ccfbf1;
   --lp-accent-google-line: #99f6e4;
-  --lp-accent-meta: #4f46e5;
-  --lp-accent-meta-soft: #e0e7ff;
-  --lp-accent-meta-line: #c7d2fe;
-  --lp-accent-web: #f59e0b;
-  --lp-accent-web-soft: #fef3c7;
-  --lp-accent-web-line: #fde68a;
+  --lp-accent-meta: #0d9488;
+  --lp-accent-meta-soft: #ccfbf1;
+  --lp-accent-meta-line: #99f6e4;
+  --lp-accent-web: #0d9488;
+  --lp-accent-web-soft: #ccfbf1;
+  --lp-accent-web-line: #99f6e4;
   --lp-accent-content: #0ea5e9;
   --lp-accent-content-soft: #e0f2fe;
 

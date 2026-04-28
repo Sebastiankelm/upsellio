@@ -43,261 +43,98 @@ foreach ($portfolio_items as $index => $item) {
 }
 ?>
 <style>
-  .port-page { background:#f8fafc; color:#071426; }
-  .port-wrap { width:min(1240px, calc(100% - 32px)); margin:0 auto; }
-  .port-hero { border-bottom:1px solid #e2e8f0; background:radial-gradient(circle at top right, rgba(20,184,166,0.22), rgba(255,255,255,0) 55%), linear-gradient(180deg, rgba(20,184,166,0.18), rgba(255,255,255,0) 65%); }
-  .port-hero-inner { padding:64px 0 52px; }
-  .port-pill { display:inline-flex; align-items:center; gap:10px; border:1px solid #99f6e4; background:#ecfeff; color:#0f766e; font-size:12px; font-weight:600; border-radius:999px; padding:9px 14px; }
-  .port-pill-dot { width:8px; height:8px; border-radius:50%; background:#0d9488; }
-  .port-h1 { margin:18px 0 16px; max-width:920px; font-family:"Syne",sans-serif; font-size:clamp(38px, 6vw, 66px); line-height:.96; letter-spacing:-0.06em; }
-  .port-accent { color:#0d9488; }
-  .port-lead { margin:0; max-width:890px; font-size:19px; line-height:1.72; color:#334155; }
-  .port-search { margin-top:30px; display:grid; gap:12px; grid-template-columns:1fr; }
-  .port-search-input { width:100%; border:1px solid #e2e8f0; border-radius:16px; background:#fff; padding:13px 16px; font-size:15px; outline:none; }
-  .port-search-input:focus { border-color:#0d9488; box-shadow:0 0 0 3px rgba(20,184,166,.14); }
-  .port-btn { display:inline-flex; align-items:center; justify-content:center; min-height:46px; border-radius:12px; background:linear-gradient(135deg,#0d9488,#14b8a6); color:#fff; font-size:14px; font-weight:700; padding:10px 18px; }
-  .port-btn:hover { background:#0f766e; }
-  .port-cats-wrap { background:#fff; border-bottom:1px solid #e2e8f0; }
-  .port-cats { padding:18px 0; display:flex; flex-wrap:wrap; gap:10px; }
-  .port-cat-btn { border:1px solid #e2e8f0; background:#fff; color:#334155; border-radius:999px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; }
-  .port-cat-btn.is-active, .port-cat-btn:hover { border-color:#99f6e4; background:#ecfeff; color:#0f766e; }
-  .port-featured-section { border-bottom:1px solid #e2e8f0; background:#f1f5f9; }
-  .port-featured-grid { display:grid; grid-template-columns:1fr; gap:18px; padding:46px 0; }
-  .port-featured-card { overflow:hidden; border:1px solid #e2e8f0; border-radius:28px; background:#fff; display:grid; grid-template-columns:1fr; }
-  .port-featured-visual { min-height:270px; position:relative; background:linear-gradient(135deg,#ecfeff,#cbd5e1); display:flex; align-items:center; justify-content:center; }
-  .port-featured-visual img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-  .port-featured-overlay { position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.32)); }
-  .port-featured-fallback { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:10px; color:#0f766e; padding:24px; text-align:center; }
-  .port-featured-fallback-initials { width:80px; height:80px; border-radius:50%; background:#fff; box-shadow:0 12px 30px -12px rgba(13,148,136,.4); display:flex; align-items:center; justify-content:center; font-family:"Syne",sans-serif; font-size:32px; font-weight:800; letter-spacing:-.02em; color:#0f766e; }
-  .port-featured-fallback-title { font-family:"Syne",sans-serif; font-size:18px; line-height:1.15; max-width:240px; }
-  .port-featured-badge { position:absolute; left:20px; top:20px; border:1px solid rgba(255,255,255,.28); border-radius:999px; background:rgba(255,255,255,.16); color:#fff; padding:6px 12px; font-size:12px; font-weight:700; backdrop-filter:blur(6px); }
-  .port-featured-body { padding:28px; }
-  .port-featured-category { display:inline-flex; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; color:#334155; font-size:11px; font-weight:700; padding:5px 11px; }
-  .port-featured-title { margin:14px 0 12px; font-family:"Syne",sans-serif; font-size:clamp(30px, 3.5vw, 44px); line-height:1.01; letter-spacing:-.045em; }
-  .port-featured-excerpt { margin:0; color:#334155; line-height:1.78; }
-  .port-metrics { margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; }
-  .port-metric { border:1px solid #e2e8f0; background:#f8fafc; color:#334155; border-radius:999px; font-size:12px; padding:6px 10px; }
-  .port-featured-actions { margin-top:18px; display:flex; flex-wrap:wrap; gap:10px; }
-  .port-featured-link { display:inline-flex; align-items:center; justify-content:center; min-height:44px; border-radius:12px; font-size:14px; font-weight:700; padding:10px 16px; }
-  .port-featured-link.primary { background:#0d9488; color:#fff; }
-  .port-featured-link.secondary { border:1px solid #e2e8f0; background:#fff; color:#334155; }
-  .port-featured-link.primary:hover { background:#0f766e; }
-  .port-featured-link.secondary:hover { border-color:#0d9488; color:#0d9488; }
-  .port-side { display:flex; flex-direction:column; gap:12px; }
-  .port-side-card { border:1px solid #e2e8f0; border-radius:22px; background:#fff; padding:22px; }
-  .port-side-eyebrow { font-size:11px; letter-spacing:.18em; text-transform:uppercase; font-weight:700; color:#707670; }
-  .port-side-title { margin:10px 0 8px; font-family:"Syne",sans-serif; font-size:28px; line-height:1.03; letter-spacing:-.04em; }
-  .port-side-copy { margin:0; color:#5f645f; line-height:1.76; }
-  .port-side-list { margin:14px 0 0; padding:0; list-style:none; display:grid; gap:10px; }
-  .port-side-list li { display:flex; gap:8px; color:#5b615b; line-height:1.68; }
-  .port-side-list span { color:#0d9488; font-weight:700; }
-  .port-grid-section { background:#fff; }
-  .port-grid-head { display:flex; justify-content:space-between; align-items:end; gap:16px; flex-wrap:wrap; padding:42px 0 14px; }
-  .port-eyebrow { font-size:11px; letter-spacing:.18em; text-transform:uppercase; font-weight:700; color:#727872; }
-  .port-h2 { margin:10px 0 0; font-family:"Syne",sans-serif; font-size:clamp(32px, 4vw, 46px); line-height:1.05; letter-spacing:-.045em; }
-  .port-grid-meta { color:#7a817a; font-size:14px; }
-  .port-grid { display:grid; gap:14px; padding:16px 0 54px; grid-template-columns:1fr; }
-  .port-card { border:1px solid #e2e8f0; border-radius:24px; background:#fff; padding:0; display:flex; flex-direction:column; transition:.2s ease; min-height:100%; overflow:hidden; }
-  .port-card:hover { border-color:#0d9488; transform:translateY(-2px); box-shadow:0 14px 40px rgba(15,23,42,.08); }
-  .port-card-thumb { position:relative; aspect-ratio:16 / 10; background:linear-gradient(135deg,#ecfeff,#cbd5e1); display:flex; align-items:center; justify-content:center; overflow:hidden; }
-  .port-card-thumb img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform .3s ease; }
-  .port-card:hover .port-card-thumb img { transform:scale(1.04); }
-  .port-card-thumb-fallback { display:flex; flex-direction:column; align-items:center; gap:8px; color:#0f766e; }
-  .port-card-thumb-fallback-circle { width:54px; height:54px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-family:"Syne",sans-serif; font-weight:800; font-size:22px; letter-spacing:-.02em; color:#0f766e; box-shadow:0 8px 20px -10px rgba(13,148,136,.4); }
-  .port-card-thumb-tag { font-size:10px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:#0f766e; }
-  .port-card-live { position:absolute; top:10px; right:10px; display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:999px; background:rgba(255,255,255,.92); color:#0f766e; font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; backdrop-filter:blur(4px); }
-  .port-card-live::before { content:""; width:6px; height:6px; border-radius:50%; background:#0d9488; }
-  .port-card-body { padding:20px 22px 22px; display:flex; flex-direction:column; flex:1; }
-  .port-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
-  .port-card-category { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#6d736d; font-weight:700; }
-  .port-card-type { font-size:12px; color:#596059; margin-top:5px; }
-  .port-card-title { margin:14px 0 8px; font-family:"Syne",sans-serif; font-size:26px; line-height:1.06; letter-spacing:-.04em; }
-  .port-card-excerpt { margin:0; color:#5a605a; line-height:1.73; font-size:15px; }
-  .port-card-meta { margin-top:10px; font-size:13px; color:#768076; }
-  .port-card-link { margin-top:auto; padding-top:18px; color:#0d9488; font-size:14px; font-weight:700; }
-  .port-empty { padding:18px; border:1px dashed #d8d8d3; border-radius:14px; color:#676d67; }
-  .port-hidden { display:none !important; }
-  .port-seo { border-top:1px solid #e2e8f0; background:#f1f5f9; }
-  .port-seo-grid { display:grid; grid-template-columns:1fr; gap:14px; padding:46px 0; }
-  .port-seo-card { border:1px solid #e2e8f0; border-radius:22px; background:#fff; padding:22px; }
-  .port-seo-card h3 { margin:8px 0 10px; font-family:"Syne",sans-serif; font-size:28px; line-height:1.06; letter-spacing:-.03em; }
-  .port-seo-card p { margin:0; color:#5f645f; line-height:1.75; }
-  .port-seo-list { margin:14px 0 0; padding-left:17px; color:#555c55; line-height:1.8; }
-  @media (min-width:760px) {
-    .port-wrap { width:min(1240px, calc(100% - 48px)); }
-    .port-search { grid-template-columns:1fr 220px; }
-  }
-  @media (min-width:982px) {
-    .port-featured-grid { grid-template-columns:1.25fr .75fr; }
-    .port-featured-card { grid-template-columns:1.02fr .98fr; }
-    .port-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); }
-    .port-seo-grid { grid-template-columns:1.04fr .96fr; }
-  }
+  .pr-art{font-family:"DM Sans",system-ui,sans-serif;color:#0a1410;background:#fafaf7;line-height:1.65}
+  .pr-art *,.pr-art *::before,.pr-art *::after{box-sizing:border-box}
+  .pr-wrap{width:min(1180px,100% - 64px);margin-inline:auto}
+  .pr-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#0d9488;margin-bottom:14px}
+  .pr-eyebrow::before{content:"";width:26px;height:2px;background:#0d9488;border-radius:99px}
+  .pr-eyebrow-light{color:#5eead4}.pr-eyebrow-light::before{background:#5eead4}
+  .pr-h1{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(40px,4.6vw,64px);line-height:1.02;letter-spacing:-2px;margin:0 0 20px;max-width:18ch}
+  .pr-h2{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(28px,3.2vw,42px);line-height:1.05;letter-spacing:-1.4px;margin:0;max-width:22ch}
+  .pr-h2-light{color:#fff}.pr-h3{font-family:"Syne",sans-serif;font-weight:700;font-size:21px;line-height:1.18;letter-spacing:-.5px;margin:0 0 10px}
+  .pr-lead{font-size:18px;line-height:1.6;color:#3d3d38;max-width:60ch;margin:0 0 32px}.pr-section{padding:96px 0 128px}
+  .pr-hero{padding:96px 0 56px;background:radial-gradient(circle at 90% 0%,rgba(13,148,136,.1),transparent 40%)}
+  .pr-filters{display:flex;flex-wrap:wrap;gap:8px}
+  .pr-filters button{padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;color:#3d3d38;border:1px solid #e7e7e1;background:#fff;cursor:pointer}
+  .pr-filters button:hover{color:#0d9488;border-color:#99f6e4}.pr-filters button.is-active{background:#0a1410;color:#fff;border-color:#0a1410}
+  .pr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .pr-card{background:#fff;border:1px solid #e7e7e1;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;transition:.25s ease}
+  .pr-card:hover{transform:translateY(-3px);border-color:#99f6e4;box-shadow:0 18px 40px rgba(15,23,42,.06)}
+  .pr-card.pr-hidden{display:none}
+  .pr-thumb{position:relative;aspect-ratio:1.4;background:#dff8f4;border-bottom:1px solid #e7e7e1;overflow:hidden}
+  .pr-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .pr-thumb-stripes{position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(13,148,136,.12) 0 12px,transparent 12px 24px)}
+  .pr-thumb-label{position:absolute;inset:0;display:grid;place-items:center;font-family:ui-monospace,monospace;color:#0f766e;font-size:12px;letter-spacing:.5px;padding:0 14px;text-align:center}
+  .pr-card-body{padding:24px;display:flex;flex-direction:column;flex:1}
+  .pr-card-tag{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:#7c7c74;font-weight:700;margin-bottom:12px}
+  .pr-card p{margin:0 0 18px;color:#3d3d38;font-size:14.5px;line-height:1.6;flex:1}
+  .pr-card-foot{display:flex;justify-content:space-between;align-items:center;padding-top:16px;border-top:1px solid #e7e7e1}
+  .pr-card-foot strong{font-family:"Syne",sans-serif;font-size:14px;color:#0d9488;letter-spacing:-.2px}
+  .pr-card-foot a{color:#0a1410;font-weight:700;font-size:13px;text-decoration:none}.pr-card-foot a:hover{color:#0d9488}
+  .pr-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:15px 24px;font-weight:700;font-size:15px;text-decoration:none;border:1px solid transparent}
+  .pr-btn-primary{background:#0d9488;color:#fff}.pr-cta{background:#0a1410;color:#fff;padding:80px 0;position:relative;overflow:hidden}
+  .pr-cta::before{content:"";position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,.2),transparent 65%);right:-200px;top:-300px;pointer-events:none}
+  .pr-cta-inner{position:relative;display:flex;justify-content:space-between;align-items:center;gap:32px;flex-wrap:wrap}
+  @media(max-width:960px){.pr-grid{grid-template-columns:1fr 1fr}}
+  @media(max-width:700px){.pr-wrap{width:min(1180px,100% - 32px)}.pr-grid{grid-template-columns:1fr}}
 </style>
 
-<main class="port-page">
-  <section class="port-hero">
-    <div class="port-wrap port-hero-inner">
-      <div class="port-pill"><span class="port-pill-dot"></span>Realizacje · strony, sklepy, aplikacje</div>
-      <h1 class="port-h1">Portfolio Upsellio.<br /><span class="port-accent">Strony i aplikacje, które mają działać — nie tylko wyglądać.</span></h1>
-      <p class="port-lead">Zebrane realizacje stron internetowych, sklepów i aplikacji webowych tworzonych z myślą o sprzedaży, procesach i użyteczności. Każdy projekt prowadzi do własnej podstrony case study z celem, zakresem i efektem biznesowym oraz interaktywnym podglądem wdrożonej strony.</p>
-      <div class="port-search">
-        <input id="port-search" class="port-search-input" type="search" placeholder="Szukaj projektu po nazwie, kategorii albo opisie..." aria-label="Szukaj projektu portfolio" />
-        <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="port-btn">Bezpłatna rozmowa</a>
-      </div>
-    </div>
-  </section>
-
-  <section class="port-cats-wrap">
-    <div class="port-wrap">
-      <div class="port-cats" id="port-cats">
-        <button type="button" class="port-cat-btn is-active" data-cat="all">Wszystkie</button>
+<main class="pr-art">
+  <section class="pr-hero">
+    <div class="pr-wrap">
+      <div class="pr-eyebrow">Portfolio · strony WWW</div>
+      <h1 class="pr-h1">Strony, które działają jako narzędzia sprzedaży.</h1>
+      <p class="pr-lead">Wybór realizacji stron firmowych i landing page'y. Każdy projekt ma jasny cel: generować zapytania, pokazać kompetencje i zbudować zaufanie B2B.</p>
+      <div class="pr-filters" id="pr-filters">
+        <button class="is-active" type="button" data-cat="all">Wszystkie</button>
         <?php foreach ($categories as $slug => $name) : ?>
-          <button type="button" class="port-cat-btn" data-cat="<?php echo esc_attr($slug); ?>"><?php echo esc_html($name); ?></button>
+          <button type="button" data-cat="<?php echo esc_attr((string) $slug); ?>"><?php echo esc_html((string) $name); ?></button>
         <?php endforeach; ?>
       </div>
     </div>
   </section>
 
-  <?php if (!empty($featured)) : ?>
-    <section class="port-featured-section">
-      <div class="port-wrap port-featured-grid">
-        <article class="port-featured-card">
-          <?php
-          $featured_visual_url = !empty($featured["image"]) ? (string) $featured["image"] : (!empty($featured["thumbnail"]) ? (string) $featured["thumbnail"] : "");
-          $featured_initials = function_exists("upsellio_get_initials_from_text") ? upsellio_get_initials_from_text((string) $featured["title"]) : "";
-          ?>
-          <div class="port-featured-visual">
-            <?php if ($featured_visual_url !== "") : ?>
-              <img src="<?php echo esc_url($featured_visual_url); ?>" alt="<?php echo esc_attr((string) $featured["title"]); ?>" loading="lazy" />
-              <div class="port-featured-overlay"></div>
-            <?php else : ?>
-              <div class="port-featured-fallback" aria-hidden="true">
-                <div class="port-featured-fallback-initials"><?php echo esc_html($featured_initials !== "" ? $featured_initials : "UP"); ?></div>
-                <div class="port-featured-fallback-title"><?php echo esc_html((string) $featured["title"]); ?></div>
-              </div>
-            <?php endif; ?>
-            <?php if (!empty($featured["badge"])) : ?><div class="port-featured-badge"><?php echo esc_html((string) $featured["badge"]); ?></div><?php endif; ?>
-          </div>
-          <div class="port-featured-body">
-            <div class="port-featured-category"><?php echo esc_html((string) $featured["category"]); ?></div>
-            <h2 class="port-featured-title"><?php echo esc_html((string) $featured["title"]); ?></h2>
-            <p class="port-featured-excerpt"><?php echo esc_html((string) $featured["excerpt"]); ?></p>
-            <?php if (!empty($featured["metrics"])) : ?>
-              <div class="port-metrics">
-                <?php foreach ((array) $featured["metrics"] as $metric) : ?>
-                  <span class="port-metric"><?php echo esc_html((string) $metric); ?></span>
-                <?php endforeach; ?>
-              </div>
-            <?php endif; ?>
-            <div class="port-featured-actions">
-              <a class="port-featured-link primary" href="<?php echo esc_url((string) $featured["url"]); ?>"><?php echo esc_html(!empty($featured["cta"]) ? (string) $featured["cta"] : "Wejdź do projektu"); ?></a>
-              <a class="port-featured-link secondary" href="<?php echo esc_url(home_url("/#kontakt")); ?>">Chcę podobny projekt</a>
-            </div>
-          </div>
-        </article>
-
-        <aside class="port-side">
-          <article class="port-side-card">
-            <div class="port-side-eyebrow">Jak czytać to portfolio</div>
-            <h3 class="port-side-title">Nie pokazuję tu tylko wyglądu. Pokazuję sens projektu.</h3>
-            <p class="port-side-copy">Każda realizacja pokazuje punkt wyjścia, decyzje projektowe i efekt po wdrożeniu. Dzięki temu łatwiej ocenić, czy podobne podejście pasuje do Twojej firmy.</p>
-            <ul class="port-side-list">
-              <li><span>✓</span>Realizacje nastawione na kontakt, sprzedaż i wygodę użytkownika.</li>
-              <li><span>✓</span>Przejrzysty opis celu, zakresu prac i efektów projektu.</li>
-              <li><span>✓</span>Możliwość szybkiego przejścia od inspiracji do rozmowy.</li>
-            </ul>
-          </article>
-
-          <article class="port-side-card" style="background:#ecfeff;border-color:#99f6e4;">
-            <div class="port-side-eyebrow" style="color:#0f766e;">Micro CTA</div>
-            <h3 class="port-side-title" style="color:#0f766e;">Chcesz podobny projekt dla swojej firmy?</h3>
-            <p class="port-side-copy" style="color:#334155;">Podczas krótkiej rozmowy ustalimy, czy potrzebujesz strony pod leady, sklepu pod sprzedaż czy aplikacji pod procesy.</p>
-            <a class="port-btn" style="margin-top:14px;" href="<?php echo esc_url(home_url("/#kontakt")); ?>">Umów rozmowę</a>
-          </article>
-        </aside>
-      </div>
-    </section>
-  <?php endif; ?>
-
-  <section class="port-grid-section">
-    <div class="port-wrap">
-      <div class="port-grid-head">
-        <div>
-          <div class="port-eyebrow">Katalog projektów</div>
-          <h2 class="port-h2">Wszystkie realizacje</h2>
-        </div>
-        <div class="port-grid-meta"><?php echo esc_html((string) count($portfolio_items)); ?> projektów · każda realizacja prowadzi do własnej podstrony case study</div>
-      </div>
+  <section class="pr-section">
+    <div class="pr-wrap">
       <?php if (!empty($portfolio_items)) : ?>
-        <div class="port-grid" id="port-grid">
+        <div class="pr-grid" id="pr-grid">
           <?php foreach ($portfolio_items as $item) : ?>
             <?php
-            $search_text = implode(" ", [
-                (string) ($item["title"] ?? ""),
-                (string) ($item["excerpt"] ?? ""),
-                (string) ($item["category"] ?? ""),
-                (string) ($item["meta"] ?? ""),
-                (string) ($item["type"] ?? ""),
-            ]);
-            $search_text = function_exists("mb_strtolower") ? mb_strtolower($search_text) : strtolower($search_text);
+            $thumb = !empty($item["thumbnail"]) ? (string) $item["thumbnail"] : "";
+            $metric = !empty($item["meta"]) ? (string) $item["meta"] : (string) ($item["type"] ?? "Case study");
+            $tag = trim((string) (($item["type"] ?? "Strona firmowa") . " · " . ($item["category"] ?? "Projekt")));
             ?>
-            <?php
-            $card_thumb = !empty($item["thumbnail"]) ? (string) $item["thumbnail"] : "";
-            $card_initials = function_exists("upsellio_get_initials_from_text") ? upsellio_get_initials_from_text((string) $item["title"]) : "";
-            $has_live = !empty($item["external_url"]);
-            $card_cta = $has_live ? "Podgląd live + case study →" : "Zobacz case study →";
-            ?>
-            <article class="port-card" data-cat="<?php echo esc_attr((string) $item["category_slug"]); ?>" data-search="<?php echo esc_attr($search_text); ?>">
-              <a class="port-card-thumb" href="<?php echo esc_url((string) $item["url"]); ?>" aria-label="<?php echo esc_attr((string) $item["title"]); ?>">
-                <?php if ($card_thumb !== "") : ?>
-                  <img src="<?php echo esc_url($card_thumb); ?>" alt="<?php echo esc_attr((string) $item["title"]); ?>" loading="lazy" decoding="async" width="400" height="250" />
+            <article class="pr-card" data-cat="<?php echo esc_attr((string) ($item["category_slug"] ?? "")); ?>">
+              <a class="pr-thumb" href="<?php echo esc_url((string) ($item["url"] ?? "#")); ?>" aria-hidden="true" tabindex="-1">
+                <?php if ($thumb !== "") : ?>
+                  <img src="<?php echo esc_url($thumb); ?>" alt="<?php echo esc_attr((string) ($item["title"] ?? "")); ?>" loading="lazy" decoding="async" />
                 <?php else : ?>
-                  <div class="port-card-thumb-fallback" aria-hidden="true">
-                    <div class="port-card-thumb-fallback-circle"><?php echo esc_html($card_initials !== "" ? $card_initials : "U"); ?></div>
-                    <div class="port-card-thumb-tag"><?php echo esc_html((string) $item["category"]); ?></div>
-                  </div>
+                  <div class="pr-thumb-stripes"></div>
+                  <div class="pr-thumb-label">[ screenshot — <?php echo esc_html((string) ($item["title"] ?? "Projekt")); ?> ]</div>
                 <?php endif; ?>
-                <?php if ($has_live) : ?><span class="port-card-live">Live</span><?php endif; ?>
               </a>
-              <div class="port-card-body">
-                <div class="port-card-top">
-                  <div>
-                    <div class="port-card-category"><?php echo esc_html((string) $item["category"]); ?></div>
-                    <div class="port-card-type"><?php echo esc_html(!empty($item["type"]) ? (string) $item["type"] : "Projekt webowy"); ?></div>
-                  </div>
+              <div class="pr-card-body">
+                <div class="pr-card-tag"><?php echo esc_html($tag); ?></div>
+                <h3 class="pr-h3"><?php echo esc_html((string) ($item["title"] ?? "")); ?></h3>
+                <p><?php echo esc_html((string) ($item["excerpt"] ?? "")); ?></p>
+                <div class="pr-card-foot">
+                  <strong><?php echo esc_html($metric); ?></strong>
+                  <a href="<?php echo esc_url((string) ($item["url"] ?? "#")); ?>">Zobacz case →</a>
                 </div>
-                <h3 class="port-card-title"><?php echo esc_html((string) $item["title"]); ?></h3>
-                <p class="port-card-excerpt"><?php echo esc_html((string) $item["excerpt"]); ?></p>
-                <?php if (!empty($item["meta"])) : ?><div class="port-card-meta"><?php echo esc_html((string) $item["meta"]); ?></div><?php endif; ?>
-                <a class="port-card-link" href="<?php echo esc_url((string) $item["url"]); ?>"><?php echo esc_html($card_cta); ?></a>
               </div>
             </article>
           <?php endforeach; ?>
         </div>
       <?php else : ?>
-        <div class="port-empty">Nie masz jeszcze dodanych projektów. Wejdź do panelu admina: <strong>Portfolio → Dodaj projekt</strong>.</div>
+        <p>Brak projektów do wyświetlenia.</p>
       <?php endif; ?>
     </div>
   </section>
 
-  <section class="port-seo">
-    <div class="port-wrap port-seo-grid">
-      <article class="port-seo-card">
-        <div class="port-eyebrow">Jak wygląda realizacja</div>
-        <h3>Od problemu do działającego rozwiązania.</h3>
-        <p>W opisach projektów pokazuję nie tylko wygląd strony, ale też powód zmian, najważniejsze decyzje i efekt, jaki miały dać po wdrożeniu. To pomaga szybko porównać realizacje z sytuacją we własnej firmie.</p>
-      </article>
-      <article class="port-seo-card">
-        <div class="port-eyebrow">Co znajdziesz w projekcie</div>
-        <ul class="port-seo-list">
-          <li>Krótkie podsumowanie celu i sytuacji klienta.</li>
-          <li>Opis najważniejszych problemów przed wdrożeniem.</li>
-          <li>Zakres prac oraz kluczowe decyzje projektowe.</li>
-          <li>Efekt końcowy, wyniki i link do działającej realizacji, jeśli jest dostępny.</li>
-          <li>Prosty sposób, aby zapytać o podobny projekt.</li>
-        </ul>
-      </article>
+  <section class="pr-cta">
+    <div class="pr-wrap pr-cta-inner">
+      <div><div class="pr-eyebrow pr-eyebrow-light">Następny projekt</div><h2 class="pr-h2 pr-h2-light">Twoja strona też może realnie sprzedawać.</h2></div>
+      <a class="pr-btn pr-btn-primary" href="<?php echo esc_url(home_url("/#kontakt")); ?>">Porozmawiajmy o stronie →</a>
     </div>
   </section>
 </main>
@@ -318,39 +155,21 @@ echo wp_json_encode([
 
 <script>
   (function () {
-    const grid = document.getElementById("port-grid");
-    const searchInput = document.getElementById("port-search");
-    const categoryButtons = Array.from(document.querySelectorAll(".port-cat-btn"));
-    if (!grid || !searchInput || !categoryButtons.length) return;
-
-    let activeCategory = "all";
-
-    function normalize(value) {
-      return String(value || "").toLowerCase().trim();
-    }
-
-    function updateGrid() {
-      const searchValue = normalize(searchInput.value);
-      const cards = Array.from(grid.querySelectorAll(".port-card"));
-      cards.forEach((card) => {
-        const cardCategory = card.getAttribute("data-cat") || "";
-        const searchableText = card.getAttribute("data-search") || "";
-        const isCategoryMatch = activeCategory === "all" || cardCategory === activeCategory;
-        const isSearchMatch = searchValue === "" || searchableText.includes(searchValue);
-        card.classList.toggle("port-hidden", !(isCategoryMatch && isSearchMatch));
-      });
-    }
-
-    categoryButtons.forEach((button) => {
+    const grid = document.getElementById("pr-grid");
+    const filters = Array.from(document.querySelectorAll("#pr-filters button"));
+    if (!grid || !filters.length) return;
+    const cards = Array.from(grid.querySelectorAll(".pr-card"));
+    filters.forEach((button) => {
       button.addEventListener("click", function () {
-        activeCategory = this.getAttribute("data-cat") || "all";
-        categoryButtons.forEach((item) => item.classList.remove("is-active"));
+        const category = this.getAttribute("data-cat") || "all";
+        filters.forEach((item) => item.classList.remove("is-active"));
         this.classList.add("is-active");
-        updateGrid();
+        cards.forEach((card) => {
+          const cardCategory = card.getAttribute("data-cat") || "";
+          card.classList.toggle("pr-hidden", !(category === "all" || cardCategory === category));
+        });
       });
     });
-
-    searchInput.addEventListener("input", updateGrid);
   })();
 </script>
 <?php

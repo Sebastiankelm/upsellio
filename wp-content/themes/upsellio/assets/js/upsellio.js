@@ -147,13 +147,34 @@
   }
 
   document.addEventListener("click", (event) => {
-    const link = event.target.closest('a[href^="#"]');
+    if (event.defaultPrevented) return;
+    if (event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+    const link = event.target.closest('a[href*="#"]');
     if (!link) return;
+    if (link.hasAttribute("download")) return;
+    if ((link.getAttribute("target") || "").toLowerCase() === "_blank") return;
+
     const href = link.getAttribute("href") || "";
-    if (href === "#" || href.length < 2) return;
-    const id = href.slice(1);
+    if (!href || href === "#") return;
+
+    let url;
+    try {
+      url = new URL(href, window.location.href);
+    } catch (error) {
+      return;
+    }
+
+    // Intercept only same-page hash links to avoid breaking regular navigation.
+    if (url.pathname !== window.location.pathname) return;
+    if (url.search !== window.location.search) return;
+    if (!url.hash || url.hash.length < 2) return;
+
+    const id = decodeURIComponent(url.hash.slice(1));
     const target = id ? document.getElementById(id) : null;
     if (!target) return;
+
     event.preventDefault();
     const offset = target.getBoundingClientRect().top + window.scrollY - getNavOffset(8);
     window.scrollTo({ top: Math.max(0, offset), behavior: prefersReducedMotion ? "auto" : "smooth" });

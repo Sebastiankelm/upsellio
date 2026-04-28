@@ -40,825 +40,198 @@ if (have_posts()) :
         }
         ?>
         <style>
-          .ups-post {
-            min-height: 100vh;
-            background: #f6f7f5;
-            color: #121514;
-          }
-          .ups-post-hero {
-            position: relative;
-            overflow: hidden;
-            border-bottom: 1px solid var(--border);
-            background: #080d0c;
-          }
-          .ups-post-hero-overlay {
-            position: absolute;
-            inset: 0;
-            background:
-              radial-gradient(circle at top right, rgba(20, 184, 166, 0.24), transparent 32%),
-              linear-gradient(180deg, rgba(7, 10, 10, 0.6), rgba(7, 10, 10, 0.82));
-          }
-          .ups-post-hero-inner {
-            position: relative;
-            width: min(1200px, calc(100% - 32px));
-            margin: 0 auto;
-            padding: 64px 0 90px;
-            color: #fff;
-          }
-          .ups-post-back {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 22px;
-            color: rgba(255, 255, 255, 0.72);
-            font-size: 14px;
-            transition: 0.18s ease;
-          }
-          .ups-post-back:hover {
-            color: #fff;
-          }
-          .ups-post-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.12);
-            padding: 7px 12px;
-            font-size: 12px;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.88);
-            backdrop-filter: blur(8px);
-          }
-          .ups-post-pill-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            background: var(--teal);
-          }
-          .ups-post-title {
-            max-width: 1020px;
-            font-family: var(--font-display);
-            font-size: clamp(34px, 10vw, 84px);
-            line-height: 0.95;
-            letter-spacing: -0.06em;
-          }
-          .ups-post-title-accent {
-            color: var(--teal);
-          }
-          .ups-post-lead {
-            margin-top: 22px;
-            max-width: 860px;
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 18px;
-            line-height: 1.7;
-          }
-          .ups-post-author-row {
-            margin-top: 34px;
-            border-top: 1px solid rgba(255, 255, 255, 0.12);
-            padding-top: 22px;
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 20px;
-            align-items: center;
-          }
-          .ups-post-author {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-          }
-          .ups-post-avatar {
-            width: 54px;
-            height: 54px;
-            border-radius: 16px;
-            background: rgba(255, 255, 255, 0.14);
-            color: #fff;
-            display: grid;
-            place-items: center;
-            font-size: 15px;
-            font-weight: 700;
-          }
-          .ups-post-author-name {
-            font-size: 15px;
-            font-weight: 600;
-          }
-          .ups-post-author-sub {
-            margin-top: 2px;
-            color: rgba(255, 255, 255, 0.62);
-            font-size: 13px;
-          }
-          .ups-post-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            color: rgba(255, 255, 255, 0.62);
-            font-size: 13px;
-          }
-          .ups-post-main {
-            border-bottom: 1px solid var(--border);
-            background: #fff;
-          }
-          .ups-post-main-inner {
-            width: min(1200px, calc(100% - 32px));
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 34px;
-            padding: 56px 0 72px;
-          }
-          .ups-post-sidebar {
-            position: static;
-            top: 92px;
-            display: grid;
-            gap: 18px;
-            height: fit-content;
-          }
-          .ups-post-panel {
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            background: #f1f5f9;
-            padding: 18px;
-            box-shadow: var(--shadow-sm);
-          }
-          .ups-post-panel-title {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            color: var(--text-3);
-          }
-          .ups-post-toc-wrap > summary {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            list-style: none;
-            cursor: pointer;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            color: var(--text-3);
-          }
-          .ups-post-toc-wrap > summary::-webkit-details-marker { display: none; }
-          .ups-post-toc-wrap > summary::after {
-            content: "";
-            width: 10px;
-            height: 10px;
-            border-right: 2px solid var(--text-3);
-            border-bottom: 2px solid var(--text-3);
-            transform: rotate(45deg);
-            transition: 0.2s ease;
-          }
-          .ups-post-toc-wrap[open] > summary::after { transform: rotate(-135deg); }
-          .ups-post-toc {
-            margin-top: 12px;
-            display: grid;
-            gap: 8px;
-          }
-          .ups-post-toc a {
-            color: var(--text-2);
-            font-size: 14px;
-            line-height: 1.55;
-          }
-          .ups-post-toc a:hover {
-            color: var(--teal);
-          }
-          .ups-post-toc a.lvl-h3 {
-            padding-left: 10px;
-            font-size: 13px;
-            color: #7b7b73;
-          }
-          .ups-post-lead-magnet {
-            border-color: var(--teal-line);
-            background: var(--teal-soft);
-          }
-          .ups-post-lead-magnet h3 {
-            margin-top: 8px;
-            font-family: var(--font-display);
-            font-size: 24px;
-            line-height: 1.08;
-            letter-spacing: -0.04em;
-            color: var(--teal-dark);
-          }
-          .ups-post-lead-magnet p {
-            margin-top: 10px;
-            color: color-mix(in srgb, var(--teal-dark) 84%, white);
-            font-size: 14px;
-            line-height: 1.7;
-          }
-          .ups-post-lead-magnet a {
-            margin-top: 12px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            border-radius: 12px;
-            background: var(--teal);
-            color: #fff;
-            padding: 10px 14px;
-            font-size: 14px;
-            font-weight: 600;
-          }
-          .ups-post-content-shell {
-            min-width: 0;
-          }
-          .ups-post-highlight {
-            overflow: hidden;
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            background: #fff;
-            box-shadow: var(--shadow-sm);
-          }
-          .ups-post-highlight img {
-            width: 100%;
-            height: 320px;
-            object-fit: cover;
-          }
-          .ups-post-highlight-fallback {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 220px;
-            background: linear-gradient(135deg, #ecfeff 0%, #fff 60%, #f7faf9 100%);
-            overflow: hidden;
-          }
-          .ups-post-highlight-fallback::before {
-            content: attr(data-decor);
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-family: var(--font-display);
-            font-size: clamp(56px, 14vw, 140px);
-            font-weight: 800;
-            letter-spacing: -0.06em;
-            color: rgba(15, 118, 110, 0.08);
-            white-space: nowrap;
-            pointer-events: none;
-          }
-          .ups-post-highlight-fallback-badge {
-            position: relative;
-            padding: 10px 18px;
-            border-radius: 999px;
-            background: var(--teal);
-            color: #fff;
-            font-size: 13px;
-            font-weight: 800;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-          }
-          .ups-post-highlight-copy {
-            padding: 26px;
-            background: linear-gradient(135deg, #dff5ee, #f7faf9);
-          }
-          .ups-post-highlight-copy small {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            color: var(--teal-dark);
-          }
-          .ups-post-highlight-copy p {
-            margin-top: 10px;
-            max-width: 760px;
-            font-family: var(--font-display);
-            font-size: clamp(30px, 2.2vw, 42px);
-            line-height: 1.1;
-            letter-spacing: -0.05em;
-          }
-          .ups-post-article {
-            margin-top: 22px;
-            display: grid;
-            gap: 18px;
-          }
-          .ups-post-section {
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            background: #fff;
-            padding: 22px;
-            box-shadow: var(--shadow-sm);
-          }
-          .ups-post-section .ups-inline-links,
-          .ups-post-section .ups-inline-contact {
-            margin-top: 26px;
-          }
-          .ups-post-section h2,
-          .ups-post-section h3 {
-            font-family: var(--font-display);
-            color: #121212;
-            line-height: 1.06;
-            letter-spacing: -0.05em;
-          }
-          .ups-post-section h2 {
-            font-size: clamp(34px, 2.8vw, 50px);
-          }
-          .ups-post-section h3 {
-            margin-top: 20px;
-            font-size: clamp(26px, 2.1vw, 36px);
-          }
-          .ups-post-section p,
-          .ups-post-section li {
-            margin-top: 14px;
-            color: #444740;
-            font-size: 17px;
-            line-height: 1.8;
-          }
-          .ups-post-section ul,
-          .ups-post-section ol {
-            padding-left: 20px;
-          }
-          .ups-post-section blockquote {
-            margin-top: 20px;
-            border: 1px solid var(--teal-line);
-            border-left: 3px solid var(--teal);
-            border-radius: 18px;
-            background: var(--teal-soft);
-            padding: 18px 20px;
-            color: var(--teal-dark);
-            font-size: 18px;
-            font-weight: 600;
-            line-height: 1.7;
-          }
-          .ups-post-section a {
-            color: var(--teal-dark);
-            text-decoration: underline;
-            text-underline-offset: 3px;
-          }
-          .ups-post-section img {
-            width: 100%;
-            height: auto;
-            margin-top: 20px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-          }
-          .ups-inline-links {
-            margin-top: 18px;
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            background: #f1f5f9;
-            padding: 18px;
-          }
-          .ups-inline-links h3 {
-            margin: 0;
-            font-size: 20px;
-            letter-spacing: -0.03em;
-          }
-          .ups-inline-links ul {
-            margin: 10px 0 0;
-            padding: 0;
-            list-style: none;
-            display: grid;
-            gap: 8px;
-          }
-          .ups-inline-links li {
-            margin: 0;
-          }
-          .ups-inline-links a {
-            color: var(--teal-dark);
-            font-size: 15px;
-            font-weight: 600;
-            text-decoration: none;
-          }
-          .ups-inline-contact {
-            margin-top: 22px;
-            border: 1px solid var(--border);
-            border-radius: 22px;
-            background: #f1f5f9;
-            padding: 22px;
-          }
-          .ups-inline-contact-head h3 {
-            margin: 6px 0 0;
-            font-size: 30px;
-          }
-          .ups-inline-contact-head p {
-            margin-top: 8px;
-            font-size: 15px;
-            line-height: 1.8;
-            color: var(--text-2);
-          }
-          .ups-inline-label {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            color: var(--text-3);
-          }
-          .ups-inline-form {
-            margin-top: 16px;
-            display: grid;
-            gap: 12px;
-          }
-          .ups-inline-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-          }
-          .ups-inline-form label {
-            display: grid;
-            gap: 6px;
-            color: #262a26;
-            font-size: 13px;
-            font-weight: 600;
-          }
-          .ups-inline-form input,
-          .ups-inline-form textarea {
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            background: #fff;
-            padding: 11px 12px;
-            min-height: 46px;
-            font-size: 16px;
-          }
-          .ups-inline-form button {
-            width: 100%;
-            min-height: 46px;
-            border: none;
-            border-radius: 12px;
-            background: #0f0f0f;
-            color: #fff;
-            padding: 12px 18px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.18s ease;
-          }
-          .ups-inline-form button:hover {
-            background: var(--teal);
-          }
-          .ups-inline-success,
-          .ups-inline-error {
-            margin-top: 12px;
-            border-radius: 12px;
-            padding: 10px 12px;
-            font-size: 13px;
-            font-weight: 600;
-          }
-          .ups-inline-success {
-            border: 1px solid var(--teal-line);
-            background: var(--teal-soft);
-            color: var(--teal-dark);
-          }
-          .ups-inline-error {
-            border: 1px solid #edcccc;
-            background: #fff2f2;
-            color: #b13a3a;
-          }
-          .ups-post-end-cta {
-            margin-top: 24px;
-            border: 1px solid var(--teal-line);
-            border-radius: 28px;
-            background: radial-gradient(circle at top right, rgba(20,184,166,0.18), transparent 50%), linear-gradient(135deg, #ecfeff 0%, #fff 70%);
-            padding: 34px 32px;
-            display: grid;
-            gap: 20px;
-            grid-template-columns: 1fr;
-            align-items: center;
-            box-shadow: var(--shadow-sm);
-          }
-          .ups-post-end-cta-eyebrow {
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            color: var(--teal-dark);
-          }
-          .ups-post-end-cta-title {
-            margin-top: 8px;
-            font-family: var(--font-display);
-            font-size: clamp(26px, 4vw, 36px);
-            line-height: 1.08;
-            letter-spacing: -0.04em;
-            color: #081827;
-          }
-          .ups-post-end-cta p {
-            margin-top: 10px;
-            color: var(--text-2);
-            font-size: 15px;
-            line-height: 1.65;
-          }
-          .ups-post-end-cta-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-          }
-          .ups-post-end-cta-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 48px;
-            padding: 0 22px;
-            border-radius: 999px;
-            font-size: 14px;
-            font-weight: 800;
-            transition: 0.2s ease;
-            text-decoration: none;
-          }
-          .ups-post-end-cta-btn.is-primary { background: var(--teal); color: #fff; box-shadow: 0 14px 28px rgba(13,148,136,.24); }
-          .ups-post-end-cta-btn.is-secondary { background: #fff; border: 1px solid var(--border); color: #081827; }
-          .ups-post-end-cta-btn:hover { transform: translateY(-2px); }
-          @media (min-width: 760px) {
-            .ups-post-end-cta { grid-template-columns: 1fr auto; gap: 32px; padding: 38px; }
-          }
-          .ups-post-related {
-            border-top: 1px solid var(--border);
-            background: #fff;
-            padding: 56px 0 72px;
-          }
-          .ups-post-related-inner {
-            width: min(1200px, calc(100% - 32px));
-            margin: 0 auto;
-          }
-          .ups-post-related-grid {
-            margin-top: 20px;
-            display: grid;
-            gap: 16px;
-            grid-template-columns: 1fr;
-          }
-          .ups-post-related-card {
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            overflow: hidden;
-            background: #fff;
-            box-shadow: var(--shadow-sm);
-            transition: 0.2s ease;
-          }
-          .ups-post-related-card:hover {
-            transform: translateY(-4px);
-            border-color: var(--teal);
-            box-shadow: var(--shadow-md);
-          }
-          .ups-post-related-card img {
-            width: 100%;
-            height: 190px;
-            object-fit: cover;
-          }
-          .ups-post-related-copy {
-            padding: 20px;
-          }
-          .ups-post-related-badge {
-            display: inline-flex;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            background: #f1f5f9;
-            padding: 4px 10px;
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-2);
-          }
-          .ups-post-related-title {
-            margin-top: 10px;
-            font-family: var(--font-display);
-            font-size: 28px;
-            line-height: 1.06;
-            letter-spacing: -0.04em;
-          }
-          .ups-post-related-link {
-            margin-top: 12px;
-            display: inline-flex;
-            align-items: center;
-            min-height: 44px;
-            color: var(--teal);
-            font-size: 14px;
-            font-weight: 700;
-          }
-          @media (max-width: 760px) {
-            .ups-post-hero-inner {
-              padding: 46px 0 56px;
-            }
-            .ups-post-title {
-              font-size: clamp(30px, 11vw, 44px);
-              line-height: 1.02;
-              letter-spacing: -0.045em;
-            }
-            .ups-post-lead {
-              margin-top: 16px;
-              font-size: 16px;
-              line-height: 1.65;
-            }
-            .ups-post-author-row {
-              margin-top: 26px;
-              padding-top: 16px;
-              grid-template-columns: 1fr;
-              gap: 12px;
-            }
-            .ups-post-main-inner {
-              padding: 38px 0 54px;
-              gap: 24px;
-            }
-            .ups-post-panel,
-            .ups-post-highlight-copy,
-            .ups-post-section,
-            .ups-inline-links,
-            .ups-inline-contact,
-            .ups-post-related-copy {
-              padding: 16px;
-            }
-            .ups-post-highlight img {
-              height: 220px;
-            }
-            .ups-post-highlight-copy p {
-              font-size: clamp(24px, 7.2vw, 32px);
-              line-height: 1.12;
-            }
-            .ups-post-section h2 {
-              font-size: clamp(26px, 8vw, 34px);
-              line-height: 1.12;
-            }
-            .ups-post-section h3 {
-              font-size: clamp(22px, 6.8vw, 28px);
-              line-height: 1.14;
-            }
-            .ups-post-section p,
-            .ups-post-section li {
-              font-size: 16px;
-              line-height: 1.72;
-            }
-            .ups-post-section blockquote {
-              padding: 14px 16px;
-              font-size: 16px;
-              line-height: 1.65;
-            }
-            .ups-inline-contact-head h3 {
-              font-size: clamp(24px, 8vw, 30px);
-            }
-            .ups-post-related {
-              padding: 42px 0 56px;
-            }
-            .ups-post-related-title {
-              font-size: clamp(24px, 7.5vw, 32px);
-            }
-          }
-          @media (min-width: 761px) {
-            .ups-post-hero-inner,
-            .ups-post-main-inner,
-            .ups-post-related-inner {
-              width: min(1200px, calc(100% - 48px));
-            }
-            .ups-inline-form input,
-            .ups-inline-form textarea {
-              font-size: 14px;
-            }
-            .ups-inline-form button {
-              width: fit-content;
-            }
-          }
-          @media (min-width: 981px) {
-            .ups-post-main-inner {
-              grid-template-columns: 250px minmax(0, 1fr);
-            }
-            .ups-post-sidebar {
-              position: sticky;
-            }
-            .ups-post-toc-wrap > summary { pointer-events: none; }
-            .ups-post-toc-wrap > summary::after { display: none; }
-            .ups-post-toc-wrap > .ups-post-toc { display: grid !important; }
-            .ups-inline-grid {
-              grid-template-columns: 1fr 1fr;
-            }
-            .ups-post-related-grid {
-              grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-            .ups-post-section {
-              padding: 34px;
-            }
-            .ups-post-author-row {
-              grid-template-columns: 1fr auto;
-            }
-          }
+          .sp-art{font-family:"DM Sans",system-ui,sans-serif;color:#0a1410;background:#fafaf7;line-height:1.7}
+          .sp-art *,.sp-art *::before,.sp-art *::after{box-sizing:border-box}
+          .sp-wrap{width:min(1180px,100% - 64px);margin-inline:auto}
+          .sp-wrap-narrow{width:min(880px,100% - 64px);margin-inline:auto}
+          .sp-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#0d9488;margin-bottom:14px}
+          .sp-eyebrow::before{content:"";width:26px;height:2px;background:#0d9488;border-radius:99px}
+          .sp-h1{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(36px,4.2vw,56px);line-height:1.05;letter-spacing:-1.6px;margin:0 0 20px;max-width:24ch}
+          .sp-h2{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(24px,2.6vw,32px);line-height:1.15;letter-spacing:-1px;margin:48px 0 16px}
+          .sp-lead{font-size:19px;line-height:1.6;color:#3d3d38;max-width:60ch;margin:0 0 24px}
+          .sp-divider{height:1px;background:#e7e7e1;margin:32px 0 48px}
+          .sp-sec-head{max-width:780px}
+          .sp-crumbs{padding:32px 0 0;font-size:13px;color:#7c7c74}
+          .sp-crumbs a{color:#7c7c74;text-decoration:none;margin-right:8px}
+          .sp-crumbs a:hover{color:#0d9488}
+          .sp-crumbs span{margin-right:8px;color:#c4c4bd}
+          .sp-head{padding:32px 0 48px}
+          .sp-author{display:flex;align-items:center;gap:14px;margin-top:24px;padding:18px 0;border-top:1px solid #e7e7e1;border-bottom:1px solid #e7e7e1}
+          .sp-avatar{width:40px;height:40px;border-radius:50%;background:#dff8f4;border:1px solid #99f6e4;display:grid;place-items:center;font-family:"Syne",sans-serif;color:#0f766e;font-weight:800;font-size:14px}
+          .sp-avatar.lg{width:56px;height:56px;font-size:18px;flex:0 0 56px}
+          .sp-author strong{display:block;font-family:"Syne",sans-serif;font-size:15px;font-weight:700}
+          .sp-author .sp-meta-line{display:block;font-size:12.5px;color:#7c7c74;margin-top:1px}
+          .sp-share{margin-left:auto;display:flex;gap:8px}
+          .sp-share a{width:34px;height:34px;border-radius:50%;border:1px solid #e7e7e1;background:#fff;display:grid;place-items:center;color:#0a1410;text-decoration:none;font-size:13px;font-weight:700}
+          .sp-cover{padding-bottom:64px}
+          .sp-cover-img{position:relative;aspect-ratio:2.4;background:#dff8f4;border-radius:24px;overflow:hidden}
+          .sp-cover-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+          .sp-thumb-stripes{position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(13,148,136,.12) 0 14px,transparent 14px 28px)}
+          .sp-thumb-label{position:absolute;inset:0;display:grid;place-items:center;font-family:ui-monospace,monospace;color:#0f766e;font-size:13px;letter-spacing:1px}
+          .sp-body{padding:0 0 96px}
+          .sp-grid{display:grid;grid-template-columns:240px 1fr;gap:64px;align-items:start;width:min(1100px,100% - 64px)}
+          .sp-toc{position:sticky;top:32px;align-self:start}
+          .sp-toc-head{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#7c7c74;margin-bottom:14px}
+          .sp-toc ol{list-style:none;padding:0;margin:0;display:grid;gap:6px;border-left:1px solid #e7e7e1;padding-left:14px}
+          .sp-toc ol li a{display:block;padding:6px 0;color:#3d3d38;text-decoration:none;font-size:13.5px;line-height:1.45}
+          .sp-toc ol li a:hover{color:#0d9488}
+          .sp-toc ol li.is-active{margin-left:-15px;padding-left:14px;border-left:2px solid #0d9488}
+          .sp-toc ol li.is-active a{color:#0a1410;font-weight:600}
+          .sp-toc-cta{margin-top:24px;padding:18px;background:#0a1410;color:#fff;border-radius:14px}
+          .sp-toc-cta strong{display:block;font-family:"Syne",sans-serif;font-size:15px;font-weight:700}
+          .sp-toc-cta p{margin:6px 0 12px;font-size:13px;color:rgba(255,255,255,.7);line-height:1.45}
+          .sp-toc-cta a{color:#5eead4;font-weight:700;font-size:13px;text-decoration:none}
+          .sp-prose p{margin:0 0 18px;font-size:16.5px;color:#262625;line-height:1.75}
+          .sp-prose ul,.sp-prose ol{margin:0 0 24px;padding-left:24px}
+          .sp-prose li{font-size:16px;color:#262625;line-height:1.7;margin-bottom:6px}
+          .sp-prose ul li::marker{color:#0d9488}
+          .sp-prose ol li::marker{color:#0d9488;font-weight:700}
+          .sp-prose blockquote{margin:32px 0;padding:24px 28px;background:#fff;border-left:3px solid #0d9488;border-radius:0 14px 14px 0;font-family:"Syne",sans-serif;font-size:19px;line-height:1.4;color:#0a1410;letter-spacing:-.3px}
+          .sp-prose h2,.sp-prose h3{font-family:"Syne",sans-serif}
+          .sp-end-cta{display:flex;justify-content:space-between;align-items:center;gap:24px;background:#fafaf7;border:1.5px dashed #99f6e4;border-radius:18px;padding:24px 28px;margin:48px 0 0;flex-wrap:wrap}
+          .sp-end-cta strong{display:block;font-family:"Syne",sans-serif;font-size:18px;letter-spacing:-.4px;font-weight:700;max-width:38ch}
+          .sp-btn{display:inline-flex;align-items:center;gap:8px;background:#0d9488;color:#fff;padding:13px 22px;border-radius:999px;font-weight:700;font-size:14px;text-decoration:none}
+          .sp-tags{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:32px;padding-top:24px;border-top:1px solid #e7e7e1}
+          .sp-tags>span{font-size:12px;color:#7c7c74;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-right:6px}
+          .sp-tags a{padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #e7e7e1;font-size:12.5px;color:#3d3d38;text-decoration:none;font-weight:600}
+          .sp-author-box{display:flex;gap:18px;align-items:flex-start;margin-top:32px;padding:24px;background:#fff;border:1px solid #e7e7e1;border-radius:18px}
+          .sp-author-box strong{display:block;font-family:"Syne",sans-serif;font-size:17px;font-weight:700;margin-bottom:4px}
+          .sp-author-box p{margin:0 0 10px;font-size:14px;color:#3d3d38;line-height:1.6}
+          .sp-author-box a{color:#0d9488;font-weight:700;font-size:13px;text-decoration:none}
+          .sp-related{padding:0 0 128px}
+          .sp-rel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+          .sp-rel-card{background:#fff;border:1px solid #e7e7e1;border-radius:16px;overflow:hidden;text-decoration:none;color:inherit;display:block;transition:.2s ease}
+          .sp-rel-card:hover{transform:translateY(-3px);border-color:#99f6e4}
+          .sp-rel-thumb{position:relative;aspect-ratio:1.7;background:#dff8f4}
+          .sp-rel-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+          .sp-rel-meta{display:flex;gap:8px;padding:18px 18px 0;font-size:11.5px;color:#7c7c74}
+          .sp-rel-meta>span:first-child{color:#0f766e;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+          .sp-rel-card h3{margin:8px 0 18px;padding:0 18px;font-family:"Syne",sans-serif;font-size:16px;letter-spacing:-.3px;line-height:1.3;font-weight:700}
+          @media (max-width:1050px){.sp-grid{grid-template-columns:1fr;gap:36px;width:min(880px,100% - 64px)}.sp-toc{position:static}.sp-rel-grid{grid-template-columns:1fr 1fr}}
+          @media (max-width:760px){.sp-wrap,.sp-wrap-narrow,.sp-grid{width:min(1180px,100% - 24px)}.sp-rel-grid{grid-template-columns:1fr}.sp-author{flex-wrap:wrap}.sp-share{margin-left:0}}
         </style>
 
-        <main class="ups-post">
-          <section class="ups-post-hero">
-            <div class="ups-post-hero-overlay"></div>
-            <div class="ups-post-hero-inner">
-              <a class="ups-post-back" href="<?php echo esc_url($blog_index_url); ?>">← Wróć do bloga</a>
-              <div class="ups-post-pill">
-                <span class="ups-post-pill-dot"></span>
-                <?php
-                $pill_categories = wp_list_pluck($post_categories, "name");
-                echo esc_html(!empty($pill_categories) ? implode(" · ", array_slice($pill_categories, 0, 3)) : "Blog Upsellio");
-                ?>
-              </div>
+        <main class="sp-art">
+          <?php
+          $pill_categories = wp_list_pluck($post_categories, "name");
+          $category_label = !empty($pill_categories) ? $pill_categories[0] : "Blog";
+          $read_time = (string) upsellio_estimated_read_time($post_id);
+          $author_name = (string) get_the_author_meta("display_name", (int) get_post_field("post_author", $post_id));
+          $category_url = $primary_category instanceof WP_Term ? get_category_link((int) $primary_category->term_id) : $blog_index_url;
+          if ($author_name === "") {
+              $author_name = "Upsellio";
+          }
+          ?>
+          <nav class="sp-crumbs">
+            <div class="sp-wrap-narrow">
+              <a href="<?php echo esc_url(home_url("/")); ?>">Strona glowna</a>
+              <span>›</span>
+              <a href="<?php echo esc_url($blog_index_url); ?>">Blog</a>
+              <span>›</span>
+              <a href="<?php echo esc_url($category_url); ?>"><?php echo esc_html($category_label); ?></a>
+            </div>
+          </nav>
 
-              <h1 class="ups-post-title">
-                <?php echo esc_html(get_the_title($post_id)); ?>
-              </h1>
+          <header class="sp-head">
+            <div class="sp-wrap-narrow">
+              <div class="sp-eyebrow"><?php echo esc_html($category_label . " · " . $read_time); ?></div>
+              <h1 class="sp-h1"><?php echo esc_html(get_the_title($post_id)); ?></h1>
               <?php if (has_excerpt()) : ?>
-                <p class="ups-post-lead"><?php echo esc_html(get_the_excerpt($post_id)); ?></p>
+                <p class="sp-lead"><?php echo esc_html(get_the_excerpt($post_id)); ?></p>
               <?php endif; ?>
-
-              <div class="ups-post-author-row">
-                <div class="ups-post-author">
-                  <div class="ups-post-avatar">SK</div>
-                  <div>
-                    <div class="ups-post-author-name">Sebastian Kelm</div>
-                    <div class="ups-post-author-sub">Upsellio · praktyk sprzedaży i marketingu</div>
-                  </div>
+              <div class="sp-author">
+                <div class="sp-avatar">SK</div>
+                <div>
+                  <strong><?php echo esc_html($author_name); ?></strong>
+                  <span class="sp-meta-line"><?php echo esc_html(get_the_date("j F Y", $post_id)); ?> · Upsellio</span>
                 </div>
-                <div class="ups-post-meta">
-                  <span><?php echo esc_html(get_the_date("j F Y", $post_id)); ?></span>
-                  <span>•</span>
-                  <span><?php echo esc_html(upsellio_estimated_read_time($post_id)); ?></span>
-                  <span>•</span>
-                  <span>Aktualizacja: <?php echo esc_html(get_the_modified_date("j F Y", $post_id)); ?></span>
+                <div class="sp-share">
+                  <a href="https://www.linkedin.com/sharing/share-offsite/?url=<?php echo rawurlencode(get_permalink($post_id)); ?>" target="_blank" rel="noopener">in</a>
+                  <a href="https://twitter.com/intent/tweet?url=<?php echo rawurlencode(get_permalink($post_id)); ?>" target="_blank" rel="noopener">𝕏</a>
+                  <a href="<?php echo esc_url(get_permalink($post_id)); ?>">⎘</a>
                 </div>
               </div>
             </div>
-          </section>
+          </header>
 
-          <section class="ups-post-main">
-            <div class="ups-post-main-inner">
-              <aside class="ups-post-sidebar">
+          <div class="sp-cover">
+            <div class="sp-wrap">
+              <div class="sp-cover-img">
+                <?php if ($hero_image) : ?>
+                  <img src="<?php echo esc_url($hero_image); ?>" alt="<?php echo esc_attr(get_the_title($post_id)); ?>" <?php if ($hero_image_srcset !== "") : ?>srcset="<?php echo esc_attr($hero_image_srcset); ?>" sizes="<?php echo esc_attr($hero_image_sizes); ?>"<?php endif; ?> />
+                <?php else : ?>
+                  <div class="sp-thumb-stripes"></div>
+                  <div class="sp-thumb-label">[ artwork — okładka artykułu ]</div>
+                <?php endif; ?>
+              </div>
+            </div>
+          </div>
+
+          <section class="sp-body">
+            <div class="sp-wrap-narrow sp-grid">
+              <aside class="sp-toc">
+                <div class="sp-toc-head">Spis treści</div>
                 <?php if (!empty($toc_items)) : ?>
-                  <details class="ups-post-panel ups-post-toc-wrap">
-                    <summary>Spis treści</summary>
-                    <nav class="ups-post-toc">
-                      <?php foreach ($toc_items as $toc_item) : ?>
-                        <a href="#<?php echo esc_attr($toc_item["id"]); ?>" class="<?php echo $toc_item["level"] === "h3" ? "lvl-h3" : ""; ?>">
-                          <?php echo esc_html($toc_item["title"]); ?>
-                        </a>
-                      <?php endforeach; ?>
-                    </nav>
-                  </details>
+                  <ol>
+                    <?php foreach ($toc_items as $toc_index => $toc_item) : ?>
+                      <li class="<?php echo $toc_index === 0 ? "is-active" : ""; ?>">
+                        <a href="#<?php echo esc_attr($toc_item["id"]); ?>"><?php echo esc_html($toc_item["title"]); ?></a>
+                      </li>
+                    <?php endforeach; ?>
+                  </ol>
                 <?php endif; ?>
-
-                <?php if (!empty($lead_magnet["url"])) : ?>
-                  <div class="ups-post-panel ups-post-lead-magnet">
-                    <div class="ups-post-panel-title" style="color:var(--teal-dark);">Polecany materiał</div>
-                    <h3><?php echo esc_html((string) ($lead_magnet["title"] ?? "")); ?></h3>
-                    <p><?php echo esc_html((string) ($lead_magnet["excerpt"] ?? "")); ?></p>
-                    <a href="<?php echo esc_url((string) $lead_magnet["url"]); ?>">Przejdź do materiału →</a>
-                  </div>
-                <?php elseif (current_user_can("manage_options")) : ?>
-                  <div class="ups-post-panel ups-post-lead-magnet">
-                    <div class="ups-post-panel-title" style="color:#b13a3a;">Brak lead magnetu</div>
-                    <p>Skonfiguruj i opublikuj co najmniej jeden material typu lead_magnet.</p>
-                  </div>
-                <?php endif; ?>
+                <div class="sp-toc-cta">
+                  <strong>Bezpłatna diagnoza</strong>
+                  <p>15 min rozmowy + konkretny kierunek.</p>
+                  <a href="<?php echo esc_url(home_url("/oferta/#formularz-oferta")); ?>">Umów rozmowę →</a>
+                </div>
               </aside>
 
-              <div class="ups-post-content-shell">
-                <?php if ($hero_image) : ?>
-                  <div class="ups-post-highlight">
-                    <img
-                      src="<?php echo esc_url($hero_image); ?>"
-                      alt="<?php echo esc_attr(get_the_title($post_id)); ?>"
-                      width="1600"
-                      height="920"
-                      decoding="async"
-                      <?php if ($hero_image_srcset !== "") : ?>srcset="<?php echo esc_attr($hero_image_srcset); ?>" sizes="<?php echo esc_attr($hero_image_sizes); ?>"<?php endif; ?>
-                    />
-                    <div class="ups-post-highlight-copy">
-                      <small>Kluczowa myśl artykułu</small>
-                      <p>Dobre reklamy nie wystarczą, jeśli reszta procesu sprzedaży nie jest gotowa dowieźć wyniku.</p>
-                    </div>
+              <article class="sp-prose">
+                <?php echo wp_kses_post($content_html); ?>
+
+                <div class="sp-end-cta">
+                  <div>
+                    <div class="sp-eyebrow">Bezpłatna diagnoza</div>
+                    <strong>Sprawdźmy, który element lejka blokuje sprzedaż u Ciebie.</strong>
                   </div>
-                <?php else :
-                    $fallback_decor = $primary_category && !empty($primary_category->name) ? $primary_category->name : "Blog Upsellio";
-                    ?>
-                  <div class="ups-post-highlight">
-                    <div class="ups-post-highlight-fallback" data-decor="<?php echo esc_attr(mb_strtoupper($fallback_decor)); ?>" aria-hidden="true">
-                      <span class="ups-post-highlight-fallback-badge"><?php echo esc_html($fallback_decor); ?></span>
-                    </div>
-                    <div class="ups-post-highlight-copy">
-                      <small>Kluczowa myśl artykułu</small>
-                      <p>Dobre reklamy nie wystarczą, jeśli reszta procesu sprzedaży nie jest gotowa dowieźć wyniku.</p>
-                    </div>
+                  <a class="sp-btn" href="<?php echo esc_url(home_url("/oferta/#formularz-oferta")); ?>">Umów rozmowę →</a>
+                </div>
+
+                <?php if (!empty($post_categories)) : ?>
+                  <div class="sp-tags">
+                    <span>Tagi:</span>
+                    <?php foreach ($post_categories as $post_category) : ?>
+                      <a href="<?php echo esc_url(get_category_link($post_category->term_id)); ?>"><?php echo esc_html($post_category->name); ?></a>
+                    <?php endforeach; ?>
                   </div>
                 <?php endif; ?>
 
-                <article class="ups-post-article">
-                  <section class="ups-post-section">
-                    <?php echo wp_kses_post($content_html); ?>
-                    <?php if (!$has_inline_contact_shortcode) : ?>
-                      <?php echo do_shortcode("[upsellio_contact_form]"); ?>
-                    <?php endif; ?>
-                  </section>
-                </article>
-
-                <aside class="ups-post-end-cta" aria-label="Następny krok">
+                <div class="sp-author-box">
+                  <div class="sp-avatar lg">SK</div>
                   <div>
-                    <span class="ups-post-end-cta-eyebrow">Następny krok</span>
-                    <h2 class="ups-post-end-cta-title">Sprawdźmy, gdzie naprawdę traci się klientów w Twojej firmie.</h2>
-                    <p>Bezpłatna diagnoza marketingu: 30-45 minut, bez presji sprzedażowej. Zobaczymy, czy problemem jest komunikat, ścieżka klienta, kampanie czy strona — i od czego ma sens zacząć.</p>
+                    <strong><?php echo esc_html($author_name); ?></strong>
+                    <p>Marketing i sprzedaż B2B. W Upsellio łączę procesy sprzedaży z reklamą i stronami WWW.</p>
+                    <a href="<?php echo esc_url($blog_index_url); ?>">Zobacz inne wpisy →</a>
                   </div>
-                  <div class="ups-post-end-cta-actions">
-                    <a class="ups-post-end-cta-btn is-primary" href="<?php echo esc_url(home_url("/oferta/#formularz-oferta")); ?>">Chcę bezpłatną diagnozę</a>
-                    <a class="ups-post-end-cta-btn is-secondary" href="<?php echo esc_url(home_url("/kontakt/")); ?>">Zobacz kontakt</a>
-                  </div>
-                </aside>
-              </div>
+                </div>
+
+                <?php if (!$has_inline_contact_shortcode) : ?>
+                  <?php echo do_shortcode("[upsellio_contact_form]"); ?>
+                <?php endif; ?>
+              </article>
             </div>
           </section>
 
           <?php if (!empty($related_posts)) : ?>
-            <section class="ups-post-related">
-              <div class="ups-post-related-inner">
-                <div class="ups-post-panel-title">Czytaj dalej</div>
-                <h2 class="ups-post-related-title" style="margin-top:10px;">Powiązane artykuły</h2>
-                <div class="ups-post-related-grid">
+            <section class="sp-related">
+              <div class="sp-wrap-narrow">
+                <header class="sp-sec-head">
+                  <div class="sp-eyebrow">Czytaj też</div>
+                  <h2 class="sp-h2">Powiązane artykuły.</h2>
+                </header>
+                <div class="sp-divider"></div>
+                <div class="sp-rel-grid">
                   <?php foreach ($related_posts as $related_post) : ?>
                     <?php
                     $related_post_id = (int) $related_post->ID;
@@ -868,18 +241,22 @@ if (have_posts()) :
                     if (!$related_img) {
                         $related_img = get_post_meta($related_post_id, "_upsellio_featured_image_url", true);
                     }
-                    if (!$related_img) {
-                        $related_img = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80";
-                    }
                     ?>
-                    <article class="ups-post-related-card">
-                      <img src="<?php echo esc_url($related_img); ?>" alt="<?php echo esc_attr(get_the_title($related_post_id)); ?>" width="1200" height="760" decoding="async" loading="lazy" />
-                      <div class="ups-post-related-copy">
-                        <div class="ups-post-related-badge"><?php echo esc_html($related_cat_name); ?></div>
-                        <h3 class="ups-post-related-title"><?php echo esc_html(get_the_title($related_post_id)); ?></h3>
-                        <a class="ups-post-related-link" href="<?php echo esc_url(get_permalink($related_post_id)); ?>">Czytaj dalej →</a>
+                    <a class="sp-rel-card" href="<?php echo esc_url(get_permalink($related_post_id)); ?>">
+                      <div class="sp-rel-thumb">
+                        <?php if ($related_img) : ?>
+                          <img src="<?php echo esc_url($related_img); ?>" alt="<?php echo esc_attr(get_the_title($related_post_id)); ?>" loading="lazy" decoding="async" />
+                        <?php else : ?>
+                          <div class="sp-thumb-stripes"></div>
+                        <?php endif; ?>
                       </div>
-                    </article>
+                      <div class="sp-rel-meta">
+                        <span><?php echo esc_html($related_cat_name); ?></span>
+                        <span>·</span>
+                        <span><?php echo esc_html(upsellio_estimated_read_time($related_post_id)); ?></span>
+                      </div>
+                      <h3><?php echo esc_html(get_the_title($related_post_id)); ?></h3>
+                    </a>
                   <?php endforeach; ?>
                 </div>
               </div>

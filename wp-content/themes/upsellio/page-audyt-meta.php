@@ -10,6 +10,68 @@ $brand_logo_webp_640_url = (string) ($brand_logo_assets["webp_640"] ?? "");
 if (function_exists("upsellio_register_template_seo_head")) {
     upsellio_register_template_seo_head("audyt_meta");
 }
+$audit_meta_faq_schema = [
+    [
+        "question" => "Czy ten audyt naprawde jest darmowy?",
+        "answer" => "Tak. To darmowa analiza wstepna, ktora daje jasnosc, co blokuje wyniki i gdzie jest najwiekszy potencjal poprawy.",
+    ],
+    [
+        "question" => "Czy musze od razu dawac pelen dostep do konta reklamowego?",
+        "answer" => "Nie. Na start wystarczy formularz i opis sytuacji. Informacje o dostepach sa potrzebne dopiero na dalszym etapie.",
+    ],
+    [
+        "question" => "Dla kogo ten audyt ma najwiekszy sens?",
+        "answer" => "Dla firm, ktore prowadza kampanie Meta Ads lub planuja zwiekszyc budzet i chca poprawic jakosc leadow oraz skutecznosc reklam.",
+    ],
+    [
+        "question" => "Czy po audycie od razu pojawi sie oferta wspolpracy?",
+        "answer" => "Nie. Najpierw otrzymujesz wnioski i rekomendacje. Decyzja o dalszych krokach nalezy do Ciebie.",
+    ],
+];
+$audit_meta_faq_schema_payload = [];
+foreach ($audit_meta_faq_schema as $faq_item) {
+    $question = trim((string) ($faq_item["question"] ?? ""));
+    $answer = trim((string) ($faq_item["answer"] ?? ""));
+    if ($question === "" || $answer === "") {
+        continue;
+    }
+    $audit_meta_faq_schema_payload[] = [
+        "@type" => "Question",
+        "name" => $question,
+        "acceptedAnswer" => [
+            "@type" => "Answer",
+            "text" => $answer,
+        ],
+    ];
+}
+add_action("wp_head", static function () use ($audit_meta_faq_schema_payload) {
+    if (empty($audit_meta_faq_schema_payload)) {
+        return;
+    }
+    echo '<script type="application/ld+json">' . wp_json_encode([
+        "@context" => "https://schema.org",
+        "@type" => "FAQPage",
+        "mainEntity" => $audit_meta_faq_schema_payload,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+    echo '<script type="application/ld+json">' . wp_json_encode([
+        "@context" => "https://schema.org",
+        "@type" => "BreadcrumbList",
+        "itemListElement" => [
+            [
+                "@type" => "ListItem",
+                "position" => 1,
+                "name" => "Strona glowna",
+                "item" => home_url("/"),
+            ],
+            [
+                "@type" => "ListItem",
+                "position" => 2,
+                "name" => "Audyt Meta Ads",
+                "item" => home_url("/audyt-meta/"),
+            ],
+        ],
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+}, 2);
 $upsellio_css_path = get_template_directory() . "/assets/css/upsellio.css";
 $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($upsellio_css_path) : "1.0.0";
 ?><!DOCTYPE html>

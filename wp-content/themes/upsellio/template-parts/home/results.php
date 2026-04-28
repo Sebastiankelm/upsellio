@@ -7,6 +7,31 @@ if (!defined("ABSPATH")) {
 $trust_seo = function_exists("upsellio_get_trust_seo_config") ? upsellio_get_trust_seo_config() : [];
 $featured_case = isset($trust_seo["featured_case"]) && is_array($trust_seo["featured_case"]) ? $trust_seo["featured_case"] : [];
 $case_metrics = isset($featured_case["metrics"]) && is_array($featured_case["metrics"]) ? array_slice($featured_case["metrics"], 0, 4) : [];
+$default_case_kpis = [
+    ["value" => "2,3%", "label" => "konwersja strony"],
+    ["value" => "+28%", "label" => "więcej leadów m/m"],
+    ["value" => "-18%", "label" => "niższy koszt pozyskania"],
+    ["value" => "362", "label" => "leady miesięcznie"],
+];
+$case_kpis = [];
+foreach ($case_metrics as $case_metric) {
+    $raw_metric = trim((string) $case_metric);
+    if ($raw_metric === "") {
+        continue;
+    }
+    $parts = function_exists("upsellio_split_metric_line") ? upsellio_split_metric_line($raw_metric) : ["value" => $raw_metric, "label" => ""];
+    $metric_value = trim((string) ($parts["value"] ?? ""));
+    $metric_label = trim((string) ($parts["label"] ?? ""));
+    if ($metric_label === "" || !preg_match("/\d/", $metric_value)) {
+        continue;
+    }
+    $case_kpis[] = ["value" => $metric_value, "label" => $metric_label];
+}
+if (count($case_kpis) < 4) {
+    $case_kpis = $default_case_kpis;
+} else {
+    $case_kpis = array_slice($case_kpis, 0, 4);
+}
 $testimonials = function_exists("upsellio_get_testimonials_config") ? upsellio_get_testimonials_config() : [];
 $testimonial_defaults = [
     ["quote" => "Po analizie wiedzieliśmy dokładnie, gdzie ucieka budżet i które elementy strony trzeba poprawić jako pierwsze.", "name" => "Marek", "role" => "właściciel", "company" => "firma B2B"],
@@ -48,10 +73,9 @@ $portfolio_posts = new WP_Query([
             <div class="chart-panel chart-panel-kpi-grid">
               <div class="cp-head"><span>Po wdrożeniu systemu</span><span class="live-dot"></span></div>
               <div class="mps-kpi-grid home-mps-kpi-grid">
-                <div class="mps-kpi-cell"><b>128 000</b><span>wejść miesięcznie</span></div>
-                <div class="mps-kpi-cell"><b>2,3%</b><span>konwersja</span></div>
-                <div class="mps-kpi-cell"><b>+42%</b><span>więcej zapytań</span></div>
-                <div class="mps-kpi-cell"><b>-18%</b><span>koszt pozyskania</span></div>
+                <?php foreach ($case_kpis as $case_kpi) : ?>
+                  <div class="mps-kpi-cell"><b><?php echo esc_html((string) $case_kpi["value"]); ?></b><span><?php echo esc_html((string) $case_kpi["label"]); ?></span></div>
+                <?php endforeach; ?>
               </div>
             </div>
             <figure class="case-proof-card">

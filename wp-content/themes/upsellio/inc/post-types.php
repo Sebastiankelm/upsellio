@@ -147,6 +147,7 @@ function upsellio_render_lead_magnet_details_meta_box($post)
     $custom_html = (string) get_post_meta($post_id, "_ups_lm_custom_html", true);
     $custom_css = (string) get_post_meta($post_id, "_ups_lm_custom_css", true);
     $custom_js = (string) get_post_meta($post_id, "_ups_lm_custom_js", true);
+    $pdf_url = (string) get_post_meta($post_id, "_ups_lm_pdf_url", true);
 
     wp_nonce_field("upsellio_lead_magnet_details", "upsellio_lead_magnet_details_nonce");
     ?>
@@ -169,6 +170,10 @@ function upsellio_render_lead_magnet_details_meta_box($post)
     <p>
       <label for="ups_lm_image"><strong>URL obrazka (hero/karta)</strong></label><br />
       <input type="url" id="ups_lm_image" name="ups_lm_image" value="<?php echo esc_attr($image); ?>" class="widefat" placeholder="https://..." />
+    </p>
+    <p>
+      <label for="ups_lm_pdf_url"><strong>URL pliku PDF do pobrania</strong></label><br />
+      <input type="url" id="ups_lm_pdf_url" name="ups_lm_pdf_url" value="<?php echo esc_attr($pdf_url); ?>" class="widefat" placeholder="https://.../mini-audyt.pdf" />
     </p>
     <p>
       <label for="ups_lm_bullets"><strong>Co znajdziesz w środku (jedna pozycja na linię)</strong></label>
@@ -231,6 +236,7 @@ function upsellio_save_lead_magnet_details_meta_box($post_id)
         "_ups_lm_badge" => isset($_POST["ups_lm_badge"]) ? sanitize_text_field(wp_unslash($_POST["ups_lm_badge"])) : "",
         "_ups_lm_cta" => isset($_POST["ups_lm_cta"]) ? sanitize_text_field(wp_unslash($_POST["ups_lm_cta"])) : "",
         "_ups_lm_image" => isset($_POST["ups_lm_image"]) ? esc_url_raw(wp_unslash($_POST["ups_lm_image"])) : "",
+        "_ups_lm_pdf_url" => isset($_POST["ups_lm_pdf_url"]) ? esc_url_raw(wp_unslash($_POST["ups_lm_pdf_url"])) : "",
         "_ups_lm_bullets" => isset($_POST["ups_lm_bullets"]) ? sanitize_textarea_field(wp_unslash($_POST["ups_lm_bullets"])) : "",
     ];
 
@@ -278,6 +284,7 @@ function upsellio_get_lead_magnet_list($limit = 30)
             "badge" => (string) get_post_meta($post_id, "_ups_lm_badge", true),
             "cta" => (string) get_post_meta($post_id, "_ups_lm_cta", true),
             "image" => (string) get_post_meta($post_id, "_ups_lm_image", true),
+            "pdf_url" => (string) get_post_meta($post_id, "_ups_lm_pdf_url", true),
             "bullets" => upsellio_parse_textarea_lines((string) get_post_meta($post_id, "_ups_lm_bullets", true), 8),
             "is_gated" => (string) get_post_meta($post_id, "_ups_lm_gated", true) === "1",
             "category" => $first_term ? (string) $first_term->name : "Lead generation",

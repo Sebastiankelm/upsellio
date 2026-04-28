@@ -8,10 +8,10 @@ function upsellio_get_theme_config_defaults()
     return [
         "template_seo" => [
             "audyt_meta" => [
-                "title" => "Darmowy audyt wyników reklam Meta | Upsellio",
-                "description" => "Darmowy audyt wyników reklam Meta dla firm, które chcą wiedzieć, co działa, co przepala budżet i co poprawić, żeby pozyskiwać lepsze leady.",
-                "og_title" => "Darmowy audyt wyników reklam Meta | Upsellio",
-                "og_description" => "Sprawdzę Twoje kampanie Meta Ads i pokażę, co poprawić, żeby zwiększyć skuteczność reklam i jakość zapytań.",
+                "title" => "Bezplatny audyt Meta Ads | Sprawdz wyniki kampanii Facebook | Upsellio",
+                "description" => "Zamow bezplatny audyt kampanii Meta Ads. Sprawdze co blokuje wyniki, przepala budzet i jak poprawic CPL. Konkretne wnioski - bez ogolnikow.",
+                "og_title" => "Bezplatny audyt Meta Ads | Upsellio",
+                "og_description" => "Sprawdze Twoje kampanie Meta Ads i pokaze, co poprawic, zeby zwiekszyc skutecznosc reklam i jakosc zapytan.",
                 "og_type" => "website",
                 "og_url" => "/audyt-meta",
                 "twitter_card" => "summary_large_image",
@@ -47,6 +47,24 @@ function upsellio_get_theme_config_defaults()
                 "og_description" => "Przegląd case studies marketingowych z KPI, kontekstem i rekomendacjami wdrożeń.",
                 "og_type" => "website",
                 "og_url" => "/portfolio-marketingowe/",
+                "twitter_card" => "summary_large_image",
+            ],
+            "definicje_archive" => [
+                "title" => "Slownik pojec marketingowych i SEO | Baza wiedzy | Upsellio",
+                "description" => "Baza wiedzy Upsellio: praktyczne definicje SEO, Meta Ads, Google Ads, analityki i konwersji. Kazda definicja z przykladami, FAQ i linkami do powiazanych zagadnien.",
+                "og_title" => "Slownik pojec marketingowych i SEO | Baza wiedzy | Upsellio",
+                "og_description" => "Praktyczne definicje SEO i marketingu: Meta Ads, Google Ads, analityka, CRO i sprzedaz B2B.",
+                "og_type" => "website",
+                "og_url" => "/definicje/",
+                "twitter_card" => "summary_large_image",
+            ],
+            "miasta_archive" => [
+                "title" => "Marketing i strony WWW dla firm - miasta w Polsce | Upsellio",
+                "description" => "Sprawdz oferte marketingu internetowego, Google Ads, Meta Ads i stron WWW dla Twojego miasta. Obslugujemy firmy w calej Polsce zdalnie i lokalnie.",
+                "og_title" => "Marketing i strony WWW dla firm - miasta w Polsce | Upsellio",
+                "og_description" => "Podstrony lokalne marketingu internetowego, Google Ads, Meta Ads i stron WWW dla firm z miast w calej Polsce.",
+                "og_type" => "website",
+                "og_url" => "/miasta/",
                 "twitter_card" => "summary_large_image",
             ],
             "lead_magnety" => [
@@ -276,8 +294,72 @@ function upsellio_get_theme_config_defaults()
                 "Aplikacja lub automatyzacja",
                 "Nie wiem - chcę porozmawiać",
             ],
+            "industry_marquee" => [
+                "TCM SERVICE",
+                "Upsellio",
+                "Google Ads",
+                "Meta Ads",
+                "SEO",
+                "B2B Sales",
+                "E-commerce",
+                "Lead generation",
+                "CRO",
+                "Landing pages",
+            ],
             "contact_phone" => "+48 575 522 595",
             "contact_email" => "kontakt@upsellio.pl",
+        ],
+        "footer_sections" => [
+            "brand" => [
+                "description" => "Marketing i sprzedaż B2B dla firm, które chcą realnych zapytań - nie wykresów na slajdach. Pracuję z producentami, dystrybutorami i firmami usługowymi z Polski i UE.",
+                "address" => "ul. Przykładowa 12, Wrocław",
+            ],
+            "sections" => [
+                [
+                    "title" => "Marketing",
+                    "links" => [
+                        ["label" => "Google Ads", "url" => "/marketing-google-ads/"],
+                        ["label" => "Meta Ads", "url" => "/marketing-meta-ads/"],
+                        ["label" => "SEO & content", "url" => "/blog/"],
+                        ["label" => "Sprzedaż B2B", "url" => "/oferta/"],
+                        ["label" => "Audyt konta", "url" => "/kontakt/"],
+                    ],
+                ],
+                [
+                    "title" => "Strony WWW",
+                    "links" => [
+                        ["label" => "Strony firmowe", "url" => "/tworzenie-stron-internetowych/"],
+                        ["label" => "Landing pages", "url" => "/tworzenie-stron-internetowych/#landing-page"],
+                        ["label" => "Sklepy WooCommerce", "url" => "/tworzenie-stron-internetowych/"],
+                    ],
+                ],
+                [
+                    "title" => "Firma",
+                    "links" => [
+                        ["label" => "O Upsellio", "url" => "/"],
+                        ["label" => "Portfolio - WWW", "url" => "/portfolio/"],
+                        ["label" => "Portfolio - marketing", "url" => "/portfolio-marketingowe/"],
+                        ["label" => "Blog", "url" => "/blog/"],
+                        ["label" => "Kontakt", "url" => "/kontakt/"],
+                    ],
+                ],
+                [
+                    "title" => "Materiały",
+                    "links" => [
+                        ["label" => "Słownik marketingowy", "url" => "/definicja/"],
+                        ["label" => "Newsletter", "url" => "/blog/"],
+                        ["label" => "Polityka prywatności", "url" => "/polityka-prywatnosci/"],
+                        ["label" => "Regulamin", "url" => "/regulamin/"],
+                    ],
+                ],
+            ],
+            "cities" => [
+                "title" => "Marketing w Twoim mieście",
+                "links" => [],
+                "all_label" => "Zobacz wszystkie miasta →",
+                "all_url" => "/miasta/",
+                "fallback_limit" => 16,
+            ],
         ],
         "trust_seo" => [
             "organization" => [
@@ -293,7 +375,7 @@ function upsellio_get_theme_config_defaults()
                 "default_og_image" => "",
             ],
             "social_profiles" => [
-                "linkedin" => "https://www.linkedin.com/in/sebastiankelm/",
+                "linkedin" => "https://www.linkedin.com/in/kelm-sebastian/",
                 "facebook" => "https://www.facebook.com/upsellio.pl",
                 "instagram" => "https://www.instagram.com/upsellio.pl/",
                 "x" => "https://x.com/upsellio",
@@ -548,6 +630,10 @@ function upsellio_register_template_seo_head($template_key, $replacements = [])
     $schema_email = trim($replace_tokens((string) ($payload["schema_email"] ?? "")));
     $schema_description = trim($replace_tokens((string) ($payload["schema_description"] ?? "")));
     $schema_founder_name = trim($replace_tokens((string) ($payload["schema_founder_name"] ?? "")));
+    $canonical_url = trim($replace_tokens((string) ($payload["canonical"] ?? "")));
+    if ($canonical_url === "" && $og_url !== "") {
+        $canonical_url = home_url($og_url);
+    }
 
     if ($title !== "") {
         add_filter("pre_get_document_title", function ($current_title) use ($title) {
@@ -568,7 +654,8 @@ function upsellio_register_template_seo_head($template_key, $replacements = [])
         $schema_url,
         $schema_email,
         $schema_description,
-        $schema_founder_name
+        $schema_founder_name,
+        $canonical_url
     ) {
         if ($description !== "") {
             echo '<meta name="description" content="' . esc_attr($description) . '" />' . "\n";
@@ -581,6 +668,9 @@ function upsellio_register_template_seo_head($template_key, $replacements = [])
         }
         echo '<meta property="og:type" content="' . esc_attr($og_type !== "" ? $og_type : "website") . '" />' . "\n";
         echo '<meta property="og:url" content="' . esc_url(home_url($og_url !== "" ? $og_url : "/")) . '" />' . "\n";
+        if ($canonical_url !== "") {
+            echo '<link rel="canonical" href="' . esc_url($canonical_url) . '" />' . "\n";
+        }
         $resolved_og_image = $og_image !== "" ? $og_image : (function_exists("upsellio_get_default_og_image_url") ? upsellio_get_default_og_image_url() : "");
         if ($resolved_og_image !== "") {
             echo '<meta property="og:image" content="' . esc_url($resolved_og_image) . '" />' . "\n";
@@ -615,6 +705,14 @@ function upsellio_get_front_page_content_config()
     $config = upsellio_get_theme_config();
     return isset($config["front_page_sections"]) && is_array($config["front_page_sections"])
         ? $config["front_page_sections"]
+        : [];
+}
+
+function upsellio_get_footer_content_config()
+{
+    $config = upsellio_get_theme_config();
+    return isset($config["footer_sections"]) && is_array($config["footer_sections"])
+        ? $config["footer_sections"]
         : [];
 }
 
@@ -1364,10 +1462,12 @@ function upsellio_handle_theme_config_submit()
     $front_page_json = isset($_POST["ups_front_page_sections_json"]) ? (string) wp_unslash($_POST["ups_front_page_sections_json"]) : "{}";
     $template_seo_json = isset($_POST["ups_template_seo_json"]) ? (string) wp_unslash($_POST["ups_template_seo_json"]) : "{}";
     $trust_seo_json = isset($_POST["ups_trust_seo_json"]) ? (string) wp_unslash($_POST["ups_trust_seo_json"]) : "{}";
+    $footer_sections_json = isset($_POST["ups_footer_sections_json"]) ? (string) wp_unslash($_POST["ups_footer_sections_json"]) : "{}";
     $special_links = json_decode($special_links_json, true);
     $front_sections = json_decode($front_page_json, true);
     $template_seo = json_decode($template_seo_json, true);
     $trust_seo = json_decode($trust_seo_json, true);
+    $footer_sections = json_decode($footer_sections_json, true);
     if (!is_array($special_links)) {
         $special_links = upsellio_get_theme_config_defaults()["special_navigation_links"];
     }
@@ -1380,12 +1480,16 @@ function upsellio_handle_theme_config_submit()
     if (!is_array($trust_seo)) {
         $trust_seo = upsellio_get_theme_config_defaults()["trust_seo"];
     }
+    if (!is_array($footer_sections)) {
+        $footer_sections = upsellio_get_theme_config_defaults()["footer_sections"];
+    }
 
     upsellio_update_theme_config([
         "template_seo" => $template_seo,
         "special_navigation_links" => $special_links,
         "front_page_sections" => $front_sections,
         "trust_seo" => $trust_seo,
+        "footer_sections" => $footer_sections,
     ]);
 
     wp_safe_redirect(add_query_arg(["page" => "upsellio-theme-config", "saved" => 1], admin_url("themes.php")));
@@ -1404,6 +1508,7 @@ function upsellio_render_theme_config_screen()
     $special_links_json = wp_json_encode($config["special_navigation_links"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     $front_page_json = wp_json_encode($config["front_page_sections"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     $trust_seo_json = wp_json_encode($config["trust_seo"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    $footer_sections_json = wp_json_encode($config["footer_sections"], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     $content_post_type_options = upsellio_get_content_post_type_options();
     ?>
     <div class="wrap">
@@ -1494,6 +1599,9 @@ function upsellio_render_theme_config_screen()
         <h2 id="trust-seo">Dane zaufania, SEO i CRO (JSON)</h2>
         <p>Uzupełnij tu dane Organization, profile społecznościowe, opinie, widełki cenowe, dowody społeczne, domyślny obraz OG oraz treści do case studies. Szablony pobierają te dane jako jedno źródło prawdy.</p>
         <textarea name="ups_trust_seo_json" rows="28" class="large-text code"><?php echo esc_textarea((string) $trust_seo_json); ?></textarea>
+        <h2>Footer sections (JSON)</h2>
+        <p>Konfiguracja stopki: opis, sekcje linków i lista miast. Dzięki temu stopka nie jest hardcodowana.</p>
+        <textarea name="ups_footer_sections_json" rows="20" class="large-text code"><?php echo esc_textarea((string) $footer_sections_json); ?></textarea>
         <p><button type="submit" name="upsellio_theme_config_submit" value="1" class="button button-primary">Zapisz konfiguracje</button></p>
       </form>
     </div>

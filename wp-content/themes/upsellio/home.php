@@ -1360,6 +1360,7 @@ get_header();
     </div>
   </section>
 
+  <?php if (current_user_can("manage_options")) : ?>
   <section class="ups-blog-category-strategy">
     <div class="wrap">
       <div class="ups-blog-topics-head">
@@ -1399,6 +1400,7 @@ get_header();
       </div>
     </div>
   </section>
+  <?php endif; ?>
 
   <section class="ups-blog-cta">
     <div class="wrap">

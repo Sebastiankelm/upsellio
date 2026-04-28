@@ -3,6 +3,10 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
+if (function_exists("upsellio_register_template_seo_head")) {
+    upsellio_register_template_seo_head("definicje_archive");
+}
+
 get_header();
 
 $definitions = get_posts([
@@ -12,7 +16,41 @@ $definitions = get_posts([
     "orderby" => "title",
     "order" => "ASC",
 ]);
+
+$definition_schema_items = [];
+foreach ($definitions as $index => $definition) {
+    $term_name = get_post_meta($definition->ID, "_upsellio_definition_term", true) ?: get_the_title($definition->ID);
+    $definition_schema_items[] = [
+        "@type" => "ListItem",
+        "position" => $index + 1,
+        "url" => get_permalink($definition->ID),
+        "name" => (string) $term_name,
+    ];
+}
 ?>
+<?php if (!empty($definition_schema_items)) : ?>
+<script type="application/ld+json">
+<?php
+echo wp_json_encode([
+    "@context" => "https://schema.org",
+    "@type" => "DefinedTermSet",
+    "name" => "Slownik pojec marketingowych i SEO",
+    "url" => get_post_type_archive_link("definicja"),
+    "hasDefinedTerm" => array_map(static function ($item) {
+        return [
+            "@type" => "DefinedTerm",
+            "name" => (string) ($item["name"] ?? ""),
+            "url" => (string) ($item["url"] ?? ""),
+        ];
+    }, $definition_schema_items),
+    "mainEntity" => [
+        "@type" => "ItemList",
+        "itemListElement" => $definition_schema_items,
+    ],
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+?>
+</script>
+<?php endif; ?>
 <style>
   .defs-wrap{width:min(1140px,calc(100% - 32px));margin:0 auto}
   .defs-hero{position:relative;overflow:hidden;padding:72px 0 36px;border-bottom:1px solid #e2e8f0;background:radial-gradient(circle at top right, rgba(20,184,166,0.16), transparent 40%), linear-gradient(180deg,#ecfeff,#f1f5f9)}

@@ -98,6 +98,14 @@ if (!defined("ABSPATH")) {
         <input class="input" id="hero-site" type="url" name="lead_company" placeholder="https://twojastrona.pl" required />
         <label for="hero-email">E-mail do odpowiedzi</label>
         <input class="input" id="hero-email" type="email" name="lead_email" placeholder="kontakt@firma.pl" required />
+        <label for="hero-focus">Czego szukasz? (opcjonalnie)</label>
+        <select class="input" id="hero-focus" name="lead_context">
+          <option value="">Wybierz obszar (opcjonalne)</option>
+          <option value="google_ads">Poprawy kampanii Google Ads</option>
+          <option value="meta_ads">Poprawy kampanii Meta Ads</option>
+          <option value="strona_cro">Lepszej konwersji strony</option>
+          <option value="lejek_sprzedazy">Uporządkowania lejka i jakości leadów</option>
+        </select>
         <input type="hidden" name="lead_service" value="Szybka analiza strony" />
         <input type="hidden" name="lead_message" value="Proszę o szybką analizę potencjału strony i wskazanie, co blokuje wyniki." />
         <label class="hero-consent">

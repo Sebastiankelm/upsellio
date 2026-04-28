@@ -38,6 +38,11 @@ if (!defined("ABSPATH")) {
           <div>
             <h2 class="reveal">Twoja strona ma wyglądać dobrze i sprzedawać</h2>
             <p class="reveal d1">Jeśli chcesz, mogę spojrzeć na Twoją stronę i marketing pod kątem: jasności przekazu, CTA, zaufania i konwersji. Powiem Ci wprost, co warto poprawić najpierw.</p>
+            <div class="cta-dark-proof reveal d2" aria-label="Dowód skuteczności">
+              <span class="cta-dark-proof-item"><strong>+28%</strong> więcej leadów m/m</span>
+              <span class="cta-dark-proof-item"><strong>-18%</strong> niższy CPL</span>
+              <span class="cta-dark-proof-item"><strong>4.9/5</strong> średnia ocena współpracy</span>
+            </div>
           </div>
           <div class="reveal d2" style="text-align:center">
             <a href="<?php echo esc_url(home_url("/#kontakt")); ?>" class="btn-white">

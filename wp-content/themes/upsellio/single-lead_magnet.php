@@ -44,7 +44,7 @@ $custom_payload = function_exists("upsellio_prepare_custom_embed_payload")
 $custom_html = (string) ($custom_payload["html"] ?? "");
 $custom_css = (string) ($custom_payload["css"] ?? "");
 $custom_js = (string) ($custom_payload["js"] ?? "");
-$single_faq_items = [
+$single_faq_defaults = [
     [
         "question" => "Czy mogę użyć tego materiału bez doświadczenia w reklamach?",
         "answer" => "Tak. Materiał prowadzi przez konkretne punkty kontrolne i pytania diagnostyczne, więc możesz wykorzystać go samodzielnie przed rozmową z agencją lub specjalistą.",
@@ -58,6 +58,95 @@ $single_faq_items = [
         "answer" => "Materiały są przygotowane pod aktualne problemy firm B2B: koszty kampanii, jakość leadów, konwersję landing page i poprawny pomiar działań marketingowych.",
     ],
 ];
+$single_faq_items = get_post_meta($post_id, "_ups_lm_faq", true);
+if (!is_array($single_faq_items)) {
+    $single_faq_items = [];
+}
+$single_faq_items = array_values(array_filter(array_map(static function ($item) {
+    if (!is_array($item)) {
+        return null;
+    }
+    $question = trim((string) ($item["question"] ?? ""));
+    $answer = trim((string) ($item["answer"] ?? ""));
+    if ($question === "" || $answer === "") {
+        return null;
+    }
+    return [
+        "question" => $question,
+        "answer" => $answer,
+    ];
+}, $single_faq_items)));
+if (empty($single_faq_items)) {
+    $single_faq_items = $single_faq_defaults;
+}
+$lead_magnet_description = $excerpt !== "" ? $excerpt : wp_trim_words(wp_strip_all_tags((string) get_the_content(null, false, $post_id)), 35, "");
+add_action("wp_head", static function () use ($post_id, $title, $lead_magnet_description, $single_faq_items) {
+    $faq_entities = [];
+    foreach ($single_faq_items as $faq_item) {
+        $question = trim((string) ($faq_item["question"] ?? ""));
+        $answer = trim((string) ($faq_item["answer"] ?? ""));
+        if ($question === "" || $answer === "") {
+            continue;
+        }
+        $faq_entities[] = [
+            "@type" => "Question",
+            "name" => $question,
+            "acceptedAnswer" => [
+                "@type" => "Answer",
+                "text" => $answer,
+            ],
+        ];
+    }
+    $schema_payloads = [
+        [
+            "@context" => "https://schema.org",
+            "@type" => "DigitalDocument",
+            "name" => $title,
+            "description" => $lead_magnet_description,
+            "url" => get_permalink($post_id),
+            "fileFormat" => "application/pdf",
+            "author" => [
+                "@type" => "Organization",
+                "name" => "Upsellio",
+            ],
+            "datePublished" => get_the_date("c", $post_id),
+        ],
+        [
+            "@context" => "https://schema.org",
+            "@type" => "BreadcrumbList",
+            "itemListElement" => [
+                [
+                    "@type" => "ListItem",
+                    "position" => 1,
+                    "name" => "Strona glowna",
+                    "item" => home_url("/"),
+                ],
+                [
+                    "@type" => "ListItem",
+                    "position" => 2,
+                    "name" => "Lead magnety",
+                    "item" => function_exists("upsellio_get_lead_magnets_page_url") ? upsellio_get_lead_magnets_page_url() : home_url("/lead-magnety/"),
+                ],
+                [
+                    "@type" => "ListItem",
+                    "position" => 3,
+                    "name" => $title,
+                    "item" => get_permalink($post_id),
+                ],
+            ],
+        ],
+    ];
+    if (!empty($faq_entities)) {
+        $schema_payloads[] = [
+            "@context" => "https://schema.org",
+            "@type" => "FAQPage",
+            "mainEntity" => $faq_entities,
+        ];
+    }
+    foreach ($schema_payloads as $schema_payload) {
+        echo '<script type="application/ld+json">' . wp_json_encode($schema_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+    }
+}, 2);
 ?>
 <style>
   .lms-page { background:#f8fafc; color:#071426; }

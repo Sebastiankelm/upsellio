@@ -31,6 +31,7 @@ while (have_posts()) :
     $contactEmailHref = function_exists("upsellio_get_mailto_href") ? upsellio_get_mailto_href($contactEmail) : ("mailto:" . $contactEmail);
     $contactEmailDisplay = function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address($contactEmail) : $contactEmail;
     $seed = abs(crc32($slug . "|" . $term));
+    $archive_definitions_url = get_post_type_archive_link("definicja");
     $articleHtml = apply_filters("the_content", get_the_content());
 
     $toolIntroPool = [
@@ -154,7 +155,7 @@ while (have_posts()) :
     $selectedCityLinks = [];
     $seenCityLinks = [];
     $cityCount = count($cityInternalLinks);
-    for ($i = 0; $i < min(10, $cityCount); $i++) {
+    for ($i = 0; $i < min(6, $cityCount); $i++) {
         $idx = ($seed + $i * 9) % $cityCount;
         $urlKey = $cityInternalLinks[$idx]["url"];
         if (isset($seenCityLinks[$urlKey])) {
@@ -193,6 +194,56 @@ while (have_posts()) :
         },
         $articleHtml
     );
+    add_action("wp_head", static function () use ($postId, $term, $archive_definitions_url, $faq) {
+        $description = get_the_excerpt($postId);
+        if ($description === "") {
+            $description = wp_trim_words(wp_strip_all_tags((string) get_post_field("post_content", $postId)), 35, "");
+        }
+        $schema_payloads = [
+            [
+                "@context" => "https://schema.org",
+                "@type" => "DefinedTerm",
+                "name" => $term,
+                "description" => $description,
+                "url" => get_permalink($postId),
+                "inDefinedTermSet" => $archive_definitions_url !== "" ? $archive_definitions_url : home_url("/definicje/"),
+            ],
+            [
+                "@context" => "https://schema.org",
+                "@type" => "BreadcrumbList",
+                "itemListElement" => [
+                    ["@type" => "ListItem", "position" => 1, "name" => "Strona glowna", "item" => home_url("/")],
+                    ["@type" => "ListItem", "position" => 2, "name" => "Definicje", "item" => $archive_definitions_url !== "" ? $archive_definitions_url : home_url("/definicje/")],
+                    ["@type" => "ListItem", "position" => 3, "name" => $term, "item" => get_permalink($postId)],
+                ],
+            ],
+        ];
+        $faq_entities = [];
+        if (is_array($faq)) {
+            foreach ($faq as $faq_item) {
+                $question = trim((string) ($faq_item["question"] ?? ""));
+                $answer = trim((string) ($faq_item["answer"] ?? ""));
+                if ($question === "" || $answer === "") {
+                    continue;
+                }
+                $faq_entities[] = [
+                    "@type" => "Question",
+                    "name" => $question,
+                    "acceptedAnswer" => ["@type" => "Answer", "text" => $answer],
+                ];
+            }
+        }
+        if (!empty($faq_entities)) {
+            $schema_payloads[] = [
+                "@context" => "https://schema.org",
+                "@type" => "FAQPage",
+                "mainEntity" => $faq_entities,
+            ];
+        }
+        foreach ($schema_payloads as $schema_payload) {
+            echo '<script type="application/ld+json">' . wp_json_encode($schema_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+        }
+    }, 2);
     ?>
     <style>
       .definition-progress{position:fixed;top:0;left:0;width:0;height:3px;background:linear-gradient(90deg,#0d9488,#14b8a6);z-index:90;transition:width .12s linear;will-change:width}

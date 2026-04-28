@@ -51,6 +51,35 @@ while (have_posts()) :
     $contactEmailDisplay = function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address($contactEmail) : $contactEmail;
     $phoneHref = preg_replace("/[^0-9+]/", "", $contactPhone);
     $ctaSeed = abs(crc32($citySlug . "|" . $cityName));
+    $city_page_title = "Marketing i strony WWW " . $cityName . " - Google Ads i Meta Ads dla firm | Upsellio";
+    $city_page_description = "Kampanie Google Ads, Meta Ads i tworzenie stron internetowych dla firm z " . $cityName . ". Bezplatna diagnoza - zdalnie lub lokalnie.";
+    add_filter("pre_get_document_title", static function ($title) use ($city_page_title) {
+        return $city_page_title !== "" ? $city_page_title : $title;
+    });
+    add_action("wp_head", static function () use ($postId, $city_page_description, $cityName, $voivodeship) {
+        $canonical = get_permalink($postId);
+        echo '<meta name="description" content="' . esc_attr($city_page_description) . "\" />\n";
+        echo '<link rel="canonical" href="' . esc_url($canonical) . "\" />\n";
+        echo '<script type="application/ld+json">' . wp_json_encode([
+            "@context" => "https://schema.org",
+            "@type" => "LocalBusiness",
+            "name" => "Upsellio",
+            "url" => $canonical,
+            "areaServed" => [
+                ["@type" => "City", "name" => $cityName],
+                ["@type" => "AdministrativeArea", "name" => $voivodeship],
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+        echo '<script type="application/ld+json">' . wp_json_encode([
+            "@context" => "https://schema.org",
+            "@type" => "BreadcrumbList",
+            "itemListElement" => [
+                ["@type" => "ListItem", "position" => 1, "name" => "Strona glowna", "item" => home_url("/")],
+                ["@type" => "ListItem", "position" => 2, "name" => "Miasta", "item" => get_post_type_archive_link("miasto") ?: home_url("/miasta/")],
+                ["@type" => "ListItem", "position" => 3, "name" => $cityName, "item" => $canonical],
+            ],
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+    }, 2);
 
     $voivodeshipKey = function_exists("remove_accents") ? remove_accents((string) $voivodeship) : (string) $voivodeship;
     $voivodeshipKey = strtolower(preg_replace("/\s+/", "-", trim($voivodeshipKey)));

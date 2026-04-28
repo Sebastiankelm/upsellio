@@ -30,6 +30,24 @@ $metrics = function_exists("upsellio_parse_metrics_lines") ? upsellio_parse_metr
 $technologies = function_exists("upsellio_parse_metrics_lines") ? upsellio_parse_metrics_lines((string) get_post_meta($post_id, "_ups_port_technologies", true)) : [];
 $client_quote = (string) get_post_meta($post_id, "_ups_port_client_quote", true);
 $has_publish_consent = (string) get_post_meta($post_id, "_ups_port_publish_consent", true) === "1";
+$project_faq = get_post_meta($post_id, "_ups_port_faq", true);
+if (!is_array($project_faq)) {
+    $project_faq = [];
+}
+$project_faq = array_values(array_filter(array_map(static function ($item) {
+    if (!is_array($item)) {
+        return null;
+    }
+    $question = trim((string) ($item["question"] ?? ""));
+    $answer = trim((string) ($item["answer"] ?? ""));
+    if ($question === "" || $answer === "") {
+        return null;
+    }
+    return [
+        "question" => $question,
+        "answer" => $answer,
+    ];
+}, $project_faq)));
 $custom_html = (string) get_post_meta($post_id, "_ups_port_custom_html", true);
 $custom_css = (string) get_post_meta($post_id, "_ups_port_custom_css", true);
 $custom_js = (string) get_post_meta($post_id, "_ups_port_custom_js", true);
@@ -40,282 +58,345 @@ $custom_html = (string) ($custom_payload["html"] ?? "");
 $custom_css = (string) ($custom_payload["css"] ?? "");
 $custom_js = (string) ($custom_payload["js"] ?? "");
 $portfolio_url = function_exists("upsellio_get_portfolio_page_url") ? upsellio_get_portfolio_page_url() : home_url("/portfolio/");
+$schema_description = $excerpt !== "" ? $excerpt : wp_trim_words(wp_strip_all_tags((string) get_the_content(null, false, $post_id)), 35, "");
+add_action("wp_head", static function () use ($post_id, $title, $schema_description, $external_url, $project_faq, $portfolio_url) {
+    $schema_payloads = [];
+    $creative_work = [
+        "@context" => "https://schema.org",
+        "@type" => "CreativeWork",
+        "name" => $title,
+        "description" => $schema_description,
+        "url" => get_permalink($post_id),
+        "author" => [
+            "@type" => "Organization",
+            "name" => "Upsellio",
+        ],
+        "datePublished" => get_the_date("c", $post_id),
+    ];
+    if ($external_url !== "") {
+        $creative_work["sameAs"] = [esc_url_raw($external_url)];
+    }
+    $schema_payloads[] = $creative_work;
+    $schema_payloads[] = [
+        "@context" => "https://schema.org",
+        "@type" => "BreadcrumbList",
+        "itemListElement" => [
+            ["@type" => "ListItem", "position" => 1, "name" => "Strona glowna", "item" => home_url("/")],
+            ["@type" => "ListItem", "position" => 2, "name" => "Portfolio", "item" => $portfolio_url],
+            ["@type" => "ListItem", "position" => 3, "name" => $title, "item" => get_permalink($post_id)],
+        ],
+    ];
+    $faq_entities = [];
+    foreach ($project_faq as $faq_item) {
+        $faq_entities[] = [
+            "@type" => "Question",
+            "name" => (string) $faq_item["question"],
+            "acceptedAnswer" => ["@type" => "Answer", "text" => (string) $faq_item["answer"]],
+        ];
+    }
+    if (!empty($faq_entities)) {
+        $schema_payloads[] = [
+            "@context" => "https://schema.org",
+            "@type" => "FAQPage",
+            "mainEntity" => $faq_entities,
+        ];
+    }
+    foreach ($schema_payloads as $schema_payload) {
+        echo '<script type="application/ld+json">' . wp_json_encode($schema_payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+    }
+}, 2);
 ?>
 <style>
-  .ports-page { background:#f8fafc; color:#071426; }
-  .ports-wrap { width:min(1240px, calc(100% - 32px)); margin:0 auto; }
-  .ports-hero { border-bottom:1px solid #e2e8f0; background:radial-gradient(circle at top right, rgba(20,184,166,0.20), rgba(255,255,255,0) 55%), linear-gradient(180deg, rgba(20,184,166,0.14), rgba(255,255,255,0) 70%); }
-  .ports-hero-inner { padding:56px 0 42px; display:grid; grid-template-columns:1fr; gap:28px; align-items:start; }
-  .ports-hero-copy { min-width:0; }
-  .ports-hero-visual { display:none; }
-  .ports-hero-visual .ports-hero-cover { border-radius:20px; overflow:hidden; border:1px solid #e2e8f0; box-shadow:0 30px 60px -30px rgba(15,23,42,.25); aspect-ratio:16 / 11; background:linear-gradient(135deg,#ecfeff,#cbd5e1); position:relative; }
-  .ports-hero-visual .ports-hero-cover img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
-  .ports-hero-visual .ports-hero-fallback { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:#0f766e; }
-  .ports-hero-visual .ports-hero-fallback-initials { width:72px; height:72px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-family:"Syne",sans-serif; font-weight:800; font-size:28px; color:#0f766e; box-shadow:0 12px 30px -12px rgba(13,148,136,.4); }
-  .ports-back { color:#64748b; font-size:14px; font-weight:600; }
-  .ports-badge { display:inline-flex; margin-top:12px; border-radius:999px; border:1px solid #99f6e4; background:#ecfeff; color:#0f766e; font-size:12px; font-weight:700; padding:6px 12px; }
-  .ports-title { margin:16px 0 14px; max-width:830px; font-family:"Syne",sans-serif; font-size:clamp(34px, 6vw, 62px); line-height:.98; letter-spacing:-.05em; }
-  .ports-excerpt { margin:0; max-width:850px; color:#334155; font-size:19px; line-height:1.72; }
-  .ports-meta { margin-top:15px; color:#64748b; font-size:14px; }
-  .ports-kpi { margin-top:24px; display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; max-width:560px; }
-  .ports-kpi-item { padding:16px 18px; border-radius:14px; background:#fff; border:1px solid #e2e8f0; box-shadow:0 6px 18px -10px rgba(15,23,42,.08); }
-  .ports-kpi-value { display:block; font-family:"Syne",sans-serif; font-size:clamp(26px,4vw,34px); line-height:1; letter-spacing:-.03em; color:#0d9488; font-weight:800; }
-  .ports-kpi-label { display:block; margin-top:6px; font-size:12px; line-height:1.45; color:#475569; font-weight:600; }
-  .ports-kpi-item.is-text .ports-kpi-value { font-size:14px; line-height:1.4; color:#071426; font-weight:700; letter-spacing:0; }
-  .ports-main { padding:36px 0 52px; }
-  .ports-layout { display:grid; grid-template-columns:1fr; gap:16px; }
-  .ports-card { border:1px solid #e2e8f0; border-radius:24px; background:#fff; padding:22px; overflow:hidden; }
-  .ports-cover { border-radius:18px; overflow:hidden; margin-bottom:18px; max-height:390px; }
-  .ports-cover img { width:100%; height:100%; object-fit:cover; display:block; }
-  .ports-content { color:#334155; line-height:1.85; }
-  .ports-content h2, .ports-content h3 { font-family:"Syne",sans-serif; letter-spacing:-.03em; color:#071426; margin:20px 0 8px; }
-  .ports-sections { margin-top:18px; display:grid; gap:10px; }
-  .ports-section { border:1px solid #e2e8f0; background:#f8fafc; border-radius:14px; padding:14px; }
-  .ports-section-title { margin:0 0 6px; font-family:"Syne",sans-serif; font-size:20px; letter-spacing:-.02em; }
-  .ports-section-copy { margin:0; color:#334155; line-height:1.74; }
-  .ports-custom-block { margin-top:16px; border:1px solid #e2e8f0; border-radius:18px; padding:14px; background:#f8fafc; }
-  .ports-live-block { margin-top:16px; border:1px solid #e2e8f0; border-radius:18px; padding:14px; background:#f8fafc; }
-  .ports-live-head { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
-  .ports-live-title { margin:0; font-family:"Syne",sans-serif; font-size:22px; letter-spacing:-.02em; color:#071426; }
-  .ports-live-copy { margin:0; color:#64748b; font-size:14px; line-height:1.6; }
-  .ports-live-switch { display:flex; gap:8px; }
-  .ports-live-btn { border:1px solid #e2e8f0; background:#fff; color:#334155; border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; transition:.18s ease; }
-  .ports-live-btn.is-active { border-color:#0d9488; background:#ecfeff; color:#0f766e; }
-  .ports-live-frame-wrap { border:1px solid #e2e8f0; border-radius:14px; background:#fff; padding:10px; transition:.2s ease; }
-  .ports-live-frame { width:100%; height:640px; border:0; border-radius:10px; display:block; background:#fff; }
-  .ports-live-frame-wrap.is-mobile { max-width:410px; margin:0 auto; }
-  .ports-live-frame-wrap.is-mobile .ports-live-frame { height:760px; }
-  .ports-live-note { margin:10px 0 0; color:#69726d; font-size:12px; line-height:1.6; }
-  .ports-form-title { margin:0 0 7px; font-family:"Syne",sans-serif; font-size:28px; line-height:1.05; letter-spacing:-.03em; }
-  .ports-form-text { margin:0 0 14px; color:#334155; line-height:1.7; }
-  .ports-form .field { margin-bottom:12px; }
-  .ports-form label { display:block; margin-bottom:6px; color:#334155; font-size:12px; font-weight:600; }
-  .ports-form input,.ports-form textarea {
-    width:100%;
-    border:1px solid #cbd5e1;
-    border-radius:12px;
-    min-height:46px;
-    padding:13px 15px;
-    font-size:15px;
-    outline:none;
-    background:#fff;
-    color:#071426;
-    transition:border-color .18s,box-shadow .18s;
+  .pf-art{font-family:"DM Sans",system-ui,sans-serif;color:#0a1410;background:#fafaf7;line-height:1.7}
+  .pf-art *,.pf-art *::before,.pf-art *::after{box-sizing:border-box}
+  .pf-wrap{width:min(1180px,100% - 64px);margin-inline:auto}
+  .pf-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#0d9488;margin-bottom:14px}
+  .pf-eyebrow::before{content:"";width:26px;height:2px;background:#0d9488;border-radius:99px}
+  .pf-eyebrow-light{color:#5eead4}
+  .pf-eyebrow-light::before{background:#5eead4}
+  .pf-h1{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(38px,4.4vw,58px);line-height:1.02;letter-spacing:-1.8px;margin:0 0 20px;max-width:18ch}
+  .pf-h2{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(24px,2.8vw,34px);line-height:1.1;letter-spacing:-1.2px;margin:48px 0 16px}
+  .pf-h2:first-child{margin-top:0}
+  .pf-h2-light{color:#fff}
+  .pf-lead{font-size:18px;line-height:1.6;color:#3d3d38;max-width:60ch;margin:0 0 28px}
+  .pf-divider{height:1px;background:#e7e7e1;margin:32px 0 48px}
+  .pf-thumb-stripes{position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(13,148,136,.12) 0 14px,transparent 14px 28px)}
+  .pf-thumb-label{position:absolute;inset:0;display:grid;place-items:center;font-family:ui-monospace,monospace;color:#0f766e;font-size:13px;letter-spacing:1px;text-align:center;padding:0 24px}
+  .pf-crumbs{padding:32px 0 0;font-size:13px;color:#7c7c74}
+  .pf-crumbs a{color:#7c7c74;text-decoration:none;margin-right:8px}
+  .pf-crumbs span{margin-right:8px;color:#c4c4bd}
+  .pf-head{padding:48px 0 64px}
+  .pf-head-grid{display:grid;grid-template-columns:1.4fr .8fr;gap:48px;align-items:start}
+  .pf-meta-row{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:32px;padding-top:24px;border-top:1px solid #e7e7e1}
+  .pf-meta-row>div{display:flex;flex-direction:column;gap:2px}
+  .pf-meta-row span{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#7c7c74;font-weight:700}
+  .pf-meta-row strong{font-size:14.5px;font-weight:600;color:#0a1410}
+  .pf-side{background:#0a1410;color:#fff;border-radius:20px;padding:28px;position:relative;overflow:hidden}
+  .pf-side::before{content:"";position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,.2),transparent 65%);right:-80px;top:-80px;pointer-events:none}
+  .pf-side .pf-eyebrow{color:#5eead4;position:relative}
+  .pf-side .pf-eyebrow::before{background:#5eead4}
+  .pf-stat-big{position:relative;font-family:"Syne",sans-serif;font-weight:700;font-size:64px;line-height:1;letter-spacing:-3px;color:#5eead4;margin:6px 0 4px}
+  .pf-stat-label{position:relative;font-size:13px;color:rgba(255,255,255,.7);margin-bottom:18px}
+  .pf-side ul{position:relative;list-style:none;padding:0;margin:0;display:grid;gap:10px;border-top:1px solid rgba(255,255,255,.12);padding-top:16px}
+  .pf-side ul li{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;gap:10px}
+  .pf-side ul strong{font-family:"Syne",sans-serif;font-weight:700;color:#5eead4;font-size:18px;letter-spacing:-.3px;white-space:nowrap}
+  .pf-side ul span{color:rgba(255,255,255,.7);font-size:13px;text-align:right}
+  .pf-cover{padding:0 0 96px}
+  .pf-cover-img{position:relative;aspect-ratio:2.2;background:#dff8f4;border-radius:24px;overflow:hidden;border:1px solid #99f6e4}
+  .pf-cover-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .pf-section{padding:0 0 96px}
+  .pf-content-grid{display:grid;grid-template-columns:1fr 280px;gap:64px;align-items:start}
+  .pf-content p{margin:0 0 18px;font-size:16px;color:#262625;line-height:1.75}
+  .pf-content h2,.pf-content h3{font-family:"Syne",sans-serif;font-size:clamp(24px,2.8vw,34px);line-height:1.1;letter-spacing:-1.2px;margin:48px 0 16px}
+  .pf-bullets{list-style:none;padding:0;margin:0 0 32px;display:grid;gap:12px}
+  .pf-bullets li{padding-left:24px;position:relative;font-size:15.5px;line-height:1.7;color:#262625}
+  .pf-bullets li::before{content:"";position:absolute;left:2px;top:11px;width:8px;height:8px;background:#0d9488;border-radius:50%}
+  .pf-bullets strong{color:#0a1410;font-weight:700}
+  .pf-quote{background:#fff;border:1px solid #e7e7e1;border-left:3px solid #0d9488;border-radius:0 18px 18px 0;padding:28px 32px;margin:32px 0}
+  .pf-quote p{margin:0 0 18px !important;font-family:"Syne",sans-serif;font-size:20px;line-height:1.4;letter-spacing:-.4px;color:#0a1410}
+  .pf-quote-author{display:flex;align-items:center;gap:12px;padding-top:16px;border-top:1px solid #e7e7e1}
+  .pf-avatar{width:40px;height:40px;border-radius:50%;background:#dff8f4;border:1px solid #99f6e4;display:grid;place-items:center;font-family:"Syne",sans-serif;color:#0f766e;font-weight:800;font-size:13px}
+  .pf-quote-author strong{display:block;font-family:"Syne",sans-serif;font-size:14.5px;font-weight:700}
+  .pf-quote-author span{display:block;font-size:12.5px;color:#7c7c74}
+  .pf-shots{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:24px 0 32px}
+  .pf-shot{margin:0;background:#fff;border:1px solid #e7e7e1;border-radius:14px;overflow:hidden}
+  .pf-shot-img{position:relative;aspect-ratio:1.55;background:#dff8f4}
+  .pf-shot-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .pf-shot figcaption{padding:12px 16px;font-size:12.5px;color:#7c7c74;border-top:1px solid #e7e7e1}
+  .pf-tech{position:sticky;top:32px;background:#fff;border:1px solid #e7e7e1;border-radius:18px;padding:24px}
+  .pf-tech ul{list-style:none;padding:0;margin:0 0 22px;display:grid;gap:8px}
+  .pf-tech ul li{font-size:13.5px;color:#3d3d38;padding-left:18px;position:relative}
+  .pf-tech ul li::before{content:"›";position:absolute;left:0;color:#0d9488;font-weight:900}
+  .pf-tech-link{display:inline-flex;color:#0d9488;font-weight:700;font-size:14px;text-decoration:none}
+  .pf-cta{background:#0a1410;color:#fff;padding:80px 0;position:relative;overflow:hidden}
+  .pf-cta::before{content:"";position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,.2),transparent 65%);right:-200px;top:-300px;pointer-events:none}
+  .pf-cta-inner{position:relative;display:flex;justify-content:space-between;align-items:center;gap:32px;flex-wrap:wrap}
+  .pf-btn-primary{display:inline-flex;align-items:center;gap:8px;background:#0d9488;color:#fff;padding:15px 24px;border-radius:999px;font-weight:700;font-size:15px;text-decoration:none}
+  .pf-related{padding:96px 0 128px}
+  .pf-sec-head{max-width:780px}
+  .pf-rel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .pf-rel-card{background:#fff;border:1px solid #e7e7e1;border-radius:18px;overflow:hidden;text-decoration:none;color:inherit;transition:.2s ease}
+  .pf-rel-card:hover{transform:translateY(-3px);border-color:#99f6e4}
+  .pf-rel-thumb{position:relative;aspect-ratio:1.5;background:#dff8f4}
+  .pf-rel-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .pf-rel-body{padding:20px 22px}
+  .pf-rel-tag{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#7c7c74;font-weight:700;margin-bottom:8px}
+  .pf-rel-card h3{margin:0 0 10px;font-family:"Syne",sans-serif;font-size:18px;letter-spacing:-.4px;line-height:1.2;font-weight:700}
+  .pf-rel-card strong{font-family:"Syne",sans-serif;font-size:13px;color:#0d9488}
+  @media (max-width:1060px){
+    .pf-wrap{width:min(1180px,100% - 40px)}
+    .pf-head-grid,.pf-content-grid{grid-template-columns:1fr;gap:28px}
+    .pf-tech{position:static}
+    .pf-rel-grid{grid-template-columns:1fr 1fr}
   }
-  .ports-form textarea { min-height:110px; resize:vertical; line-height:1.6; }
-  .ports-form input:focus,.ports-form textarea:focus { border-color:#0d9488; box-shadow:0 0 0 3px rgba(20,184,166,.13); }
-  .ports-submit { width:100%; margin-top:4px; min-height:46px; border:none; border-radius:12px; background:linear-gradient(135deg,#0d9488,#14b8a6); color:#fff; font-size:15px; font-weight:700; cursor:pointer; transition:background .18s,transform .18s; }
-  .ports-submit:hover { background:#0f766e; transform:translateY(-1px); }
-  .ports-side-note { margin-top:14px; padding-top:12px; border-top:1px solid #e2e8f0; color:#64748b; font-size:13px; line-height:1.6; }
-  .ports-side-actions { margin-top:10px; display:grid; gap:8px; }
-  .ports-side-link { display:inline-flex; align-items:center; justify-content:center; min-height:42px; border-radius:10px; font-size:14px; font-weight:700; }
-  .ports-side-link.secondary { border:1px solid #e2e8f0; background:#fff; color:#334155; }
-  .ports-side-link.secondary:hover { border-color:#0d9488; color:#0d9488; }
-  @media (min-width:761px){ .ports-wrap{width:min(1240px, calc(100% - 48px));} }
-  @media (min-width:980px){
-    .ports-hero-inner { grid-template-columns:minmax(0, 1.15fr) minmax(0, 0.85fr); padding:72px 0 60px; gap:40px; }
-    .ports-hero-visual { display:block; }
-    .ports-hero-visual .ports-hero-cover { aspect-ratio:5 / 4; }
-  }
-  @media (min-width:1100px){
-    .ports-layout{grid-template-columns:minmax(0, 1fr) 350px;align-items:start;gap:22px;}
-    .ports-sidebar{position:sticky;top:104px;align-self:start;padding:18px;}
-    .ports-sidebar .ports-form-title{font-size:24px;line-height:1.08;margin-bottom:6px;}
-    .ports-sidebar .ports-form-text{font-size:14px;line-height:1.55;margin-bottom:10px;}
-    .ports-sidebar .ports-form .field{margin-bottom:8px;}
-    .ports-sidebar .ports-form label{margin-bottom:4px;font-size:11px;}
-    .ports-sidebar .ports-form input,
-    .ports-sidebar .ports-form textarea{min-height:40px;padding:10px 12px;font-size:14px;border-radius:10px;}
-    .ports-sidebar .ports-form textarea{min-height:74px;line-height:1.45;}
-    .ports-sidebar .ports-submit{min-height:42px;font-size:14px;}
-    .ports-sidebar .ports-side-note{margin-top:10px;padding-top:10px;font-size:12px;line-height:1.45;}
-    .ports-sidebar .ports-side-actions{margin-top:8px;gap:6px;}
-    .ports-sidebar .ports-side-link{min-height:38px;font-size:13px;}
+  @media (max-width:760px){
+    .pf-wrap{width:min(1180px,100% - 24px)}
+    .pf-rel-grid,.pf-shots{grid-template-columns:1fr}
+    .pf-meta-row{grid-template-columns:1fr}
   }
 </style>
 
-<main class="ports-page">
+<main class="pf-art">
   <?php
   $hero_cover_url = $image !== "" ? $image : (has_post_thumbnail($post_id) ? (string) get_the_post_thumbnail_url($post_id, "large") : "");
-  $hero_initials = function_exists("upsellio_get_initials_from_text") ? upsellio_get_initials_from_text($title) : "";
-  $kpi_metrics = array_slice((array) $metrics, 0, 4);
+  $kpi_metrics = array_slice((array) $metrics, 0, 3);
+  $metric_primary = null;
+  if (!empty($kpi_metrics)) {
+      $metric_primary = function_exists("upsellio_split_metric_line")
+          ? upsellio_split_metric_line((string) $kpi_metrics[0])
+          : ["value" => "", "label" => (string) $kpi_metrics[0]];
+  }
+  $related_projects = get_posts([
+      "post_type" => "portfolio",
+      "post_status" => "publish",
+      "posts_per_page" => 3,
+      "post__not_in" => [$post_id],
+  ]);
   ?>
-  <section class="ports-hero">
-    <div class="ports-wrap ports-hero-inner">
-      <div class="ports-hero-copy">
-        <a class="ports-back" href="<?php echo esc_url($portfolio_url); ?>">← Wróć do katalogu portfolio</a>
-        <?php if ($badge !== "") : ?><div class="ports-badge"><?php echo esc_html($badge); ?></div><?php endif; ?>
-        <h1 class="ports-title"><?php echo esc_html($title); ?></h1>
-        <?php if ($excerpt !== "") : ?><p class="ports-excerpt"><?php echo esc_html($excerpt); ?></p><?php endif; ?>
-        <?php if ($type !== "" || $meta !== "") : ?><div class="ports-meta"><?php echo esc_html(trim($type . " · " . $meta, " ·")); ?></div><?php endif; ?>
-        <?php if (!empty($kpi_metrics)) : ?>
-          <div class="ports-kpi" role="list" aria-label="Wyniki projektu">
-            <?php foreach ($kpi_metrics as $metric_line) :
-              $metric_split = function_exists("upsellio_split_metric_line") ? upsellio_split_metric_line((string) $metric_line) : ["value" => "", "label" => (string) $metric_line];
-              $metric_value = (string) ($metric_split["value"] ?? "");
-              $metric_label = (string) ($metric_split["label"] ?? "");
-              $is_text = $metric_value === "";
-              ?>
-              <div class="ports-kpi-item<?php echo $is_text ? " is-text" : ""; ?>" role="listitem">
-                <span class="ports-kpi-value"><?php echo esc_html($is_text ? $metric_label : $metric_value); ?></span>
-                <?php if (!$is_text && $metric_label !== "") : ?>
-                  <span class="ports-kpi-label"><?php echo esc_html($metric_label); ?></span>
-                <?php endif; ?>
-              </div>
-            <?php endforeach; ?>
-          </div>
-        <?php endif; ?>
-      </div>
-      <div class="ports-hero-visual" aria-hidden="true">
-        <div class="ports-hero-cover">
-          <?php if ($hero_cover_url !== "") : ?>
-            <img src="<?php echo esc_url($hero_cover_url); ?>" alt="<?php echo esc_attr($title); ?>" loading="lazy" decoding="async" width="1400" height="900" />
-          <?php else : ?>
-            <div class="ports-hero-fallback">
-              <div class="ports-hero-fallback-initials"><?php echo esc_html($hero_initials !== "" ? $hero_initials : "UP"); ?></div>
-            </div>
-          <?php endif; ?>
+  <nav class="pf-crumbs">
+    <div class="pf-wrap">
+      <a href="<?php echo esc_url(home_url("/")); ?>">Strona główna</a>
+      <span>›</span>
+      <a href="<?php echo esc_url($portfolio_url); ?>">Portfolio</a>
+      <span>›</span>
+      <span><?php echo esc_html($title); ?></span>
+    </div>
+  </nav>
+
+  <header class="pf-head">
+    <div class="pf-wrap pf-head-grid">
+      <div>
+        <div class="pf-eyebrow"><?php echo esc_html($badge !== "" ? $badge : "Realizacja · strona firmowa"); ?></div>
+        <h1 class="pf-h1"><?php echo esc_html($title); ?></h1>
+        <?php if ($excerpt !== "") : ?><p class="pf-lead"><?php echo esc_html($excerpt); ?></p><?php endif; ?>
+        <div class="pf-meta-row">
+          <div><span>Klient</span><strong><?php echo esc_html($title); ?></strong></div>
+          <div><span>Branża</span><strong><?php echo esc_html($type !== "" ? $type : "Projekt B2B"); ?></strong></div>
+          <div><span>Zakres</span><strong><?php echo esc_html($scope !== "" ? $scope : ($meta !== "" ? $meta : "UX, strona WWW, copy")); ?></strong></div>
+          <div><span>Czas</span><strong><?php echo esc_html($meta !== "" ? $meta : "Wdrożenie projektu"); ?></strong></div>
         </div>
+      </div>
+      <aside class="pf-side">
+        <div class="pf-eyebrow">Wynik w liczbach</div>
+        <div class="pf-stat-big"><?php echo esc_html((string) ($metric_primary["value"] ?? "N/A")); ?></div>
+        <div class="pf-stat-label"><?php echo esc_html((string) ($metric_primary["label"] ?? "Wynik projektu")); ?></div>
+        <?php if (!empty($kpi_metrics)) : ?>
+          <ul>
+            <?php foreach ($kpi_metrics as $metric_line) :
+                $metric_split = function_exists("upsellio_split_metric_line")
+                    ? upsellio_split_metric_line((string) $metric_line)
+                    : ["value" => "", "label" => (string) $metric_line];
+                ?>
+              <li>
+                <strong><?php echo esc_html((string) ($metric_split["value"] ?? "•")); ?></strong>
+                <span><?php echo esc_html((string) ($metric_split["label"] ?? "")); ?></span>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+      </aside>
+    </div>
+  </header>
+
+  <section class="pf-cover">
+    <div class="pf-wrap">
+      <div class="pf-cover-img">
+        <?php if ($hero_cover_url !== "") : ?>
+          <img src="<?php echo esc_url($hero_cover_url); ?>" alt="<?php echo esc_attr($title); ?>" loading="lazy" decoding="async" width="1400" height="900" />
+        <?php else : ?>
+          <div class="pf-thumb-stripes"></div>
+          <div class="pf-thumb-label">[ desktop mockup — strona główna projektu ]</div>
+        <?php endif; ?>
       </div>
     </div>
   </section>
 
-  <section class="ports-main">
-    <div class="ports-wrap ports-layout">
-      <article class="ports-card">
-        <?php if ($problem !== "" || $scope !== "" || $result !== "" || !empty($technologies) || ($client_quote !== "" && $has_publish_consent)) : ?>
-          <div class="ports-sections">
-            <?php if ($problem !== "") : ?>
-              <section class="ports-section">
-                <h2 class="ports-section-title">Problem biznesowy</h2>
-                <p class="ports-section-copy"><?php echo esc_html($problem); ?></p>
-              </section>
-            <?php endif; ?>
-            <?php if ($scope !== "") : ?>
-              <section class="ports-section">
-                <h2 class="ports-section-title">Zakres prac</h2>
-                <p class="ports-section-copy"><?php echo esc_html($scope); ?></p>
-              </section>
-            <?php endif; ?>
-            <?php if ($result !== "") : ?>
-              <section class="ports-section">
-                <h2 class="ports-section-title">Wyniki</h2>
-                <p class="ports-section-copy"><?php echo esc_html($result); ?></p>
-              </section>
-            <?php endif; ?>
-            <?php if (!empty($technologies)) : ?>
-              <section class="ports-section">
-                <h2 class="ports-section-title">Technologie i narzędzia</h2>
-                <p class="ports-section-copy"><?php echo esc_html(implode(" · ", array_map("strval", $technologies))); ?></p>
-              </section>
-            <?php endif; ?>
-            <?php if ($client_quote !== "" && $has_publish_consent) : ?>
-              <section class="ports-section">
-                <h2 class="ports-section-title">Opinia klienta</h2>
-                <p class="ports-section-copy">“<?php echo esc_html($client_quote); ?>”</p>
-              </section>
-            <?php endif; ?>
+  <section class="pf-section">
+    <div class="pf-wrap pf-content-grid">
+      <article class="pf-content">
+        <?php if ($problem !== "") : ?>
+          <h2 class="pf-h2">Punkt wyjścia</h2>
+          <p><?php echo wp_kses_post($problem); ?></p>
+        <?php endif; ?>
+
+        <?php if ($scope !== "") : ?>
+          <h2 class="pf-h2">Co zrobiłem</h2>
+          <ul class="pf-bullets">
+            <li><strong>Zakres prac</strong> — <?php echo wp_kses_post($scope); ?></li>
+            <?php if ($meta !== "") : ?><li><strong>Meta projektu</strong> — <?php echo wp_kses_post($meta); ?></li><?php endif; ?>
+            <?php if ($result !== "") : ?><li><strong>Kierunek celu</strong> — <?php echo wp_kses_post($result); ?></li><?php endif; ?>
+          </ul>
+        <?php endif; ?>
+
+        <?php if ($client_quote !== "" && $has_publish_consent) : ?>
+          <div class="pf-quote">
+            <p>"<?php echo esc_html($client_quote); ?>"</p>
+            <div class="pf-quote-author">
+              <div class="pf-avatar">UK</div>
+              <div>
+                <strong>Klient Upsellio</strong>
+                <span>Opinia po wdrożeniu projektu</span>
+              </div>
+            </div>
           </div>
         <?php endif; ?>
 
-        <div class="ports-content"><?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+        <div><?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
 
-        <?php if ($external_url !== "") : ?>
-          <section class="ports-live-block" data-live-preview="1">
-            <div class="ports-live-head">
-              <div>
-                <h2 class="ports-live-title">Interaktywny podgląd wdrożonej strony</h2>
-                <p class="ports-live-copy">Sprawdź działającą wersję projektu bez wychodzenia z case study.</p>
+        <h2 class="pf-h2">Wybrane ekrany</h2>
+        <div class="pf-shots">
+          <?php foreach ([1, 2, 3, 4] as $shot_number) : ?>
+            <figure class="pf-shot">
+              <div class="pf-shot-img">
+                <?php if ($hero_cover_url !== "") : ?>
+                  <img src="<?php echo esc_url($hero_cover_url); ?>" alt="<?php echo esc_attr($title . " - ekran " . $shot_number); ?>" loading="lazy" decoding="async" width="900" height="600" />
+                <?php else : ?>
+                  <div class="pf-thumb-stripes"></div>
+                <?php endif; ?>
               </div>
-              <div class="ports-live-switch">
-                <button class="ports-live-btn is-active" type="button" data-preview-device="desktop">Desktop</button>
-                <button class="ports-live-btn" type="button" data-preview-device="mobile">Mobile</button>
-              </div>
-            </div>
-            <div class="ports-live-frame-wrap" data-preview-frame-wrap>
-              <iframe
-                class="ports-live-frame"
-                src="<?php echo esc_url($external_url); ?>"
-                loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade"
-                sandbox="allow-forms allow-scripts allow-same-origin allow-popups"
-                title="Podgląd projektu: <?php echo esc_attr($title); ?>"
-              ></iframe>
-            </div>
-            <p class="ports-live-note">
-              Jeśli podgląd nie ładuje się poprawnie (część serwisów blokuje osadzanie), otwórz projekt w nowej karcie:
-              <a href="<?php echo esc_url($external_url); ?>" target="_blank" rel="noopener">zobacz wersję live</a>.
-            </p>
-          </section>
-        <?php endif; ?>
+              <figcaption><?php echo esc_html("Widok projektu " . $shot_number); ?></figcaption>
+            </figure>
+          <?php endforeach; ?>
+        </div>
 
         <?php if ($custom_html !== "" || $custom_css !== "" || $custom_js !== "") : ?>
-          <div class="ports-custom-block">
-            <?php if ($custom_html !== "") : ?>
-              <div class="ports-custom-html"><?php echo $custom_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
-            <?php endif; ?>
-            <?php if ($custom_css !== "") : ?>
-              <style><?php echo $custom_css; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></style>
-            <?php endif; ?>
-            <?php if ($custom_js !== "") : ?>
-              <script><?php echo $custom_js; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></script>
-            <?php endif; ?>
+          <div>
+            <?php if ($custom_html !== "") : ?><div><?php echo $custom_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div><?php endif; ?>
+            <?php if ($custom_css !== "") : ?><style><?php echo $custom_css; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></style><?php endif; ?>
+            <?php if ($custom_js !== "") : ?><script><?php echo $custom_js; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></script><?php endif; ?>
           </div>
         <?php endif; ?>
       </article>
 
-      <aside class="ports-card ports-sidebar">
-        <h2 class="ports-form-title">Chcesz podobny efekt w swojej firmie?</h2>
-        <p class="ports-form-text">Wypełnij krótki formularz. Wrócę z rekomendacją, jak przełożyć podobne podejście na Twój biznes.</p>
-        <form class="ports-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-upsellio-lead-form="1" data-upsellio-server-form="1">
-          <input type="hidden" name="action" value="upsellio_submit_lead" />
-          <input type="hidden" name="redirect_url" value="<?php echo esc_url(get_permalink($post_id)); ?>" />
-          <input type="hidden" name="lead_form_origin" value="portfolio-single" />
-          <input type="hidden" name="lead_source" value="portfolio-single" />
-          <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
-          <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
-          <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
-          <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
-          <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
-          <input type="hidden" name="lead_service" value="<?php echo esc_attr($title); ?>" />
-          <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
-          <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
-          <div class="field">
-            <label for="ports-name">Imię i firma *</label>
-            <input id="ports-name" name="lead_name" type="text" autocomplete="name organization" inputmode="text" required />
-          </div>
-          <div class="field">
-            <label for="ports-email">E-mail *</label>
-            <input id="ports-email" name="lead_email" type="email" autocomplete="email" inputmode="email" required />
-          </div>
-          <div class="field">
-            <label for="ports-phone">Telefon</label>
-            <input id="ports-phone" name="lead_phone" type="tel" autocomplete="tel" inputmode="tel" />
-          </div>
-          <div class="field">
-            <label for="ports-message">Krótko opisz cel projektu *</label>
-            <textarea id="ports-message" name="lead_message" required>Chcę omówić podobny projekt jak: <?php echo esc_textarea($title); ?>.</textarea>
-          </div>
-          <div class="field">
-            <label style="display:flex;gap:8px;align-items:flex-start;">
-              <input type="checkbox" name="lead_consent" value="1" required style="width:auto;min-height:auto;margin-top:3px;" />
-              <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
-            </label>
-          </div>
-          <button class="ports-submit" type="submit">Wyślij zapytanie</button>
-        </form>
-
-        <div class="ports-side-note">Jeśli podoba Ci się kierunek tej realizacji, możemy przełożyć podobne podejście na Twoją ofertę, proces sprzedaży i potrzeby klientów.</div>
-        <div class="ports-side-actions">
-          <?php if ($external_url !== "") : ?>
-            <a class="ports-side-link secondary" href="<?php echo esc_url($external_url); ?>" target="_blank" rel="noopener">Zobacz projekt online</a>
-          <?php endif; ?>
-          <a class="ports-side-link secondary" href="<?php echo esc_url($portfolio_url); ?>">Przejdź do wszystkich realizacji</a>
-          <?php if ($cta !== "") : ?><a class="ports-side-link secondary" href="<?php echo esc_url(home_url("/#kontakt")); ?>"><?php echo esc_html($cta); ?></a><?php endif; ?>
-        </div>
+      <aside class="pf-tech">
+        <div class="pf-eyebrow">Stack &amp; narzędzia</div>
+        <?php if (!empty($technologies)) : ?>
+          <ul>
+            <?php foreach ($technologies as $technology) : ?>
+              <li><?php echo esc_html((string) $technology); ?></li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+        <?php if ($external_url !== "") : ?>
+          <div class="pf-eyebrow">Linki</div>
+          <a class="pf-tech-link" href="<?php echo esc_url($external_url); ?>" target="_blank" rel="noopener">Zobacz wdrożenie ↗</a>
+        <?php endif; ?>
       </aside>
     </div>
   </section>
+
+  <section class="pf-cta">
+    <div class="pf-wrap pf-cta-inner">
+      <div>
+        <div class="pf-eyebrow pf-eyebrow-light">Twój projekt</div>
+        <h2 class="pf-h2 pf-h2-light">Twoja strona też może realnie pracować na sprzedaż.</h2>
+      </div>
+      <a class="pf-btn-primary" href="<?php echo esc_url(home_url("/#kontakt")); ?>"><?php echo esc_html($cta !== "" ? $cta : "Porozmawiajmy o projekcie"); ?> →</a>
+    </div>
+  </section>
+
+  <?php if (!empty($related_projects)) : ?>
+    <section class="pf-related">
+      <div class="pf-wrap">
+        <header class="pf-sec-head">
+          <div class="pf-eyebrow">Kolejne realizacje</div>
+          <h2 class="pf-h2">Zobacz też.</h2>
+        </header>
+        <div class="pf-divider"></div>
+        <div class="pf-rel-grid">
+          <?php foreach ($related_projects as $related_project) :
+              $related_project_id = (int) $related_project->ID;
+              $related_image = function_exists("upsellio_resolve_post_image_url")
+                  ? upsellio_resolve_post_image_url($related_project_id, "_ups_port_image", "medium_large")
+                  : (string) get_the_post_thumbnail_url($related_project_id, "medium_large");
+              $related_metric_line = (string) get_post_meta($related_project_id, "_ups_port_metrics", true);
+              $related_metric = "";
+              if ($related_metric_line !== "") {
+                  $related_metrics = function_exists("upsellio_parse_metrics_lines") ? upsellio_parse_metrics_lines($related_metric_line) : [$related_metric_line];
+                  $related_first_metric = (string) ($related_metrics[0] ?? "");
+                  $related_split = function_exists("upsellio_split_metric_line") ? upsellio_split_metric_line($related_first_metric) : ["value" => "", "label" => $related_first_metric];
+                  $related_metric = trim(((string) ($related_split["value"] ?? "")) . " " . ((string) ($related_split["label"] ?? "")));
+              }
+              ?>
+            <a class="pf-rel-card" href="<?php echo esc_url(get_permalink($related_project_id)); ?>">
+              <div class="pf-rel-thumb">
+                <?php if ($related_image !== "") : ?>
+                  <img src="<?php echo esc_url($related_image); ?>" alt="<?php echo esc_attr(get_the_title($related_project_id)); ?>" loading="lazy" decoding="async" width="900" height="600" />
+                <?php else : ?>
+                  <div class="pf-thumb-stripes"></div>
+                <?php endif; ?>
+              </div>
+              <div class="pf-rel-body">
+                <div class="pf-rel-tag"><?php echo esc_html((string) get_post_meta($related_project_id, "_ups_port_type", true)); ?></div>
+                <h3><?php echo esc_html(get_the_title($related_project_id)); ?></h3>
+                <strong><?php echo esc_html($related_metric !== "" ? $related_metric : "Sprawdz case study"); ?></strong>
+              </div>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    </section>
+  <?php endif; ?>
 </main>
 <?php
 get_footer();

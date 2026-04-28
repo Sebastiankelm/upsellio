@@ -3,6 +3,10 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
+if (function_exists("upsellio_register_template_seo_head")) {
+    upsellio_register_template_seo_head("miasta_archive");
+}
+
 get_header();
 ?>
 <style>
@@ -54,7 +58,30 @@ get_header();
                   $voivodeships[$voi] = true;
               }
           }
+          $city_schema_items = [];
+          foreach ($cities_list as $index => $cityPostObj) {
+              $city_schema_items[] = [
+                  "@type" => "ListItem",
+                  "position" => $index + 1,
+                  "url" => get_permalink($cityPostObj->ID),
+                  "name" => get_the_title($cityPostObj->ID),
+              ];
+          }
           ?>
+          <?php if (!empty($city_schema_items)) : ?>
+            <script type="application/ld+json">
+            <?php
+            echo wp_json_encode([
+                "@context" => "https://schema.org",
+                "@type" => "ItemList",
+                "name" => "Lista miast obslugiwanych przez Upsellio",
+                "url" => get_post_type_archive_link("miasto"),
+                "numberOfItems" => count($city_schema_items),
+                "itemListElement" => $city_schema_items,
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            ?>
+            </script>
+          <?php endif; ?>
           <div class="miasta-stats" aria-hidden="true">
             <div><strong><?php echo esc_html(count($cities_list)); ?></strong>miast w bazie</div>
             <div><strong><?php echo esc_html(count($voivodeships)); ?></strong>województw</div>

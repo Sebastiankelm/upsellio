@@ -86,14 +86,14 @@ $offer_faq_items = [
     --offer-green-dark: #0f766e;
     --offer-green-soft: #ecfeff;
     --offer-green-line: #99f6e4;
-    --offer-indigo: #4f46e5;
-    --offer-indigo-dark: #4338ca;
-    --offer-indigo-soft: #eef2ff;
-    --offer-indigo-line: #c7d2fe;
-    --offer-amber: #d97706;
-    --offer-amber-dark: #b45309;
-    --offer-amber-soft: #fffbeb;
-    --offer-amber-line: #fde68a;
+    --offer-indigo: #0d9488;
+    --offer-indigo-dark: #0f766e;
+    --offer-indigo-soft: #ccfbf1;
+    --offer-indigo-line: #99f6e4;
+    --offer-amber: #0d9488;
+    --offer-amber-dark: #0f766e;
+    --offer-amber-soft: #ccfbf1;
+    --offer-amber-line: #99f6e4;
     --offer-navy: #081827;
     --offer-dark: #081827;
     --offer-shadow: 0 24px 70px rgba(15, 23, 42, 0.12);
@@ -208,8 +208,8 @@ $offer_faq_items = [
   .offer-page details.offer-faq-item { border: 1px solid var(--offer-border); border-radius: 18px; background: #fff; padding: 20px 22px; box-shadow: var(--offer-shadow-soft); }
   .offer-page details.offer-faq-item summary { cursor: pointer; font-weight: 800; color: var(--offer-text); }
   .offer-page details.offer-faq-item p { margin-top: 12px; font-size: 15px; }
-  .offer-form-shell { border: 1px solid var(--offer-green-line); border-radius: 32px; background: radial-gradient(circle at top, #ecfeff, #fff 60%); box-shadow: var(--offer-shadow-soft); padding: clamp(28px, 5vw, 52px); }
-  .offer-form-host { display:flex; gap:16px; align-items:center; margin:0 auto 24px; padding:18px; max-width:560px; border:1px solid var(--offer-green-line); background:#fff; border-radius:20px; }
+  .offer-form-shell { border: 1px solid #e7e7e1; border-radius: 28px; background: #fff; box-shadow: 0 18px 44px rgba(15,23,42,.06); padding: clamp(28px, 5vw, 52px); }
+  .offer-form-host { display:flex; gap:16px; align-items:center; margin:0 auto 24px; padding:18px; max-width:560px; border:1px solid #e7e7e1; background:#fafaf7; border-radius:20px; }
   .offer-form-host-photo { width:64px; height:64px; border-radius:50%; object-fit:cover; flex:0 0 64px; }
   .offer-form-host-fallback { width:64px; height:64px; border-radius:50%; flex:0 0 64px; display:grid; place-items:center; background:linear-gradient(135deg,#0d9488,#14b8a6); color:#fff; font-family:var(--font-display); font-size:22px; font-weight:800; letter-spacing:.04em; }
   .offer-form-host-body { text-align:left; min-width:0; }
@@ -218,9 +218,41 @@ $offer_faq_items = [
   .offer-form-host-body em { display:inline-flex; align-items:center; gap:6px; margin-top:6px; padding:2px 10px; border-radius:999px; background:var(--offer-green-soft); color:var(--offer-green-dark); font-style:normal; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
   .offer-form-head { text-align: center; max-width: 760px; margin: 0 auto 30px; }
   .offer-form-head .offer-h2 { margin: 0 auto; }
-  .offer-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .offer-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
   .offer-form-grid .field.full { grid-column: 1 / -1; }
+  .offer-form-grid .field { display:grid; gap:6px; }
+  .offer-form-grid label { font-size:12px; font-weight:700; color:var(--offer-text-2); }
+  .offer-form-grid .input,
+  .offer-form-grid .select,
+  .offer-form-grid .textarea {
+    width:100%;
+    border:1.5px solid #e7e7e1;
+    border-radius:12px;
+    min-height:46px;
+    padding:12px 14px;
+    font:inherit;
+    color:#0a1410;
+    background:#fff;
+    outline:none;
+    transition:border-color .18s ease, box-shadow .18s ease;
+  }
+  .offer-form-grid .select { cursor:pointer; }
+  .offer-form-grid .textarea { min-height:120px; resize:vertical; line-height:1.6; }
+  .offer-form-grid .input:focus,
+  .offer-form-grid .select:focus,
+  .offer-form-grid .textarea:focus {
+    border-color:#0d9488;
+    box-shadow:0 0 0 3px rgba(13,148,136,.13);
+  }
+  .offer-consent-label { display:flex; gap:8px; align-items:flex-start; }
+  .offer-consent-label input { margin-top:3px; }
+  .field-error { display:none; font-size:12px; color:#b13a3a; }
+  .offer-form-alert { margin-bottom:12px; padding:10px 12px; border-radius:10px; font-size:13px; }
+  .offer-form-alert.is-success { border:1px solid #99f6e4; background:#ecfeff; color:#0f766e; }
+  .offer-form-alert.is-error { border:1px solid #edcccc; background:#fff2f2; color:#b13a3a; }
+  .offer-submit { width:100%; justify-content:center; margin-top:10px; }
   .offer-form-note { margin-top: 10px; color: var(--offer-muted); font-size: 12px; text-align: center; }
+  .offer-form-note a,.offer-form-alt a { color:var(--teal); font-weight:700; text-decoration:none; }
   .offer-form-alt { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--offer-border); display: grid; gap: 8px; color: var(--offer-text-2); font-size: 13px; }
   @media (max-width: 980px) {
     .offer-grid, .offer-dark-box, .offer-chooser-grid { grid-template-columns: 1fr; }
@@ -309,17 +341,17 @@ $offer_faq_items = [
             <defs>
               <linearGradient id="offer-funnel-grad" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stop-color="#0d9488" stop-opacity="0.18"/>
-                <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.18"/>
+                <stop offset="100%" stop-color="#0d9488" stop-opacity="0.18"/>
               </linearGradient>
             </defs>
             <!-- Ruch: trzy źródła -->
             <g font-family="var(--font-display, sans-serif)" font-size="11" font-weight="700">
               <rect x="6" y="14" width="78" height="34" rx="9" fill="#ecfeff" stroke="#99f6e4"/>
               <text x="45" y="35" text-anchor="middle" fill="#0f766e">Google</text>
-              <rect x="6" y="56" width="78" height="34" rx="9" fill="#eef2ff" stroke="#c7d2fe"/>
-              <text x="45" y="77" text-anchor="middle" fill="#4338ca">Meta</text>
-              <rect x="6" y="98" width="78" height="34" rx="9" fill="#fffbeb" stroke="#fde68a"/>
-              <text x="45" y="119" text-anchor="middle" fill="#b45309">SEO / direct</text>
+              <rect x="6" y="56" width="78" height="34" rx="9" fill="#ccfbf1" stroke="#99f6e4"/>
+              <text x="45" y="77" text-anchor="middle" fill="#0f766e">Meta</text>
+              <rect x="6" y="98" width="78" height="34" rx="9" fill="#ccfbf1" stroke="#99f6e4"/>
+              <text x="45" y="119" text-anchor="middle" fill="#0f766e">SEO / direct</text>
             </g>
             <!-- Lejek -->
             <path d="M104 14 L260 14 L218 80 L218 150 L146 150 L146 80 Z" fill="url(#offer-funnel-grad)" stroke="#cbd5e1"/>
@@ -329,8 +361,8 @@ $offer_faq_items = [
             <text x="182" y="134" text-anchor="middle" font-size="11" fill="#64748b">formularz / telefon</text>
             <!-- Strzałki ruchu -->
             <path d="M84 31 H102" stroke="#0d9488" stroke-width="2" fill="none" marker-end="url(#offer-arrow)"/>
-            <path d="M84 73 H102" stroke="#4f46e5" stroke-width="2" fill="none" marker-end="url(#offer-arrow)"/>
-            <path d="M84 115 H102" stroke="#d97706" stroke-width="2" fill="none" marker-end="url(#offer-arrow)"/>
+            <path d="M84 73 H102" stroke="#0d9488" stroke-width="2" fill="none" marker-end="url(#offer-arrow)"/>
+            <path d="M84 115 H102" stroke="#0d9488" stroke-width="2" fill="none" marker-end="url(#offer-arrow)"/>
             <defs>
               <marker id="offer-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
                 <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
@@ -378,7 +410,7 @@ $offer_faq_items = [
       <div class="offer-grid">
         <article class="offer-card is-google" id="google-ads">
           <div class="offer-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-          <h3 class="offer-h3">Kampanie Google Ads dla firm</h3>
+          <h3 class="offer-h3">Google Ads</h3>
           <p>Docieraj do klientów w chwili, gdy aktywnie szukają Twojej usługi lub produktu.</p>
           <ul class="offer-list">
             <li>Audyt obecnych kampanii lub budowa struktury od zera</li>
@@ -564,9 +596,9 @@ $offer_faq_items = [
 
         <?php $ups_form_status = isset($_GET["ups_lead_status"]) ? sanitize_text_field(wp_unslash($_GET["ups_lead_status"])) : ""; ?>
         <?php if ($ups_form_status === "success") : ?>
-          <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #99f6e4;background:#ecfeff;border-radius:10px;color:#0f766e;font-size:13px;">Dziękuję! Wiadomość została zapisana i odezwę się możliwie szybko.</div>
+          <div class="offer-form-alert is-success">Dziękuję! Wiadomość została zapisana i odezwę się możliwie szybko.</div>
         <?php elseif ($ups_form_status === "error") : ?>
-          <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #edcccc;background:#fff2f2;border-radius:10px;color:#b13a3a;font-size:13px;">Nie udało się wysłać formularza. Sprawdź pola i spróbuj ponownie.</div>
+          <div class="offer-form-alert is-error">Nie udało się wysłać formularza. Sprawdź pola i spróbuj ponownie.</div>
         <?php endif; ?>
 
         <form id="contact-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" novalidate data-upsellio-lead-form="1" data-upsellio-server-form="1">
@@ -620,21 +652,21 @@ $offer_faq_items = [
               <span class="field-error" id="offer-message-err">Opisz w kilku słowach swoją sytuację</span>
             </div>
             <div class="field full">
-              <label style="display:flex;gap:8px;align-items:flex-start;">
-                <input type="checkbox" name="lead_consent" value="1" required style="margin-top:3px;" />
+              <label class="offer-consent-label">
+                <input type="checkbox" name="lead_consent" value="1" required />
                 <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
               </label>
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;justify-content:center;margin-top:10px;">Wyślij i umów diagnozę →</button>
-          <p class="offer-form-note">Dane z formularza służą wyłącznie do kontaktu i przygotowania rekomendacji. Możesz też napisać bezpośrednio: <a href="<?php echo esc_url($contact_email_href); ?>" style="color:var(--teal);font-weight:700;"><?php echo esc_html($contact_email_display); ?></a></p>
+          <button type="submit" class="offer-btn offer-btn-primary offer-submit" id="submit-btn">Wyślij i umów diagnozę →</button>
+          <p class="offer-form-note">Dane z formularza służą wyłącznie do kontaktu i przygotowania rekomendacji. Możesz też napisać bezpośrednio: <a href="<?php echo esc_url($contact_email_href); ?>"><?php echo esc_html($contact_email_display); ?></a></p>
         </form>
 
         <div class="offer-form-alt">
           <div>✓ Bez presji sprzedażowej i bez ogólnych porad.</div>
           <div>✓ Jeśli po rozmowie zdecydujemy się na współpracę - świetnie. Jeśli nie - zostajesz z konkretną wskazówką.</div>
-          <div>✓ Kontakt telefoniczny: <a href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>" style="color:var(--teal);font-weight:700;"><?php echo esc_html($contact_phone); ?></a></div>
+          <div>✓ Kontakt telefoniczny: <a href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a></div>
         </div>
       </div>
     </div>

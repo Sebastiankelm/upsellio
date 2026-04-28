@@ -85,7 +85,7 @@ $faq_items = [
     --gads-blue-soft:#ecfeff;
     --gads-green:#14b8a6;
     --gads-green-soft:#ecfeff;
-    --gads-yellow:#f59e0b;
+    --gads-yellow:#0d9488;
     --gads-red:#db4437;
     --gads-dark:#081827;
     --gads-shadow:0 24px 70px rgba(15,23,42,.12);
@@ -120,7 +120,7 @@ $faq_items = [
   .gads-quick-cta { flex:0 0 auto; min-height:38px; display:inline-flex; align-items:center; padding:0 16px; border-radius:999px; background:var(--gads-blue); color:#fff; font-size:13px; font-weight:800; white-space:nowrap; }
   .gads-hero { position:relative; overflow:hidden; padding:clamp(72px,8vw,124px) 0; border-bottom:1px solid var(--gads-border); background:linear-gradient(180deg,#fff,var(--gads-cream)); }
   .gads-hero::before { content:""; position:absolute; right:-150px; top:-180px; width:650px; height:650px; background:radial-gradient(circle,rgba(20,184,166,.14),transparent 65%); }
-  .gads-hero::after { content:""; position:absolute; left:-120px; bottom:-180px; width:480px; height:480px; background:radial-gradient(circle,rgba(245,158,11,.18),transparent 65%); }
+  .gads-hero::after { content:""; position:absolute; left:-120px; bottom:-180px; width:480px; height:480px; background:radial-gradient(circle,rgba(13,148,136,.18),transparent 65%); }
   .gads-hero-grid { position:relative; display:grid; grid-template-columns:minmax(0,1.12fr) minmax(330px,.88fr); gap:clamp(34px,5vw,64px); align-items:center; }
   .gads-search-card { border:1px solid var(--gads-border); border-radius:34px; background:#fff; overflow:hidden; box-shadow:var(--gads-shadow); }
   .gads-search-bar { display:flex; align-items:center; gap:10px; padding:18px; border-bottom:1px solid var(--gads-border); background:#f8fafc; color:var(--gads-muted); font-size:14px; }
