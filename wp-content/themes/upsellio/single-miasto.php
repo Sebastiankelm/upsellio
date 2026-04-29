@@ -75,38 +75,86 @@ while (have_posts()) :
             "@type" => "BreadcrumbList",
             "itemListElement" => [
                 ["@type" => "ListItem", "position" => 1, "name" => "Strona glowna", "item" => home_url("/")],
-                ["@type" => "ListItem", "position" => 2, "name" => "Miasta", "item" => get_post_type_archive_link("miasto") ?: home_url("/miasta/")],
+                ["@type" => "ListItem", "position" => 2, "name" => "Miasta", "item" => function_exists("upsellio_get_cities_archive_url") ? upsellio_get_cities_archive_url() : get_post_type_archive_link("miasto")],
                 ["@type" => "ListItem", "position" => 3, "name" => $cityName, "item" => $canonical],
             ],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
     }, 2);
 
-    $voivodeshipKey = function_exists("remove_accents") ? remove_accents((string) $voivodeship) : (string) $voivodeship;
-    $voivodeshipKey = strtolower(preg_replace("/\s+/", "-", trim($voivodeshipKey)));
-    $voivodeshipMap = [
-        "mazowieckie" => [140, 90],
-        "slaskie" => [110, 130],
-        "wielkopolskie" => [90, 90],
-        "malopolskie" => [130, 145],
-        "dolnoslaskie" => [70, 110],
-        "lubelskie" => [170, 110],
-        "pomorskie" => [100, 35],
-        "zachodniopomorskie" => [50, 50],
-        "lodzkie" => [115, 100],
-        "podlaskie" => [175, 65],
-        "kujawsko-pomorskie" => [105, 65],
-        "swietokrzyskie" => [135, 120],
-        "warminsko-mazurskie" => [150, 50],
-        "lubuskie" => [55, 80],
-        "opolskie" => [95, 125],
-        "podkarpackie" => [175, 145],
+    $voivodeshipKeyRaw = function_exists("remove_accents") ? remove_accents((string) $voivodeship) : (string) $voivodeship;
+    $voivodeshipKeyRaw = strtolower(trim($voivodeshipKeyRaw));
+    $voivodeshipKeyRaw = preg_replace("/^woj\\.?\\s*/", "", $voivodeshipKeyRaw);
+    $voivodeshipKeyRaw = preg_replace("/[^a-z\\s-]/", "", $voivodeshipKeyRaw);
+    $voivodeshipKey = preg_replace("/\\s+/", "-", trim((string) $voivodeshipKeyRaw));
+
+    // Voivodeship centroids calibrated to the current POL_location_map.svg asset.
+    $voivodeshipMapPct = [
+        "zachodniopomorskie" => [21.0, 20.0],
+        "pomorskie" => [39.0, 16.0],
+        "warminsko-mazurskie" => [56.0, 17.0],
+        "podlaskie" => [72.0, 24.0],
+        "lubuskie" => [20.0, 40.0],
+        "wielkopolskie" => [35.0, 36.0],
+        "kujawsko-pomorskie" => [43.0, 28.0],
+        "mazowieckie" => [56.0, 36.0],
+        "lodzkie" => [47.0, 44.0],
+        "lubelskie" => [70.0, 45.0],
+        "dolnoslaskie" => [25.0, 57.0],
+        "opolskie" => [38.0, 60.0],
+        "slaskie" => [42.0, 67.0],
+        "swietokrzyskie" => [55.0, 57.0],
+        "malopolskie" => [51.0, 73.0],
+        "podkarpackie" => [66.0, 72.0],
     ];
-    if (isset($voivodeshipMap[$voivodeshipKey])) {
-        [$pinX, $pinY] = $voivodeshipMap[$voivodeshipKey];
+
+    // Per-city offsets spread markers inside each voivodeship so all city pages can have distinct pins.
+    $voivodeshipSpreadPct = [
+        "zachodniopomorskie" => [5.2, 4.3],
+        "pomorskie" => [4.4, 3.2],
+        "warminsko-mazurskie" => [5.2, 3.8],
+        "podlaskie" => [4.0, 4.0],
+        "lubuskie" => [3.6, 3.5],
+        "wielkopolskie" => [5.0, 4.8],
+        "kujawsko-pomorskie" => [4.2, 3.9],
+        "mazowieckie" => [6.2, 5.3],
+        "lodzkie" => [4.2, 4.0],
+        "lubelskie" => [4.8, 4.9],
+        "dolnoslaskie" => [4.8, 4.4],
+        "opolskie" => [2.8, 2.8],
+        "slaskie" => [3.8, 3.8],
+        "swietokrzyskie" => [3.0, 3.0],
+        "malopolskie" => [4.2, 4.2],
+        "podkarpackie" => [4.2, 4.2],
+    ];
+
+    if (isset($voivodeshipMapPct[$voivodeshipKey])) {
+        [$baseX, $baseY] = $voivodeshipMapPct[$voivodeshipKey];
+        [$spreadX, $spreadY] = $voivodeshipSpreadPct[$voivodeshipKey] ?? [3.5, 3.5];
+
+        $citySeed = abs(crc32($citySlug . "|" . $cityName . "|" . $voivodeshipKey));
+        $angleDeg = (float) ($citySeed % 360);
+        $angleRad = deg2rad($angleDeg);
+        $radius = 0.32 + ((($citySeed >> 8) % 69) / 100); // 0.32 - 1.00
+
+        $offsetX = cos($angleRad) * $spreadX * $radius;
+        $offsetY = sin($angleRad) * $spreadY * $radius;
+
+        $mapPinXPct = $baseX + $offsetX;
+        $mapPinYPct = $baseY + $offsetY;
     } else {
-        $pinX = 70 + ($ctaSeed % 110);
-        $pinY = 60 + (($ctaSeed >> 4) % 90);
+        // Safe fallback: keep marker inside Poland bounds if voivodeship value is missing/unknown.
+        $mapPinXPct = 26 + ($ctaSeed % 46); // 26-71%
+        $mapPinYPct = 18 + (($ctaSeed >> 4) % 59); // 18-76%
     }
+
+    // Final clamping for full map silhouette.
+    $mapPinXPct = max(16.0, min(82.0, $mapPinXPct));
+    $mapPinYPct = max(11.0, min(84.0, $mapPinYPct));
+    $mapPinXPct = round((float) $mapPinXPct, 3);
+    $mapPinYPct = round((float) $mapPinYPct, 3);
+    $polandMapFile = trailingslashit(get_template_directory()) . "assets/images/POL_location_map.svg";
+    $polandMapVersion = file_exists($polandMapFile) ? (string) filemtime($polandMapFile) : (string) time();
+    $polandMapSrc = add_query_arg("v", $polandMapVersion, trailingslashit(get_template_directory_uri()) . "assets/images/POL_location_map.svg");
 
     $ctaActionPool = [
         "Umów bezpłatną konsultację dla %s",
@@ -281,7 +329,13 @@ while (have_posts()) :
       .city-hero-grid{display:grid;gap:30px;align-items:center}
       .city-hero-copy{min-width:0}
       .city-hero-map{display:none;background:#fff;border:1px solid var(--border,#e2e8f0);border-radius:22px;padding:20px;box-shadow:0 14px 40px rgba(15,23,42,.08)}
-      .city-hero-map svg{width:100%;height:auto;display:block}
+      .city-hero-map-visual{position:relative}
+      .city-hero-map-visual img{width:100%;aspect-ratio:497/463;height:auto;display:block;object-fit:contain}
+      .city-hero-map-pin{position:absolute;transform:translate(-50%,-50%);pointer-events:none}
+      .city-hero-map-pin::before,.city-hero-map-pin::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:999px}
+      .city-hero-map-pin::before{width:34px;height:34px;background:rgba(13,148,136,.18)}
+      .city-hero-map-pin::after{width:18px;height:18px;background:rgba(13,148,136,.32)}
+      .city-hero-map-pin-dot{display:block;width:10px;height:10px;border-radius:999px;background:#0f766e}
       .city-hero-map-caption{margin-top:10px;display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:12px;color:#475569}
       .city-hero-map-caption strong{color:#0f766e;font-family:Syne,sans-serif;font-size:16px;letter-spacing:-.02em}
       @media(min-width:961px){.city-hero-grid{grid-template-columns:1.25fr .75fr}.city-hero-map{display:block}}
@@ -368,18 +422,15 @@ while (have_posts()) :
               </div>
             </div>
             <aside class="city-hero-map" aria-hidden="true">
-              <svg viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="city-map-grad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#ecfeff"/>
-                    <stop offset="100%" stop-color="#f1f5f9"/>
-                  </linearGradient>
-                </defs>
-                <path d="M40 60 L70 30 L110 28 L140 12 L180 28 L210 50 L218 92 L208 130 L196 158 L172 190 L140 200 L110 196 L78 184 L52 162 L28 130 L24 98 Z" fill="url(#city-map-grad)" stroke="#99f6e4" stroke-width="2"/>
-                <circle cx="<?php echo (int) $pinX; ?>" cy="<?php echo (int) $pinY; ?>" r="14" fill="#0d9488" fill-opacity="0.18"/>
-                <circle cx="<?php echo (int) $pinX; ?>" cy="<?php echo (int) $pinY; ?>" r="8" fill="#0d9488" fill-opacity="0.32"/>
-                <circle cx="<?php echo (int) $pinX; ?>" cy="<?php echo (int) $pinY; ?>" r="4" fill="#0f766e"/>
-              </svg>
+              <div class="city-hero-map-visual">
+                <img src="<?php echo esc_url($polandMapSrc); ?>" alt="" loading="lazy" decoding="async"/>
+                <span
+                  class="city-hero-map-pin"
+                  style="left:<?php echo esc_attr($mapPinXPct); ?>%;top:<?php echo esc_attr($mapPinYPct); ?>%;"
+                >
+                  <span class="city-hero-map-pin-dot"></span>
+                </span>
+              </div>
               <div class="city-hero-map-caption">
                 <strong><?php echo esc_html($cityName); ?></strong>
                 <span><?php echo esc_html("woj. " . $voivodeship); ?></span>

@@ -14,7 +14,7 @@ get_header();
   .miasta-hero{position:relative;overflow:hidden;padding:64px 0 36px;border-bottom:1px solid var(--border,#e2e8f0);background:radial-gradient(circle at top right, rgba(20,184,166,0.18), transparent 40%), linear-gradient(180deg,#ecfeff,#f1f5f9)}
   .miasta-hero-inner{position:relative;z-index:1;display:grid;gap:30px;align-items:center}
   .miasta-hero-decor{display:none;position:relative}
-  .miasta-hero-decor svg{width:100%;max-width:320px;height:auto;display:block;margin-left:auto}
+  .miasta-hero-decor img{width:100%;max-width:320px;aspect-ratio:497/463;height:auto;display:block;margin-left:auto;object-fit:contain}
   .miasta-pill{display:inline-flex;align-items:center;gap:8px;margin-bottom:14px;padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #99f6e4;color:#0f766e;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
   .miasta-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:#0d9488}
   .miasta-title{font-family:Syne,sans-serif;font-size:clamp(32px,5vw,52px);line-height:1.05;letter-spacing:-1px}
@@ -89,23 +89,17 @@ get_header();
           </div>
         </div>
         <div class="miasta-hero-decor" aria-hidden="true">
-          <svg viewBox="0 0 240 220" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="miasta-grad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#ecfeff"/>
-                <stop offset="100%" stop-color="#fff"/>
-              </linearGradient>
-            </defs>
-            <path d="M40 60 L70 30 L110 28 L140 12 L180 28 L210 50 L218 92 L208 130 L196 158 L172 190 L140 200 L110 196 L78 184 L52 162 L28 130 L24 98 Z" fill="url(#miasta-grad)" stroke="#99f6e4" stroke-width="2"/>
-            <circle cx="100" cy="80" r="6" fill="#0d9488"/>
-            <circle cx="148" cy="60" r="5" fill="#14b8a6"/>
-            <circle cx="170" cy="120" r="5" fill="#14b8a6"/>
-            <circle cx="80" cy="140" r="5" fill="#14b8a6"/>
-            <circle cx="130" cy="160" r="6" fill="#0d9488"/>
-            <circle cx="60" cy="100" r="4" fill="#5eead4"/>
-            <circle cx="190" cy="90" r="4" fill="#5eead4"/>
-            <circle cx="120" cy="120" r="4" fill="#5eead4"/>
-          </svg>
+          <?php
+          $map_file = get_template_directory() . "/assets/images/POL_location_map.svg";
+          $map_ver = file_exists($map_file) ? (string) filemtime($map_file) : (string) time();
+          $map_src = add_query_arg("v", $map_ver, get_template_directory_uri() . "/assets/images/POL_location_map.svg");
+          ?>
+          <img
+            src="<?php echo esc_url($map_src); ?>"
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
         </div>
       </div>
     </div>
@@ -115,7 +109,12 @@ get_header();
     <?php
     if (!empty($cities_list)) :
         foreach ($cities_list as $cityPost) :
-            $cityVoi = (string) get_post_meta($cityPost->ID, "_upsellio_city_voivodeship", true);
+            $citySlug = (string) (get_post_meta($cityPost->ID, "_upsellio_city_slug", true) ?: get_post_field("post_name", $cityPost->ID));
+            $cityDatasetItem = function_exists("upsellio_get_city_by_slug") ? upsellio_get_city_by_slug($citySlug) : null;
+            $cityVoiMeta = (string) get_post_meta($cityPost->ID, "_upsellio_city_voivodeship", true);
+            $cityVoi = is_array($cityDatasetItem) && !empty($cityDatasetItem["voivodeship"]) && $cityDatasetItem["voivodeship"] !== "polska"
+                ? (string) $cityDatasetItem["voivodeship"]
+                : $cityVoiMeta;
             ?>
             <a class="miasta-card" href="<?php echo esc_url(get_permalink($cityPost->ID)); ?>">
               <span class="miasta-card-icon" aria-hidden="true">
