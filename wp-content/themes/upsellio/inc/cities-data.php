@@ -36,21 +36,73 @@ function upsellio_get_cities_dataset()
 
     $voivodeships = [
         "warszawa" => "mazowieckie", "radom" => "mazowieckie", "siedlce" => "mazowieckie", "plock" => "mazowieckie",
+        "ostroleka" => "mazowieckie", "pruszkow" => "mazowieckie", "marki" => "mazowieckie", "piaseczno" => "mazowieckie",
+        "ciechanow" => "mazowieckie", "nowy-dwor-mazowiecki" => "mazowieckie", "legionowo" => "mazowieckie", "minsk-mazowiecki" => "mazowieckie",
+        "wolomin" => "mazowieckie", "otwock" => "mazowieckie", "sochaczew" => "mazowieckie", "grodzisk-mazowiecki" => "mazowieckie",
+        "zyrardow" => "mazowieckie", "pultusk" => "mazowieckie", "sierpc" => "mazowieckie", "gostynin" => "mazowieckie",
+        "plonsk" => "mazowieckie", "radzymin" => "mazowieckie",
+
         "krakow" => "malopolskie", "tarnow" => "malopolskie", "nowy-sacz" => "malopolskie", "nowy-targ" => "malopolskie",
+        "myslenice" => "malopolskie", "limanowa" => "malopolskie", "gorlice" => "malopolskie", "brzesko" => "malopolskie",
+        "bochnia" => "malopolskie", "andrychow" => "malopolskie", "wadowice" => "malopolskie",
+
         "wroclaw" => "dolnoslaskie", "walbrzych" => "dolnoslaskie", "legnica" => "dolnoslaskie", "jelenia-gora" => "dolnoslaskie",
+        "swidnica" => "dolnoslaskie", "boleslawiec" => "dolnoslaskie", "lubin" => "dolnoslaskie", "glogow" => "dolnoslaskie",
+        "polkowice" => "dolnoslaskie", "bielawa" => "dolnoslaskie", "luban" => "dolnoslaskie",
+
         "lodz" => "lodzkie", "tomaszow-mazowiecki" => "lodzkie", "zgierz" => "lodzkie", "pabianice" => "lodzkie",
+        "piotrkow-trybunalski" => "lodzkie", "belchatow" => "lodzkie", "skierniewice" => "lodzkie", "sieradz" => "lodzkie",
+        "zdunska-wola" => "lodzkie", "kutno" => "lodzkie", "wielun" => "lodzkie",
+
         "poznan" => "wielkopolskie", "kalisz" => "wielkopolskie", "konin" => "wielkopolskie", "leszno" => "wielkopolskie",
+        "gniezno" => "wielkopolskie", "pila" => "wielkopolskie", "ostrow-wielkopolski" => "wielkopolskie", "koscian" => "wielkopolskie",
+        "wrzesnia" => "wielkopolskie", "szamotuly" => "wielkopolskie", "jarocin" => "wielkopolskie", "wagrowiec" => "wielkopolskie",
+        "srem" => "wielkopolskie", "turek" => "wielkopolskie", "kolo" => "wielkopolskie", "zlotow" => "wielkopolskie",
+
         "gdansk" => "pomorskie", "gdynia" => "pomorskie", "slupsk" => "pomorskie", "sopot" => "pomorskie",
+        "tczew" => "pomorskie", "wejherowo" => "pomorskie", "rumia" => "pomorskie", "reda" => "pomorskie",
+        "leba" => "pomorskie", "chojnice" => "pomorskie", "starogard-gdanski" => "pomorskie", "kwidzyn" => "pomorskie",
+        "malbork" => "pomorskie", "bytow" => "pomorskie", "czluchow" => "pomorskie", "puck" => "pomorskie", "lebork" => "pomorskie",
+
         "szczecin" => "zachodniopomorskie", "koszalin" => "zachodniopomorskie", "stargard" => "zachodniopomorskie", "swinoujscie" => "zachodniopomorskie",
+        "kolobrzeg" => "zachodniopomorskie", "bialogard" => "zachodniopomorskie", "drawsko-pomorskie" => "zachodniopomorskie",
+        "gryfino" => "zachodniopomorskie", "police" => "zachodniopomorskie", "goleniow" => "zachodniopomorskie", "kamien-pomorski" => "zachodniopomorskie",
+        "szczecinek" => "zachodniopomorskie", "walcz" => "zachodniopomorskie",
+
         "bydgoszcz" => "kujawsko-pomorskie", "torun" => "kujawsko-pomorskie", "grudziadz" => "kujawsko-pomorskie", "inowroclaw" => "kujawsko-pomorskie",
+        "wloclawek" => "kujawsko-pomorskie", "brodnica" => "kujawsko-pomorskie",
+
         "lublin" => "lubelskie", "zamosc" => "lubelskie", "chelm" => "lubelskie", "biala-podlaska" => "lubelskie",
-        "bialystok" => "podlaskie", "lomza" => "podlaskie", "suwalki" => "podlaskie", "elk" => "warminsko-mazurskie",
+        "pulawy" => "lubelskie", "hrubieszow" => "lubelskie", "bilgoraj" => "lubelskie", "lukow" => "lubelskie",
+        "lubartow" => "lubelskie", "radzyn-podlaski" => "lubelskie",
+
+        "bialystok" => "podlaskie", "lomza" => "podlaskie", "suwalki" => "podlaskie", "augustow" => "podlaskie",
+
         "katowice" => "slaskie", "sosnowiec" => "slaskie", "gliwice" => "slaskie", "zabrze" => "slaskie",
+        "czestochowa" => "slaskie", "bytom" => "slaskie", "rybnik" => "slaskie", "ruda-slaska" => "slaskie",
+        "tychy" => "slaskie", "dabrowa-gornicza" => "slaskie", "chorzow" => "slaskie", "jaworzno" => "slaskie",
+        "jastrzebie-zdroj" => "slaskie", "tarnowskie-gory" => "slaskie", "bedzin" => "slaskie", "piekary-slaskie" => "slaskie",
+        "raciborz" => "slaskie", "siemianowice-slaskie" => "slaskie", "zawiercie" => "slaskie", "knurow" => "slaskie",
+        "zory" => "slaskie", "wodzislaw-slaski" => "slaskie", "radzionkow" => "slaskie", "pszczyna" => "slaskie",
+        "cieszyn" => "slaskie", "mikolow" => "slaskie", "myslowice" => "slaskie", "czestochowa-polnoc" => "slaskie", "myszkow" => "slaskie",
+        "bielsko-biala" => "slaskie",
+
         "opole" => "opolskie", "nysa" => "opolskie", "prudnik" => "opolskie", "kluczbork" => "opolskie",
+        "brzeg" => "opolskie", "namyslow" => "opolskie", "krapkowice" => "opolskie", "kedzierzyn-kozle" => "opolskie",
+
         "kielce" => "swietokrzyskie", "ostrowiec-swietokrzyski" => "swietokrzyskie", "starachowice" => "swietokrzyskie", "sandomierz" => "swietokrzyskie",
+        "busko-zdroj" => "swietokrzyskie", "skarzysko-kamienna" => "swietokrzyskie", "konskie" => "swietokrzyskie",
+
         "rzeszow" => "podkarpackie", "przemysl" => "podkarpackie", "mielec" => "podkarpackie", "stalowa-wola" => "podkarpackie",
+        "krosno" => "podkarpackie", "sanok" => "podkarpackie", "debica" => "podkarpackie", "jaslo" => "podkarpackie", "jaroslaw" => "podkarpackie",
+
         "zielona-gora" => "lubuskie", "gorzow-wielkopolski" => "lubuskie", "zary" => "lubuskie", "nowa-sol" => "lubuskie",
+        "swiebodzin" => "lubuskie", "miedzyrzecz" => "lubuskie", "sulechow" => "lubuskie", "krosno-odrzanskie" => "lubuskie",
+
         "olsztyn" => "warminsko-mazurskie", "elblag" => "warminsko-mazurskie", "ostroda" => "warminsko-mazurskie", "mragowo" => "warminsko-mazurskie",
+        "elk" => "warminsko-mazurskie", "ilawa" => "warminsko-mazurskie", "olecko" => "warminsko-mazurskie",
+        "szczytno" => "warminsko-mazurskie", "lidzbark-warminski" => "warminsko-mazurskie", "pisz" => "warminsko-mazurskie",
+        "ketrzyn" => "warminsko-mazurskie", "bartoszyce" => "warminsko-mazurskie", "nidzica" => "warminsko-mazurskie",
     ];
 
     $marketAngles = [

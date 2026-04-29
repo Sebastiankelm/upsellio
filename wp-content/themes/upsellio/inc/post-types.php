@@ -5,55 +5,30 @@ if (!defined("ABSPATH")) {
 }
 function upsellio_get_lead_magnets_page_url()
 {
-    $lead_magnets_path = upsellio_get_special_navigation_path_by_title("Lead magnety", "/lead-magnety/");
-    $lead_magnets_page = get_page_by_path(trim($lead_magnets_path, "/"));
-    if ($lead_magnets_page instanceof WP_Post) {
-        $permalink = get_permalink((int) $lead_magnets_page->ID);
-        if ($permalink) {
-            return $permalink;
-        }
+    $template_url = function_exists("upsellio_get_page_url_by_template")
+        ? (string) upsellio_get_page_url_by_template("page-lead-magnety.php")
+        : "";
+    if ($template_url !== "") {
+        return $template_url;
     }
 
-    return home_url($lead_magnets_path);
+    $lead_magnets_path = (string) upsellio_get_special_navigation_path_by_title("Lead magnety", "/lead-magnety/");
+    $lead_magnets_slug = trim((string) wp_parse_url($lead_magnets_path, PHP_URL_PATH), "/");
+    if ($lead_magnets_slug === "") {
+        return "";
+    }
+    $lead_magnets_page = get_page_by_path($lead_magnets_slug);
+    if (!($lead_magnets_page instanceof WP_Post)) {
+        return "";
+    }
+
+    $permalink = get_permalink((int) $lead_magnets_page->ID);
+    return is_string($permalink) ? $permalink : "";
 }
 
 function upsellio_append_special_navigation_links($links)
 {
-    $links = is_array($links) ? $links : [];
-    $special_links = [];
-    if (function_exists("upsellio_get_special_navigation_links_config")) {
-        foreach (upsellio_get_special_navigation_links_config() as $configured_link) {
-            $special_links[] = [
-                "title" => (string) $configured_link["title"],
-                "url" => home_url((string) $configured_link["path"]),
-            ];
-        }
-    }
-
-    foreach ($special_links as $special_link) {
-        $special_url = (string) $special_link["url"];
-        if ($special_url === "") {
-            continue;
-        }
-        $already_exists = false;
-
-        foreach ($links as $link) {
-            $url = isset($link["url"]) ? (string) $link["url"] : "";
-            if ($url !== "" && untrailingslashit($url) === untrailingslashit($special_url)) {
-                $already_exists = true;
-                break;
-            }
-        }
-
-        if (!$already_exists) {
-            $links[] = [
-                "title" => (string) $special_link["title"],
-                "url" => $special_url,
-            ];
-        }
-    }
-
-    return $links;
+    return is_array($links) ? $links : [];
 }
 
 function upsellio_append_lead_magnets_link($links)
@@ -65,16 +40,37 @@ function upsellio_get_special_navigation_path_by_title($title, $default_path)
 {
     $title = (string) $title;
     $default_path = "/" . ltrim((string) $default_path, "/");
-    if (function_exists("upsellio_get_special_navigation_links_config")) {
-        foreach (upsellio_get_special_navigation_links_config() as $configured_link) {
-            if ((string) ($configured_link["title"] ?? "") === $title) {
-                $path = (string) ($configured_link["path"] ?? "");
-                return $path !== "" ? "/" . ltrim($path, "/") : $default_path;
+
+    $locations = get_nav_menu_locations();
+    $menu_id = isset($locations["primary"]) ? (int) $locations["primary"] : 0;
+    if ($menu_id > 0) {
+        $menu_items = wp_get_nav_menu_items($menu_id, ["update_post_term_cache" => false]);
+        if (is_array($menu_items)) {
+            foreach ($menu_items as $menu_item) {
+                $menu_title = trim(wp_strip_all_tags((string) ($menu_item->title ?? "")));
+                if ($menu_title === "" || $menu_title !== $title) {
+                    continue;
+                }
+                $menu_url = function_exists("upsellio_resolve_menu_item_url")
+                    ? (string) upsellio_resolve_menu_item_url($menu_item)
+                    : (string) ($menu_item->url ?? "");
+                $menu_path = (string) wp_parse_url($menu_url, PHP_URL_PATH);
+                if ($menu_path !== "") {
+                    return "/" . ltrim($menu_path, "/");
+                }
             }
         }
     }
 
-    return $default_path;
+    $page = get_page_by_title($title, OBJECT, "page");
+    if ($page instanceof WP_Post) {
+        $page_path = (string) get_page_uri((int) $page->ID);
+        if ($page_path !== "") {
+            return "/" . ltrim($page_path, "/");
+        }
+    }
+
+    return "";
 }
 
 function upsellio_register_lead_magnets_cpt()
@@ -331,16 +327,25 @@ add_action("admin_init", "upsellio_maybe_flush_lead_magnet_rewrite");
 
 function upsellio_get_portfolio_page_url()
 {
-    $portfolio_path = upsellio_get_special_navigation_path_by_title("Portfolio", "/portfolio/");
-    $portfolio_page = get_page_by_path(trim($portfolio_path, "/"));
-    if ($portfolio_page instanceof WP_Post) {
-        $permalink = get_permalink((int) $portfolio_page->ID);
-        if ($permalink) {
-            return $permalink;
-        }
+    $template_url = function_exists("upsellio_get_page_url_by_template")
+        ? (string) upsellio_get_page_url_by_template("page-portfolio.php")
+        : "";
+    if ($template_url !== "") {
+        return $template_url;
     }
 
-    return home_url($portfolio_path);
+    $portfolio_path = (string) upsellio_get_special_navigation_path_by_title("Portfolio", "/portfolio/");
+    $portfolio_slug = trim((string) wp_parse_url($portfolio_path, PHP_URL_PATH), "/");
+    if ($portfolio_slug === "") {
+        return "";
+    }
+    $portfolio_page = get_page_by_path($portfolio_slug);
+    if (!($portfolio_page instanceof WP_Post)) {
+        return "";
+    }
+
+    $permalink = get_permalink((int) $portfolio_page->ID);
+    return is_string($permalink) ? $permalink : "";
 }
 
 function upsellio_register_portfolio_cpt()
@@ -688,16 +693,25 @@ add_action("admin_init", "upsellio_ensure_portfolio_page_exists");
 
 function upsellio_get_marketing_portfolio_page_url()
 {
-    $marketing_portfolio_path = upsellio_get_special_navigation_path_by_title("Portfolio marketingowe", "/portfolio-marketingowe/");
-    $page = get_page_by_path(trim($marketing_portfolio_path, "/"));
-    if ($page instanceof WP_Post) {
-        $permalink = get_permalink((int) $page->ID);
-        if ($permalink) {
-            return $permalink;
-        }
+    $template_url = function_exists("upsellio_get_page_url_by_template")
+        ? (string) upsellio_get_page_url_by_template("page-portfolio-marketingowe.php")
+        : "";
+    if ($template_url !== "") {
+        return $template_url;
     }
 
-    return home_url($marketing_portfolio_path);
+    $marketing_portfolio_path = (string) upsellio_get_special_navigation_path_by_title("Portfolio marketingowe", "/portfolio-marketingowe/");
+    $marketing_portfolio_slug = trim((string) wp_parse_url($marketing_portfolio_path, PHP_URL_PATH), "/");
+    if ($marketing_portfolio_slug === "") {
+        return "";
+    }
+    $page = get_page_by_path($marketing_portfolio_slug);
+    if (!($page instanceof WP_Post)) {
+        return "";
+    }
+
+    $permalink = get_permalink((int) $page->ID);
+    return is_string($permalink) ? $permalink : "";
 }
 
 function upsellio_register_marketing_portfolio_cpt()

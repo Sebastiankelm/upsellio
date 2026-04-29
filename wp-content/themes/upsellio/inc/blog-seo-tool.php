@@ -216,13 +216,37 @@ function upsellio_handle_lead_form_submission()
         exit;
     }
 
-    $admin_email = get_option("admin_email");
-    $subject = "Nowy lead z bloga Upsellio";
-    $body = "Imię: {$name}\nE-mail: {$email}\nTelefon: {$phone}\n\nWiadomość:\n{$message}";
-    $headers = ["Reply-To: {$name} <{$email}>"];
+    $payload = [
+        "name" => $name,
+        "email" => $email,
+        "phone" => $phone,
+        "message" => $message,
+        "service" => isset($_POST["lead_service"]) ? sanitize_text_field(wp_unslash($_POST["lead_service"])) : "",
+        "budget" => isset($_POST["lead_budget"]) ? sanitize_text_field(wp_unslash($_POST["lead_budget"])) : "",
+        "goal" => isset($_POST["lead_goal"]) ? sanitize_text_field(wp_unslash($_POST["lead_goal"])) : "",
+        "form_origin" => isset($_POST["lead_form_origin"]) ? sanitize_text_field(wp_unslash($_POST["lead_form_origin"])) : "blog-form",
+        "source" => isset($_POST["lead_source"]) ? sanitize_text_field(wp_unslash($_POST["lead_source"])) : "blog-form",
+        "utm_source" => isset($_POST["utm_source"]) ? sanitize_text_field(wp_unslash($_POST["utm_source"])) : "",
+        "utm_medium" => isset($_POST["utm_medium"]) ? sanitize_text_field(wp_unslash($_POST["utm_medium"])) : "",
+        "utm_campaign" => isset($_POST["utm_campaign"]) ? sanitize_text_field(wp_unslash($_POST["utm_campaign"])) : "",
+        "landing_url" => isset($_POST["landing_url"]) ? esc_url_raw(wp_unslash($_POST["landing_url"])) : "",
+        "referrer" => isset($_POST["referrer"]) ? esc_url_raw(wp_unslash($_POST["referrer"])) : "",
+    ];
 
-    $sent = wp_mail($admin_email, $subject, $body, $headers);
-    wp_safe_redirect(add_query_arg("ups_lead_status", $sent ? "success" : "error", $redirect_url));
+    $lead_id = function_exists("upsellio_crm_create_lead") ? (int) upsellio_crm_create_lead($payload) : 0;
+    if ($lead_id <= 0) {
+        wp_safe_redirect(add_query_arg("ups_lead_status", "error", $redirect_url));
+        exit;
+    }
+
+    if (function_exists("upsellio_crm_send_emails")) {
+        upsellio_crm_send_emails($lead_id, $name, $email, $message);
+    }
+    if (function_exists("upsellio_crm_schedule_followup")) {
+        upsellio_crm_schedule_followup($lead_id);
+    }
+
+    wp_safe_redirect(add_query_arg("ups_lead_status", "success", $redirect_url));
     exit;
 }
 add_action("admin_post_upsellio_submit_lead_form", "upsellio_handle_lead_form_submission");

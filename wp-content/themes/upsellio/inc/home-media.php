@@ -166,14 +166,23 @@ function upsellio_render_home_media_image($slot_key, $args = [])
 
     $class_name = trim((string) ($args["class"] ?? "home-media-image"));
     $size = (string) ($args["size"] ?? "large");
+    $sizes = trim((string) ($args["sizes"] ?? ""));
+    $fetchpriority = trim((string) ($args["fetchpriority"] ?? ""));
     $attachment_id = (int) ($slot["attachment_id"] ?? 0);
     if ($attachment_id > 0) {
-        $image = wp_get_attachment_image($attachment_id, $size, false, [
+        $image_attrs = [
             "class" => $class_name,
             "alt" => upsellio_get_home_media_slot_alt($slot),
             "loading" => (string) ($args["loading"] ?? "lazy"),
             "decoding" => "async",
-        ]);
+        ];
+        if ($sizes !== "") {
+            $image_attrs["sizes"] = $sizes;
+        }
+        if ($fetchpriority !== "") {
+            $image_attrs["fetchpriority"] = $fetchpriority;
+        }
+        $image = wp_get_attachment_image($attachment_id, $size, false, $image_attrs);
         if ($image !== "") {
             return $image;
         }
@@ -351,47 +360,55 @@ function upsellio_render_home_media_admin_screen()
 
       <script>
         (function () {
-          var cards = Array.prototype.slice.call(document.querySelectorAll("[data-home-media-card]"));
-          if (!cards.length || !window.wp || !wp.media) return;
+          function initHomeMediaPicker() {
+            var cards = Array.prototype.slice.call(document.querySelectorAll("[data-home-media-card]"));
+            if (!cards.length || !window.wp || !wp.media) return false;
 
-          cards.forEach(function (card) {
-            var idInput = card.querySelector("[data-home-media-id]");
-            var preview = card.querySelector("[data-home-media-preview]");
-            var selectButton = card.querySelector("[data-home-media-select]");
-            var clearButton = card.querySelector("[data-home-media-clear]");
-            var fallback = preview ? preview.innerHTML : "";
-            var frame = null;
+            cards.forEach(function (card) {
+              var idInput = card.querySelector("[data-home-media-id]");
+              var preview = card.querySelector("[data-home-media-preview]");
+              var selectButton = card.querySelector("[data-home-media-select]");
+              var clearButton = card.querySelector("[data-home-media-clear]");
+              var fallback = preview ? preview.innerHTML : "";
+              var frame = null;
 
-            if (selectButton) {
-              selectButton.addEventListener("click", function () {
-                if (!frame) {
-                  frame = wp.media({
-                    title: "Wybierz obraz",
-                    button: { text: "Użyj tego obrazu" },
-                    library: { type: "image" },
-                    multiple: false
-                  });
+              if (selectButton) {
+                selectButton.addEventListener("click", function () {
+                  if (!frame) {
+                    frame = wp.media({
+                      title: "Wybierz obraz",
+                      button: { text: "Użyj tego obrazu" },
+                      library: { type: "image" },
+                      multiple: false
+                    });
 
-                  frame.on("select", function () {
-                    var attachment = frame.state().get("selection").first();
-                    if (!attachment) return;
-                    var data = attachment.toJSON();
-                    var url = data.sizes && data.sizes.medium ? data.sizes.medium.url : data.url;
-                    if (idInput) idInput.value = data.id || "";
-                    if (preview && url) preview.innerHTML = '<img src="' + url.replace(/"/g, "&quot;") + '" alt="" />';
-                  });
-                }
-                frame.open();
-              });
-            }
+                    frame.on("select", function () {
+                      var attachment = frame.state().get("selection").first();
+                      if (!attachment) return;
+                      var data = attachment.toJSON();
+                      var url = data.sizes && data.sizes.medium ? data.sizes.medium.url : data.url;
+                      if (idInput) idInput.value = data.id || "";
+                      if (preview && url) preview.innerHTML = '<img src="' + url.replace(/"/g, "&quot;") + '" alt="" />';
+                    });
+                  }
+                  frame.open();
+                });
+              }
 
-            if (clearButton) {
-              clearButton.addEventListener("click", function () {
-                if (idInput) idInput.value = "";
-                if (preview) preview.innerHTML = fallback;
-              });
-            }
-          });
+              if (clearButton) {
+                clearButton.addEventListener("click", function () {
+                  if (idInput) idInput.value = "";
+                  if (preview) preview.innerHTML = fallback;
+                });
+              }
+            });
+
+            return true;
+          }
+
+          if (!initHomeMediaPicker()) {
+            window.addEventListener("load", initHomeMediaPicker, { once: true });
+          }
         })();
       </script>
     </div>

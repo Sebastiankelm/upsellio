@@ -5,7 +5,12 @@ if (!defined("ABSPATH")) {
 
 function upsellio_build_breadcrumb_items()
 {
-    if (is_front_page()) {
+    $is_homepage_context = is_front_page();
+    if (!$is_homepage_context && function_exists("upsellio_is_homepage_request")) {
+        $is_homepage_context = (bool) upsellio_is_homepage_request();
+    }
+
+    if ($is_homepage_context) {
         return [];
     }
 

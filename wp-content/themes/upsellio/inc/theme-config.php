@@ -76,6 +76,24 @@ function upsellio_get_theme_config_defaults()
                 "og_url" => "/lead-magnety/",
                 "twitter_card" => "summary_large_image",
             ],
+            "about" => [
+                "title" => "O mnie | Sebastian Kelm - marketing B2B i sprzedaż | Upsellio",
+                "description" => "Poznaj doświadczenie Sebastiana Kelma: marketing B2B, Google Ads, Meta Ads, SEO i strony internetowe nastawione na leady, sprzedaż i konwersję.",
+                "og_title" => "O mnie | Sebastian Kelm | Upsellio",
+                "og_description" => "Praktyczne doświadczenie w marketingu i sprzedaży B2B: Google Ads, Meta Ads, SEO, CRO i strony internetowe dla firm.",
+                "og_type" => "website",
+                "og_url" => "/o-mnie/",
+                "twitter_card" => "summary_large_image",
+            ],
+            "privacy_policy" => [
+                "title" => "Polityka prywatności | Upsellio",
+                "description" => "Polityka prywatności Upsellio: zasady przetwarzania danych osobowych, cookies, narzędzia analityczne i reklamowe oraz prawa użytkownika.",
+                "og_title" => "Polityka prywatności | Upsellio",
+                "og_description" => "Sprawdź, jak przetwarzane są dane osobowe, cookies i narzędzia marketingowe na stronie Upsellio.",
+                "og_type" => "website",
+                "og_url" => "/polityka-prywatnosci/",
+                "twitter_card" => "summary_large_image",
+            ],
         ],
         "special_navigation_links" => [
             ["title" => "Portfolio", "path" => "/portfolio/", "enabled" => true],
@@ -311,8 +329,8 @@ function upsellio_get_theme_config_defaults()
         ],
         "footer_sections" => [
             "brand" => [
-                "description" => "Marketing i sprzedaż B2B dla firm, które chcą realnych zapytań - nie wykresów na slajdach. Pracuję z producentami, dystrybutorami i firmami usługowymi z Polski i UE.",
-                "address" => "ul. Przykładowa 12, Wrocław",
+                "description" => "Marketing i sprzedaż dla firm, które chcą realnych klientów - nie wykresów na slajdach. Pracuję z producentami, dystrybutorami i firmami usługowymi z całej Polski.",
+                "address" => "wierzbowa 21A/2, Dopiewiec",
             ],
             "sections" => [
                 [
@@ -376,10 +394,10 @@ function upsellio_get_theme_config_defaults()
             ],
             "social_profiles" => [
                 "linkedin" => "https://www.linkedin.com/in/kelm-sebastian/",
-                "facebook" => "https://www.facebook.com/upsellio.pl",
+                "facebook" => "https://www.facebook.com/profile.php?id=61563653369010",
                 "instagram" => "https://www.instagram.com/upsellio.pl/",
-                "x" => "https://x.com/upsellio",
-                "youtube" => "https://www.youtube.com/@upsellio",
+                "x" => "",
+                "youtube" => "",
             ],
             "founder" => [
                 "name" => "Sebastian Kelm",
@@ -1458,11 +1476,27 @@ function upsellio_handle_theme_config_submit()
         return;
     }
 
-    $special_links_json = isset($_POST["ups_special_links_json"]) ? (string) wp_unslash($_POST["ups_special_links_json"]) : "[]";
-    $front_page_json = isset($_POST["ups_front_page_sections_json"]) ? (string) wp_unslash($_POST["ups_front_page_sections_json"]) : "{}";
-    $template_seo_json = isset($_POST["ups_template_seo_json"]) ? (string) wp_unslash($_POST["ups_template_seo_json"]) : "{}";
-    $trust_seo_json = isset($_POST["ups_trust_seo_json"]) ? (string) wp_unslash($_POST["ups_trust_seo_json"]) : "{}";
-    $footer_sections_json = isset($_POST["ups_footer_sections_json"]) ? (string) wp_unslash($_POST["ups_footer_sections_json"]) : "{}";
+    $decode_json_payload = static function ($raw_key, $b64_key, $fallback) {
+        $raw_fallback = isset($_POST[$raw_key]) ? (string) wp_unslash($_POST[$raw_key]) : $fallback;
+        if (!isset($_POST[$b64_key])) {
+            return $raw_fallback;
+        }
+        $encoded = trim((string) wp_unslash($_POST[$b64_key]));
+        if ($encoded === "") {
+            return $raw_fallback;
+        }
+        $decoded = base64_decode($encoded, true);
+        if (!is_string($decoded) || $decoded === "") {
+            return $raw_fallback;
+        }
+        return $decoded;
+    };
+
+    $special_links_json = $decode_json_payload("ups_special_links_json", "ups_special_links_json_b64", "[]");
+    $front_page_json = $decode_json_payload("ups_front_page_sections_json", "ups_front_page_sections_json_b64", "{}");
+    $template_seo_json = $decode_json_payload("ups_template_seo_json", "ups_template_seo_json_b64", "{}");
+    $trust_seo_json = $decode_json_payload("ups_trust_seo_json", "ups_trust_seo_json_b64", "{}");
+    $footer_sections_json = $decode_json_payload("ups_footer_sections_json", "ups_footer_sections_json_b64", "{}");
     $special_links = json_decode($special_links_json, true);
     $front_sections = json_decode($front_page_json, true);
     $template_seo = json_decode($template_seo_json, true);
@@ -1588,22 +1622,44 @@ function upsellio_render_theme_config_screen()
         <input type="file" name="upsellio_content_text_csv_file" accept=".csv,text/csv" required>
         <button type="submit" class="button button-primary">Importuj CSV tresci WordPress</button>
       </form>
-      <form method="post" action="">
+      <form method="post" action="" id="upsellio-theme-config-form">
         <?php wp_nonce_field("upsellio_theme_config_save", "upsellio_theme_config_nonce"); ?>
+        <input type="hidden" name="ups_template_seo_json_b64" value="">
+        <input type="hidden" name="ups_special_links_json_b64" value="">
+        <input type="hidden" name="ups_front_page_sections_json_b64" value="">
+        <input type="hidden" name="ups_trust_seo_json_b64" value="">
+        <input type="hidden" name="ups_footer_sections_json_b64" value="">
         <h2>Template SEO (JSON)</h2>
-        <textarea name="ups_template_seo_json" rows="16" class="large-text code"><?php echo esc_textarea((string) $template_seo_json); ?></textarea>
+        <textarea name="ups_template_seo_json" rows="16" class="large-text code" data-json-source="ups_template_seo_json_b64"><?php echo esc_textarea((string) $template_seo_json); ?></textarea>
         <h2>Special navigation links (JSON)</h2>
-        <textarea name="ups_special_links_json" rows="14" class="large-text code"><?php echo esc_textarea((string) $special_links_json); ?></textarea>
+        <textarea name="ups_special_links_json" rows="14" class="large-text code" data-json-source="ups_special_links_json_b64"><?php echo esc_textarea((string) $special_links_json); ?></textarea>
         <h2>Front page sections (JSON)</h2>
-        <textarea name="ups_front_page_sections_json" rows="24" class="large-text code"><?php echo esc_textarea((string) $front_page_json); ?></textarea>
+        <textarea name="ups_front_page_sections_json" rows="24" class="large-text code" data-json-source="ups_front_page_sections_json_b64"><?php echo esc_textarea((string) $front_page_json); ?></textarea>
         <h2 id="trust-seo">Dane zaufania, SEO i CRO (JSON)</h2>
         <p>Uzupełnij tu dane Organization, profile społecznościowe, opinie, widełki cenowe, dowody społeczne, domyślny obraz OG oraz treści do case studies. Szablony pobierają te dane jako jedno źródło prawdy.</p>
-        <textarea name="ups_trust_seo_json" rows="28" class="large-text code"><?php echo esc_textarea((string) $trust_seo_json); ?></textarea>
+        <textarea name="ups_trust_seo_json" rows="28" class="large-text code" data-json-source="ups_trust_seo_json_b64"><?php echo esc_textarea((string) $trust_seo_json); ?></textarea>
         <h2>Footer sections (JSON)</h2>
         <p>Konfiguracja stopki: opis, sekcje linków i lista miast. Dzięki temu stopka nie jest hardcodowana.</p>
-        <textarea name="ups_footer_sections_json" rows="20" class="large-text code"><?php echo esc_textarea((string) $footer_sections_json); ?></textarea>
+        <textarea name="ups_footer_sections_json" rows="20" class="large-text code" data-json-source="ups_footer_sections_json_b64"><?php echo esc_textarea((string) $footer_sections_json); ?></textarea>
         <p><button type="submit" name="upsellio_theme_config_submit" value="1" class="button button-primary">Zapisz konfiguracje</button></p>
       </form>
+      <script>
+        (function () {
+          const form = document.getElementById("upsellio-theme-config-form");
+          if (!form) return;
+
+          form.addEventListener("submit", function () {
+            const sources = form.querySelectorAll("textarea[data-json-source]");
+            sources.forEach(function (textarea) {
+              const hiddenName = textarea.getAttribute("data-json-source");
+              if (!hiddenName) return;
+              const hiddenInput = form.querySelector('input[type="hidden"][name="' + hiddenName + '"]');
+              if (!hiddenInput) return;
+              hiddenInput.value = window.btoa(unescape(encodeURIComponent(textarea.value || "")));
+            });
+          });
+        })();
+      </script>
     </div>
     <?php
 }
