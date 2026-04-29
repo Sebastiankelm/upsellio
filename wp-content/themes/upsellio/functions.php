@@ -358,6 +358,30 @@ function upsellio_is_special_page_context($title, $default_path, $template_file)
     return is_page($slug);
 }
 
+function upsellio_get_page_url_by_template($template_file)
+{
+    $template_file = trim((string) $template_file);
+    if ($template_file === "") {
+        return "";
+    }
+
+    $pages = get_posts([
+        "post_type" => "page",
+        "post_status" => "publish",
+        "posts_per_page" => 1,
+        "meta_key" => "_wp_page_template",
+        "meta_value" => $template_file,
+        "fields" => "ids",
+    ]);
+    $page_id = (int) ($pages[0] ?? 0);
+    if ($page_id <= 0) {
+        return "";
+    }
+
+    $permalink = get_permalink($page_id);
+    return is_string($permalink) ? $permalink : "";
+}
+
 function upsellio_is_contact_page_context()
 {
     return upsellio_is_special_page_context("Kontakt", "/kontakt/", "page-kontakt.php");
@@ -380,21 +404,43 @@ function upsellio_is_lead_magnets_page_context()
 
 function upsellio_get_contact_page_url()
 {
-    $contact_path = function_exists("upsellio_get_special_navigation_path_by_title")
-        ? upsellio_get_special_navigation_path_by_title("Kontakt", "/kontakt/")
-        : "/kontakt/";
-    $contact_slug = trim((string) wp_parse_url($contact_path, PHP_URL_PATH), "/");
-    if ($contact_slug !== "") {
-        $contact_page = get_page_by_path($contact_slug);
-        if ($contact_page instanceof WP_Post) {
-            $page_permalink = get_permalink((int) $contact_page->ID);
-            if (is_string($page_permalink) && $page_permalink !== "") {
-                return $page_permalink;
-            }
-        }
+    $template_url = upsellio_get_page_url_by_template("page-kontakt.php");
+    if ($template_url !== "") {
+        return $template_url;
     }
+    $contact_path = function_exists("upsellio_get_special_navigation_path_by_title")
+        ? (string) upsellio_get_special_navigation_path_by_title("Kontakt", "/kontakt/")
+        : "";
+    $contact_slug = trim((string) wp_parse_url($contact_path, PHP_URL_PATH), "/");
+    if ($contact_slug === "") {
+        return "";
+    }
+    $contact_page = get_page_by_path($contact_slug);
+    if (!($contact_page instanceof WP_Post)) {
+        return "";
+    }
+    $page_permalink = get_permalink((int) $contact_page->ID);
+    return is_string($page_permalink) ? $page_permalink : "";
+}
 
-    return home_url("/#kontakt");
+function upsellio_get_offer_page_url()
+{
+    return upsellio_get_page_url_by_template("page-oferta.php");
+}
+
+function upsellio_get_google_ads_page_url()
+{
+    return upsellio_get_page_url_by_template("page-marketing-google-ads.php");
+}
+
+function upsellio_get_meta_ads_page_url()
+{
+    return upsellio_get_page_url_by_template("page-marketing-meta-ads.php");
+}
+
+function upsellio_get_websites_page_url()
+{
+    return upsellio_get_page_url_by_template("page-tworzenie-stron-internetowych.php");
 }
 
 function upsellio_get_definitions_archive_url()
@@ -404,7 +450,7 @@ function upsellio_get_definitions_archive_url()
         return $archive_url;
     }
 
-    return add_query_arg("post_type", "definicja", home_url("/"));
+    return upsellio_get_page_url_by_template("archive-definicja.php");
 }
 
 function upsellio_get_cities_archive_url()
@@ -414,15 +460,78 @@ function upsellio_get_cities_archive_url()
         return $archive_url;
     }
 
-    return add_query_arg("post_type", "miasto", home_url("/"));
+    return upsellio_get_page_url_by_template("archive-miasto.php");
 }
+
+function upsellio_force_content_permalink($post_link, $post, $leavename = false, $sample = false)
+{
+    if (!($post instanceof WP_Post)) {
+        return $post_link;
+    }
+    if ((string) get_option("permalink_structure", "") === "") {
+        return $post_link;
+    }
+
+    $post_type = (string) $post->post_type;
+    if (!in_array($post_type, ["definicja", "miasto", "lead_magnet", "portfolio", "marketing_portfolio"], true)) {
+        return $post_link;
+    }
+
+    $slug = $leavename ? "%postname%" : (string) $post->post_name;
+    if ($slug === "") {
+        return $post_link;
+    }
+
+    if ($post_type === "definicja") {
+        return home_url("/definicje/" . $slug . "/");
+    }
+    if ($post_type === "miasto") {
+        return home_url("/miasto/" . $slug . "/");
+    }
+    if ($post_type === "lead_magnet") {
+        return home_url("/lead-magnety/" . $slug . "/");
+    }
+    if ($post_type === "portfolio") {
+        return home_url("/realizacja/" . $slug . "/");
+    }
+
+    return home_url("/portfolio-marketingowe/" . $slug . "/");
+}
+add_filter("post_type_link", "upsellio_force_content_permalink", 10, 4);
+
+function upsellio_register_content_permalink_rewrites()
+{
+    add_rewrite_rule("^definicje/([^/]+)/?$", "index.php?definicja=$matches[1]", "top");
+    add_rewrite_rule("^miasto/([^/]+)/?$", "index.php?miasto=$matches[1]", "top");
+    add_rewrite_rule("^lead-magnety/([^/]+)/?$", "index.php?lead_magnet=$matches[1]", "top");
+    add_rewrite_rule("^realizacja/([^/]+)/?$", "index.php?portfolio=$matches[1]", "top");
+    add_rewrite_rule("^portfolio-marketingowe/([^/]+)/?$", "index.php?marketing_portfolio=$matches[1]", "top");
+}
+add_action("init", "upsellio_register_content_permalink_rewrites", 20);
+
+function upsellio_maybe_flush_content_permalink_rewrites()
+{
+    if (!is_admin() || !current_user_can("manage_options")) {
+        return;
+    }
+
+    $version_key = "upsellio_content_permalink_rewrite_version";
+    $target_version = "2026-04-28-content-permalink-v2";
+    if ((string) get_option($version_key, "") === $target_version) {
+        return;
+    }
+
+    flush_rewrite_rules(false);
+    update_option($version_key, $target_version, false);
+}
+add_action("admin_init", "upsellio_maybe_flush_content_permalink_rewrites");
 
 function upsellio_get_social_profile_url($network)
 {
     $network = strtolower(trim((string) $network));
     $defaults = [
         "linkedin" => "https://www.linkedin.com/in/sebastiankelm/",
-        "facebook" => "https://www.facebook.com/upsellio.pl",
+        "facebook" => "https://www.facebook.com/profile.php?id=61563653369010",
         "instagram" => "https://www.instagram.com/upsellio.pl/",
         "x" => "https://x.com/upsellio",
         "youtube" => "https://www.youtube.com/@upsellio",
@@ -521,6 +630,7 @@ function upsellio_get_generated_logo_assets()
         "png" => "",
         "webp_320" => "",
         "webp_640" => "",
+        "custom_logo_id" => 0,
     ];
 
     $base_dir = function_exists("upsellio_logo_tool_assets_dir")
@@ -560,6 +670,28 @@ function upsellio_get_generated_logo_assets()
     return $assets;
 }
 
+function upsellio_get_brand_logo_assets()
+{
+    $assets = upsellio_get_generated_logo_assets();
+    if ((string) ($assets["png"] ?? "") !== "") {
+        return $assets;
+    }
+
+    $custom_logo_id = (int) get_theme_mod("custom_logo");
+    if ($custom_logo_id <= 0) {
+        return $assets;
+    }
+
+    $custom_logo_url = wp_get_attachment_image_url($custom_logo_id, "full");
+    if (!is_string($custom_logo_url) || $custom_logo_url === "") {
+        return $assets;
+    }
+
+    $assets["png"] = $custom_logo_url;
+    $assets["custom_logo_id"] = $custom_logo_id;
+    return $assets;
+}
+
 function upsellio_get_generated_logo_url($preferred = "png")
 {
     $assets = upsellio_get_generated_logo_assets();
@@ -591,7 +723,7 @@ function upsellio_render_unified_footer($args = [])
     $contact_phone = function_exists("upsellio_get_contact_phone") ? (string) upsellio_get_contact_phone() : "+48 575 522 595";
     $contact_phone_href = preg_replace("/\s+/", "", $contact_phone);
     $contact_email_href = upsellio_get_mailto_href($contact_email);
-    $brand_logo_assets = function_exists("upsellio_get_generated_logo_assets") ? upsellio_get_generated_logo_assets() : [];
+    $brand_logo_assets = function_exists("upsellio_get_brand_logo_assets") ? upsellio_get_brand_logo_assets() : [];
     $brand_logo_url = (string) ($brand_logo_assets["png"] ?? "");
     $brand_logo_webp_320_url = (string) ($brand_logo_assets["webp_320"] ?? "");
     $brand_logo_webp_640_url = (string) ($brand_logo_assets["webp_640"] ?? "");
@@ -601,24 +733,71 @@ function upsellio_render_unified_footer($args = [])
     $cities_config = isset($footer_config["cities"]) && is_array($footer_config["cities"]) ? $footer_config["cities"] : [];
 
     $normalize_url = static function ($value) {
-        $url = trim((string) $value);
-        if ($url === "") {
+        $raw_url = trim((string) $value);
+        if ($raw_url === "") {
             return "";
         }
-        if (strpos($url, "http://") === 0 || strpos($url, "https://") === 0) {
-            return esc_url($url);
+        if (strpos($raw_url, "http://") === 0 || strpos($raw_url, "https://") === 0) {
+            return esc_url($raw_url);
         }
-        if (strpos($url, "/") === 0) {
-            return esc_url(home_url($url));
+
+        $path = (string) wp_parse_url($raw_url, PHP_URL_PATH);
+        if ($path === "") {
+            $path = "/" . ltrim($raw_url, "/");
         }
-        return esc_url(home_url("/" . ltrim($url, "/")));
+        $path = "/" . ltrim($path, "/");
+
+        $dynamic_map = [
+            "/" => home_url("/"),
+            "/blog" => function_exists("upsellio_get_blog_index_url") ? (string) upsellio_get_blog_index_url() : "",
+            "/blog/" => function_exists("upsellio_get_blog_index_url") ? (string) upsellio_get_blog_index_url() : "",
+            "/oferta" => function_exists("upsellio_get_offer_page_url") ? (string) upsellio_get_offer_page_url() : "",
+            "/oferta/" => function_exists("upsellio_get_offer_page_url") ? (string) upsellio_get_offer_page_url() : "",
+            "/kontakt" => function_exists("upsellio_get_contact_page_url") ? (string) upsellio_get_contact_page_url() : "",
+            "/kontakt/" => function_exists("upsellio_get_contact_page_url") ? (string) upsellio_get_contact_page_url() : "",
+            "/portfolio" => function_exists("upsellio_get_portfolio_page_url") ? (string) upsellio_get_portfolio_page_url() : "",
+            "/portfolio/" => function_exists("upsellio_get_portfolio_page_url") ? (string) upsellio_get_portfolio_page_url() : "",
+            "/portfolio-marketingowe" => function_exists("upsellio_get_marketing_portfolio_page_url") ? (string) upsellio_get_marketing_portfolio_page_url() : "",
+            "/portfolio-marketingowe/" => function_exists("upsellio_get_marketing_portfolio_page_url") ? (string) upsellio_get_marketing_portfolio_page_url() : "",
+            "/lead-magnety" => function_exists("upsellio_get_lead_magnets_page_url") ? (string) upsellio_get_lead_magnets_page_url() : "",
+            "/lead-magnety/" => function_exists("upsellio_get_lead_magnets_page_url") ? (string) upsellio_get_lead_magnets_page_url() : "",
+            "/marketing-google-ads" => function_exists("upsellio_get_google_ads_page_url") ? (string) upsellio_get_google_ads_page_url() : "",
+            "/marketing-google-ads/" => function_exists("upsellio_get_google_ads_page_url") ? (string) upsellio_get_google_ads_page_url() : "",
+            "/marketing-meta-ads" => function_exists("upsellio_get_meta_ads_page_url") ? (string) upsellio_get_meta_ads_page_url() : "",
+            "/marketing-meta-ads/" => function_exists("upsellio_get_meta_ads_page_url") ? (string) upsellio_get_meta_ads_page_url() : "",
+            "/tworzenie-stron-internetowych" => function_exists("upsellio_get_websites_page_url") ? (string) upsellio_get_websites_page_url() : "",
+            "/tworzenie-stron-internetowych/" => function_exists("upsellio_get_websites_page_url") ? (string) upsellio_get_websites_page_url() : "",
+            "/miasta" => function_exists("upsellio_get_cities_archive_url") ? (string) upsellio_get_cities_archive_url() : "",
+            "/miasta/" => function_exists("upsellio_get_cities_archive_url") ? (string) upsellio_get_cities_archive_url() : "",
+            "/definicja" => function_exists("upsellio_get_definitions_archive_url") ? (string) upsellio_get_definitions_archive_url() : "",
+            "/definicja/" => function_exists("upsellio_get_definitions_archive_url") ? (string) upsellio_get_definitions_archive_url() : "",
+            "/definicje" => function_exists("upsellio_get_definitions_archive_url") ? (string) upsellio_get_definitions_archive_url() : "",
+            "/definicje/" => function_exists("upsellio_get_definitions_archive_url") ? (string) upsellio_get_definitions_archive_url() : "",
+        ];
+        if (isset($dynamic_map[$path]) && (string) $dynamic_map[$path] !== "") {
+            return esc_url((string) $dynamic_map[$path]);
+        }
+
+        $page = get_page_by_path(trim($path, "/"));
+        if ($page instanceof WP_Post) {
+            $permalink = get_permalink((int) $page->ID);
+            if (is_string($permalink) && $permalink !== "") {
+                return esc_url($permalink);
+            }
+        }
+
+        if (strpos($path, "/miasto/") === 0 || strpos($path, "/definicje/") === 0 || strpos($path, "/realizacja/") === 0 || strpos($path, "/portfolio-marketingowe/") === 0 || strpos($path, "/lead-magnety/") === 0) {
+            return esc_url(home_url($path));
+        }
+
+        return "";
     };
 
     $brand_description = trim((string) ($brand_config["description"] ?? ""));
     if ($brand_description === "") {
-        $brand_description = "Marketing i sprzedaż B2B dla firm, które chcą realnych zapytań - nie wykresów na slajdach. Pracuję z producentami, dystrybutorami i firmami usługowymi z Polski i UE.";
+        $brand_description = "Marketing i sprzedaż dla firm, które chcą realnych klientów - nie wykresów na slajdach. Pracuję z producentami, dystrybutorami i firmami usługowymi z całej Polski.";
     }
-    $brand_address = trim((string) ($brand_config["address"] ?? "ul. Przykładowa 12, Wrocław"));
+    $brand_address = trim((string) ($brand_config["address"] ?? "wierzbowa 21A/2, Dopiewiec"));
 
     $normalized_sections = [];
     foreach ($section_config as $section_item) {
@@ -733,9 +912,9 @@ function upsellio_render_unified_footer($args = [])
           </a>
           <p><?php echo esc_html($brand_description); ?></p>
           <div class="nf-foot-contacts">
-            <a href="<?php echo esc_url($contact_email_href); ?>"><i>✉</i><span><?php echo esc_html($contact_email); ?></span></a>
-            <a href="<?php echo esc_url("tel:" . $contact_phone_href); ?>"><i>☎</i><span><?php echo esc_html($contact_phone); ?></span></a>
-            <?php if ($brand_address !== "") : ?><span><i>📍</i><span><?php echo esc_html($brand_address); ?></span></span><?php endif; ?>
+            <a href="<?php echo esc_url($contact_email_href); ?>"><i>@</i><span><?php echo esc_html($contact_email); ?></span></a>
+            <a href="<?php echo esc_url("tel:" . $contact_phone_href); ?>"><i>T</i><span><?php echo esc_html($contact_phone); ?></span></a>
+            <?php if ($brand_address !== "") : ?><span><i>A</i><span><?php echo esc_html($brand_address); ?></span></span><?php endif; ?>
           </div>
         </div>
 
@@ -781,8 +960,7 @@ function upsellio_render_unified_footer($args = [])
           <span>© <?php echo esc_html(gmdate("Y")); ?> Upsellio · Sebastian Kelm · NIP 7773388263</span>
           <div class="nf-foot-social">
             <a href="<?php echo esc_url(upsellio_get_social_profile_url("linkedin")); ?>">LinkedIn</a>
-            <a href="<?php echo esc_url(upsellio_get_social_profile_url("youtube")); ?>">YouTube</a>
-            <a href="<?php echo esc_url(upsellio_get_social_profile_url("x")); ?>">𝕏 / Twitter</a>
+            <a href="<?php echo esc_url(upsellio_get_social_profile_url("facebook")); ?>">Facebook</a>
           </div>
         </div>
       </div>
@@ -999,6 +1177,12 @@ function upsellio_get_primary_navigation_links()
     $links = [];
 
     if ($menu_id > 0) {
+        $menu_object = wp_get_nav_menu_object($menu_id);
+        $menu_name = $menu_object ? (string) ($menu_object->name ?? "") : "";
+        if ($menu_name === upsellio_primary_menu_name()) {
+            return [];
+        }
+
         $menu_items = wp_get_nav_menu_items($menu_id, ["update_post_term_cache" => false]);
         if (is_array($menu_items)) {
             foreach ($menu_items as $menu_item) {
@@ -1008,6 +1192,7 @@ function upsellio_get_primary_navigation_links()
                     continue;
                 }
                 $links[] = [
+                    "id" => (int) ($menu_item->ID ?? 0),
                     "title" => $title,
                     "url" => $url,
                     "parent" => (int) ($menu_item->menu_item_parent ?? 0),
@@ -1204,9 +1389,11 @@ function upsellio_sync_primary_navigation_menu()
     }
 
     if (post_type_exists("definicja")) {
+        $definitions_url = upsellio_get_definitions_archive_url();
+        if ($definitions_url !== "") {
         $definitions_item = wp_update_nav_menu_item($menu_id, 0, [
             "menu-item-title" => "Definicje",
-            "menu-item-url" => home_url("/definicje/"),
+            "menu-item-url" => $definitions_url,
             "menu-item-type" => "custom",
             "menu-item-status" => "publish",
             "menu-item-parent-id" => 0,
@@ -1214,18 +1401,22 @@ function upsellio_sync_primary_navigation_menu()
         if (!is_wp_error($definitions_item)) {
             $created++;
         }
+        }
     }
 
     if (post_type_exists("miasto")) {
+        $cities_url = upsellio_get_cities_archive_url();
+        if ($cities_url !== "") {
         $cities_item = wp_update_nav_menu_item($menu_id, 0, [
             "menu-item-title" => "Miasta",
-            "menu-item-url" => home_url("/miasta/"),
+            "menu-item-url" => $cities_url,
             "menu-item-type" => "custom",
             "menu-item-status" => "publish",
             "menu-item-parent-id" => 0,
         ]);
         if (!is_wp_error($cities_item)) {
             $created++;
+        }
         }
     }
 
@@ -1269,10 +1460,6 @@ function upsellio_sync_primary_navigation_menu()
             }
         }
     }
-
-    $locations = get_nav_menu_locations();
-    $locations["primary"] = $menu_id;
-    set_theme_mod("nav_menu_locations", $locations);
 
     return ["created" => $created, "updated" => 0, "message" => "ok"];
 }
@@ -1482,7 +1669,7 @@ function upsellio_assets()
 
     $is_home_template_request = is_front_page() || (function_exists("upsellio_is_homepage_request") && upsellio_is_homepage_request());
     if ($is_home_template_request) {
-        wp_enqueue_style("upsellio-landing", $landing_style_uri, [], $landing_style_version);
+        wp_enqueue_style("upsellio-main", $style_uri, [], $style_version);
         wp_enqueue_script("upsellio-home", $home_script_uri, [], $home_script_version, true);
         add_action(
             "wp_footer",
@@ -1762,6 +1949,7 @@ function upsellio_logo_tool_status_message($status)
         "webp_missing" => "Serwer nie obsługuje zapisu WebP.",
         "not_writable" => "Folder assets/images nie jest zapisywalny.",
         "save_error" => "Nie udało się zapisać jednego z plików logo.",
+        "db_save_error" => "Logo wygenerowano, ale nie udało się zapisać go trwale w bibliotece mediów.",
     ];
     return (string) ($messages[$status] ?? "Nie udało się wygenerować logo.");
 }
@@ -1829,6 +2017,31 @@ function upsellio_handle_generate_logo_assets()
     }
 
     imagedestroy($source);
+
+    if (!function_exists("media_handle_upload")) {
+        require_once ABSPATH . "wp-admin/includes/image.php";
+        require_once ABSPATH . "wp-admin/includes/file.php";
+        require_once ABSPATH . "wp-admin/includes/media.php";
+    }
+
+    $attachment_id = media_handle_upload("upsellio_logo_file", 0, [], [
+        "test_form" => false,
+        "mimes" => [
+            "jpg|jpeg|jpe" => "image/jpeg",
+            "png" => "image/png",
+            "webp" => "image/webp",
+            "gif" => "image/gif",
+        ],
+    ]);
+
+    if (is_wp_error($attachment_id) || (int) $attachment_id <= 0) {
+        upsellio_logo_tool_redirect("db_save_error");
+    }
+
+    set_theme_mod("custom_logo", (int) $attachment_id);
+    update_option("upsellio_generated_logo_attachment_id", (int) $attachment_id, false);
+    update_option("upsellio_generated_logo_saved_at", time(), false);
+
     upsellio_logo_tool_redirect("success");
 }
 add_action("admin_post_upsellio_generate_logo_assets", "upsellio_handle_generate_logo_assets");
@@ -1917,9 +2130,9 @@ function upsellio_get_blog_page_id()
 function upsellio_get_blog_index_url()
 {
     $blog_page_id = upsellio_get_blog_page_id();
-    $blog_index_url = $blog_page_id > 0 ? get_permalink($blog_page_id) : home_url("/");
+    $blog_index_url = $blog_page_id > 0 ? get_permalink($blog_page_id) : "";
 
-    return $blog_index_url ?: home_url("/");
+    return is_string($blog_index_url) ? $blog_index_url : "";
 }
 
 function upsellio_front_page_document_title($title)
