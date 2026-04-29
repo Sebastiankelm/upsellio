@@ -13,7 +13,7 @@ if (!defined("ABSPATH")) {
         <span>Marketing B2B, który zamienia ruch w wartościowe rozmowy</span>
       </div>
       <h1 class="h1 hero-h1 reveal in d1">
-        Kampanie Google Ads i Meta Ads, które zamieniają ruch w <span class="hero-accent">klientów B2B</span>
+        Kampanie <span class="hero-accent">Google Ads i Meta Ads</span>, które zamieniają ruch w <span class="hero-accent">klientów B2B</span>
       </h1>
       <p class="lead hero-lead reveal in d2">
         Tworzę kampanie i strony, które zamieniają ruch w sprzedaż. Sprawdzam, gdzie uciekają zapytania: w kampanii, na stronie, w ofercie albo w jakości leadów.

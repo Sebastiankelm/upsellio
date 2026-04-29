@@ -14,6 +14,12 @@ $contact_phone_href = preg_replace("/\s+/", "", (string) $contact_phone);
 $contact_email = trim((string) ($cfg["contact_email"] ?? "kontakt@upsellio.pl"));
 $linkedin_url = "https://www.linkedin.com/in/kelm-sebastian/";
 $site_url = home_url("/");
+$offer_url = function_exists("upsellio_get_offer_page_url") ? (string) upsellio_get_offer_page_url() : "";
+$google_ads_url = function_exists("upsellio_get_google_ads_page_url") ? (string) upsellio_get_google_ads_page_url() : "";
+$meta_ads_url = function_exists("upsellio_get_meta_ads_page_url") ? (string) upsellio_get_meta_ads_page_url() : "";
+$websites_url = function_exists("upsellio_get_websites_page_url") ? (string) upsellio_get_websites_page_url() : "";
+$marketing_portfolio_url = function_exists("upsellio_get_marketing_portfolio_page_url") ? (string) upsellio_get_marketing_portfolio_page_url() : "";
+$blog_index_url = function_exists("upsellio_get_blog_index_url") ? (string) upsellio_get_blog_index_url() : "";
 
 $seo_title = trim((string) ($seo["title"] ?? "Upsellio — Marketing B2B, Google Ads, Meta Ads | Sebastian Kelm"));
 $seo_description = trim((string) ($seo["description"] ?? "Marketing B2B nastawiony na leady i sprzedaż. Google Ads, Meta Ads i strony internetowe dla firm. Sebastian Kelm — praktyk sprzedaży i marketingu B2B."));
@@ -34,12 +40,23 @@ $top_level_links = array_values(array_filter($menu_links, static function ($item
     return (int) ($item["parent"] ?? 0) === 0;
 }));
 
-$hero_photo = function_exists("upsellio_render_template_asset_image")
-    ? upsellio_render_template_asset_image("home_hero_photo", ["class" => "home-hero-image", "size" => "large", "loading" => "eager"])
+$hero_photo = function_exists("upsellio_render_home_media_image")
+    ? upsellio_render_home_media_image("hero_portrait", [
+        "class" => "home-hero-image",
+        "size" => "medium_large",
+        "sizes" => "(max-width: 980px) 92vw, 44vw",
+        "loading" => "eager",
+        "fetchpriority" => "high",
+    ])
+    : (function_exists("upsellio_render_template_asset_image")
+        ? upsellio_render_template_asset_image("home_hero_photo", ["class" => "home-hero-image", "size" => "medium_large", "loading" => "eager"])
+        : "");
+$about_photo = function_exists("upsellio_render_home_media_image")
+    ? upsellio_render_home_media_image("about_portrait", ["class" => "home-about-image", "size" => "large"])
     : "";
-$about_photo = function_exists("upsellio_render_template_asset_image")
-    ? upsellio_render_template_asset_image("home_about_photo", ["class" => "home-about-image", "size" => "large"])
-    : "";
+if ($about_photo === "" && function_exists("upsellio_render_template_asset_image")) {
+    $about_photo = upsellio_render_template_asset_image("home_about_photo", ["class" => "home-about-image", "size" => "large"]);
+}
 
 $marquee_items = isset($cfg["industry_marquee"]) && is_array($cfg["industry_marquee"]) ? $cfg["industry_marquee"] : [
     "TCM SERVICE",
@@ -109,69 +126,37 @@ $schema = [
     ],
     "sameAs" => [$linkedin_url],
 ];
-?><!DOCTYPE html>
-<html <?php language_attributes(); ?>>
-<head>
-<meta charset="<?php bloginfo("charset"); ?>" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title><?php echo esc_html($seo_title); ?></title>
-<meta name="description" content="<?php echo esc_attr($seo_description); ?>" />
-<link rel="canonical" href="<?php echo esc_url($site_url); ?>" />
-<meta property="og:title" content="<?php echo esc_attr($seo_og_title); ?>" />
-<meta property="og:description" content="<?php echo esc_attr($seo_og_description); ?>" />
-<meta property="og:type" content="website" />
-<meta property="og:url" content="<?php echo esc_url($site_url); ?>" />
-<meta property="og:image" content="<?php echo esc_url($seo_og_image); ?>" />
-<meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:image" content="<?php echo esc_url($seo_og_image); ?>" />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;700;800&display=swap" rel="stylesheet">
-<script type="application/ld+json"><?php echo wp_json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
-<?php wp_head(); ?>
+add_filter("pre_get_document_title", static function ($title) use ($seo_title) {
+    return is_front_page() && $seo_title !== "" ? $seo_title : $title;
+});
+add_action("wp_head", static function () use ($seo_description, $seo_og_title, $seo_og_description, $site_url, $seo_og_image, $schema) {
+    if (!is_front_page()) {
+        return;
+    }
+    echo '<meta name="description" content="' . esc_attr($seo_description) . '">' . "\n";
+    echo '<link rel="canonical" href="' . esc_url($site_url) . '">' . "\n";
+    echo '<meta property="og:title" content="' . esc_attr($seo_og_title) . '">' . "\n";
+    echo '<meta property="og:description" content="' . esc_attr($seo_og_description) . '">' . "\n";
+    echo '<meta property="og:type" content="website">' . "\n";
+    echo '<meta property="og:url" content="' . esc_url($site_url) . '">' . "\n";
+    echo '<meta property="og:image" content="' . esc_url($seo_og_image) . '">' . "\n";
+    echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
+    echo '<meta name="twitter:image" content="' . esc_url($seo_og_image) . '">' . "\n";
+    echo '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+}, 1);
+
+get_header();
+?>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:"DM Sans",system-ui,sans-serif;color:#0a1410;background:#fafaf7;line-height:1.65}.hr-wrap{width:min(1180px,100% - 64px);margin-inline:auto}.hr-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#0d9488;margin-bottom:14px}.hr-eyebrow::before{content:"";width:26px;height:2px;background:#0d9488;border-radius:99px}.hr-eyebrow-light{color:#5eead4}.hr-eyebrow-light::before{background:#5eead4}.hr-h1{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(48px,5.6vw,76px);line-height:.98;letter-spacing:-2.4px;margin:0 0 22px}.hr-h1 em{font-style:normal;color:#0d9488}.hr-h2{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(32px,3.6vw,52px);line-height:1.04;letter-spacing:-1.6px;margin:0 0 16px;max-width:24ch}.hr-h2-light{color:#fff}.hr-h3{font-family:"Syne",sans-serif;font-weight:700;font-size:21px;line-height:1.18;letter-spacing:-.4px;margin:0 0 10px}.hr-lead{font-size:18px;line-height:1.6;color:#3d3d38;max-width:60ch;margin:0}.hr-lead-light{color:rgba(255,255,255,.72)}.hr-divider{height:1px;background:#e7e7e1;margin:36px 0 56px}.hr-divider-light{background:rgba(255,255,255,.12)}.hr-sec-head{max-width:780px}.hr-section{padding:128px 0}.hr-section-soft{background:#f1f1ec}.hr-section-dark{background:#0a1410;color:#fff;position:relative;overflow:hidden}.hr-section-dark::before{content:"";position:absolute;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,.18),transparent 67%);right:-220px;top:-220px;pointer-events:none}.hr-section-dark .hr-wrap{position:relative;z-index:2}.hr-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:15px 24px;font-weight:700;font-size:15px;border:1px solid transparent;transition:.2s ease;text-decoration:none;cursor:pointer;font-family:inherit}.hr-btn-primary{background:#0d9488;color:#fff;box-shadow:0 12px 28px rgba(13,148,136,.22)}.hr-btn-ghost{background:#fff;border-color:#e7e7e1;color:#0a1410}.hr-btn-ghost-light{background:transparent;border-color:rgba(255,255,255,.24);color:#fff}.hr-btn-block{width:100%}.hr-nav{position:sticky;top:0;z-index:50;background:rgba(250,250,247,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(231,231,225,.7)}.hr-nav-inner{height:74px;display:flex;align-items:center;justify-content:space-between;gap:24px}.hr-logo{display:flex;align-items:center;gap:10px}.hr-logo-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(180deg,#21ab82 0%,#0f766e 100%);color:#fff;display:grid;place-items:center;font-family:"Syne",sans-serif;font-weight:800;font-size:17px}.hr-logo-name{font-family:"Syne",sans-serif;font-size:20px;font-weight:800;letter-spacing:-.5px}.hr-nav-links{display:flex;gap:24px}.hr-nav-links a{font-size:14px;font-weight:600;color:#3d3d38;text-decoration:none}.hr-nav-cta{display:flex;align-items:center;gap:14px}.hr-link-phone{font-size:13px;font-weight:700;color:#0a1410;text-decoration:none}.hr-hero{padding:96px 0 0;background:radial-gradient(circle at 88% 8%,rgba(13,148,136,.12),transparent 36%)}.hr-hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center}.hr-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:30px}.hr-micro{list-style:none;padding:0;margin:36px 0 0;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.hr-micro li{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#3d3d38}.hr-check{flex:0 0 22px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#ccfbf1;color:#0f766e;font-weight:900;font-size:11px}.hr-hero-side{position:relative}.hr-hero-photo{position:relative;aspect-ratio:.82;border-radius:28px;overflow:hidden;background:#dff8f4;border:1px solid #99f6e4}.hr-photo-stripes{position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(13,148,136,.12) 0 12px,transparent 12px 24px)}.hr-photo-label{position:absolute;inset:0;display:grid;place-items:center;font-family:ui-monospace,monospace;color:#0f766e;font-size:13px;letter-spacing:1px}.home-hero-image{width:100%;height:100%;object-fit:cover}.home-about-image{width:100%;height:100%;object-fit:cover}.hr-hero-stat{position:absolute;background:#fff;border:1px solid #e7e7e1;border-radius:18px;padding:14px 18px;box-shadow:0 12px 28px rgba(15,23,42,.06)}.hr-hero-stat b{display:block;font-family:"Syne",sans-serif;font-size:24px;color:#0d9488;line-height:1}.hr-hero-stat span{display:block;font-size:12px;color:#7c7c74;margin-top:3px}.hr-hero-stat-tl{left:-16px;top:36px}.hr-hero-stat-br{right:-16px;bottom:48px}.hr-proof{margin-top:96px;display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #e7e7e1;border-bottom:1px solid #e7e7e1}.hr-proof-cell{padding:32px 24px;text-align:center;border-right:1px solid #e7e7e1}.hr-proof-cell:last-child{border-right:0}.hr-proof-cell b{display:block;font-family:"Syne",sans-serif;font-size:42px;color:#0d9488;letter-spacing:-1.4px;line-height:1;font-weight:700}.hr-proof-cell span{display:block;color:#3d3d38;font-size:14px;margin-top:8px;max-width:32ch;margin-inline:auto}.hr-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.hr-card{background:#fff;border:1px solid #e7e7e1;border-radius:20px;padding:32px}.hr-card-num{font-family:ui-monospace,monospace;font-size:12px;color:#0d9488;letter-spacing:1.4px;margin-bottom:24px}.hr-card-body{color:#3d3d38;font-size:15px;line-height:1.6}.hr-list{list-style:none;padding:0;margin:18px 0;display:grid;gap:9px}.hr-list li{display:flex;gap:8px;color:#3d3d38;font-size:14px}.hr-list li::before{content:"✓";color:#0d9488;font-weight:900}.hr-list-2col{grid-template-columns:1fr 1fr;gap:9px 24px}.hr-card-link{display:inline-flex;color:#0d9488;font-weight:700;font-size:14px;text-decoration:none;margin-top:8px}.hr-cases{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.hr-case{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:32px}.hr-case-tag{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:24px}.hr-case-num{font-family:"Syne",sans-serif;font-size:46px;color:#5eead4;letter-spacing:-1.6px;line-height:1;font-weight:700}.hr-case-label{color:#fff;margin:14px 0 8px;font-size:14px}.hr-case p{color:rgba(255,255,255,.65);font-size:14px;margin:0 0 18px}.hr-case a{color:#5eead4;font-weight:700;font-size:14px;text-decoration:none}.hr-process{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.hr-step{background:#fff;border:1px solid #e7e7e1;border-radius:20px;padding:28px;position:relative}.hr-step-num{width:38px;height:38px;border-radius:50%;background:#ccfbf1;color:#0f766e;font-family:"Syne",sans-serif;font-weight:800;display:grid;place-items:center;margin-bottom:18px}.hr-step p{color:#3d3d38;font-size:14px;margin:0}.hr-leadbox{background:#fff;border:1px solid #e7e7e1;border-radius:28px;padding:48px;display:grid;grid-template-columns:.85fr 1.15fr 1fr;gap:42px;align-items:center;box-shadow:0 24px 60px rgba(15,23,42,.06)}.hr-leadbox-cover{display:grid;place-items:center}.hr-book{width:200px;aspect-ratio:.72;background:linear-gradient(165deg,#0f766e 0%,#0a1410 100%);border-radius:6px 14px 14px 6px;padding:24px 22px;color:#fff;display:flex;flex-direction:column;justify-content:space-between}.hr-book-tag{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:#5eead4}.hr-book-title{font-family:"Syne",sans-serif;font-size:22px;line-height:1.05;letter-spacing:-.6px;font-weight:700}.hr-book-foot{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.5)}.hr-leadbox-form{display:grid;gap:10px}.hr-leadbox-form label{font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#7c7c74;display:block}.hr-leadbox-form input[type=text],.hr-leadbox-form input[type=email]{display:block;width:100%;border:1.5px solid #e7e7e1;background:#fafaf7;border-radius:12px;padding:12px 14px;margin-top:6px;font:inherit;outline:none}.hr-consent{display:flex !important;gap:8px;align-items:flex-start;text-transform:none !important;letter-spacing:0 !important;font-size:12px !important;color:#7c7c74 !important;font-weight:400 !important;line-height:1.5;margin-top:6px}.hr-fineprint{font-size:12px;color:#7c7c74;margin:0;text-align:center}.hr-split{display:grid;grid-template-columns:.85fr 1.15fr;gap:64px;align-items:center}.hr-about-photo{position:relative;aspect-ratio:.85;border-radius:28px;overflow:hidden;background:#ccfbf1;border:1px solid #99f6e4}.hr-mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:32px 0}.hr-mini-grid>div{background:#fff;border:1px solid #e7e7e1;border-radius:16px;padding:18px}.hr-mini-grid b{display:block;font-family:"Syne",sans-serif;font-size:28px;color:#0d9488;line-height:1;font-weight:700}.hr-mini-grid span{display:block;font-size:13px;color:#7c7c74;margin-top:4px}.hr-blog-grid{display:grid;gap:18px;grid-template-columns:repeat(3,1fr)}.hr-post{background:#fff;border:1px solid #e7e7e1;border-radius:20px;overflow:hidden}.hr-thumb{height:180px;background:#e7f8f5}.hr-thumb img{width:100%;height:100%;object-fit:cover}.hr-post-body{padding:20px}.hr-post-body small{font-size:12px;color:#7c7c74}.hr-post-body h3{margin:8px 0 12px;font-family:"Syne",sans-serif;font-size:20px;line-height:1.2}.hr-post-body a{font-size:14px;color:#0d9488;font-weight:700;text-decoration:none}.hr-cta-band{background:#0a1410;color:#fff;padding:80px 0;position:relative;overflow:hidden}.hr-cta-band::before{content:"";position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,.2),transparent 65%);left:-200px;bottom:-300px;pointer-events:none}.hr-cta-inner{position:relative;display:grid;grid-template-columns:1.4fr 1fr;gap:48px;align-items:center}.hr-cta-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}@media(max-width:1060px){.hr-nav-links,.hr-nav-cta{display:none}.hr-hero-grid,.hr-split,.hr-cta-inner,.hr-leadbox{grid-template-columns:1fr}.hr-cards,.hr-cases,.hr-process,.hr-blog-grid{grid-template-columns:1fr 1fr}.hr-proof{grid-template-columns:1fr}}@media(max-width:760px){.hr-wrap{width:min(1180px,100% - 32px)}.hr-cards,.hr-cases,.hr-process,.hr-blog-grid,.hr-micro,.hr-list-2col,.hr-mini-grid{grid-template-columns:1fr}.hr-proof-cell{border-right:0;border-bottom:1px solid #e7e7e1}.hr-proof-cell:last-child{border-bottom:0}}
 </style>
-</head>
-<body <?php body_class(); ?>>
-<?php wp_body_open(); ?>
 <div class="hr-art">
-  <header class="hr-nav">
-    <div class="hr-wrap hr-nav-inner">
-      <a class="hr-logo" href="<?php echo esc_url(home_url("/")); ?>">
-        <?php if ($brand_logo_url !== "") : ?>
-          <picture>
-            <?php if ($brand_logo_webp_320_url !== "" && $brand_logo_webp_640_url !== "") : ?>
-              <source type="image/webp" srcset="<?php echo esc_url($brand_logo_webp_320_url); ?> 320w, <?php echo esc_url($brand_logo_webp_640_url); ?> 640w" sizes="(max-width: 760px) 132px, 168px" />
-            <?php endif; ?>
-            <img src="<?php echo esc_url($brand_logo_url); ?>" alt="Upsellio" width="320" height="213" decoding="async" style="height:34px;width:auto;display:block;" />
-          </picture>
-        <?php else : ?>
-          <span class="hr-logo-mark">U</span>
-          <span class="hr-logo-name">Upsellio</span>
-        <?php endif; ?>
-      </a>
-      <nav class="hr-nav-links">
-        <a href="<?php echo esc_url(home_url("/oferta/")); ?>">Oferta</a>
-        <a href="<?php echo esc_url(home_url("/marketing-google-ads/")); ?>">Google Ads</a>
-        <a href="<?php echo esc_url(home_url("/marketing-meta-ads/")); ?>">Meta Ads</a>
-        <a href="<?php echo esc_url(home_url("/tworzenie-stron-internetowych/")); ?>">Strony WWW</a>
-        <a href="<?php echo esc_url(home_url("/portfolio-marketingowe/")); ?>">Portfolio</a>
-        <a href="<?php echo esc_url(home_url("/blog/")); ?>">Blog</a>
-      </nav>
-      <div class="hr-nav-cta">
-        <a class="hr-link-phone" href="<?php echo esc_url("tel:" . $contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
-        <a class="hr-btn hr-btn-primary" href="#kontakt">Bezpłatna diagnoza</a>
-      </div>
-    </div>
-  </header>
-
   <section class="hr-hero">
     <div class="hr-wrap hr-hero-grid">
       <div class="hr-hero-copy">
         <div class="hr-eyebrow">Marketing B2B · Google Ads · Meta Ads · WWW</div>
         <h1 class="hr-h1">Reklamy klikają,<br />ale <em>nie sprzedają?</em></h1>
-        <p class="hr-lead">Pomagam firmom B2B i e-commerce poukładać Google Ads, Meta Ads, SEO i stronę w jeden system, który generuje wartościowe zapytania — nie tylko ruch i raporty.</p>
+        <p class="hr-lead">Pomagam firmom i e-commerce poukładać Google Ads, Meta Ads i stronę w jeden system, który generuje wartościowe zapytania — nie tylko ruch i raporty.</p>
         <div class="hr-actions">
           <a class="hr-btn hr-btn-primary" href="#kontakt">Sprawdź, co blokuje sprzedaż →</a>
           <a class="hr-btn hr-btn-ghost" href="#wyniki">Zobacz wyniki klientów</a>
@@ -206,9 +191,9 @@ $schema = [
       </header>
       <div class="hr-divider"></div>
       <div class="hr-cards">
-        <article class="hr-card"><div class="hr-card-num">01</div><h3 class="hr-h3">Google Ads nastawione na sprzedaż</h3><p class="hr-card-body">Search i Performance Max pod zapytania z realną intencją zakupową.</p><ul class="hr-list"><li>analiza intencji i słów</li><li>struktura kampanii pod CPL</li><li>landing pages pod konwersję</li><li>optymalizacja jakości leadów</li></ul><a class="hr-card-link" href="<?php echo esc_url(home_url("/marketing-google-ads/")); ?>">Zobacz szczegóły →</a></article>
-        <article class="hr-card"><div class="hr-card-num">02</div><h3 class="hr-h3">Meta Ads, które budują popyt</h3><p class="hr-card-body">Lejki na Facebooku i Instagramie: od pierwszego kontaktu po remarketing.</p><ul class="hr-list"><li>kreacje ToF / MoF / BoF</li><li>testy komunikatów i ofert</li><li>remarketing do zaangażowanych</li><li>kampanie sprzedażowe i leadowe</li></ul><a class="hr-card-link" href="<?php echo esc_url(home_url("/marketing-meta-ads/")); ?>">Zobacz szczegóły →</a></article>
-        <article class="hr-card"><div class="hr-card-num">03</div><h3 class="hr-h3">Strony, które zamieniają ruch w leady</h3><p class="hr-card-body">Strony firmowe i landing pages jako narzędzia sprzedażowe — nie wizytówki.</p><ul class="hr-list"><li>copywriting pod decyzję klienta</li><li>sekcje zaufania i obiekcji</li><li>SEO-ready struktura</li><li>CTA i formularze pod leady</li></ul><a class="hr-card-link" href="<?php echo esc_url(home_url("/tworzenie-stron-internetowych/")); ?>">Zobacz szczegóły →</a></article>
+        <article class="hr-card"><div class="hr-card-num">01</div><h3 class="hr-h3">Google Ads nastawione na sprzedaż</h3><p class="hr-card-body">Search i Performance Max pod zapytania z realną intencją zakupową.</p><ul class="hr-list"><li>analiza intencji i słów</li><li>struktura kampanii pod CPL</li><li>landing pages pod konwersję</li><li>optymalizacja jakości leadów</li></ul><?php if ($google_ads_url !== "") : ?><a class="hr-card-link" href="<?php echo esc_url($google_ads_url); ?>">Zobacz szczegóły →</a><?php endif; ?></article>
+        <article class="hr-card"><div class="hr-card-num">02</div><h3 class="hr-h3">Meta Ads, które budują popyt</h3><p class="hr-card-body">Lejki na Facebooku i Instagramie: od pierwszego kontaktu po remarketing.</p><ul class="hr-list"><li>kreacje ToF / MoF / BoF</li><li>testy komunikatów i ofert</li><li>remarketing do zaangażowanych</li><li>kampanie sprzedażowe i leadowe</li></ul><?php if ($meta_ads_url !== "") : ?><a class="hr-card-link" href="<?php echo esc_url($meta_ads_url); ?>">Zobacz szczegóły →</a><?php endif; ?></article>
+        <article class="hr-card"><div class="hr-card-num">03</div><h3 class="hr-h3">Strony, które zamieniają ruch w leady</h3><p class="hr-card-body">Strony firmowe i landing pages jako narzędzia sprzedażowe — nie wizytówki.</p><ul class="hr-list"><li>copywriting pod decyzję klienta</li><li>sekcje zaufania i obiekcji</li><li>SEO-ready struktura</li><li>CTA i formularze pod leady</li></ul><?php if ($websites_url !== "") : ?><a class="hr-card-link" href="<?php echo esc_url($websites_url); ?>">Zobacz szczegóły →</a><?php endif; ?></article>
       </div>
     </div>
   </section>
@@ -222,8 +207,8 @@ $schema = [
       </header>
       <div class="hr-divider hr-divider-light"></div>
       <div class="hr-cases">
-        <article class="hr-case"><div class="hr-case-tag">B2B / sprzedaż tradycyjna</div><div class="hr-case-num">1 mln zł</div><div class="hr-case-label">miesięcznego przychodu</div><p>Ułożenie procesu sprzedaży, pracy zespołu i analizy wyników w tradycyjnym kanale B2B.</p><a href="<?php echo esc_url(home_url("/portfolio-marketingowe/")); ?>">Zobacz case →</a></article>
-        <article class="hr-case"><div class="hr-case-tag">E-commerce / nowy kanał</div><div class="hr-case-num">500k zł</div><div class="hr-case-label">miesięcznie od zera</div><p>Budowa nowego kanału sprzedaży online z wyższą marżą niż sprzedaż tradycyjna.</p><a href="<?php echo esc_url(home_url("/portfolio-marketingowe/")); ?>">Zobacz case →</a></article>
+        <article class="hr-case"><div class="hr-case-tag">B2B / sprzedaż tradycyjna</div><div class="hr-case-num">1 mln zł</div><div class="hr-case-label">miesięcznego przychodu</div><p>Ułożenie procesu sprzedaży, pracy zespołu i analizy wyników w tradycyjnym kanale B2B.</p><?php if ($marketing_portfolio_url !== "") : ?><a href="<?php echo esc_url($marketing_portfolio_url); ?>">Zobacz case →</a><?php endif; ?></article>
+        <article class="hr-case"><div class="hr-case-tag">E-commerce / nowy kanał</div><div class="hr-case-num">500k zł</div><div class="hr-case-label">miesięcznie od zera</div><p>Budowa nowego kanału sprzedaży online z wyższą marżą niż sprzedaż tradycyjna.</p><?php if ($marketing_portfolio_url !== "") : ?><a href="<?php echo esc_url($marketing_portfolio_url); ?>">Zobacz case →</a><?php endif; ?></article>
         <article class="hr-case"><div class="hr-case-tag">Lead generation</div><div class="hr-case-num">−30%</div><div class="hr-case-label">spadek CPL</div><p>Najczęściej osiągany przez poprawę komunikatu, formularza, landingu i remarketingu.</p><a href="#kontakt">Chcę diagnozę →</a></article>
       </div>
     </div>
@@ -377,11 +362,4 @@ document.querySelectorAll('[data-ups-context="landing"]').forEach((f)=>{f.value=
 function ajaxLeadForm(form, onSuccess){const submit=form.querySelector('button[type="submit"]');const feedback=form.querySelector('[data-form-feedback]');const defaultText=submit?submit.textContent:'';if(submit){submit.disabled=true;submit.textContent='Wysyłanie...';}if(feedback){feedback.classList.remove('is-success','is-error');feedback.style.display='none';feedback.textContent='';}fetch(form.action,{method:form.method||'POST',body:new FormData(form),credentials:'same-origin',redirect:'follow'}).then((response)=>{if(!response.ok||(response.url&&response.url.includes('ups_lead_status=error')))throw new Error('Nie udało się wysłać formularza.');if(feedback){feedback.textContent='Dziękuję! Formularz został wysłany.';feedback.classList.add('is-success');}if(typeof onSuccess==='function')onSuccess();form.reset();}).catch((error)=>{if(feedback){feedback.textContent=error.message||'Błąd wysyłki.';feedback.classList.add('is-error');}}).finally(()=>{if(submit){submit.disabled=false;submit.textContent=defaultText;}});}
 const miniForm=document.getElementById('mini-audit-form');if(miniForm){miniForm.addEventListener('submit',(e)=>{e.preventDefault();ajaxLeadForm(miniForm,()=>{const pdf=document.getElementById('lead-magnet-pdf-url');const url=pdf?pdf.value:'';if(url){window.open(url,'_blank','noopener');}});});}
 </script>
-<?php
-echo function_exists("upsellio_render_unified_footer")
-    ? upsellio_render_unified_footer(["contact_email" => $contact_email])
-    : "";
-?>
-<?php wp_footer(); ?>
-</body>
-</html>
+<?php get_footer(); ?>
