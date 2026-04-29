@@ -1,6 +1,6 @@
 (function () {
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const reveals = document.querySelectorAll(".reveal, .lp-reveal");
+  let reveals = [];
   const topBtn = document.getElementById("scroll-top");
   const nav = document.querySelector(".nav");
   const ham = document.getElementById("hamburger");
@@ -15,18 +15,57 @@
     if (!el.classList.contains("visible")) el.classList.add("visible");
   }
 
+  function refreshRevealElements() {
+    reveals = Array.from(document.querySelectorAll(".reveal, .lp-reveal, .motion-fade"));
+  }
+
+  function initGlobalMotion() {
+    document.documentElement.classList.add("js-motion-ready");
+
+    const revealTargets = Array.from(
+      document.querySelectorAll(
+        "main section, .section, .pf-section, .pf-contact, .mc-section, .mc-contact, .definition-card, .definition-tool, .definition-contact, .ups-footer"
+      )
+    );
+    revealTargets.forEach((el, index) => {
+      if (el.classList.contains("lp-reveal") || el.classList.contains("reveal")) return;
+      el.classList.add("motion-fade");
+      el.classList.add(`d${(index % 3) + 1}`);
+    });
+
+    const hoverLiftTargets = document.querySelectorAll(
+      ".pr-card, .mp-card, .pf-rel-card, .definition-card, .ups-blog-card, .portfolio-mini-card, .ups-footer__section, .ups-footer__btn, .button, button"
+    );
+    hoverLiftTargets.forEach((el) => {
+      if (el.classList.contains("motion-hover-lift")) return;
+      el.classList.add("motion-hover-lift");
+    });
+
+    refreshRevealElements();
+  }
+
   function initRevealObserver() {
+    const revealByViewport = () => {
+      const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+      reveals.forEach((el) => {
+        if (el.classList.contains("visible")) return;
+        const rect = el.getBoundingClientRect();
+        if (rect.top < vh * 0.92) revealElement(el);
+      });
+    };
+
     if (prefersReducedMotion) {
       reveals.forEach((el) => revealElement(el));
       return;
     }
+
     if (!("IntersectionObserver" in window)) {
-      const vh = window.innerHeight;
-      reveals.forEach((el) => {
-        if (el.getBoundingClientRect().top < vh * 0.92) revealElement(el);
-      });
+      revealByViewport();
+      window.addEventListener("scroll", revealByViewport, { passive: true });
+      window.addEventListener("resize", revealByViewport);
       return;
     }
+
     const revealObserver = new IntersectionObserver(
       (entries, observer) => {
         entries.forEach((entry) => {
@@ -38,6 +77,9 @@
       { rootMargin: "0px 0px -8% 0px", threshold: 0.05 }
     );
     reveals.forEach((el) => revealObserver.observe(el));
+    revealByViewport();
+    window.addEventListener("scroll", revealByViewport, { passive: true });
+    window.addEventListener("resize", revealByViewport);
   }
 
   function initScrollUI() {
@@ -56,6 +98,7 @@
     run();
   }
 
+  initGlobalMotion();
   initRevealObserver();
   initScrollUI();
 
@@ -131,18 +174,34 @@
     });
   }
 
-  const dropdownToggle = document.querySelector(".nav-dropdown-toggle");
-  const dropdownRoot = dropdownToggle ? dropdownToggle.closest(".nav-dropdown") : null;
-  if (dropdownToggle && dropdownRoot) {
-    dropdownToggle.addEventListener("click", () => {
-      const isOpen = dropdownRoot.classList.toggle("open");
-      dropdownToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  const dropdownRoots = Array.from(document.querySelectorAll(".nav-dropdown"));
+  if (dropdownRoots.length) {
+    const closeDropdown = (root) => {
+      root.classList.remove("open");
+      const toggle = root.querySelector(".nav-dropdown-toggle");
+      if (toggle) toggle.setAttribute("aria-expanded", "false");
+    };
+    const closeAllDropdowns = () => {
+      dropdownRoots.forEach((root) => closeDropdown(root));
+    };
+
+    dropdownRoots.forEach((root) => {
+      const toggle = root.querySelector(".nav-dropdown-toggle");
+      if (!toggle) return;
+      toggle.addEventListener("click", (event) => {
+        event.preventDefault();
+        const isOpen = root.classList.contains("open");
+        closeAllDropdowns();
+        if (!isOpen) {
+          root.classList.add("open");
+          toggle.setAttribute("aria-expanded", "true");
+        }
+      });
     });
+
     document.addEventListener("click", (event) => {
-      if (!dropdownRoot.contains(event.target)) {
-        dropdownRoot.classList.remove("open");
-        dropdownToggle.setAttribute("aria-expanded", "false");
-      }
+      const clickedInside = dropdownRoots.some((root) => root.contains(event.target));
+      if (!clickedInside) closeAllDropdowns();
     });
   }
 
@@ -608,6 +667,27 @@
     if (landingInput) landingInput.value = attribution.landing;
     if (referrerInput) referrerInput.value = attribution.referrer;
   });
+
+  function initLeadPolicyNotices() {
+    const policyUrl = `${window.location.origin}/polityka-prywatnosci/`;
+    document.querySelectorAll('form[data-upsellio-lead-form="1"]').forEach((leadForm) => {
+      if (leadForm.querySelector("[data-policy-note='1']")) return;
+      const note = document.createElement("p");
+      note.setAttribute("data-policy-note", "1");
+      note.className = "form-policy-note";
+      note.innerHTML =
+        'Wysyłając formularz, zgadzasz się na przetwarzanie danych zgodnie z <a href="' +
+        policyUrl +
+        '">polityką prywatności</a>.';
+
+      const submit =
+        leadForm.querySelector("button[type='submit']") ||
+        leadForm.querySelector("input[type='submit']");
+      if (submit && submit.parentNode) submit.parentNode.insertBefore(note, submit);
+      else leadForm.appendChild(note);
+    });
+  }
+  initLeadPolicyNotices();
 
   function trackContactClick(type, target) {
     if (!window.upsellioData?.ajaxUrl || !window.upsellioData?.contactNonce) return;
