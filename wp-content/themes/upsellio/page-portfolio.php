@@ -14,6 +14,15 @@ if (function_exists("upsellio_register_template_seo_head")) {
 get_header();
 
 $portfolio_items = function_exists("upsellio_get_portfolio_list") ? upsellio_get_portfolio_list(90) : [];
+$per_page = 9;
+$paged = max(1, (int) get_query_var("paged"), (int) get_query_var("page"), isset($_GET["paged"]) ? (int) $_GET["paged"] : 1);
+$total_items = count($portfolio_items);
+$max_pages = max(1, (int) ceil($total_items / $per_page));
+if ($paged > $max_pages) {
+    $paged = $max_pages;
+}
+$offset = ($paged - 1) * $per_page;
+$portfolio_items_page = array_slice($portfolio_items, $offset, $per_page);
 $featured = null;
 $categories = [];
 
@@ -75,6 +84,10 @@ foreach ($portfolio_items as $index => $item) {
   .pr-btn-primary{background:#0d9488;color:#fff}.pr-cta{background:#0a1410;color:#fff;padding:80px 0;position:relative;overflow:hidden}
   .pr-cta::before{content:"";position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,.2),transparent 65%);right:-200px;top:-300px;pointer-events:none}
   .pr-cta-inner{position:relative;display:flex;justify-content:space-between;align-items:center;gap:32px;flex-wrap:wrap}
+  .pr-pager{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;margin-top:34px}
+  .pr-pager a,.pr-pager span{min-width:38px;height:38px;padding:0 12px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #e7e7e1;background:#fff;font-size:13px;color:#0a1410;text-decoration:none;font-weight:700}
+  .pr-pager .is-current{background:#0a1410;color:#fff;border-color:#0a1410}
+  .pr-pager .is-disabled{opacity:.45;pointer-events:none}
   @media(max-width:960px){.pr-grid{grid-template-columns:1fr 1fr}}
   @media(max-width:700px){.pr-wrap{width:min(1180px,100% - 32px)}.pr-grid{grid-template-columns:1fr}}
 </style>
@@ -96,9 +109,9 @@ foreach ($portfolio_items as $index => $item) {
 
   <section class="pr-section">
     <div class="pr-wrap">
-      <?php if (!empty($portfolio_items)) : ?>
+      <?php if (!empty($portfolio_items_page)) : ?>
         <div class="pr-grid" id="pr-grid">
-          <?php foreach ($portfolio_items as $item) : ?>
+          <?php foreach ($portfolio_items_page as $item) : ?>
             <?php
             $thumb = !empty($item["thumbnail"]) ? (string) $item["thumbnail"] : "";
             $metric = !empty($item["meta"]) ? (string) $item["meta"] : (string) ($item["type"] ?? "Case study");
@@ -125,6 +138,35 @@ foreach ($portfolio_items as $index => $item) {
             </article>
           <?php endforeach; ?>
         </div>
+        <?php if ($max_pages > 1) : ?>
+          <nav class="pr-pager" aria-label="Paginacja portfolio">
+            <?php
+            $base_url = function_exists("upsellio_get_portfolio_page_url") ? (string) upsellio_get_portfolio_page_url() : get_permalink();
+            $prev_url = $paged > 2 ? add_query_arg("paged", $paged - 1, $base_url) : $base_url;
+            $next_url = add_query_arg("paged", $paged + 1, $base_url);
+            ?>
+            <?php if ($paged > 1) : ?>
+              <a href="<?php echo esc_url($prev_url); ?>" aria-label="Poprzednia strona">‹</a>
+            <?php else : ?>
+              <span class="is-disabled" aria-hidden="true">‹</span>
+            <?php endif; ?>
+
+            <?php for ($i = 1; $i <= $max_pages; $i++) : ?>
+              <?php $page_url = $i > 1 ? add_query_arg("paged", $i, $base_url) : $base_url; ?>
+              <?php if ($i === $paged) : ?>
+                <span class="is-current"><?php echo esc_html((string) $i); ?></span>
+              <?php else : ?>
+                <a href="<?php echo esc_url($page_url); ?>"><?php echo esc_html((string) $i); ?></a>
+              <?php endif; ?>
+            <?php endfor; ?>
+
+            <?php if ($paged < $max_pages) : ?>
+              <a href="<?php echo esc_url($next_url); ?>" aria-label="Następna strona">›</a>
+            <?php else : ?>
+              <span class="is-disabled" aria-hidden="true">›</span>
+            <?php endif; ?>
+          </nav>
+        <?php endif; ?>
       <?php else : ?>
         <p>Brak projektów do wyświetlenia.</p>
       <?php endif; ?>

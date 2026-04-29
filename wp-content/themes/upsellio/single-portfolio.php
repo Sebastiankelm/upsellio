@@ -126,7 +126,7 @@ add_action("wp_head", static function () use ($post_id, $title, $schema_descript
   .pf-crumbs a{color:#7c7c74;text-decoration:none;margin-right:8px}
   .pf-crumbs span{margin-right:8px;color:#c4c4bd}
   .pf-head{padding:48px 0 64px}
-  .pf-head-grid{display:grid;grid-template-columns:1.4fr .8fr;gap:48px;align-items:start}
+  .pf-head-grid{display:grid;grid-template-columns:1fr;gap:32px;align-items:start}
   .pf-meta-row{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:32px;padding-top:24px;border-top:1px solid #e7e7e1}
   .pf-meta-row>div{display:flex;flex-direction:column;gap:2px}
   .pf-meta-row span{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#7c7c74;font-weight:700}
@@ -145,7 +145,7 @@ add_action("wp_head", static function () use ($post_id, $title, $schema_descript
   .pf-cover-img{position:relative;aspect-ratio:2.2;background:#dff8f4;border-radius:24px;overflow:hidden;border:1px solid #99f6e4}
   .pf-cover-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .pf-section{padding:0 0 96px}
-  .pf-content-grid{display:grid;grid-template-columns:1fr 280px;gap:64px;align-items:start}
+  .pf-content-grid{display:grid;grid-template-columns:1fr;gap:28px;align-items:start}
   .pf-content p{margin:0 0 18px;font-size:16px;color:#262625;line-height:1.75}
   .pf-content h2,.pf-content h3{font-family:"Syne",sans-serif;font-size:clamp(24px,2.8vw,34px);line-height:1.1;letter-spacing:-1.2px;margin:48px 0 16px}
   .pf-bullets{list-style:none;padding:0;margin:0 0 32px;display:grid;gap:12px}
@@ -163,7 +163,7 @@ add_action("wp_head", static function () use ($post_id, $title, $schema_descript
   .pf-shot-img{position:relative;aspect-ratio:1.55;background:#dff8f4}
   .pf-shot-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .pf-shot figcaption{padding:12px 16px;font-size:12.5px;color:#7c7c74;border-top:1px solid #e7e7e1}
-  .pf-tech{position:sticky;top:32px;background:#fff;border:1px solid #e7e7e1;border-radius:18px;padding:24px}
+  .pf-tech{position:static;background:#fff;border:1px solid #e7e7e1;border-radius:18px;padding:24px}
   .pf-tech ul{list-style:none;padding:0;margin:0 0 22px;display:grid;gap:8px}
   .pf-tech ul li{font-size:13.5px;color:#3d3d38;padding-left:18px;position:relative}
   .pf-tech ul li::before{content:"›";position:absolute;left:0;color:#0d9488;font-weight:900}
@@ -173,6 +173,15 @@ add_action("wp_head", static function () use ($post_id, $title, $schema_descript
   .pf-cta-inner{position:relative;display:flex;justify-content:space-between;align-items:center;gap:32px;flex-wrap:wrap}
   .pf-btn-primary{display:inline-flex;align-items:center;gap:8px;background:#0d9488;color:#fff;padding:15px 24px;border-radius:999px;font-weight:700;font-size:15px;text-decoration:none}
   .pf-related{padding:96px 0 128px}
+  .pf-contact{padding:0 0 128px}
+  .pf-contact-shell{border:1px solid #e7e7e1;border-radius:22px;background:#fff;padding:28px}
+  .pf-contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .pf-contact-shell label{display:grid;gap:6px;font-size:13px;color:#3d3d38}
+  .pf-contact-shell input,.pf-contact-shell textarea{width:100%;border:1px solid #d6d6d0;border-radius:10px;padding:10px 12px;font:inherit}
+  .pf-contact-shell textarea{min-height:120px;resize:vertical}
+  .pf-contact-consent{display:flex !important;align-items:flex-start;gap:8px;font-size:12px !important;color:#6b6b64 !important}
+  .pf-contact-consent input{margin-top:3px}
+  .pf-contact-submit{display:inline-flex;align-items:center;justify-content:center;border:0;background:#0d9488;color:#fff;padding:12px 18px;border-radius:10px;font-weight:700;cursor:pointer}
   .pf-sec-head{max-width:780px}
   .pf-rel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
   .pf-rel-card{background:#fff;border:1px solid #e7e7e1;border-radius:18px;overflow:hidden;text-decoration:none;color:inherit;transition:.2s ease}
@@ -193,6 +202,7 @@ add_action("wp_head", static function () use ($post_id, $title, $schema_descript
     .pf-wrap{width:min(1180px,100% - 24px)}
     .pf-rel-grid,.pf-shots{grid-template-columns:1fr}
     .pf-meta-row{grid-template-columns:1fr}
+    .pf-contact-grid{grid-template-columns:1fr}
   }
 </style>
 
@@ -303,22 +313,6 @@ add_action("wp_head", static function () use ($post_id, $title, $schema_descript
 
         <div><?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
 
-        <h2 class="pf-h2">Wybrane ekrany</h2>
-        <div class="pf-shots">
-          <?php foreach ([1, 2, 3, 4] as $shot_number) : ?>
-            <figure class="pf-shot">
-              <div class="pf-shot-img">
-                <?php if ($hero_cover_url !== "") : ?>
-                  <img src="<?php echo esc_url($hero_cover_url); ?>" alt="<?php echo esc_attr($title . " - ekran " . $shot_number); ?>" loading="lazy" decoding="async" width="900" height="600" />
-                <?php else : ?>
-                  <div class="pf-thumb-stripes"></div>
-                <?php endif; ?>
-              </div>
-              <figcaption><?php echo esc_html("Widok projektu " . $shot_number); ?></figcaption>
-            </figure>
-          <?php endforeach; ?>
-        </div>
-
         <?php if ($custom_html !== "" || $custom_css !== "" || $custom_js !== "") : ?>
           <div>
             <?php if ($custom_html !== "") : ?><div><?php echo $custom_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div><?php endif; ?>
@@ -397,6 +391,42 @@ add_action("wp_head", static function () use ($post_id, $title, $schema_descript
       </div>
     </section>
   <?php endif; ?>
+
+  <section class="pf-contact">
+    <div class="pf-wrap">
+      <form class="pf-contact-shell" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-upsellio-lead-form="1" data-upsellio-server-form="1">
+        <input type="hidden" name="action" value="upsellio_submit_lead" />
+        <input type="hidden" name="redirect_url" value="<?php echo esc_url(get_permalink($post_id)); ?>" />
+        <input type="hidden" name="lead_form_origin" value="single-portfolio-form" />
+        <input type="hidden" name="lead_source" value="single-portfolio-form" />
+        <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
+        <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
+        <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
+        <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
+        <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
+        <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
+        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
+        <div class="pf-eyebrow">Kontakt</div>
+        <h2 class="pf-h2" style="margin-top:0;">Porozmawiajmy o Twoim projekcie</h2>
+        <div class="pf-contact-grid">
+          <label>Imię
+            <input type="text" name="lead_name" required />
+          </label>
+          <label>E-mail
+            <input type="email" name="lead_email" required />
+          </label>
+        </div>
+        <label>Wiadomość
+          <textarea name="lead_message" placeholder="Napisz, co chcesz zbudować lub poprawić." required></textarea>
+        </label>
+        <label class="pf-contact-consent">
+          <input type="checkbox" name="lead_consent" value="1" required />
+          <span>Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</span>
+        </label>
+        <button type="submit" class="pf-contact-submit">Wyślij i umów rozmowę →</button>
+      </form>
+    </div>
+  </section>
 </main>
 <?php
 get_footer();

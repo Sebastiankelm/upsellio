@@ -123,11 +123,13 @@ foreach ($case_faq as $faq_item) {
   .mc-crumbs a{color:#7c7c74;text-decoration:none;margin-right:8px}
   .mc-crumbs span{margin-right:8px;color:#c4c4bd}
   .mc-head{padding:48px 0 64px}
-  .mc-head-grid{display:grid;grid-template-columns:1.4fr .8fr;gap:48px;align-items:start}
+  .mc-head-grid{display:grid;grid-template-columns:1fr;gap:32px;align-items:start}
   .mc-meta-row{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:32px;padding-top:24px;border-top:1px solid #e7e7e1}
   .mc-meta-row > div{display:flex;flex-direction:column;gap:2px}
   .mc-meta-row span{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#7c7c74;font-weight:700}
   .mc-meta-row strong{font-size:14.5px;font-weight:600;color:#0a1410}
+  .mc-thumb-stripes{position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(13,148,136,.12) 0 14px,transparent 14px 28px)}
+  .mc-thumb-label{position:absolute;inset:0;display:grid;place-items:center;font-family:ui-monospace,monospace;color:#0f766e;font-size:13px;letter-spacing:1px;text-align:center;padding:0 24px}
   .mc-side{background:#0a1410;color:#fff;border-radius:20px;padding:28px;position:relative;overflow:hidden}
   .mc-side::before{content:"";position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,.2),transparent 65%);right:-80px;top:-80px;pointer-events:none}
   .mc-side .mc-eyebrow{color:#5eead4;position:relative}
@@ -136,6 +138,9 @@ foreach ($case_faq as $faq_item) {
   .mc-results > div{display:flex;flex-direction:column;gap:2px}
   .mc-results strong{font-family:"Syne",sans-serif;font-size:30px;color:#5eead4;letter-spacing:-1px;font-weight:700}
   .mc-results span{font-size:12.5px;color:rgba(255,255,255,.7)}
+  .mc-cover{padding:0 0 96px}
+  .mc-cover-img{position:relative;aspect-ratio:2.2;background:#dff8f4;border-radius:24px;overflow:hidden;border:1px solid #99f6e4}
+  .mc-cover-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .mc-section{padding:32px 0 96px}
   .mc-block{display:grid;grid-template-columns:80px 1fr;gap:32px;padding:32px 0;border-top:1px solid #e7e7e1}
   .mc-block:first-child{border-top:0;padding-top:0}
@@ -170,6 +175,15 @@ foreach ($case_faq as $faq_item) {
   .mc-cta-inner{position:relative;display:flex;justify-content:space-between;align-items:center;gap:32px;flex-wrap:wrap}
   .mc-btn-primary{display:inline-flex;align-items:center;gap:8px;background:#0a1410;color:#fff;padding:15px 24px;border-radius:999px;font-weight:700;font-size:15px;text-decoration:none}
   .mc-custom{margin-top:24px;padding:16px;border:1px solid #dce7e1;border-radius:14px;background:#f8fcfa}
+  .mc-contact{padding:0 0 128px}
+  .mc-contact-shell{border:1px solid #e7e7e1;border-radius:22px;background:#fff;padding:28px}
+  .mc-contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .mc-contact-shell label{display:grid;gap:6px;font-size:13px;color:#3d3d38}
+  .mc-contact-shell input,.mc-contact-shell textarea{width:100%;border:1px solid #d6d6d0;border-radius:10px;padding:10px 12px;font:inherit}
+  .mc-contact-shell textarea{min-height:120px;resize:vertical}
+  .mc-contact-consent{display:flex !important;align-items:flex-start;gap:8px;font-size:12px !important;color:#6b6b64 !important}
+  .mc-contact-consent input{margin-top:3px}
+  .mc-contact-submit{display:inline-flex;align-items:center;justify-content:center;border:0;background:#0d9488;color:#fff;padding:12px 18px;border-radius:10px;font-weight:700;cursor:pointer}
   @media(max-width:980px){
     .mc-wrap{width:min(1180px,100% - 40px)}
     .mc-head-grid{grid-template-columns:1fr}
@@ -181,6 +195,7 @@ foreach ($case_faq as $faq_item) {
     .mc-meta-row{grid-template-columns:1fr}
     .mc-results{grid-template-columns:1fr}
     .mc-results-grid{grid-template-columns:1fr}
+    .mc-contact-grid{grid-template-columns:1fr}
   }
 </style>
 
@@ -204,6 +219,9 @@ $bullet_items = !empty($tags) ? array_slice($tags, 0, 5) : [
 ?>
 
 <main class="mc-art">
+  <?php
+  $hero_cover_url = $image !== "" ? $image : (has_post_thumbnail($post_id) ? (string) get_the_post_thumbnail_url($post_id, "large") : "");
+  ?>
   <nav class="mc-crumbs">
     <div class="mc-wrap">
       <a href="<?php echo esc_url(home_url("/")); ?>">Strona główna</a>
@@ -253,6 +271,19 @@ $bullet_items = !empty($tags) ? array_slice($tags, 0, 5) : [
       </aside>
     </div>
   </header>
+
+  <section class="mc-cover">
+    <div class="mc-wrap">
+      <div class="mc-cover-img">
+        <?php if ($hero_cover_url !== "") : ?>
+          <img src="<?php echo esc_url($hero_cover_url); ?>" alt="<?php echo esc_attr($title); ?>" loading="lazy" decoding="async" width="1400" height="900" />
+        <?php else : ?>
+          <div class="mc-thumb-stripes"></div>
+          <div class="mc-thumb-label">[ desktop mockup — case marketingowy ]</div>
+        <?php endif; ?>
+      </div>
+    </div>
+  </section>
 
   <section class="mc-section">
     <div class="mc-wrap">
@@ -392,6 +423,42 @@ $bullet_items = !empty($tags) ? array_slice($tags, 0, 5) : [
         <h2 class="mc-h2 mc-h2-light">Zobaczmy, co da się poprawić u Ciebie.</h2>
       </div>
       <a class="mc-btn-primary" href="<?php echo esc_url(home_url("/#kontakt")); ?>">Bezpłatny audyt konta →</a>
+    </div>
+  </section>
+
+  <section class="mc-contact">
+    <div class="mc-wrap">
+      <form class="mc-contact-shell" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-upsellio-lead-form="1" data-upsellio-server-form="1">
+        <input type="hidden" name="action" value="upsellio_submit_lead" />
+        <input type="hidden" name="redirect_url" value="<?php echo esc_url(get_permalink($post_id)); ?>" />
+        <input type="hidden" name="lead_form_origin" value="single-marketing-portfolio-form" />
+        <input type="hidden" name="lead_source" value="single-marketing-portfolio-form" />
+        <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
+        <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
+        <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
+        <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
+        <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
+        <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
+        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
+        <div class="mc-eyebrow">Kontakt</div>
+        <h2 class="mc-h2" style="max-width:none;">Chcesz podobny wynik? Napisz.</h2>
+        <div class="mc-contact-grid">
+          <label>Imię
+            <input type="text" name="lead_name" required />
+          </label>
+          <label>E-mail
+            <input type="email" name="lead_email" required />
+          </label>
+        </div>
+        <label>Wiadomość
+          <textarea name="lead_message" placeholder="Napisz, jaki wynik chcesz osiągnąć." required></textarea>
+        </label>
+        <label class="mc-contact-consent">
+          <input type="checkbox" name="lead_consent" value="1" required />
+          <span>Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</span>
+        </label>
+        <button type="submit" class="mc-contact-submit">Wyślij i umów rozmowę →</button>
+      </form>
     </div>
   </section>
 </main>
