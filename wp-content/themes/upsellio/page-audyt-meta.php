@@ -3,10 +3,27 @@ if (!defined("ABSPATH")) {
     exit;
 }
 $primary_navigation_links = function_exists("upsellio_get_primary_navigation_links") ? upsellio_get_primary_navigation_links() : [];
-$brand_logo_assets = function_exists("upsellio_get_generated_logo_assets") ? upsellio_get_generated_logo_assets() : [];
+$brand_logo_assets = function_exists("upsellio_get_brand_logo_assets") ? upsellio_get_brand_logo_assets() : [];
 $brand_logo_url = (string) ($brand_logo_assets["png"] ?? "");
 $brand_logo_webp_320_url = (string) ($brand_logo_assets["webp_320"] ?? "");
 $brand_logo_webp_640_url = (string) ($brand_logo_assets["webp_640"] ?? "");
+$primary_navigation_top = [];
+$primary_navigation_children = [];
+foreach ((array) $primary_navigation_links as $nav_link) {
+    $link_id = (int) ($nav_link["id"] ?? 0);
+    $parent_id = (int) ($nav_link["parent"] ?? 0);
+    if ($parent_id > 0) {
+        if (!isset($primary_navigation_children[$parent_id])) {
+            $primary_navigation_children[$parent_id] = [];
+        }
+        $primary_navigation_children[$parent_id][] = $nav_link;
+        continue;
+    }
+    if ($link_id > 0 && !isset($primary_navigation_children[$link_id])) {
+        $primary_navigation_children[$link_id] = [];
+    }
+    $primary_navigation_top[] = $nav_link;
+}
 if (function_exists("upsellio_register_template_seo_head")) {
     upsellio_register_template_seo_head("audyt_meta");
 }
@@ -921,8 +938,24 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
       </a>
 
       <ul class="nav-links">
-        <?php foreach ($primary_navigation_links as $nav_link) : ?>
-          <li><a href="<?php echo esc_url((string) $nav_link["url"]); ?>"<?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>><?php echo esc_html((string) $nav_link["title"]); ?></a></li>
+        <?php foreach ($primary_navigation_top as $nav_link) : ?>
+          <?php
+          $nav_id = (int) ($nav_link["id"] ?? 0);
+          $nav_children = ($nav_id > 0 && isset($primary_navigation_children[$nav_id])) ? (array) $primary_navigation_children[$nav_id] : [];
+          ?>
+          <?php if (!empty($nav_children)) : ?>
+            <li class="nav-dropdown">
+              <a href="<?php echo esc_url((string) $nav_link["url"]); ?>" class="nav-dropdown-parent"<?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>><?php echo esc_html((string) $nav_link["title"]); ?></a>
+              <button type="button" class="nav-dropdown-toggle" aria-expanded="false" aria-label="<?php echo esc_attr("Rozwiń podmenu: " . (string) $nav_link["title"]); ?>">▾</button>
+              <div class="nav-dropdown-menu">
+                <?php foreach ($nav_children as $nav_child) : ?>
+                  <a href="<?php echo esc_url((string) ($nav_child["url"] ?? "")); ?>"<?php echo ((string) ($nav_child["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>><?php echo esc_html((string) ($nav_child["title"] ?? "")); ?></a>
+                <?php endforeach; ?>
+              </div>
+            </li>
+          <?php else : ?>
+            <li><a href="<?php echo esc_url((string) $nav_link["url"]); ?>"<?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>><?php echo esc_html((string) $nav_link["title"]); ?></a></li>
+          <?php endif; ?>
         <?php endforeach; ?>
       </ul>
 
@@ -937,8 +970,17 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
 
     <div class="mobile-menu" id="mobile-menu">
       <div class="wrap">
-        <?php foreach ($primary_navigation_links as $nav_link) : ?>
+        <?php foreach ($primary_navigation_top as $nav_link) : ?>
           <a href="<?php echo esc_url((string) $nav_link["url"]); ?>"<?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>><?php echo esc_html((string) $nav_link["title"]); ?></a>
+          <?php
+          $mobile_nav_id = (int) ($nav_link["id"] ?? 0);
+          $mobile_children = ($mobile_nav_id > 0 && isset($primary_navigation_children[$mobile_nav_id])) ? (array) $primary_navigation_children[$mobile_nav_id] : [];
+          ?>
+          <?php foreach ($mobile_children as $mobile_child) : ?>
+            <a class="mobile-sub-link" href="<?php echo esc_url((string) ($mobile_child["url"] ?? "")); ?>"<?php echo ((string) ($mobile_child["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>>
+              <?php echo esc_html((string) ($mobile_child["title"] ?? "")); ?>
+            </a>
+          <?php endforeach; ?>
         <?php endforeach; ?>
         <a href="#formularz">Darmowy audyt →</a>
       </div>

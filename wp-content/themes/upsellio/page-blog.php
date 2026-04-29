@@ -10,7 +10,7 @@ if (!defined("ABSPATH")) {
 
 $blog_index_url = function_exists("upsellio_get_blog_index_url") ? upsellio_get_blog_index_url() : get_permalink();
 $selected_category = isset($_GET["category"]) ? sanitize_title(wp_unslash($_GET["category"])) : "";
-$paged = max(1, (int) get_query_var("paged"), (int) get_query_var("page"));
+$paged = max(1, (int) get_query_var("paged"), (int) get_query_var("page"), isset($_GET["paged"]) ? (int) $_GET["paged"] : 1);
 
 $query_args = [
     "post_type" => "post",
@@ -70,10 +70,10 @@ get_header();
   .bl-card p{margin:0 0 18px;font-size:14px;color:#3d3d38;line-height:1.6;flex:1}
   .bl-card-foot{display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid #e7e7e1;font-size:12.5px;color:#7c7c74}
   .bl-card-foot a{color:#0d9488;font-weight:700;text-decoration:none;font-size:13px}
-  .bl-pager{display:flex;justify-content:space-between;align-items:center;margin-top:48px;padding-top:32px;border-top:1px solid #e7e7e1;gap:12px;flex-wrap:wrap}
-  .bl-pager a{padding:12px 22px;border-radius:999px;border:1px solid #e7e7e1;background:#fff;font-size:13.5px;font-weight:700;color:#0a1410;text-decoration:none}
-  .bl-pager a.is-primary{background:#0a1410;color:#fff;border-color:#0a1410}
-  .bl-pager span{font-size:13px;color:#7c7c74}
+  .bl-pager{display:flex;justify-content:center;align-items:center;margin-top:48px;padding-top:32px;border-top:1px solid #e7e7e1;gap:8px;flex-wrap:wrap}
+  .bl-pager a,.bl-pager span{min-width:38px;height:38px;padding:0 12px;border-radius:999px;border:1px solid #e7e7e1;background:#fff;font-size:13px;font-weight:700;color:#0a1410;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+  .bl-pager .is-current{background:#0a1410;color:#fff;border-color:#0a1410}
+  .bl-pager .is-disabled{opacity:.45;pointer-events:none}
   .bl-newsletter{background:#0a1410;color:#fff;padding:80px 0;position:relative;overflow:hidden}
   .bl-newsletter::before{content:"";position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,.2),transparent 65%);right:-200px;top:-300px;pointer-events:none}
   .bl-newsletter-inner{position:relative;display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
@@ -121,7 +121,6 @@ get_header();
               <img src="<?php echo esc_url($featured_img); ?>" alt="<?php echo esc_attr(get_the_title($featured_id)); ?>" loading="lazy" decoding="async" />
             <?php else : ?>
               <div class="bl-thumb-stripes"></div>
-              <div class="bl-thumb-label">[ artwork ]</div>
             <?php endif; ?>
           </div>
           <div class="bl-feat-body">
@@ -177,17 +176,38 @@ get_header();
         <?php endforeach; ?>
       </div>
 
-      <div class="bl-pager">
-        <?php if ($paged > 1) : ?>
-          <a href="<?php echo esc_url(add_query_arg(array_filter(["paged" => $paged - 1, "category" => $selected_category]), $blog_index_url)); ?>">‹ Poprzednia</a>
-        <?php else : ?>
-          <span></span>
-        <?php endif; ?>
-        <span>Strona <?php echo esc_html((string) $paged); ?> z <?php echo esc_html((string) max(1, (int) $blog_query->max_num_pages)); ?></span>
-        <?php if ($paged < (int) $blog_query->max_num_pages) : ?>
-          <a class="is-primary" href="<?php echo esc_url(add_query_arg(array_filter(["paged" => $paged + 1, "category" => $selected_category]), $blog_index_url)); ?>">Następna ›</a>
-        <?php endif; ?>
-      </div>
+      <?php $blog_max_pages = max(1, (int) $blog_query->max_num_pages); ?>
+      <?php if ($blog_max_pages > 1) : ?>
+        <nav class="bl-pager" aria-label="Paginacja bloga">
+          <?php
+          $prev_params = array_filter(["paged" => $paged - 1, "category" => $selected_category]);
+          $next_params = array_filter(["paged" => $paged + 1, "category" => $selected_category]);
+          ?>
+          <?php if ($paged > 1) : ?>
+            <a href="<?php echo esc_url(add_query_arg($prev_params, $blog_index_url)); ?>" aria-label="Poprzednia strona">‹</a>
+          <?php else : ?>
+            <span class="is-disabled" aria-hidden="true">‹</span>
+          <?php endif; ?>
+
+          <?php for ($i = 1; $i <= $blog_max_pages; $i++) : ?>
+            <?php
+            $page_params = array_filter(["paged" => $i > 1 ? $i : null, "category" => $selected_category]);
+            $page_url = add_query_arg($page_params, $blog_index_url);
+            ?>
+            <?php if ($i === $paged) : ?>
+              <span class="is-current"><?php echo esc_html((string) $i); ?></span>
+            <?php else : ?>
+              <a href="<?php echo esc_url($page_url); ?>"><?php echo esc_html((string) $i); ?></a>
+            <?php endif; ?>
+          <?php endfor; ?>
+
+          <?php if ($paged < $blog_max_pages) : ?>
+            <a href="<?php echo esc_url(add_query_arg($next_params, $blog_index_url)); ?>" aria-label="Następna strona">›</a>
+          <?php else : ?>
+            <span class="is-disabled" aria-hidden="true">›</span>
+          <?php endif; ?>
+        </nav>
+      <?php endif; ?>
     </div>
   </section>
 

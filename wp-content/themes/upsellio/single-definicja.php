@@ -273,7 +273,7 @@ while (have_posts()) :
       .definition-inline-cta strong{display:block;color:#0d4637;font-size:15px;line-height:1.5;margin-bottom:8px}
       .definition-inline-links{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:10px}
       .definition-inline-links a{font-size:12px;color:#145f49}
-      .definition-inline-btn{display:inline-flex;align-items:center;justify-content:center;background:#0d9488;color:#fff;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700}
+      .definition-inline-btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;background:#0d9488;color:#fff!important;padding:8px 14px;border-radius:999px;font-size:12px;line-height:1.2;font-weight:700;white-space:nowrap}
       .definition-tool{margin:26px 0 0;padding:20px;border:1px solid #e6e6e1;border-radius:14px;background:#fff}
       .definition-tool h2{font-size:28px;margin:0 0 8px}
       .definition-tool p{margin:0 0 12px;color:#334155}
@@ -319,7 +319,7 @@ while (have_posts()) :
       .definition-faq{margin-top:28px;padding-top:24px;border-top:1px solid #e6e6e1}
       .definition-faq-item + .definition-faq-item{margin-top:14px}
       @media(min-width:781px){.definition-contact-row{grid-template-columns:1fr 1fr}.definition-link-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-      @media(min-width:981px){.definition-wrap{width:min(1140px,calc(100% - 40px))}.definition-main{grid-template-columns:minmax(0,1fr) 320px}.definition-side{position:sticky}}
+      @media(min-width:981px){.definition-wrap{width:min(1140px,calc(100% - 40px))}.definition-main{grid-template-columns:minmax(0,1fr) 320px}.definition-side{position:sticky;top:120px;align-self:start}}
     </style>
 
     <div class="definition-progress" id="definition-progress" aria-hidden="true"></div>
