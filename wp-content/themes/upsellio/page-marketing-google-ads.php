@@ -14,7 +14,7 @@ add_filter("pre_get_document_title", static function ($title) {
 add_action("wp_head", static function () {
     if (!is_page_template("page-marketing-google-ads.php")) return;
 
-    $url = home_url("/marketing-google-ads/");
+    $url = function_exists("upsellio_get_google_ads_page_url") ? (string) upsellio_get_google_ads_page_url() : "";
     echo '<meta name="description" content="Prowadzenie kampanii Google Ads dla firm: Search, Performance Max, słowa kluczowe z intencją zakupową, landing pages i optymalizacja CPL.">' . "\n";
     echo '<meta property="og:title" content="Google Ads dla firm | Kampanie Search i PMax | Upsellio">' . "\n";
     echo '<meta property="og:description" content="Kampanie Google Ads dla firm: Search, Performance Max, słowa kluczowe z intencją zakupową, landing pages i optymalizacja kosztu leada.">' . "\n";
@@ -38,6 +38,10 @@ $contact_phone = function_exists("upsellio_get_contact_phone")
 $contact_email = trim((string) ($front_page_sections["contact_email"] ?? "kontakt@upsellio.pl"));
 $contact_email_href = function_exists("upsellio_get_mailto_href") ? upsellio_get_mailto_href($contact_email) : ("mailto:" . $contact_email);
 $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address($contact_email) : $contact_email;
+$cities_url = function_exists("upsellio_get_cities_archive_url") ? (string) upsellio_get_cities_archive_url() : "";
+$offer_url = function_exists("upsellio_get_offer_page_url") ? (string) upsellio_get_offer_page_url() : "";
+$meta_ads_url = function_exists("upsellio_get_meta_ads_page_url") ? (string) upsellio_get_meta_ads_page_url() : "";
+$websites_url = function_exists("upsellio_get_websites_page_url") ? (string) upsellio_get_websites_page_url() : "";
 
 $faq_items = [
     [
@@ -335,8 +339,8 @@ $faq_items = [
         <p>Jeśli działasz lokalnie, kampania powinna uwzględniać promień działania, frazy z miastami, wykluczenia lokalizacji i osobne komunikaty dla klientów z konkretnego regionu. Jeśli sprzedajesz ogólnopolsko, lokalne frazy nadal mogą wspierać SEO i obniżać koszt pozyskania ruchu z wysoką intencją.</p>
       </div>
       <div class="gads-btn-row">
-        <a href="<?php echo esc_url(home_url("/miasta/")); ?>" class="gads-btn gads-btn-ghost">Zobacz podstrony miast</a>
-        <a href="<?php echo esc_url(home_url("/oferta/")); ?>" class="gads-btn gads-btn-secondary">Zobacz pełną ofertę</a>
+        <?php if ($cities_url !== "") : ?><a href="<?php echo esc_url($cities_url); ?>" class="gads-btn gads-btn-ghost">Zobacz podstrony miast</a><?php endif; ?>
+        <?php if ($offer_url !== "") : ?><a href="<?php echo esc_url($offer_url); ?>" class="gads-btn gads-btn-secondary">Zobacz pełną ofertę</a><?php endif; ?>
       </div>
     </div>
   </section>
@@ -502,7 +506,7 @@ $faq_items = [
       <h2 class="gads-h2">Google Ads ma sens, gdy klienci już szukają Twojej usługi lub produktu w wyszukiwarce.</h2>
       <div class="gads-copy">
         <p>Jeżeli ktoś wpisuje w Google „outsourcing IT Kraków”, „producent mebli na wymiar Gdańsk” czy „prawnik od umów handlowych Wrocław”, to jest klient z intencją zakupową. Google Ads pozwala być widocznym dokładnie w tym momencie.</p>
-        <p>Ten kanał działa szczególnie dobrze dla firm B2B, usług lokalnych i e-commerce, gdy istnieje aktywny popyt. Jeśli rynek trzeba najpierw edukować, lepszym pierwszym krokiem może być <a href="<?php echo esc_url(home_url("/marketing-meta-ads/")); ?>">Meta Ads dla firm</a>.</p>
+        <p>Ten kanał działa szczególnie dobrze dla firm B2B, usług lokalnych i e-commerce, gdy istnieje aktywny popyt. Jeśli rynek trzeba najpierw edukować, lepszym pierwszym krokiem może być <?php if ($meta_ads_url !== "") : ?><a href="<?php echo esc_url($meta_ads_url); ?>">Meta Ads dla firm</a><?php else : ?>Meta Ads dla firm<?php endif; ?>.</p>
       </div>
 
       <div class="gads-fit-grid">
@@ -659,9 +663,9 @@ $faq_items = [
           <a href="tel:<?php echo esc_attr(preg_replace('/\s+/', '', $contact_phone)); ?>" class="gads-btn gads-btn-secondary">Zadzwoń: <?php echo esc_html($contact_phone); ?></a>
         </div>
         <div class="gads-internal-links" aria-label="Powiązane usługi">
-          <a href="<?php echo esc_url(home_url("/oferta/")); ?>">Pełna oferta marketingowa</a>
-          <a href="<?php echo esc_url(home_url("/marketing-meta-ads/")); ?>">Meta Ads dla firm</a>
-          <a href="<?php echo esc_url(home_url("/tworzenie-stron-internetowych/")); ?>">Tworzenie stron pod konwersję</a>
+          <?php if ($offer_url !== "") : ?><a href="<?php echo esc_url($offer_url); ?>">Pełna oferta marketingowa</a><?php endif; ?>
+          <?php if ($meta_ads_url !== "") : ?><a href="<?php echo esc_url($meta_ads_url); ?>">Meta Ads dla firm</a><?php endif; ?>
+          <?php if ($websites_url !== "") : ?><a href="<?php echo esc_url($websites_url); ?>">Tworzenie stron pod konwersję</a><?php endif; ?>
           <a href="#faq">Pytania o Google Ads</a>
         </div>
       </div>
@@ -695,8 +699,8 @@ echo wp_json_encode([
     "@type" => "BreadcrumbList",
     "itemListElement" => [
         ["@type" => "ListItem", "position" => 1, "name" => "Strona główna", "item" => home_url("/")],
-        ["@type" => "ListItem", "position" => 2, "name" => "Oferta", "item" => home_url("/oferta/")],
-        ["@type" => "ListItem", "position" => 3, "name" => "Google Ads", "item" => home_url("/marketing-google-ads/")],
+        ["@type" => "ListItem", "position" => 2, "name" => "Oferta", "item" => $offer_url],
+        ["@type" => "ListItem", "position" => 3, "name" => "Google Ads", "item" => $url],
     ],
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
 ?>

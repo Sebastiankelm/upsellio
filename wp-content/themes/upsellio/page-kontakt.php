@@ -191,14 +191,14 @@ echo wp_json_encode([
 
         <div class="ct-channels">
           <a href="<?php echo esc_url($contact_email_href); ?>" class="ct-ch">
-            <i>✉</i>
+            <i>@</i>
             <div>
               <strong><?php echo esc_html($contact_email_display); ?></strong>
               <span>Najszybsza droga kontaktu</span>
             </div>
           </a>
           <a href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>" class="ct-ch">
-            <i>☎</i>
+            <i>T</i>
             <div>
               <strong><?php echo esc_html($contact_phone); ?></strong>
               <span>pon-pt 9:00-17:00</span>
@@ -268,13 +268,6 @@ echo wp_json_encode([
               <option value="<?php echo esc_attr((string) $service_option); ?>"><?php echo esc_html((string) $service_option); ?></option>
             <?php endforeach; ?>
           </select>
-        </label>
-        <label>Co chcesz poprawić?
-          <div class="ct-chips">
-            <?php foreach ($contact_service_options as $option_index => $service_option) : ?>
-              <span class="ct-chip<?php echo $option_index === 0 ? " is-active" : ""; ?>"><?php echo esc_html((string) $service_option); ?></span>
-            <?php endforeach; ?>
-          </div>
         </label>
         <label>Wiadomość
           <textarea name="lead_message" placeholder="Krótko opisz sytuację: co działa, co nie działa, jaki jest cel." required></textarea>

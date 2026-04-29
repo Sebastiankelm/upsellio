@@ -14,7 +14,7 @@ add_filter("pre_get_document_title", static function ($title) {
 add_action("wp_head", static function () {
     if (!is_page_template("page-marketing-meta-ads.php")) return;
 
-    $url = home_url("/marketing-meta-ads/");
+    $url = function_exists("upsellio_get_meta_ads_page_url") ? (string) upsellio_get_meta_ads_page_url() : "";
     echo '<meta name="description" content="Kampanie Meta Ads dla firm: Facebook Ads i Instagram Ads nastawione na leady, sprzedaż i remarketing. Strategia, lejek, kreacje i optymalizacja.">' . "\n";
     echo '<meta property="og:title" content="Meta Ads dla firm | Facebook i Instagram Ads | Upsellio">' . "\n";
     echo '<meta property="og:description" content="Kampanie Facebook Ads i Instagram Ads nastawione na leady, sprzedaż i remarketing. Strategia, kreacje, testy i optymalizacja.">' . "\n";
@@ -40,6 +40,9 @@ $contact_phone = function_exists("upsellio_get_contact_phone")
 $contact_email = trim((string) ($front_page_sections["contact_email"] ?? "kontakt@upsellio.pl"));
 $contact_email_href = function_exists("upsellio_get_mailto_href") ? upsellio_get_mailto_href($contact_email) : ("mailto:" . $contact_email);
 $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address($contact_email) : $contact_email;
+$offer_url = function_exists("upsellio_get_offer_page_url") ? (string) upsellio_get_offer_page_url() : "";
+$google_ads_url = function_exists("upsellio_get_google_ads_page_url") ? (string) upsellio_get_google_ads_page_url() : "";
+$websites_url = function_exists("upsellio_get_websites_page_url") ? (string) upsellio_get_websites_page_url() : "";
 
 $faq_items = [
     [
@@ -663,9 +666,9 @@ $faq_items = [
           <a href="tel:<?php echo esc_attr(preg_replace('/\s+/', '', $contact_phone)); ?>" class="meta-btn meta-btn-secondary">Zadzwoń: <?php echo esc_html($contact_phone); ?></a>
         </div>
         <div class="meta-internal-links" aria-label="Powiązane usługi">
-          <a href="<?php echo esc_url(home_url("/oferta/")); ?>">Pełna oferta marketingowa</a>
-          <a href="<?php echo esc_url(home_url("/marketing-google-ads/")); ?>">Kampanie Google Ads dla firm</a>
-          <a href="<?php echo esc_url(home_url("/tworzenie-stron-internetowych/")); ?>">Tworzenie stron pod konwersję</a>
+          <?php if ($offer_url !== "") : ?><a href="<?php echo esc_url($offer_url); ?>">Pełna oferta marketingowa</a><?php endif; ?>
+          <?php if ($google_ads_url !== "") : ?><a href="<?php echo esc_url($google_ads_url); ?>">Kampanie Google Ads dla firm</a><?php endif; ?>
+          <?php if ($websites_url !== "") : ?><a href="<?php echo esc_url($websites_url); ?>">Tworzenie stron pod konwersję</a><?php endif; ?>
         </div>
       </div>
     </div>

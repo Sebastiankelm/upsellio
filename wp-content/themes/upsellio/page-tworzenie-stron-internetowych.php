@@ -14,7 +14,7 @@ add_filter("pre_get_document_title", static function ($title) {
 add_action("wp_head", static function () {
     if (!is_page_template("page-tworzenie-stron-internetowych.php")) return;
 
-    $url = home_url("/tworzenie-stron-internetowych/");
+    $url = function_exists("upsellio_get_websites_page_url") ? (string) upsellio_get_websites_page_url() : "";
     echo '<meta name="description" content="Tworzenie stron internetowych dla firm B2B i usługowych. Strony i landing pages pod konwersję, SEO i kampanie reklamowe. Bezpłatna analiza.">' . "\n";
     echo '<meta property="og:title" content="Tworzenie stron internetowych dla firm | Upsellio">' . "\n";
     echo '<meta property="og:description" content="Strony internetowe i landing pages pod konwersję, SEO oraz kampanie reklamowe dla firm B2B, usługowych i e-commerce.">' . "\n";
@@ -38,6 +38,9 @@ $contact_phone = function_exists("upsellio_get_contact_phone")
 $contact_email = trim((string) ($front_page_sections["contact_email"] ?? "kontakt@upsellio.pl"));
 $contact_email_href = function_exists("upsellio_get_mailto_href") ? upsellio_get_mailto_href($contact_email) : ("mailto:" . $contact_email);
 $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address($contact_email) : $contact_email;
+$offer_url = function_exists("upsellio_get_offer_page_url") ? (string) upsellio_get_offer_page_url() : "";
+$google_ads_url = function_exists("upsellio_get_google_ads_page_url") ? (string) upsellio_get_google_ads_page_url() : "";
+$meta_ads_url = function_exists("upsellio_get_meta_ads_page_url") ? (string) upsellio_get_meta_ads_page_url() : "";
 
 $faq_items = [
     [
@@ -528,7 +531,7 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
           </svg>
           <h3 class="web-h3">Landing page: jeden cel, mniej rozproszeń, szybszy test komunikatu.</h3>
           <p>Landing page jest zaprojektowany pod jeden konkretny cel: formularz, konsultację, wycenę, zapis lub zakup. Nie rozprasza nawigacją, tylko prowadzi użytkownika przez problem, rozwiązanie, dowody i CTA.</p>
-          <p>To najlepszy wybór dla kampanii <a href="<?php echo esc_url(home_url("/marketing-google-ads/")); ?>">Google Ads</a> i <a href="<?php echo esc_url(home_url("/marketing-meta-ads/")); ?>">Meta Ads</a>, promocji pojedynczej usługi oraz testowania komunikatów przed budową pełnej strony.</p>
+          <p>To najlepszy wybór dla kampanii <?php if ($google_ads_url !== "") : ?><a href="<?php echo esc_url($google_ads_url); ?>">Google Ads</a><?php else : ?>Google Ads<?php endif; ?> i <?php if ($meta_ads_url !== "") : ?><a href="<?php echo esc_url($meta_ads_url); ?>">Meta Ads</a><?php else : ?>Meta Ads<?php endif; ?>, promocji pojedynczej usługi oraz testowania komunikatów przed budową pełnej strony.</p>
         </div>
         <div class="web-type-stack">
           <div class="web-type-card">
@@ -699,9 +702,9 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
           <a href="tel:<?php echo esc_attr(preg_replace('/\s+/', '', $contact_phone)); ?>" class="web-btn web-btn-secondary">Zadzwoń: <?php echo esc_html($contact_phone); ?></a>
         </div>
         <div class="web-internal-links" aria-label="Powiązane usługi">
-          <a href="<?php echo esc_url(home_url("/oferta/")); ?>">Pełna oferta marketingowa</a>
-          <a href="<?php echo esc_url(home_url("/marketing-google-ads/")); ?>">Google Ads dla firm</a>
-          <a href="<?php echo esc_url(home_url("/marketing-meta-ads/")); ?>">Meta Ads dla firm</a>
+          <?php if ($offer_url !== "") : ?><a href="<?php echo esc_url($offer_url); ?>">Pełna oferta marketingowa</a><?php endif; ?>
+          <?php if ($google_ads_url !== "") : ?><a href="<?php echo esc_url($google_ads_url); ?>">Google Ads dla firm</a><?php endif; ?>
+          <?php if ($meta_ads_url !== "") : ?><a href="<?php echo esc_url($meta_ads_url); ?>">Meta Ads dla firm</a><?php endif; ?>
           <a href="#faq">Pytania o tworzenie stron</a>
         </div>
       </div>
@@ -735,8 +738,8 @@ echo wp_json_encode([
     "@type" => "BreadcrumbList",
     "itemListElement" => [
         ["@type" => "ListItem", "position" => 1, "name" => "Strona główna", "item" => home_url("/")],
-        ["@type" => "ListItem", "position" => 2, "name" => "Oferta", "item" => home_url("/oferta/")],
-        ["@type" => "ListItem", "position" => 3, "name" => "Tworzenie stron internetowych", "item" => home_url("/tworzenie-stron-internetowych/")],
+        ["@type" => "ListItem", "position" => 2, "name" => "Oferta", "item" => $offer_url],
+        ["@type" => "ListItem", "position" => 3, "name" => "Tworzenie stron internetowych", "item" => $url],
     ],
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
 ?>
@@ -747,7 +750,7 @@ echo wp_json_encode([
     "@context" => "https://schema.org",
     "@type" => "ProfessionalService",
     "name" => "Upsellio - tworzenie stron internetowych",
-    "url" => home_url("/tworzenie-stron-internetowych/"),
+    "url" => $url,
     "email" => $contact_email,
     "telephone" => $contact_phone,
     "description" => "Tworzenie stron internetowych, landing pages i optymalizacja konwersji dla firm B2B, usługowych i e-commerce.",

@@ -19,8 +19,11 @@ add_action("wp_head", static function () {
     echo '<meta property="og:title" content="Google Ads, Meta Ads i strony WWW dla firm | Upsellio">' . "\n";
     echo '<meta property="og:description" content="Oferta Upsellio: kampanie Google Ads, Meta Ads i strony internetowe dla firm nastawione na leady, sprzedaż i konwersję.">' . "\n";
     echo '<meta property="og:type" content="website">' . "\n";
-    echo '<meta property="og:url" content="' . esc_url(home_url("/oferta/")) . '">' . "\n";
-    echo '<link rel="canonical" href="' . esc_url(home_url("/oferta/")) . '">' . "\n";
+    $offer_url = function_exists("upsellio_get_offer_page_url") ? (string) upsellio_get_offer_page_url() : "";
+    if ($offer_url !== "") {
+        echo '<meta property="og:url" content="' . esc_url($offer_url) . '">' . "\n";
+        echo '<link rel="canonical" href="' . esc_url($offer_url) . '">' . "\n";
+    }
     $og_image = function_exists("upsellio_get_default_og_image_url") ? upsellio_get_default_og_image_url() : "";
     if ($og_image !== "") {
         echo '<meta property="og:image" content="' . esc_url($og_image) . '">' . "\n";
@@ -43,7 +46,10 @@ $contact_phone = function_exists("upsellio_get_contact_phone")
 $contact_email = trim((string) ($front_page_sections["contact_email"] ?? "kontakt@upsellio.pl"));
 $contact_email_href = function_exists("upsellio_get_mailto_href") ? upsellio_get_mailto_href($contact_email) : ("mailto:" . $contact_email);
 $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address($contact_email) : $contact_email;
-$offer_page_url = home_url("/oferta/");
+$offer_page_url = function_exists("upsellio_get_offer_page_url") ? (string) upsellio_get_offer_page_url() : "";
+$google_ads_url = function_exists("upsellio_get_google_ads_page_url") ? (string) upsellio_get_google_ads_page_url() : "";
+$meta_ads_url = function_exists("upsellio_get_meta_ads_page_url") ? (string) upsellio_get_meta_ads_page_url() : "";
+$websites_url = function_exists("upsellio_get_websites_page_url") ? (string) upsellio_get_websites_page_url() : "";
 $offer_founder = function_exists("upsellio_get_trust_seo_section") ? upsellio_get_trust_seo_section("founder") : [];
 $offer_founder_name = (string) ($offer_founder["name"] ?? "Sebastian Kelm");
 $offer_founder_role = (string) ($offer_founder["role"] ?? "Growth marketer B2B");
@@ -420,7 +426,7 @@ $offer_faq_items = [
             <li>Bieżąca optymalizacja stawek, grup reklam i komunikatów</li>
             <li>Miesięczne raporty z danymi o kosztach, leadach i CPL</li>
           </ul>
-          <a href="<?php echo esc_url(home_url("/marketing-google-ads/")); ?>" class="offer-link">Zobacz szczegóły Google Ads →</a>
+          <?php if ($google_ads_url !== "") : ?><a href="<?php echo esc_url($google_ads_url); ?>" class="offer-link">Zobacz szczegóły Google Ads →</a><?php endif; ?>
           <div class="offer-rich-copy">
             <p>Google Ads trafia do osób z wysoką intencją zakupową - szukających konkretnej usługi lub produktu właśnie teraz. Skuteczna kampania to nie tylko uruchomienie reklam, ale precyzyjny dobór słów kluczowych, spójność przekazu z treścią strony docelowej, optymalizacja Quality Score oraz ciągłe śledzenie kosztu pozyskania leada.</p>
             <p>W ramach kampanii prowadzę reklamy Search i Performance Max, w zależności od tego, co przynosi lepsze wyniki dla danej firmy i branży. Każda kampania jest połączona z analizą jakości leadów, bo niska jakość zapytań, nawet przy niskim koszcie kliknięcia, nadal oznacza przepalony budżet.</p>
@@ -439,7 +445,7 @@ $offer_faq_items = [
             <li>Optymalizacja kosztów i jakości leadów</li>
             <li>Spójność przekazu reklama-strona docelowa</li>
           </ul>
-          <a href="<?php echo esc_url(home_url("/marketing-meta-ads/")); ?>" class="offer-link">Zobacz szczegóły Meta Ads →</a>
+          <?php if ($meta_ads_url !== "") : ?><a href="<?php echo esc_url($meta_ads_url); ?>" class="offer-link">Zobacz szczegóły Meta Ads →</a><?php endif; ?>
           <div class="offer-rich-copy">
             <p>Meta Ads - reklamy na Facebooku i Instagramie - pozwalają dotrzeć do potencjalnych klientów zanim zaczną aktywnie szukać Twojej usługi. Kampanie mogą wzbudzić zainteresowanie u precyzyjnie określonej grupy docelowej: według branży, stanowiska, zainteresowań, zachowań lub podobieństwa do obecnych klientów.</p>
             <p>Dobrze zaprojektowany lejek Meta Ads składa się z trzech poziomów: ToF buduje świadomość, MoF angażuje osoby po pierwszym kontakcie z marką, a BoF kieruje mocne oferty do osób gotowych podjąć decyzję. Wynik reklamy zależy nie tylko od kreacji, ale też od tego, co dzieje się po kliknięciu.</p>
@@ -458,7 +464,7 @@ $offer_faq_items = [
             <li>Integracja z kampaniami reklamowymi</li>
             <li>Konfiguracja analityki i śledzenia konwersji</li>
           </ul>
-          <a href="<?php echo esc_url(home_url("/tworzenie-stron-internetowych/")); ?>" class="offer-link">Zobacz szczegóły stron WWW →</a>
+          <?php if ($websites_url !== "") : ?><a href="<?php echo esc_url($websites_url); ?>" class="offer-link">Zobacz szczegóły stron WWW →</a><?php endif; ?>
           <div class="offer-rich-copy">
             <p>Strona internetowa to centrum każdego systemu marketingowego. Nawet najlepsza kampania Google Ads czy Meta Ads nie przyniesie efektów, jeśli strona nie tłumaczy oferty jasno, nie buduje zaufania i nie prowadzi do konkretnego działania.</p>
             <p>Strona firmowa powinna w kilka sekund odpowiedzieć na pytania: czym się zajmujesz, dla kogo jesteś, co wyróżnia Cię od konkurencji i dlaczego warto skontaktować się właśnie teraz. Efektem współpracy jest strona lub landing page, który aktywnie pracuje na wyniki i obniża koszt pozyskania leada z reklam.</p>
@@ -496,9 +502,9 @@ $offer_faq_items = [
       <h2 class="offer-h2">Google Ads, Meta Ads czy nowa strona internetowa? Jak wybrać właściwy punkt startowy?</h2>
       <p class="offer-body">To pytanie pojawia się w niemal każdej rozmowie wstępnej. Odpowiedź zależy od jednej kluczowej kwestii: czy problem jest po stronie ruchu, czy konwersji?</p>
       <div class="offer-chooser-grid">
-        <div class="offer-chooser-card"><span class="tag">Wybierz Google Ads</span><h3>Gdy klient już szuka</h3><p>Jeśli potencjalni klienci aktywnie wpisują w Google frazy związane z Twoją usługą lub produktem, reklamy Search są szybkim sposobem na przechwycenie istniejącego popytu.</p><a href="<?php echo esc_url(home_url("/marketing-google-ads/")); ?>" class="offer-link">Przejdź do Google Ads →</a></div>
-        <div class="offer-chooser-card is-meta"><span class="tag">Wybierz Meta Ads</span><h3>Gdy trzeba zbudować uwagę</h3><p>Jeśli klienci nie szukają aktywnie w Google, ale można ich zainteresować problemem, efektem lub propozycją wartości, Meta Ads pomaga budować świadomość i remarketing.</p><a href="<?php echo esc_url(home_url("/marketing-meta-ads/")); ?>" class="offer-link">Przejdź do Meta Ads →</a></div>
-        <div class="offer-chooser-card is-www"><span class="tag">Wybierz stronę WWW</span><h3>Gdy ruch nie zamienia się w leady</h3><p>Jeśli masz już ruch z SEO, kampanii, poleceń lub social media, ale za mało osób zostawia kontakt, priorytetem jest strona i jej komunikat.</p><a href="<?php echo esc_url(home_url("/tworzenie-stron-internetowych/")); ?>" class="offer-link">Przejdź do stron WWW →</a></div>
+        <div class="offer-chooser-card"><span class="tag">Wybierz Google Ads</span><h3>Gdy klient już szuka</h3><p>Jeśli potencjalni klienci aktywnie wpisują w Google frazy związane z Twoją usługą lub produktem, reklamy Search są szybkim sposobem na przechwycenie istniejącego popytu.</p><?php if ($google_ads_url !== "") : ?><a href="<?php echo esc_url($google_ads_url); ?>" class="offer-link">Przejdź do Google Ads →</a><?php endif; ?></div>
+        <div class="offer-chooser-card is-meta"><span class="tag">Wybierz Meta Ads</span><h3>Gdy trzeba zbudować uwagę</h3><p>Jeśli klienci nie szukają aktywnie w Google, ale można ich zainteresować problemem, efektem lub propozycją wartości, Meta Ads pomaga budować świadomość i remarketing.</p><?php if ($meta_ads_url !== "") : ?><a href="<?php echo esc_url($meta_ads_url); ?>" class="offer-link">Przejdź do Meta Ads →</a><?php endif; ?></div>
+        <div class="offer-chooser-card is-www"><span class="tag">Wybierz stronę WWW</span><h3>Gdy ruch nie zamienia się w leady</h3><p>Jeśli masz już ruch z SEO, kampanii, poleceń lub social media, ale za mało osób zostawia kontakt, priorytetem jest strona i jej komunikat.</p><?php if ($websites_url !== "") : ?><a href="<?php echo esc_url($websites_url); ?>" class="offer-link">Przejdź do stron WWW →</a><?php endif; ?></div>
       </div>
       <div class="offer-mid-cta">
         <div>
