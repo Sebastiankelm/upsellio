@@ -443,46 +443,6 @@ get_header();
     line-height: 1.75;
     color: var(--text-2);
   }
-  .ups-blog-newsletter {
-    margin-top: 16px;
-    border: 1px solid var(--border-strong);
-    border-radius: 16px;
-    background: var(--surface);
-    padding: 14px;
-  }
-  .ups-blog-newsletter input {
-    width: 100%;
-    min-height: 46px;
-    border: 1px solid var(--border-strong);
-    border-radius: 12px;
-    background: var(--surface);
-    color: var(--text);
-    padding: 13px 15px;
-    outline: none;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
-  }
-  .ups-blog-newsletter input:focus {
-    border-color: var(--teal);
-    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.13);
-  }
-  .ups-blog-newsletter button {
-    margin-top: 8px;
-    width: 100%;
-    border: none;
-    border-radius: 12px;
-    min-height: 46px;
-    background: var(--teal);
-    color: #fff;
-    padding: 12px 16px;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.18s ease, transform 0.18s ease;
-  }
-  .ups-blog-newsletter button:hover {
-    background: var(--teal-hover);
-    transform: translateY(-1px);
-  }
   .ups-blog-tags {
     margin-top: 14px;
     display: flex;
@@ -607,85 +567,6 @@ get_header();
     border-top: 1px solid var(--border);
     background: var(--bg-soft);
     padding: 72px 0;
-  }
-  .ups-blog-newsletter-band {
-    border-top: 1px solid var(--teal-line);
-    border-bottom: 1px solid var(--teal-line);
-    background: var(--teal-soft);
-    padding: 64px 0;
-  }
-  .ups-blog-newsletter-inner {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 24px;
-    align-items: center;
-  }
-  .ups-blog-newsletter-title {
-    margin-top: 8px;
-    color: var(--teal-dark);
-    font-family: var(--font-display);
-    font-size: clamp(28px, 3.2vw, 40px);
-    line-height: 1.08;
-    letter-spacing: -0.9px;
-    max-width: 680px;
-  }
-  .ups-blog-newsletter-text {
-    margin-top: 12px;
-    max-width: 620px;
-    color: color-mix(in srgb, var(--teal-dark) 82%, white);
-    font-size: 16px;
-    line-height: 1.78;
-  }
-  .ups-blog-newsletter-shell {
-    border: 1px solid var(--border-strong);
-    border-radius: 18px;
-    background: var(--surface);
-    box-shadow: var(--shadow-sm);
-    padding: 8px;
-  }
-  .ups-blog-newsletter-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .ups-blog-newsletter-row input {
-    min-width: 0;
-    flex: 1;
-    border: 1px solid var(--border-strong);
-    border-radius: 12px;
-    outline: none;
-    background: var(--surface);
-    color: var(--text);
-    min-height: 46px;
-    padding: 13px 15px;
-    font-size: 15px;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
-  }
-  .ups-blog-newsletter-row input:focus {
-    border-color: var(--teal);
-    box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.13);
-  }
-  .ups-blog-newsletter-row button {
-    border: none;
-    border-radius: 12px;
-    background: var(--teal);
-    color: #fff;
-    min-height: 46px;
-    padding: 12px 16px;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.18s ease, transform 0.18s ease;
-    white-space: nowrap;
-  }
-  .ups-blog-newsletter-row button:hover {
-    background: var(--teal-hover);
-    transform: translateY(-1px);
-  }
-  .ups-blog-newsletter-note {
-    margin-top: 12px;
-    color: color-mix(in srgb, var(--teal-dark) 70%, white);
-    font-size: 12px;
   }
   .ups-blog-topics {
     border-top: 1px solid var(--border);
@@ -842,10 +723,6 @@ get_header();
     .ups-blog-cta-actions a {
       width: auto;
     }
-    .ups-blog-newsletter-inner {
-      grid-template-columns: 1fr 420px;
-      gap: 40px;
-    }
     .ups-blog-topics-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 14px;
@@ -973,7 +850,6 @@ get_header();
     color: var(--text-2);
     line-height: 1.78;
   }
-  .ups-blog-newsletter-points,
   .ups-blog-plan-list {
     margin: 14px 0 0;
     padding: 0;
@@ -981,7 +857,6 @@ get_header();
     display: grid;
     gap: 8px;
   }
-  .ups-blog-newsletter-points li,
   .ups-blog-plan-list li {
     position: relative;
     padding-left: 24px;
@@ -989,7 +864,6 @@ get_header();
     font-size: 14px;
     line-height: 1.6;
   }
-  .ups-blog-newsletter-points li::before,
   .ups-blog-plan-list li::before {
     content: "✓";
     position: absolute;
@@ -1049,14 +923,9 @@ get_header();
     .ups-blog-card.is-wide {
       grid-column: span 1;
     }
-    .ups-blog-newsletter-row {
-      flex-direction: column;
-      align-items: stretch;
-    }
     .ups-blog-list-wrap {
       padding: 52px 0 58px;
     }
-    .ups-blog-newsletter-band,
     .ups-blog-topics,
     .ups-blog-cta {
       padding: 52px 0;
@@ -1088,19 +957,17 @@ get_header();
   .ups-blog-seo-copy { margin-top:16px; gap:10px; }
   .ups-blog-seo-copy p { line-height:1.72; }
   .ups-blog-categories { position:static; padding:12px 0 16px; }
-  .ups-blog-featured-wrap,.ups-blog-newsletter-band,.ups-blog-topics,.ups-blog-category-strategy,.ups-blog-content-plan,.ups-blog-cta { padding:48px 0; }
+  .ups-blog-featured-wrap,.ups-blog-topics,.ups-blog-category-strategy,.ups-blog-content-plan,.ups-blog-cta { padding:48px 0; }
   .ups-blog-list-wrap { padding:48px 0 56px; }
-  .ups-blog-list-title,.ups-blog-newsletter-title,.ups-blog-topics-title,.ups-blog-cta-title { font-size:clamp(28px,8vw,34px); line-height:1.12; letter-spacing:-.8px; }
+  .ups-blog-list-title,.ups-blog-topics-title,.ups-blog-cta-title { font-size:clamp(28px,8vw,34px); line-height:1.12; letter-spacing:-.8px; }
   .ups-blog-card,.ups-blog-panel,.ups-blog-category-strategy-card,.ups-blog-plan-card,.ups-blog-cta-shell { border-radius:20px; padding:20px; }
   .ups-blog-featured-title { font-size:clamp(24px,7vw,30px); line-height:1.12; }
-  .ups-blog-newsletter-row { flex-direction:column; align-items:stretch; }
   @media (min-width: 761px) {
     .ups-blog-title { font-size:clamp(44px,6vw,58px); line-height:1.04; }
     .ups-blog-hero .wrap { padding-top:70px !important; padding-bottom:76px !important; }
-    .ups-blog-featured-wrap,.ups-blog-newsletter-band,.ups-blog-topics,.ups-blog-category-strategy,.ups-blog-content-plan,.ups-blog-cta { padding:72px 0; }
+    .ups-blog-featured-wrap,.ups-blog-topics,.ups-blog-category-strategy,.ups-blog-content-plan,.ups-blog-cta { padding:72px 0; }
     .ups-blog-list-wrap { padding:64px 0 72px; }
-    .ups-blog-list-title,.ups-blog-newsletter-title,.ups-blog-topics-title,.ups-blog-cta-title { font-size:clamp(34px,4vw,46px); }
-    .ups-blog-newsletter-row { flex-direction:row; align-items:center; }
+    .ups-blog-list-title,.ups-blog-topics-title,.ups-blog-cta-title { font-size:clamp(34px,4vw,46px); }
   }
   @media (min-width: 1051px) {
     .ups-blog-title { font-size:64px; }
@@ -1282,49 +1149,6 @@ get_header();
       <?php endfor; ?>
     </div>
   </div>
-
-  <section class="ups-blog-newsletter-band">
-    <div class="wrap">
-      <div class="ups-blog-newsletter-inner">
-        <div>
-          <div class="eyebrow" style="color: var(--teal-dark); margin-bottom: 0;">Newsletter</div>
-          <h2 class="ups-blog-newsletter-title">Konkretne materiały o reklamach i sprzedaży — bez spamu, bez ogólników.</h2>
-          <p class="ups-blog-newsletter-text">
-            Raz na jakiś czas wysyłam materiały, które faktycznie pomagają podejmować lepsze decyzje marketingowe: checklisty, analizy kampanii, wnioski z prowadzonych projektów i odpowiedzi na pytania, które zadają firmy przed inwestycją w reklamy lub nową stronę.
-          </p>
-          <ul class="ups-blog-newsletter-points">
-            <li>Materiały pisane przez praktyka z ponad 10-letnim doświadczeniem w marketingu B2B.</li>
-            <li>Bez cotygodniowych maili na siłę — tylko gdy jest coś wartego Twojego czasu.</li>
-            <li>Łatwy wypis jednym kliknięciem, w dowolnym momencie.</li>
-          </ul>
-        </div>
-        <div>
-          <form class="ups-blog-newsletter-shell" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" method="post" data-upsellio-lead-form="1">
-            <input type="hidden" name="action" value="upsellio_submit_lead" />
-            <input type="hidden" name="redirect_url" value="<?php echo esc_url($blog_index_url); ?>" />
-            <input type="hidden" name="lead_form_origin" value="newsletter-band" />
-            <input type="hidden" name="lead_source" value="newsletter-band" />
-            <input type="hidden" name="lead_name" value="Newsletter" />
-            <input type="hidden" name="lead_message" value="Nowa subskrypcja newslettera (band)." />
-            <input type="hidden" name="lead_consent" value="1" />
-            <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
-            <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
-            <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
-            <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
-            <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
-            <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
-            <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
-            <div class="ups-blog-newsletter-row">
-              <label class="screen-reader-text" for="ups-blog-newsletter-band-email">Twój adres e-mail</label>
-              <input type="email" id="ups-blog-newsletter-band-email" name="lead_email" placeholder="Twój adres e-mail" required />
-              <button type="submit">Dołącz do czytelników</button>
-            </div>
-          </form>
-          <div class="ups-blog-newsletter-note">Dołączaj do grona firm, które wolą wiedzę od szumu. Wypis jednym kliknięciem.</div>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <section class="ups-blog-topics">
     <div class="wrap">
