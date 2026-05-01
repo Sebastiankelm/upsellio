@@ -74,13 +74,7 @@ get_header();
   .bl-pager a,.bl-pager span{min-width:38px;height:38px;padding:0 12px;border-radius:999px;border:1px solid #e7e7e1;background:#fff;font-size:13px;font-weight:700;color:#0a1410;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
   .bl-pager .is-current{background:#0a1410;color:#fff;border-color:#0a1410}
   .bl-pager .is-disabled{opacity:.45;pointer-events:none}
-  .bl-newsletter{background:#0a1410;color:#fff;padding:80px 0;position:relative;overflow:hidden}
-  .bl-newsletter::before{content:"";position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,.2),transparent 65%);right:-200px;top:-300px;pointer-events:none}
-  .bl-newsletter-inner{position:relative;display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
-  .bl-news-form{display:flex;gap:10px;background:#fff;border-radius:999px;padding:6px;flex-wrap:wrap}
-  .bl-news-form input{flex:1;min-width:200px;border:0;background:transparent;padding:14px 18px;font:inherit;outline:none;color:#0a1410}
-  .bl-news-form button{border:0;background:#0d9488;color:#fff;padding:14px 24px;border-radius:999px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
-  @media (max-width:1050px){.bl-feat{grid-template-columns:1fr}.bl-feat-body{padding:24px}.bl-grid{grid-template-columns:1fr 1fr}.bl-newsletter-inner{grid-template-columns:1fr}}
+  @media (max-width:1050px){.bl-feat{grid-template-columns:1fr}.bl-feat-body{padding:24px}.bl-grid{grid-template-columns:1fr 1fr}}
   @media (max-width:760px){.bl-wrap{width:min(1180px,100% - 24px)}.bl-grid{grid-template-columns:1fr}}
 </style>
 
@@ -211,27 +205,6 @@ get_header();
     </div>
   </section>
 
-  <section class="bl-newsletter">
-    <div class="bl-wrap bl-newsletter-inner">
-      <div>
-        <div class="bl-eyebrow bl-eyebrow-light">Newsletter</div>
-        <h2 class="bl-h2 bl-h2-light">Raz w miesiącu — konkretny insight, bez sprzedaży.</h2>
-        <p class="bl-lead bl-lead-light">Bez automatów, bez webinarów, bez „pobierz e-booka". Mail piszę osobiście.</p>
-      </div>
-      <form class="bl-news-form" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" method="post">
-        <input type="hidden" name="action" value="upsellio_submit_lead" />
-        <input type="hidden" name="redirect_url" value="<?php echo esc_url($blog_index_url); ?>" />
-        <input type="hidden" name="lead_form_origin" value="blog-newsletter-inline" />
-        <input type="hidden" name="lead_source" value="blog-newsletter-inline" />
-        <input type="hidden" name="lead_name" value="Newsletter Blog" />
-        <input type="hidden" name="lead_message" value="Nowa subskrypcja newslettera z bloga." />
-        <input type="hidden" name="lead_consent" value="1" />
-        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
-        <input type="email" name="lead_email" placeholder="kontakt@firma.pl" required />
-        <button type="submit">Zapisz się</button>
-      </form>
-    </div>
-  </section>
 </main>
 
 <?php
