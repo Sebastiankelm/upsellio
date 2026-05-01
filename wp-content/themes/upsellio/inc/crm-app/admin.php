@@ -33,5 +33,7 @@ function upsellio_crm_app_hide_legacy_admin_menus()
     remove_menu_page("edit.php?post_type=crm_offer");
     remove_menu_page("edit.php?post_type=crm_client");
     remove_menu_page("edit.php?post_type=ups_followup_template");
+    remove_menu_page("edit.php?post_type=crm_offer_layout");
+    remove_menu_page("edit.php?post_type=crm_contract_layout");
 }
 add_action("admin_menu", "upsellio_crm_app_hide_legacy_admin_menus", 999);
