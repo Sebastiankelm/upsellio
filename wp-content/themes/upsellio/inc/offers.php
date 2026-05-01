@@ -4,6 +4,8 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
+require_once get_template_directory() . "/inc/offer-landing.php";
+
 function upsellio_register_offers_post_types()
 {
     register_post_type("crm_client", [
@@ -124,11 +126,9 @@ function upsellio_offer_generate_unique_slug($offer_id)
         return $existing;
     }
 
-    $title = sanitize_title((string) get_the_title($offer_id));
-    $title = $title !== "" ? $title : "oferta";
     do {
         $token = strtolower(wp_generate_password(10, false, false));
-        $slug = $title . "-" . $token;
+        $slug = "ofr-" . $offer_id . "-" . $token;
         $already = get_posts([
             "post_type" => "crm_offer",
             "post_status" => ["publish", "draft", "pending", "private", "future"],
@@ -459,6 +459,25 @@ function upsellio_offer_refresh_score($offer_id)
     do_action("upsellio_offer_scores_refreshed", $offer_id, $summary, $stage);
 }
 
+function upsellio_offer_maybe_schedule_score_refresh($offer_id)
+{
+    $offer_id = (int) $offer_id;
+    if ($offer_id <= 0) {
+        return;
+    }
+    $hook = "upsellio_offer_deferred_refresh_score";
+    if (wp_next_scheduled($hook, [$offer_id])) {
+        return;
+    }
+    wp_schedule_single_event(time(), $hook, [$offer_id]);
+}
+
+function upsellio_offer_run_deferred_refresh_score($offer_id)
+{
+    upsellio_offer_refresh_score((int) $offer_id);
+}
+add_action("upsellio_offer_deferred_refresh_score", "upsellio_offer_run_deferred_refresh_score", 10, 1);
+
 function upsellio_add_client_meta_box()
 {
     add_meta_box("upsellio_client_details", "Dane klienta", "upsellio_render_client_meta_box", "crm_client", "normal", "high");
@@ -634,7 +653,6 @@ function upsellio_render_offer_meta_box($post)
 function upsellio_render_offer_analytics_meta_box($post)
 {
     $offer_id = (int) $post->ID;
-    upsellio_offer_refresh_score($offer_id);
     $summary = upsellio_offer_build_analytics_summary($offer_id);
     $score = (int) get_post_meta($offer_id, "_ups_offer_score", true);
     $intent_score = (int) get_post_meta($offer_id, "_ups_offer_intent_score", true);
@@ -743,6 +761,13 @@ function upsellio_offer_track_event()
         wp_send_json_error(["message" => "offer_expired"], 410);
     }
 
+    $ip = isset($_SERVER["REMOTE_ADDR"]) ? sanitize_text_field(wp_unslash((string) $_SERVER["REMOTE_ADDR"])) : "0";
+    $rl_key = "ups_offer_track_rl_" . md5($ip . "|" . $offer_id);
+    if (get_transient($rl_key)) {
+        wp_send_json_success(["ok" => true, "throttled" => true]);
+    }
+    set_transient($rl_key, 1, 5);
+
     $events = get_post_meta($offer_id, "_ups_offer_events", true);
     if (!is_array($events)) {
         $events = [];
@@ -788,10 +813,10 @@ function upsellio_offer_track_event()
         update_post_meta($offer_id, "_ups_offer_first_seen_version", (int) get_post_meta($offer_id, "_ups_offer_current_version", true));
     }
     update_post_meta($offer_id, "_ups_offer_last_seen", current_time("mysql"));
-    upsellio_offer_refresh_score($offer_id);
     $summary = upsellio_offer_build_analytics_summary($offer_id);
     $stage = upsellio_offer_detect_stage($summary);
     do_action("upsellio_offer_event_tracked", $offer_id, $event_name, $summary, $stage);
+    upsellio_offer_maybe_schedule_score_refresh($offer_id);
 
     wp_send_json_success(["ok" => true]);
 }
@@ -843,18 +868,6 @@ function upsellio_offer_render_public_page()
         exit;
     }
 
-    $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
-    $person_id = (string) get_post_meta($offer_id, "_ups_offer_person_id", true);
-    if ($person_id === "" && $client_id > 0) {
-        $person_id = (string) get_post_meta($client_id, "_ups_client_person_id", true);
-    }
-    $client_name = $client_id > 0 ? (string) get_the_title($client_id) : "Klient";
-    $price = (string) get_post_meta($offer_id, "_ups_offer_price", true);
-    $timeline = (string) get_post_meta($offer_id, "_ups_offer_timeline", true);
-    $cta_text = (string) get_post_meta($offer_id, "_ups_offer_cta_text", true);
-    if ($cta_text === "") {
-        $cta_text = "Akceptuje oferte i chce start";
-    }
     if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["ups_offer_accept_nonce"]) && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["ups_offer_accept_nonce"])), "ups_offer_accept_" . $offer_id)) {
         update_post_meta($offer_id, "_ups_offer_status", "won");
         update_post_meta($offer_id, "_ups_offer_stage", "decision");
@@ -871,136 +884,9 @@ function upsellio_offer_render_public_page()
             update_post_meta($offer_id, "_ups_offer_last_event", "offer_accepted");
         }
     }
-    $ajax_url = admin_url("admin-ajax.php");
-    status_header(200);
-    nocache_headers();
-    ?>
-    <!doctype html>
-    <html <?php language_attributes(); ?>>
-    <head>
-      <meta charset="<?php bloginfo("charset"); ?>" />
-      <meta name="viewport" content="width=device-width,initial-scale=1" />
-      <title><?php echo esc_html((string) $offer->post_title . " | Oferta Upsellio"); ?></title>
-      <meta name="robots" content="noindex,nofollow" />
-      <style>
-        body{margin:0;font-family:DM Sans,Arial,sans-serif;background:#0b1220;color:#e2e8f0}
-        .wrap{max-width:900px;margin:0 auto;padding:40px 20px}
-        .card{background:#111b2f;border:1px solid #23314e;border-radius:18px;padding:24px;margin:0 0 16px}
-        h1,h2{margin:0 0 12px}
-        .meta{color:#94a3b8;font-size:14px}
-        .btn{display:inline-block;background:#14b8a6;color:#03211e;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:700}
-      </style>
-    </head>
-    <body>
-      <main class="wrap">
-        <section class="card" data-offer-section="hero">
-          <p class="meta">Dedykowana oferta dla: <?php echo esc_html($client_name); ?></p>
-          <h1><?php echo esc_html((string) $offer->post_title); ?></h1>
-          <p class="meta">Spersonalizowana propozycja wspolpracy.</p>
-        </section>
-        <section class="card" data-offer-section="scope">
-          <h2>Zakres</h2>
-          <div><?php echo wp_kses_post((string) apply_filters("the_content", (string) $offer->post_content)); ?></div>
-        </section>
-        <section class="card" data-offer-section="pricing">
-          <h2>Inwestycja</h2>
-          <p><?php echo esc_html($price !== "" ? $price : "Do ustalenia po akceptacji zakresu."); ?></p>
-          <p class="meta"><?php echo esc_html($timeline !== "" ? $timeline : "Timeline zostanie uzgodniony przy kick-offie."); ?></p>
-        </section>
-        <section class="card" data-offer-section="cta">
-          <h2>Decyzja</h2>
-          <form method="post">
-            <?php wp_nonce_field("ups_offer_accept_" . $offer_id, "ups_offer_accept_nonce"); ?>
-            <button class="btn" type="submit" data-offer-cta="accept"><?php echo esc_html($cta_text); ?></button>
-          </form>
-          <p class="meta" style="margin-top:8px">Akceptacja zapisuje datę, IP i user-agent oraz uruchamia dalszy proces umowy.</p>
-        </section>
-      </main>
-      <script>
-      (function(){
-        var offerId = <?php echo (int) $offer_id; ?>;
-        var clientId = <?php echo (int) $client_id; ?>;
-        var personId = <?php echo wp_json_encode((string) $person_id); ?>;
-        var ajaxUrl = <?php echo wp_json_encode((string) $ajax_url); ?>;
-        var activeSection = "";
-        var query = new URLSearchParams(window.location.search || "");
-        var utmSource = query.get("utm_source") || "";
-        var utmCampaign = query.get("utm_campaign") || "";
-        var gclid = query.get("gclid") || "";
-        window.dataLayer = window.dataLayer || [];
-        function push(eventName,payload){
-          var eventPayload = Object.assign({
-            event:eventName,
-            offer_id:offerId,
-            client_id:clientId,
-            person_id:personId,
-            utm_source:utmSource,
-            utm_campaign:utmCampaign,
-            gclid:gclid,
-            page_location:window.location.href
-          }, payload || {});
-          window.dataLayer.push(eventPayload);
-          var body = new URLSearchParams();
-          body.append("action","upsellio_offer_track_event");
-          body.append("offer_id",String(offerId));
-          body.append("client_id",String(clientId));
-          body.append("person_id",String(personId || ""));
-          body.append("utm_source",String(utmSource || ""));
-          body.append("utm_campaign",String(utmCampaign || ""));
-          body.append("gclid",String(gclid || ""));
-          body.append("event_name",eventName);
-          body.append("page",window.location.href);
-          if (eventPayload.section_id) body.append("section_id",eventPayload.section_id);
-          if (eventPayload.seconds) body.append("seconds",String(eventPayload.seconds));
-          if (navigator.sendBeacon) navigator.sendBeacon(ajaxUrl, body);
-          else fetch(ajaxUrl,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:body.toString(),credentials:"same-origin",keepalive:true}).catch(function(){});
-        }
-        push("offer_view",{});
-        push("offer_stage_detected",{offer_stage:"awareness"});
-        var scroll50Sent = false;
-        var scroll90Sent = false;
-        window.addEventListener("scroll", function(){
-          var doc = document.documentElement;
-          var maxScroll = Math.max(1, (doc.scrollHeight - window.innerHeight));
-          var ratio = (window.scrollY || window.pageYOffset || 0) / maxScroll;
-          if (!scroll50Sent && ratio >= 0.5) {
-            scroll50Sent = true;
-            push("offer_scroll_50",{});
-          }
-          if (!scroll90Sent && ratio >= 0.9) {
-            scroll90Sent = true;
-            push("offer_scroll_90",{});
-          }
-        }, {passive:true});
-        var start = Date.now();
-        setInterval(function(){
-          var seconds = Math.floor((Date.now()-start)/1000);
-          push("offer_engagement_tick",{seconds:seconds,section_id:activeSection});
-        }, 20000);
-        document.querySelectorAll("[data-offer-cta='accept']").forEach(function(el){
-          el.addEventListener("click", function(){
-            push("offer_cta_click", {section_id:"cta"});
-            push("offer_stage_detected",{offer_stage:"decision"});
-          });
-        });
-        if ("IntersectionObserver" in window) {
-          var observer = new IntersectionObserver(function(entries){
-            entries.forEach(function(entry){
-              if (!entry.isIntersecting) return;
-              var section = entry.target.getAttribute("data-offer-section") || "";
-              if (section) {
-                activeSection = section;
-                push("offer_section_view",{section_id:section});
-              }
-            });
-          },{threshold:0.55});
-          document.querySelectorAll("[data-offer-section]").forEach(function(el){observer.observe(el);});
-        }
-      })();
-      </script>
-    </body>
-    </html>
-    <?php
+    if (function_exists("upsellio_offer_render_public_landing")) {
+        upsellio_offer_render_public_landing($offer);
+    }
     exit;
 }
 add_action("template_redirect", "upsellio_offer_render_public_page", 0);
@@ -1040,7 +926,6 @@ function upsellio_offer_admin_columns_content($column, $post_id)
         return;
     }
     if ($column === "ups_offer_score") {
-        upsellio_offer_refresh_score((int) $post_id);
         echo esc_html((string) ((int) get_post_meta((int) $post_id, "_ups_offer_score", true)));
         return;
     }
@@ -1176,7 +1061,6 @@ function upsellio_offer_render_analytics_page()
         <?php foreach ($offers as $offer) : ?>
           <?php
           $offer_id = (int) $offer->ID;
-          upsellio_offer_refresh_score($offer_id);
           $summary = upsellio_offer_build_analytics_summary($offer_id);
           $score = (int) get_post_meta($offer_id, "_ups_offer_score", true);
           $is_hot = (string) get_post_meta($offer_id, "_ups_offer_hot_offer", true) === "1";
