@@ -1,0 +1,175 @@
+{
+  "project": "Upsellio",
+  "version": "1.0.0",
+  "containerType": "web",
+  "site": "https://upsellio.pl/",
+  "googleTagManager": {
+    "containerId": "GTM-KM9J5XC2"
+  },
+  "ga4": {
+    "streamName": "Upsellio",
+    "measurementId": "G-R37SMGVBNC",
+    "streamId": "14765248080"
+  },
+  "events": [
+    {
+      "name": "generate_lead",
+      "description": "Wysłanie formularza leadowego / kontaktowego",
+      "parameters": [
+        "form_id",
+        "form_origin",
+        "lead_source",
+        "lead_magnet_name",
+        "lead_service",
+        "has_email",
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "referrer",
+        "page_location",
+        "page_path",
+        "page_title"
+      ],
+      "isConversionInGa4": true
+    },
+    {
+      "name": "lead_magnet_signup",
+      "description": "Zapis e-mail przez lead magnet",
+      "parameters": [
+        "form_id",
+        "lead_magnet_name",
+        "lead_source",
+        "has_email",
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "page_location",
+        "page_path"
+      ],
+      "isConversionInGa4": true
+    },
+    {
+      "name": "lead_magnet_download",
+      "description": "Kliknięcie pobrania pliku PDF / lead magnetu",
+      "parameters": [
+        "file_url",
+        "link_text",
+        "page_location",
+        "page_path",
+        "page_title"
+      ],
+      "isConversionInGa4": true
+    },
+    {
+      "name": "contact_click",
+      "description": "Kliknięcie telefonu lub e-maila",
+      "parameters": [
+        "contact_type",
+        "contact_target",
+        "click_text",
+        "page_location",
+        "page_path",
+        "page_title"
+      ],
+      "isConversionInGa4": true
+    }
+  ],
+  "gtmBuildPlan": {
+    "variables": [
+      {
+        "name": "DLV - form_id",
+        "type": "Data Layer Variable",
+        "dataLayerVariableName": "form_id"
+      },
+      {
+        "name": "DLV - lead_magnet_name",
+        "type": "Data Layer Variable",
+        "dataLayerVariableName": "lead_magnet_name"
+      },
+      {
+        "name": "DLV - contact_type",
+        "type": "Data Layer Variable",
+        "dataLayerVariableName": "contact_type"
+      },
+      {
+        "name": "DLV - contact_target",
+        "type": "Data Layer Variable",
+        "dataLayerVariableName": "contact_target"
+      },
+      {
+        "name": "DLV - file_url",
+        "type": "Data Layer Variable",
+        "dataLayerVariableName": "file_url"
+      }
+    ],
+    "triggers": [
+      {
+        "name": "CE - generate_lead",
+        "type": "Custom Event",
+        "eventName": "generate_lead"
+      },
+      {
+        "name": "CE - lead_magnet_signup",
+        "type": "Custom Event",
+        "eventName": "lead_magnet_signup"
+      },
+      {
+        "name": "CE - lead_magnet_download",
+        "type": "Custom Event",
+        "eventName": "lead_magnet_download"
+      },
+      {
+        "name": "CE - contact_click",
+        "type": "Custom Event",
+        "eventName": "contact_click"
+      }
+    ],
+    "tags": [
+      {
+        "name": "GA4 - Config",
+        "type": "Google tag (GA4)",
+        "measurementId": "G-R37SMGVBNC",
+        "trigger": "All Pages"
+      },
+      {
+        "name": "GA4 - Event - generate_lead",
+        "type": "GA4 Event",
+        "eventName": "generate_lead",
+        "trigger": "CE - generate_lead"
+      },
+      {
+        "name": "GA4 - Event - lead_magnet_signup",
+        "type": "GA4 Event",
+        "eventName": "lead_magnet_signup",
+        "trigger": "CE - lead_magnet_signup"
+      },
+      {
+        "name": "GA4 - Event - lead_magnet_download",
+        "type": "GA4 Event",
+        "eventName": "lead_magnet_download",
+        "trigger": "CE - lead_magnet_download"
+      },
+      {
+        "name": "GA4 - Event - contact_click",
+        "type": "GA4 Event",
+        "eventName": "contact_click",
+        "trigger": "CE - contact_click"
+      }
+    ]
+  },
+  "crmIntegration": {
+    "type": "custom-crm",
+    "notes": [
+      "Po stronie CRM zapisuj ga_session_id, ga_client_id oraz event_id, aby spinać leady online/offline.",
+      "Przy zmianie statusu leada (MQL, SQL, sale) wysyłaj zdarzenia serwerowe do GA4 Measurement Protocol.",
+      "Dla Google Ads offline conversions przechowuj gclid/gbraid/wbraid i eksportuj konwersje po kwalifikacji."
+    ]
+  },
+  "consentMode": {
+    "enabledNow": false,
+    "todo": [
+      "Po wdrożeniu CMP ustaw domyślnie denied dla ad_storage, ad_user_data, ad_personalization, analytics_storage.",
+      "Po akceptacji użytkownika aktualizuj consent w GTM."
+    ]
+  }
+}
