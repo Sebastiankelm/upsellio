@@ -689,7 +689,48 @@
   }
   initLeadPolicyNotices();
 
+  function pushDataLayerEvent(eventName, payload = {}) {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: eventName,
+      page_location: window.location.href,
+      page_path: window.location.pathname,
+      page_title: document.title,
+      ...payload,
+    });
+  }
+
+  function buildLeadPayload(formElement) {
+    if (!formElement) return {};
+    const formId = formElement.id || formElement.dataset.upsellioLeadForm || "lead-form";
+    const formOrigin = formElement.querySelector('input[name="lead_form_origin"]')?.value || "";
+    const leadSource = formElement.querySelector('input[name="lead_source"]')?.value || "";
+    const leadMagnetName = formElement.querySelector('input[name="lead_magnet_name"]')?.value || "";
+    const leadService = formElement.querySelector('input[name="lead_service"]')?.value || "";
+    const emailInput = formElement.querySelector('input[type="email"], input[name*="email"]');
+    const hasEmail = Boolean(emailInput?.value && String(emailInput.value).trim() !== "");
+
+    return {
+      form_id: formId,
+      form_origin: formOrigin,
+      lead_source: leadSource,
+      lead_magnet_name: leadMagnetName,
+      lead_service: leadService,
+      has_email: hasEmail,
+      utm_source: attribution.source || "",
+      utm_medium: attribution.medium || "",
+      utm_campaign: attribution.campaign || "",
+      referrer: attribution.referrer || "",
+    };
+  }
+
   function trackContactClick(type, target) {
+    pushDataLayerEvent("contact_click", {
+      contact_type: type,
+      contact_target: target,
+      click_text: target,
+    });
+
     if (!window.upsellioData?.ajaxUrl || !window.upsellioData?.contactNonce) return;
     const body = new URLSearchParams();
     body.append("action", "upsellio_track_contact_click");
@@ -721,6 +762,15 @@
 
   document.querySelectorAll('a[href^="tel:"]').forEach((link) => {
     link.addEventListener("click", () => trackContactClick("tel", link.getAttribute("href") || ""));
+  });
+
+  document.querySelectorAll('a[href$=".pdf"], a[data-upsellio-lead-magnet-download="1"]').forEach((link) => {
+    link.addEventListener("click", () => {
+      pushDataLayerEvent("lead_magnet_download", {
+        file_url: link.getAttribute("href") || "",
+        link_text: (link.textContent || "").trim(),
+      });
+    });
   });
 
   function initServerLeadForms() {
@@ -768,6 +818,10 @@
             window.gtag("event", "lead_form_submitted", {
               form_id: serverForm.id || serverForm.dataset.upsellioLeadForm || "lead-form",
             });
+          }
+          pushDataLayerEvent("generate_lead", buildLeadPayload(serverForm));
+          if (buildLeadPayload(serverForm).lead_magnet_name) {
+            pushDataLayerEvent("lead_magnet_signup", buildLeadPayload(serverForm));
           }
           serverForm.reset();
         } catch (error) {
@@ -849,6 +903,10 @@
               form_id: form.id || form.dataset.upsellioLeadForm || "lead-form",
             });
           }
+          pushDataLayerEvent("generate_lead", buildLeadPayload(form));
+          if (buildLeadPayload(form).lead_magnet_name) {
+            pushDataLayerEvent("lead_magnet_signup", buildLeadPayload(form));
+          }
           setTimeout(() => {
             submitBtn.textContent = defaultText;
             submitBtn.disabled = false;
@@ -917,6 +975,10 @@
           window.gtag("event", "lead_form_submitted", {
             form_id: form.id || "contact-form",
           });
+        }
+        pushDataLayerEvent("generate_lead", buildLeadPayload(form));
+        if (buildLeadPayload(form).lead_magnet_name) {
+          pushDataLayerEvent("lead_magnet_signup", buildLeadPayload(form));
         }
         setTimeout(() => {
           submitBtn.textContent = defaultText;
