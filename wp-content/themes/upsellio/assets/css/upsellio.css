@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --bg: #fafaf7;
   --bg-soft: #f8f8f6;
   --surface: #ffffff;
@@ -72,12 +72,9 @@
 .ups-footer__trust-item strong { display: block; font-size: 14px; line-height: 1.35; }
 .ups-footer__trust-item span { display: block; margin-top: 4px; font-size: 13px; line-height: 1.6; color: var(--uf-text-3); }
   .ups-footer__cta { margin-top: 22px; padding: clamp(18px, 2.3vw, 24px); border-radius: 20px; border: 1px solid rgba(13, 148, 136, 0.24); background: linear-gradient(180deg, rgba(13, 148, 136, 0.11), rgba(255, 255, 255, 0.99)); }
-  .ups-footer__newsletter { margin-top: 22px; padding: clamp(18px, 2.3vw, 24px); border-radius: 20px; border: 1px solid rgba(13, 148, 136, 0.24); background: linear-gradient(180deg, rgba(13, 148, 136, 0.11), rgba(255, 255, 255, 0.99)); }
 .ups-footer__cta-copy h2 { margin: 0; font-family: Syne, sans-serif; font-size: clamp(22px, 2.2vw, 28px); line-height: 1.08; letter-spacing: -0.03em; max-width: 20ch; }
 .ups-footer__cta-copy p { margin: 10px 0 0; font-size: 14px; line-height: 1.75; color: var(--uf-text-2); }
 .ups-footer__cta-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
-.ups-footer__newsletter-form { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; min-width: 0; }
-.ups-footer__newsletter-form input[type="email"] { flex: 1 1 260px; min-height: 48px; border-radius: 999px; border: 1px solid var(--uf-border-strong); padding: 0 16px; }
 .ups-footer__honeypot { position: absolute; left: -9999px; opacity: 0; pointer-events: none; }
 .ups-footer__btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px; border-radius: 999px; font-size: 14px; font-weight: 700; text-decoration: none; transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, transform 0.2s ease; }
 .ups-footer__btn--primary { background: var(--uf-teal); border: 1px solid var(--uf-teal); color: #fff; }
