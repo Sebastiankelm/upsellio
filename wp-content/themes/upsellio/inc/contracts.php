@@ -4,6 +4,8 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
+require_once __DIR__ . "/contract-landing.php";
+
 function upsellio_contracts_register_post_type()
 {
     register_post_type("crm_contract", [
@@ -120,18 +122,110 @@ function upsellio_contracts_replace_placeholders($text, $client_id, $offer_id, $
     $offer_id = (int) $offer_id;
     $contract_id = (int) $contract_id;
     $client_name = $client_id > 0 ? (string) get_the_title($client_id) : "Klient";
+    $client_company = $client_id > 0 ? (string) get_post_meta($client_id, "_ups_client_company", true) : "";
+    $client_email = $client_id > 0 ? (string) get_post_meta($client_id, "_ups_client_email", true) : "";
+    $client_nip = $client_id > 0 ? (string) get_post_meta($client_id, "_ups_client_nip", true) : "";
+    $person_id = "";
+    if ($offer_id > 0) {
+        $person_id = (string) get_post_meta($offer_id, "_ups_offer_person_id", true);
+    }
+    if ($person_id === "" && $client_id > 0) {
+        $person_id = (string) get_post_meta($client_id, "_ups_client_person_id", true);
+    }
+
     $offer_title = $offer_id > 0 ? (string) get_the_title($offer_id) : "";
     $offer_price = $offer_id > 0 ? (string) get_post_meta($offer_id, "_ups_offer_price", true) : "";
     $offer_timeline = $offer_id > 0 ? (string) get_post_meta($offer_id, "_ups_offer_timeline", true) : "";
+    $offer_price_note = $offer_id > 0 ? (string) get_post_meta($offer_id, "_ups_offer_price_note", true) : "";
+    $payment_terms = $offer_id > 0 ? (string) get_post_meta($offer_id, "_ups_offer_payment_terms", true) : "";
+    if ($payment_terms === "") {
+        $payment_terms = (string) get_option("ups_contract_default_payment_terms", "miesięcznie z dołu");
+    }
+
+    $offer_date_label = "";
+    if ($offer_id > 0) {
+        $op = get_post($offer_id);
+        if ($op instanceof WP_Post) {
+            $ots = strtotime((string) $op->post_date_gmt . " UTC");
+            $offer_date_label = $ots ? (string) wp_date("j.m.Y", $ots) : "";
+        }
+    }
+
     $offer_url = ($offer_id > 0 && function_exists("upsellio_offer_get_public_url")) ? (string) upsellio_offer_get_public_url($offer_id) : "";
-    $contract_url = $contract_id > 0 ? (string) home_url("/umowa/" . rawurlencode((string) get_post_meta($contract_id, "_ups_contract_public_token", true)) . "/") : "";
+    $contract_token = $contract_id > 0 ? (string) get_post_meta($contract_id, "_ups_contract_public_token", true) : "";
+    $contract_url = $contract_id > 0 && $contract_token !== "" ? (string) home_url("/umowa/" . rawurlencode($contract_token) . "/") : "";
+
+    $contract_title = $contract_id > 0 ? (string) get_the_title($contract_id) : "";
+    $contract_post = $contract_id > 0 ? get_post($contract_id) : null;
+    $contract_version = $contract_id > 0 ? max(1, (int) get_post_meta($contract_id, "_ups_contract_version", true)) : 1;
+    $contract_sent_raw = $contract_id > 0 ? (string) get_post_meta($contract_id, "_ups_contract_sent_at", true) : "";
+    $contract_signed_raw = $contract_id > 0 ? (string) get_post_meta($contract_id, "_ups_contract_signed_at", true) : "";
+
+    $fmt_dt = static function ($mysql) {
+        if ($mysql === "") {
+            return "";
+        }
+        $t = strtotime($mysql);
+        return $t ? (string) wp_date("j.m.Y H:i", $t) : $mysql;
+    };
+
+    $contract_created_label = "";
+    if ($contract_post instanceof WP_Post) {
+        $cts = strtotime((string) $contract_post->post_date_gmt . " UTC");
+        $contract_created_label = $cts ? (string) wp_date("j.m.Y H:i", $cts) : "";
+    }
+
+    $offer_owner_email = (string) get_option("admin_email");
+    if ($offer_id > 0) {
+        $owner_id = (int) get_post_meta($offer_id, "_ups_offer_owner_id", true);
+        if ($owner_id <= 0 && function_exists("upsellio_crm_get_default_owner_id")) {
+            $owner_id = (int) upsellio_crm_get_default_owner_id();
+        }
+        if ($owner_id > 0) {
+            $u = get_userdata($owner_id);
+            if ($u instanceof WP_User && is_email((string) $u->user_email)) {
+                $offer_owner_email = (string) $u->user_email;
+            }
+        }
+    }
+
+    $contract_pdf_url = $contract_id > 0 && $contract_token !== ""
+        ? (string) apply_filters("upsellio_contract_pdf_url", "", $contract_id, $contract_token)
+        : "";
+
+    $contract_html_content = "";
+    if ($contract_id > 0) {
+        $contract_html_content = (string) get_post_meta($contract_id, "_ups_contract_html", true);
+        if ($contract_html_content === "" && $contract_post instanceof WP_Post) {
+            $contract_html_content = wpautop((string) $contract_post->post_content);
+        }
+    }
+
     $replace = [
         "{{client_name}}" => $client_name,
+        "{{client_company}}" => $client_company,
+        "{{client_email}}" => $client_email,
+        "{{client_nip}}" => $client_nip,
+        "{{person_id}}" => $person_id,
         "{{offer_title}}" => $offer_title,
         "{{offer_price}}" => $offer_price,
+        "{{offer_price_note}}" => $offer_price_note !== "" ? $offer_price_note : "netto",
         "{{offer_timeline}}" => $offer_timeline,
         "{{offer_url}}" => $offer_url,
+        "{{offer_id}}" => $offer_id > 0 ? (string) $offer_id : "",
+        "{{offer_date}}" => $offer_date_label,
+        "{{payment_terms}}" => $payment_terms,
         "{{contract_url}}" => $contract_url,
+        "{{contract_title}}" => $contract_title,
+        "{{contract_id}}" => $contract_id > 0 ? (string) $contract_id : "",
+        "{{contract_token}}" => $contract_token,
+        "{{contract_version}}" => (string) $contract_version,
+        "{{contract_created_at}}" => $contract_created_label,
+        "{{contract_sent_at}}" => $fmt_dt($contract_sent_raw),
+        "{{contract_signed_at}}" => $fmt_dt($contract_signed_raw),
+        "{{contract_pdf_url}}" => $contract_pdf_url,
+        "{{offer_owner_email}}" => $offer_owner_email,
+        "{{contract_html_content}}" => $contract_html_content,
         "{{today}}" => current_time("Y-m-d"),
     ];
     return strtr((string) $text, $replace);
@@ -370,46 +464,51 @@ function upsellio_contracts_render_public()
             "ref" => isset($_SERVER["HTTP_REFERER"]) ? esc_url_raw((string) wp_unslash($_SERVER["HTTP_REFERER"])) : "",
         ];
         upsellio_contracts_log_event($contract_id, "opened", "Otwarto umowe", $details);
+        // T-12: 24h — unika wielokrotnego logu „opened” przy normalnym przeglądaniu tego samego dnia
         setcookie("ups_contract_opened_" . $contract_id, "1", time() + DAY_IN_SECONDS, COOKIEPATH ?: "/");
     }
-    $status = (string) get_post_meta($contract_id, "_ups_contract_status", true);
-    $html = (string) get_post_meta($contract_id, "_ups_contract_html", true);
-    $css = (string) get_post_meta($contract_id, "_ups_contract_css", true);
-    if ($html === "") {
-        $html = wpautop((string) $contract->post_content);
-    }
-    status_header(200);
-    nocache_headers();
-    ?>
-    <!doctype html>
-    <html>
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width,initial-scale=1" />
-      <meta name="robots" content="noindex,nofollow" />
-      <title><?php echo esc_html((string) $contract->post_title); ?></title>
-      <style><?php echo wp_strip_all_tags($css); ?></style>
-    </head>
-    <body>
-      <div style="max-width:860px;margin:24px auto;padding:16px">
-        <p style="color:#64748b;font-size:12px">Status umowy: <?php echo esc_html($status !== "" ? $status : "draft"); ?></p>
-        <?php echo wp_kses_post($html); ?>
-        <?php if ($status !== "signed") : ?>
-          <form method="post" style="margin-top:18px;padding:14px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc">
-            <?php wp_nonce_field("ups_contract_accept_" . $contract_id, "ups_contract_nonce"); ?>
-            <input type="hidden" name="ups_contract_action" value="accept_contract" />
-            <p style="margin:0 0 8px"><strong>Akceptacja umowy</strong></p>
-            <p><input type="text" name="ups_contract_accept_name" placeholder="Imie i nazwisko" required style="width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:8px" /></p>
-            <label style="display:flex;gap:8px;align-items:center;margin:0 0 12px"><input type="checkbox" name="ups_contract_accept" value="1" required /> Akceptuje warunki umowy</label>
-            <button type="submit" style="padding:8px 14px;border:none;border-radius:8px;background:#0f172a;color:#fff;cursor:pointer">Akceptuje umowe</button>
-          </form>
-        <?php else : ?>
-          <p style="margin-top:18px;color:#166534;font-weight:600">Umowa zostala zaakceptowana.</p>
-        <?php endif; ?>
-      </div>
-    </body>
-    </html>
-    <?php
+    upsellio_contract_render_public_landing($contract);
     exit;
 }
 add_action("template_redirect", "upsellio_contracts_render_public", 1);
+
+function upsellio_contract_track_event_ajax()
+{
+    $token = isset($_POST["contract_token"]) ? sanitize_text_field((string) wp_unslash($_POST["contract_token"])) : "";
+    $event = isset($_POST["event"]) ? sanitize_key((string) wp_unslash($_POST["event"])) : "";
+    $label = isset($_POST["label"]) ? sanitize_text_field((string) wp_unslash($_POST["label"])) : "";
+    if ($token === "" || $event === "") {
+        wp_send_json_error(["message" => "bad_request"], 400);
+    }
+    $contracts = get_posts([
+        "post_type" => "crm_contract",
+        "post_status" => ["publish", "draft", "private", "pending"],
+        "posts_per_page" => 1,
+        "fields" => "ids",
+        "meta_query" => [[
+            "key" => "_ups_contract_public_token",
+            "value" => $token,
+        ]],
+    ]);
+    $contract_id = !empty($contracts) ? (int) $contracts[0] : 0;
+    if ($contract_id <= 0) {
+        wp_send_json_error(["message" => "not_found"], 404);
+    }
+    $rows = get_post_meta($contract_id, "_ups_contract_track_events", true);
+    if (!is_array($rows)) {
+        $rows = [];
+    }
+    $rows[] = [
+        "ts" => current_time("mysql"),
+        "event" => $event,
+        "label" => $label,
+        "ip" => isset($_SERVER["REMOTE_ADDR"]) ? sanitize_text_field((string) wp_unslash($_SERVER["REMOTE_ADDR"])) : "",
+    ];
+    if (count($rows) > 500) {
+        $rows = array_slice($rows, -500);
+    }
+    update_post_meta($contract_id, "_ups_contract_track_events", $rows);
+    wp_send_json_success(["ok" => true]);
+}
+add_action("wp_ajax_upsellio_contract_track_event", "upsellio_contract_track_event_ajax");
+add_action("wp_ajax_nopriv_upsellio_contract_track_event", "upsellio_contract_track_event_ajax");
