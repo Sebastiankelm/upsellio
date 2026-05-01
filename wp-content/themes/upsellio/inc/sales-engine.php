@@ -23,6 +23,8 @@ function upsellio_sales_engine_ensure_defaults()
         "ups_hybrid_weight_intent" => 30,
         "ups_hybrid_weight_timing" => 15,
         "ups_hybrid_weight_value" => 15,
+        "ups_sales_fit_ideal_industries" => "",
+        "ups_sales_fit_ideal_budget_min_pln" => 0,
     ];
     foreach ($defaults as $key => $value) {
         if (get_option($key, null) === null) {
@@ -47,10 +49,36 @@ function upsellio_sales_engine_get_client_person_id($client_id)
     return $person_id;
 }
 
-function upsellio_sales_engine_compute_fit_score($offer_id)
+function upsellio_sales_engine_estimate_budget_pln_high_signal($budget_range)
 {
-    $offer_id = (int) $offer_id;
-    $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
+    $raw = trim((string) $budget_range);
+    if ($raw === "") {
+        return 0.0;
+    }
+    $candidates = [];
+    $candidates[] = upsellio_sales_engine_parse_amount($raw);
+    if (preg_match_all('/(\d[\d\s.,]*)\s*k\b/iu', $raw, $mm)) {
+        foreach ($mm[1] as $chunk) {
+            $candidates[] = upsellio_sales_engine_parse_amount(trim((string) $chunk)) * 1000;
+        }
+    }
+    if (preg_match_all('/\d[\d\s.,]*/u', $raw, $nn)) {
+        foreach ($nn[0] as $chunk) {
+            $candidates[] = upsellio_sales_engine_parse_amount(trim((string) $chunk));
+        }
+    }
+    $max = 0.0;
+    foreach ($candidates as $c) {
+        if ($c > $max) {
+            $max = $c;
+        }
+    }
+    return $max;
+}
+
+function upsellio_sales_engine_compute_fit_score_legacy($client_id)
+{
+    $client_id = (int) $client_id;
     if ($client_id <= 0) {
         return 20;
     }
@@ -84,6 +112,112 @@ function upsellio_sales_engine_compute_fit_score($offer_id)
         $score = 20;
     }
     return min(100, $score);
+}
+
+function upsellio_sales_engine_compute_fit_score($offer_id)
+{
+    $offer_id = (int) $offer_id;
+    $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
+    if ($client_id <= 0) {
+        return 20;
+    }
+
+    $ideal_raw = (string) get_option("ups_sales_fit_ideal_industries", "");
+    $ideal_min = (float) get_option("ups_sales_fit_ideal_budget_min_pln", 0);
+    $ideals = array_filter(array_map("trim", preg_split('/[\r\n,]+/', $ideal_raw, -1, PREG_SPLIT_NO_EMPTY)));
+    $use_icp = ($ideal_min > 0) || !empty($ideals);
+    if (!$use_icp) {
+        return upsellio_sales_engine_compute_fit_score_legacy($client_id);
+    }
+
+    $company = (string) get_post_meta($client_id, "_ups_client_company", true);
+    $email = (string) get_post_meta($client_id, "_ups_client_email", true);
+    $phone = (string) get_post_meta($client_id, "_ups_client_phone", true);
+    $industry_raw = (string) get_post_meta($client_id, "_ups_client_industry", true);
+    $company_size = (string) get_post_meta($client_id, "_ups_client_company_size", true);
+    $budget_range = (string) get_post_meta($client_id, "_ups_client_budget_range", true);
+    $industry = strtolower(trim($industry_raw));
+
+    $score = 0;
+    if ($company !== "") {
+        $score += 8;
+    }
+    if (is_email($email)) {
+        $score += 12;
+    }
+    if ($phone !== "") {
+        $score += 7;
+    }
+    if ($company_size !== "") {
+        $score += 8;
+    }
+    $score = min(35, $score);
+
+    if (!empty($ideals)) {
+        if ($industry !== "") {
+            $matched = false;
+            foreach ($ideals as $needle) {
+                $n = strtolower(trim((string) $needle));
+                if ($n !== "" && strpos($industry, $n) !== false) {
+                    $matched = true;
+                    break;
+                }
+            }
+            $score += $matched ? 35 : 10;
+        }
+    } elseif ($industry_raw !== "") {
+        $score += 15;
+    }
+
+    if ($ideal_min > 0) {
+        $est = upsellio_sales_engine_estimate_budget_pln_high_signal($budget_range);
+        if ($est <= 0 && $budget_range !== "") {
+            $est = (float) $ideal_min * 0.25;
+        }
+        if ($est >= $ideal_min) {
+            $score += 30;
+        } elseif ($est >= $ideal_min * 0.35) {
+            $score += 14;
+        } elseif ($budget_range !== "") {
+            $score += 6;
+        }
+    } elseif ($budget_range !== "") {
+        $score += 12;
+    }
+
+    return min(100, max(18, $score));
+}
+
+/**
+ * Kontekst czasowy dla hybrydowego scoringu oferty: data decyzji + kwalifikacja z powiązanego leada.
+ *
+ * @return array{decision_date:string, qual:string}
+ */
+function upsellio_sales_engine_get_offer_timing_context($offer_id)
+{
+    $offer_id = (int) $offer_id;
+    $date_str = trim((string) get_post_meta($offer_id, "_ups_offer_decision_date", true));
+    $qual = "";
+    if (!post_type_exists("crm_lead")) {
+        return ["decision_date" => $date_str, "qual" => $qual];
+    }
+    $leads = get_posts([
+        "post_type" => "crm_lead",
+        "post_status" => ["publish", "draft", "pending", "private"],
+        "posts_per_page" => 1,
+        "orderby" => "modified",
+        "order" => "DESC",
+        "fields" => "ids",
+        "meta_query" => [["key" => "_ups_lead_converted_offer_id", "value" => $offer_id]],
+    ]);
+    if (!empty($leads)) {
+        $lead_id = (int) $leads[0];
+        if ($date_str === "") {
+            $date_str = trim((string) get_post_meta($lead_id, "_ups_lead_decision_date", true));
+        }
+        $qual = sanitize_key((string) get_post_meta($lead_id, "_ups_lead_qualification_status", true));
+    }
+    return ["decision_date" => $date_str, "qual" => $qual];
 }
 
 function upsellio_sales_engine_refresh_hot_index($offer_id, $summary, $stage)
@@ -238,11 +372,8 @@ function upsellio_sales_engine_refresh_hybrid_deal_scores($offer_id, $intent_sco
     if ($ch > 0) {
         $source_q = (int) round(($source_q * 0.65) + ($ch * 0.35));
     }
-    $timing = 50;
-    $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
-    if ($client_id > 0) {
-        $timing = upsellio_sales_engine_score_timing_0_100("", "");
-    }
+    $timing_ctx = upsellio_sales_engine_get_offer_timing_context($offer_id);
+    $timing = upsellio_sales_engine_score_timing_0_100($timing_ctx["decision_date"], $timing_ctx["qual"]);
     $stage = sanitize_key((string) $stage);
     if ($stage === "decision") {
         $timing = min(100, $timing + 25);
@@ -274,6 +405,62 @@ function upsellio_sales_engine_refresh_hybrid_deal_scores($offer_id, $intent_sco
     update_post_meta($offer_id, "_ups_offer_lead_score_0_100", $lead_score);
     update_post_meta($offer_id, "_ups_offer_deal_probability_0_100", $deal_probability);
     update_post_meta($offer_id, "_ups_offer_temperature", $temp);
+}
+
+/**
+ * Krótki kontekst oferty dla handlowca (task brief) — bez nowych danych wejściowych.
+ */
+function upsellio_sales_engine_format_offer_task_brief_html($offer_id)
+{
+    $offer_id = (int) $offer_id;
+    if ($offer_id <= 0) {
+        return "";
+    }
+    $lines = [];
+    $last_seen = trim((string) get_post_meta($offer_id, "_ups_offer_last_seen", true));
+    if ($last_seen !== "") {
+        $lines[] = "Ostatnia aktywność: " . $last_seen;
+    }
+    if (function_exists("upsellio_offer_build_analytics_summary")) {
+        $s = upsellio_offer_build_analytics_summary($offer_id);
+        $lines[] = sprintf(
+            "Cennik %ds · CTA %d · widoki %d",
+            (int) ($s["pricing_seconds"] ?? 0),
+            (int) ($s["cta_clicks"] ?? 0),
+            (int) ($s["views"] ?? 0)
+        );
+    }
+    $events = get_post_meta($offer_id, "_ups_offer_events", true);
+    if (is_array($events) && !empty($events)) {
+        $slice = array_slice($events, -3);
+        $bits = [];
+        foreach ($slice as $ev) {
+            if (!is_array($ev)) {
+                continue;
+            }
+            $name = sanitize_key((string) ($ev["event"] ?? ""));
+            $sec = sanitize_key((string) ($ev["section_id"] ?? ""));
+            $bit = $name !== "" ? $name : "event";
+            if ($sec !== "") {
+                $bit .= " · " . $sec;
+            }
+            $bits[] = $bit;
+        }
+        if (!empty($bits)) {
+            $lines[] = "Ostatnie zdarzenia: " . implode(", ", $bits);
+        }
+    }
+    $rec = trim((string) get_post_meta($offer_id, "_ups_offer_action_recommendation", true));
+    if ($rec !== "") {
+        $lines[] = $rec;
+    }
+    if (empty($lines)) {
+        return '<span class="muted">Brak sygnałów z publicznej oferty.</span>';
+    }
+    $escaped = array_map(static function ($line) {
+        return esc_html((string) $line);
+    }, $lines);
+    return '<small style="display:block;line-height:1.45;max-width:320px">' . implode("<br />", $escaped) . "</small>";
 }
 
 function upsellio_sales_engine_refresh_lead_hybrid_scores($lead_id)
@@ -731,14 +918,16 @@ function upsellio_sales_engine_handle_contract_signed($contract_id, $new_status,
     if ($offer_id > 0) {
         update_post_meta($offer_id, "_ups_offer_status", "won");
         $price_raw = (string) get_post_meta($offer_id, "_ups_offer_price", true);
-        $won_value = upsellio_sales_engine_parse_amount($price_raw);
+        $parsed_won = upsellio_sales_engine_parse_amount($price_raw);
+        $existing_won = (float) get_post_meta($offer_id, "_ups_offer_won_value", true);
+        $won_value = $existing_won > 0 ? $existing_won : $parsed_won;
         if ($won_value > 0) {
             update_post_meta($offer_id, "_ups_offer_won_value", $won_value);
-            $monthly_value = (float) get_post_meta($client_id, "_ups_client_monthly_value", true);
-            $is_recurring = (string) get_post_meta($client_id, "_ups_client_is_recurring", true) === "1";
-            if ($monthly_value <= 0 && $is_recurring && function_exists("upsellio_offer_add_timeline_event")) {
-                upsellio_offer_add_timeline_event($offer_id, "mrr_missing", "Umowa podpisana: brak monthly_value klienta, wymagane uzupelnienie reczne.");
-            }
+        }
+        $monthly_value = (float) get_post_meta($client_id, "_ups_client_monthly_value", true);
+        $is_recurring_client = (string) get_post_meta($client_id, "_ups_client_is_recurring", true) === "1";
+        if ($monthly_value <= 0 && $is_recurring_client && function_exists("upsellio_offer_add_timeline_event")) {
+            upsellio_offer_add_timeline_event($offer_id, "mrr_missing", "Umowa podpisana: brak monthly_value klienta, wymagane uzupelnienie reczne.");
         }
         if (function_exists("upsellio_offer_add_timeline_event")) {
             upsellio_offer_add_timeline_event($offer_id, "contract_signed", "Umowa podpisana: automatycznie oznaczono oferte jako won.");
@@ -747,18 +936,92 @@ function upsellio_sales_engine_handle_contract_signed($contract_id, $new_status,
 }
 add_action("upsellio_contract_status_changed", "upsellio_sales_engine_handle_contract_signed", 10, 4);
 
-function upsellio_sales_engine_classify_inbound($offer_id, $subject, $body, $from_email)
+function upsellio_sales_engine_classify_inbound_regex_from_text($text)
 {
-    $text = strtolower(trim((string) $subject . " " . (string) $body));
+    $text = strtolower(trim((string) $text));
     $classification = "other";
-    if (preg_match("/\b(cena|drogo|koszt|budzet)\b/u", $text)) {
+    if (preg_match("/\b(cena|drogo|koszt|budzet|za\s+drogo|ceny)\b/u", $text)) {
         $classification = "price_objection";
-    } elseif (preg_match("/\b(czas|termin|pozniej|wr[oó]cimy)\b/u", $text)) {
+    } elseif (preg_match("/\b(czas|termin|pozniej|wr[oó]cimy|przemy[sś]l)\b/u", $text)) {
         $classification = "timing_objection";
     } elseif (preg_match("/\b(nie teraz|brak priorytetu|wstrzym)\b/u", $text)) {
         $classification = "no_priority";
-    } elseif (preg_match("/\b(tak|akcept|dzialamy|start|ok)\b/u", $text)) {
+    } elseif (preg_match("/\b(tak|akcept|dzialamy|start|ok|zaczynamy)\b/u", $text)) {
         $classification = "positive";
+    }
+    return $classification;
+}
+
+function upsellio_sales_engine_classify_inbound_via_claude($subject, $body)
+{
+    $api_key = trim((string) get_option("ups_anthropic_api_key", ""));
+    if ($api_key === "" || (string) get_option("ups_anthropic_inbound_enabled", "0") !== "1") {
+        return null;
+    }
+    $model = trim((string) get_option("ups_anthropic_model", ""));
+    if ($model === "") {
+        $model = "claude-3-5-haiku-20241022";
+    }
+    $model = (string) apply_filters("upsellio_anthropic_inbound_model", $model);
+    $subject = (string) $subject;
+    $body = (string) $body;
+    if (function_exists("mb_substr")) {
+        $body = mb_substr($body, 0, 14000, "UTF-8");
+    } else {
+        $body = substr($body, 0, 14000);
+    }
+    $prompt = "Odpowiedz dokladnie jednym slowem klasyfikacji (bez kropki, bez cudzyslowu).\nDozwolone wartosci: positive, price_objection, timing_objection, no_priority, other\n\nTemat: " . $subject . "\n\nTreść:\n" . $body;
+    $response = wp_remote_post(
+        "https://api.anthropic.com/v1/messages",
+        [
+            "timeout" => 12,
+            "headers" => [
+                "x-api-key" => $api_key,
+                "anthropic-version" => "2023-06-01",
+                "content-type" => "application/json",
+            ],
+            "body" => wp_json_encode([
+                "model" => $model,
+                "max_tokens" => 48,
+                "messages" => [
+                    ["role" => "user", "content" => $prompt],
+                ],
+            ]),
+        ]
+    );
+    if (is_wp_error($response)) {
+        return null;
+    }
+    $code = (int) wp_remote_retrieve_response_code($response);
+    if ($code < 200 || $code >= 300) {
+        return null;
+    }
+    $raw = json_decode((string) wp_remote_retrieve_body($response), true);
+    if (!is_array($raw) || empty($raw["content"]) || !is_array($raw["content"])) {
+        return null;
+    }
+    $piece = "";
+    foreach ($raw["content"] as $block) {
+        if (is_array($block) && ($block["type"] ?? "") === "text" && isset($block["text"])) {
+            $piece .= " " . (string) $block["text"];
+        }
+    }
+    $piece = strtolower(trim($piece));
+    if ($piece === "") {
+        return null;
+    }
+    if (preg_match('/\b(price_objection|timing_objection|no_priority|positive|other)\b/', $piece, $m)) {
+        return $m[1];
+    }
+    return null;
+}
+
+function upsellio_sales_engine_classify_inbound($offer_id, $subject, $body, $from_email)
+{
+    $text = strtolower(trim((string) $subject . " " . (string) $body));
+    $classification = upsellio_sales_engine_classify_inbound_via_claude((string) $subject, (string) $body);
+    if ($classification === null || $classification === "") {
+        $classification = upsellio_sales_engine_classify_inbound_regex_from_text($text);
     }
     update_post_meta((int) $offer_id, "_ups_offer_last_inbound_classification", $classification);
     update_post_meta((int) $offer_id, "_ups_offer_last_inbound_class", $classification);
@@ -773,6 +1036,9 @@ function upsellio_sales_engine_classify_inbound($offer_id, $subject, $body, $fro
         $stage = "decision";
     }
     do_action("upsellio_inbound_classified", (int) $offer_id, (string) $classification, (string) $stage);
+    if (function_exists("upsellio_inbox_update_last_inbound_classification")) {
+        upsellio_inbox_update_last_inbound_classification((int) $offer_id, (string) $classification);
+    }
 }
 add_action("upsellio_followup_inbound_received", "upsellio_sales_engine_classify_inbound", 10, 4);
 
