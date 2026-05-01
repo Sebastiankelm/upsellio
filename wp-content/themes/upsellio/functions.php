@@ -463,6 +463,54 @@ function upsellio_get_cities_archive_url()
     return upsellio_get_page_url_by_template("archive-miasto.php");
 }
 
+function upsellio_get_dynamic_content_post_types()
+{
+    $post_types = [
+        "definicja",
+        "miasto",
+        "lead_magnet",
+        "portfolio",
+        "marketing_portfolio",
+    ];
+
+    return array_values(array_unique(array_filter(array_map("sanitize_key", $post_types))));
+}
+
+function upsellio_get_post_type_rewrite_slug($post_type)
+{
+    $post_type = sanitize_key((string) $post_type);
+    if ($post_type === "") {
+        return "";
+    }
+
+    $object = get_post_type_object($post_type);
+    if (!($object instanceof WP_Post_Type)) {
+        return "";
+    }
+
+    if (!is_array($object->rewrite)) {
+        return "";
+    }
+
+    $slug = isset($object->rewrite["slug"]) ? (string) $object->rewrite["slug"] : "";
+    $slug = trim($slug, "/");
+    return $slug !== "" ? $slug : "";
+}
+
+function upsellio_get_dynamic_content_route_map()
+{
+    $map = [];
+    foreach (upsellio_get_dynamic_content_post_types() as $post_type) {
+        $base = upsellio_get_post_type_rewrite_slug($post_type);
+        if ($base === "") {
+            continue;
+        }
+        $map[$base] = $post_type;
+    }
+
+    return $map;
+}
+
 function upsellio_force_content_permalink($post_link, $post, $leavename = false, $sample = false)
 {
     if (!($post instanceof WP_Post)) {
@@ -472,8 +520,13 @@ function upsellio_force_content_permalink($post_link, $post, $leavename = false,
         return $post_link;
     }
 
-    $post_type = (string) $post->post_type;
-    if (!in_array($post_type, ["definicja", "miasto", "lead_magnet", "portfolio", "marketing_portfolio"], true)) {
+    $post_type = sanitize_key((string) $post->post_type);
+    if (!in_array($post_type, upsellio_get_dynamic_content_post_types(), true)) {
+        return $post_link;
+    }
+
+    $base = upsellio_get_post_type_rewrite_slug($post_type);
+    if ($base === "") {
         return $post_link;
     }
 
@@ -482,32 +535,63 @@ function upsellio_force_content_permalink($post_link, $post, $leavename = false,
         return $post_link;
     }
 
-    if ($post_type === "definicja") {
-        return home_url("/definicje/" . $slug . "/");
-    }
-    if ($post_type === "miasto") {
-        return home_url("/miasto/" . $slug . "/");
-    }
-    if ($post_type === "lead_magnet") {
-        return home_url("/lead-magnety/" . $slug . "/");
-    }
-    if ($post_type === "portfolio") {
-        return home_url("/realizacja/" . $slug . "/");
-    }
-
-    return home_url("/portfolio-marketingowe/" . $slug . "/");
+    return home_url("/" . $base . "/" . $slug . "/");
 }
 add_filter("post_type_link", "upsellio_force_content_permalink", 10, 4);
 
 function upsellio_register_content_permalink_rewrites()
 {
-    add_rewrite_rule("^definicje/([^/]+)/?$", "index.php?definicja=$matches[1]", "top");
-    add_rewrite_rule("^miasto/([^/]+)/?$", "index.php?miasto=$matches[1]", "top");
-    add_rewrite_rule("^lead-magnety/([^/]+)/?$", "index.php?lead_magnet=$matches[1]", "top");
-    add_rewrite_rule("^realizacja/([^/]+)/?$", "index.php?portfolio=$matches[1]", "top");
-    add_rewrite_rule("^portfolio-marketingowe/([^/]+)/?$", "index.php?marketing_portfolio=$matches[1]", "top");
+    foreach (upsellio_get_dynamic_content_route_map() as $base => $post_type) {
+        add_rewrite_rule(
+            "^" . preg_quote($base, "#") . "/([^/]+)/?$",
+            "index.php?post_type=" . rawurlencode($post_type) . "&name=\$matches[1]",
+            "top"
+        );
+    }
 }
 add_action("init", "upsellio_register_content_permalink_rewrites", 20);
+
+function upsellio_route_content_request_fallback($query_vars)
+{
+    if (!is_array($query_vars) || is_admin() || wp_doing_ajax() || wp_doing_cron()) {
+        return $query_vars;
+    }
+    if (defined("REST_REQUEST") && REST_REQUEST) {
+        return $query_vars;
+    }
+    if (!empty($query_vars)) {
+        return $query_vars;
+    }
+
+    $request_uri = isset($_SERVER["REQUEST_URI"]) ? (string) wp_unslash($_SERVER["REQUEST_URI"]) : "/";
+    $path = (string) wp_parse_url($request_uri, PHP_URL_PATH);
+    $path = trim($path, "/");
+    if ($path === "") {
+        return $query_vars;
+    }
+
+    $segments = explode("/", $path);
+    if (count($segments) < 2) {
+        return $query_vars;
+    }
+
+    $base = sanitize_title((string) $segments[0]);
+    $slug = sanitize_title((string) $segments[1]);
+    if ($slug === "") {
+        return $query_vars;
+    }
+
+    $route_map = upsellio_get_dynamic_content_route_map();
+    if (isset($route_map[$base])) {
+        return [
+            "post_type" => (string) $route_map[$base],
+            "name" => $slug,
+        ];
+    }
+
+    return $query_vars;
+}
+add_filter("request", "upsellio_route_content_request_fallback", 0);
 
 function upsellio_maybe_flush_content_permalink_rewrites()
 {
@@ -516,7 +600,7 @@ function upsellio_maybe_flush_content_permalink_rewrites()
     }
 
     $version_key = "upsellio_content_permalink_rewrite_version";
-    $target_version = "2026-04-28-content-permalink-v2";
+    $target_version = "2026-04-30-content-permalink-v4";
     if ((string) get_option($version_key, "") === $target_version) {
         return;
     }
@@ -525,6 +609,35 @@ function upsellio_maybe_flush_content_permalink_rewrites()
     update_option($version_key, $target_version, false);
 }
 add_action("admin_init", "upsellio_maybe_flush_content_permalink_rewrites");
+
+function upsellio_flush_content_permalink_rewrites_after_permalink_change($old_value, $value)
+{
+    if ((string) $old_value === (string) $value) {
+        return;
+    }
+    delete_option("upsellio_content_permalink_rewrite_version");
+}
+add_action("update_option_permalink_structure", "upsellio_flush_content_permalink_rewrites_after_permalink_change", 10, 2);
+
+function upsellio_force_flush_content_permalink_rewrites_runtime()
+{
+    if (is_admin() || wp_doing_ajax() || wp_doing_cron()) {
+        return;
+    }
+    if ((defined("REST_REQUEST") && REST_REQUEST) || (defined("WP_CLI") && WP_CLI)) {
+        return;
+    }
+
+    $version_key = "upsellio_content_permalink_rewrite_version";
+    $target_version = "2026-04-30-content-permalink-v4";
+    if ((string) get_option($version_key, "") === $target_version) {
+        return;
+    }
+
+    flush_rewrite_rules(false);
+    update_option($version_key, $target_version, false);
+}
+add_action("init", "upsellio_force_flush_content_permalink_rewrites_runtime", 999);
 
 function upsellio_get_social_profile_url($network)
 {
@@ -1046,6 +1159,12 @@ require_once get_template_directory() . "/inc/portfolio-seed.php";
 require_once get_template_directory() . "/inc/marketing-portfolio-seed.php";
 require_once get_template_directory() . "/inc/lead-magnet-seed.php";
 require_once get_template_directory() . "/inc/theme-config.php";
+require_once get_template_directory() . "/inc/offers.php";
+require_once get_template_directory() . "/inc/followups.php";
+require_once get_template_directory() . "/inc/sales-engine.php";
+require_once get_template_directory() . "/inc/automation-suite.php";
+require_once get_template_directory() . "/inc/crm-app.php";
+require_once get_template_directory() . "/inc/contracts.php";
 
 function upsellio_setup()
 {
@@ -1074,10 +1193,7 @@ add_action("wp_head", "upsellio_print_favicon_links", 5);
 
 function upsellio_get_ga4_measurement_id()
 {
-    $measurement_id = trim((string) get_option("upsellio_ga4_measurement_id", ""));
-    if ($measurement_id === "") {
-        $measurement_id = trim((string) getenv("UPSELLIO_GA4_MEASUREMENT_ID"));
-    }
+    $measurement_id = "";
     $measurement_id = strtoupper(preg_replace("/[^A-Z0-9-]/", "", $measurement_id));
 
     return preg_match("/^G-[A-Z0-9]+$/", $measurement_id) ? $measurement_id : "";
@@ -1107,7 +1223,7 @@ function upsellio_print_tracking_scripts_head()
         echo "window.dataLayer = window.dataLayer || [];\n";
         echo "function gtag(){dataLayer.push(arguments);}\n";
         echo "gtag('js', new Date());\n";
-        echo "gtag('config', '" . esc_js($measurement_id) . "', { anonymize_ip: true, transport_type: 'beacon' });\n";
+        echo "gtag('config', '" . esc_js($measurement_id) . "');\n";
         echo "</script>\n";
     }
 
@@ -2329,33 +2445,6 @@ function upsellio_render_blog_dynamic_content($selected_category = "", $selected
         <?php endif; ?>
 
         <aside class="ups-blog-side">
-          <div class="ups-blog-panel">
-            <div class="eyebrow" style="margin-bottom: 0;">Newsletter / materiały do pobrania</div>
-            <h3 class="ups-blog-panel-title">Praktyczne materiały o reklamach, stronach i sprzedaży.</h3>
-            <p class="ups-blog-panel-text">
-              Raz na jakiś czas, bez spamu. Dołącz do czytelników, którzy wolą konkret zamiast marketingowego szumu.
-            </p>
-            <form class="ups-blog-newsletter" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" method="post" data-upsellio-lead-form="1">
-              <input type="hidden" name="action" value="upsellio_submit_lead" />
-              <input type="hidden" name="redirect_url" value="<?php echo esc_url($blog_index_url); ?>" />
-              <input type="hidden" name="lead_form_origin" value="newsletter" />
-              <input type="hidden" name="lead_source" value="newsletter" />
-              <input type="hidden" name="lead_name" value="Newsletter" />
-              <input type="hidden" name="lead_message" value="Nowa subskrypcja newslettera." />
-              <input type="hidden" name="lead_consent" value="1" />
-              <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
-              <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
-              <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
-              <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
-              <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
-              <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
-              <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
-              <label class="screen-reader-text" for="ups-blog-newsletter-email">Twój e-mail</label>
-              <input type="email" id="ups-blog-newsletter-email" name="lead_email" placeholder="Twój e-mail" required />
-              <button type="submit">Dołącz do czytelników</button>
-            </form>
-          </div>
-
           <div class="ups-blog-panel">
             <div class="eyebrow" style="margin-bottom: 0;">Popularne tematy</div>
             <div class="ups-blog-tags">
