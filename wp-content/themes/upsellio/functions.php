@@ -108,7 +108,9 @@ require_once get_template_directory() . "/inc/template-assets.php";
 
 function upsellio_is_strict_custom_embed_mode()
 {
-    return (bool) apply_filters("upsellio_strict_custom_embed_mode", true);
+    // Default false: portfolio / marketing portfolio / lead magnet meta boxes expose a JS field;
+    // strict true would wipe JS on every save and migration. Use add_filter( 'upsellio_strict_custom_embed_mode', '__return_true' ) to forbid storing custom JS.
+    return (bool) apply_filters("upsellio_strict_custom_embed_mode", false);
 }
 
 function upsellio_get_custom_embed_allowed_html()
@@ -805,6 +807,46 @@ function upsellio_get_brand_logo_assets()
     return $assets;
 }
 
+/**
+ * Wyświetla logo z bazy (custom_logo / wygenerowane assety) — ta sama logika co w header.php.
+ *
+ * @param array $args img_class, sizes, width, height, alt
+ * @return bool true jeśli wyświetlono obrazek
+ */
+function upsellio_echo_brand_logo_picture(array $args = [])
+{
+    if (!function_exists("upsellio_get_brand_logo_assets")) {
+        return false;
+    }
+    $assets = upsellio_get_brand_logo_assets();
+    $png = (string) ($assets["png"] ?? "");
+    if ($png === "") {
+        return false;
+    }
+    $webp320 = (string) ($assets["webp_320"] ?? "");
+    $webp640 = (string) ($assets["webp_640"] ?? "");
+    $img_class = (string) ($args["img_class"] ?? "brand-logo");
+    $width = (int) ($args["width"] ?? 320);
+    $height = (int) ($args["height"] ?? 213);
+    $sizes = (string) ($args["sizes"] ?? "(max-width: 760px) 163px, 222px");
+    $alt = (string) ($args["alt"] ?? "Upsellio — kampanie Google Ads i Meta Ads dla firm B2B");
+    $loading = (string) ($args["loading"] ?? "eager");
+    $fetchpriority = isset($args["fetchpriority"]) ? (string) $args["fetchpriority"] : "";
+
+    echo "<picture>";
+    if ($webp320 !== "" && $webp640 !== "") {
+        echo '<source type="image/webp" srcset="' . esc_url($webp320) . " 320w, " . esc_url($webp640) . ' 640w" sizes="' . esc_attr($sizes) . '" />';
+    }
+    $img_extra = ' decoding="async" loading="' . esc_attr($loading) . '"';
+    if ($fetchpriority !== "") {
+        $img_extra .= ' fetchpriority="' . esc_attr($fetchpriority) . '"';
+    }
+    echo '<img src="' . esc_url($png) . '" alt="' . esc_attr($alt) . '" class="' . esc_attr($img_class) . '" width="' . $width . '" height="' . $height . '"' . $img_extra . " />";
+    echo "</picture>";
+
+    return true;
+}
+
 function upsellio_get_generated_logo_url($preferred = "png")
 {
     $assets = upsellio_get_generated_logo_assets();
@@ -1160,6 +1202,7 @@ require_once get_template_directory() . "/inc/marketing-portfolio-seed.php";
 require_once get_template_directory() . "/inc/lead-magnet-seed.php";
 require_once get_template_directory() . "/inc/theme-config.php";
 require_once get_template_directory() . "/inc/offers.php";
+require_once get_template_directory() . "/inc/inbox.php";
 require_once get_template_directory() . "/inc/followups.php";
 require_once get_template_directory() . "/inc/sales-engine.php";
 require_once get_template_directory() . "/inc/automation-suite.php";
