@@ -419,6 +419,7 @@ echo wp_json_encode([
 </script>
 <?php endif; ?>
 
+<?php if (!function_exists("upsellio_is_internal_tracking_user") || !upsellio_is_internal_tracking_user()) : ?>
 <script>
   (function () {
     const form = document.querySelector(".lms-form[data-lead-magnet-name]");
@@ -433,6 +434,7 @@ echo wp_json_encode([
     });
   })();
 </script>
+<?php endif; ?>
 
 <?php
 get_footer();

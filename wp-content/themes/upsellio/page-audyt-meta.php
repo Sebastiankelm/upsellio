@@ -2,6 +2,7 @@
 if (!defined("ABSPATH")) {
     exit;
 }
+$upsellio_load_public_tracking = !function_exists("upsellio_should_load_public_tracking_tags") || upsellio_should_load_public_tracking_tags();
 $primary_navigation_links = function_exists("upsellio_get_primary_navigation_links") ? upsellio_get_primary_navigation_links() : [];
 $brand_logo_assets = function_exists("upsellio_get_brand_logo_assets") ? upsellio_get_brand_logo_assets() : [];
 $brand_logo_url = (string) ($brand_logo_assets["png"] ?? "");
@@ -94,6 +95,7 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
+  <?php if ($upsellio_load_public_tracking) : ?>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-R37SMGVBNC"></script>
   <script>
@@ -103,8 +105,10 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
 
     gtag('config', 'G-R37SMGVBNC');
   </script>
+  <?php endif; ?>
   <meta charset="<?php bloginfo("charset"); ?>" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <?php if ($upsellio_load_public_tracking) : ?>
   <!-- Google Tag Manager -->
   <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -112,6 +116,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','GTM-KM9J5XC2');</script>
   <!-- End Google Tag Manager -->
+  <?php endif; ?>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -935,10 +940,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 </head>
 <body <?php body_class(); ?>>
   <?php wp_body_open(); ?>
+  <?php if ($upsellio_load_public_tracking) : ?>
   <!-- Google Tag Manager (noscript) -->
   <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KM9J5XC2"
   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
+  <?php endif; ?>
   <header class="nav">
     <div class="wrap nav-inner">
       <a href="#start" class="brand" aria-label="Upsellio — strona główna">

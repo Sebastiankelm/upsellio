@@ -42,6 +42,7 @@ $brand_logo_webp_640_url = (string) ($brand_logo_assets["webp_640"] ?? "");
 $brand_logo_attachment_id = (int) ($brand_logo_assets["custom_logo_id"] ?? 0);
 $primary_navigation_top = [];
 $primary_navigation_children = [];
+$upsellio_load_public_tracking = !function_exists("upsellio_should_load_public_tracking_tags") || upsellio_should_load_public_tracking_tags();
 foreach ((array) $primary_navigation_links as $nav_link) {
     $link_id = (int) ($nav_link["id"] ?? 0);
     $parent_id = (int) ($nav_link["parent"] ?? 0);
@@ -60,6 +61,7 @@ foreach ((array) $primary_navigation_links as $nav_link) {
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
+  <?php if ($upsellio_load_public_tracking) : ?>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-R37SMGVBNC"></script>
   <script>
@@ -69,8 +71,10 @@ foreach ((array) $primary_navigation_links as $nav_link) {
 
     gtag('config', 'G-R37SMGVBNC');
   </script>
+  <?php endif; ?>
   <meta charset="<?php bloginfo("charset"); ?>">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <?php if ($upsellio_load_public_tracking) : ?>
   <!-- Google Tag Manager -->
   <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -78,6 +82,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','GTM-KM9J5XC2');</script>
   <!-- End Google Tag Manager -->
+  <?php endif; ?>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -86,10 +91,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 </head>
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
+<?php if ($upsellio_load_public_tracking) : ?>
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KM9J5XC2"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
+<?php endif; ?>
 <a class="skip-link" href="#main-content">Przejdź do treści</a>
 <header class="nav">
   <div class="nav-topbar" aria-label="Szybki kontakt">

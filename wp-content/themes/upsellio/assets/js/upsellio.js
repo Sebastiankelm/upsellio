@@ -689,7 +689,10 @@
   }
   initLeadPolicyNotices();
 
+  const skipAnalytics = Boolean(window.upsellioData && window.upsellioData.skipAnalytics);
+
   function pushDataLayerEvent(eventName, payload = {}) {
+    if (skipAnalytics) return;
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
       event: eventName,
@@ -700,13 +703,48 @@
     });
   }
 
+  /**
+   * Konkretny event konwersji pod GTM/GA4 (obok legacy generate_lead).
+   */
+  function resolveLeadConversionEventName(formOrigin) {
+    const o = String(formOrigin || "");
+    if (o === "audit-form") return "lead_audit_form";
+    if (o === "blog-form") return "lead_blog_form";
+    if (o === "home-lead-magnet" || o === "lead-magnet-single") return "";
+    const contactLike = new Set([
+      "contact-page-form",
+      "contact-form",
+      "home-contact-form",
+      "offer-page-form",
+      "single-post-contact-form",
+      "hero-microform",
+      "miasto-single",
+      "single-portfolio-form",
+      "single-marketing-portfolio-form",
+      "definicja-single",
+    ]);
+    if (contactLike.has(o)) return "lead_contact_form";
+    return "lead_web_form";
+  }
+
+  function pushLeadConversionStack(formElement) {
+    const payload = buildLeadPayload(formElement);
+    pushDataLayerEvent("generate_lead", payload);
+    const extra = resolveLeadConversionEventName(payload.form_origin);
+    if (extra) pushDataLayerEvent(extra, payload);
+    if (payload.lead_magnet_name) pushDataLayerEvent("lead_magnet_signup", payload);
+  }
+
   function buildLeadPayload(formElement) {
     if (!formElement) return {};
     const formId = formElement.id || formElement.dataset.upsellioLeadForm || "lead-form";
     const formOrigin = formElement.querySelector('input[name="lead_form_origin"]')?.value || "";
     const leadSource = formElement.querySelector('input[name="lead_source"]')?.value || "";
     const leadMagnetName = formElement.querySelector('input[name="lead_magnet_name"]')?.value || "";
-    const leadService = formElement.querySelector('input[name="lead_service"]')?.value || "";
+    const leadServiceEl = formElement.querySelector('select[name="lead_service"], input[name="lead_service"]');
+    const leadService = leadServiceEl?.value || "";
+    const leadBudgetEl = formElement.querySelector('select[name="lead_budget"], input[name="lead_budget"]');
+    const lead_budget = leadBudgetEl?.value || "";
     const emailInput = formElement.querySelector('input[type="email"], input[name*="email"]');
     const hasEmail = Boolean(emailInput?.value && String(emailInput.value).trim() !== "");
 
@@ -716,6 +754,7 @@
       lead_source: leadSource,
       lead_magnet_name: leadMagnetName,
       lead_service: leadService,
+      lead_budget,
       has_email: hasEmail,
       utm_source: attribution.source || "",
       utm_medium: attribution.medium || "",
@@ -725,11 +764,15 @@
   }
 
   function trackContactClick(type, target) {
-    pushDataLayerEvent("contact_click", {
+    if (skipAnalytics) return;
+    const base = {
       contact_type: type,
       contact_target: target,
       click_text: target,
-    });
+    };
+    if (type === "mailto") pushDataLayerEvent("contact_click_mail", base);
+    if (type === "tel") pushDataLayerEvent("contact_click_phone", base);
+    pushDataLayerEvent("contact_click", base);
 
     if (!window.upsellioData?.ajaxUrl || !window.upsellioData?.contactNonce) return;
     const body = new URLSearchParams();
@@ -814,15 +857,12 @@
 
           feedback.textContent = "Dziękuję! Wiadomość została zapisana i odezwę się możliwie szybko.";
           feedback.classList.add("is-success");
-          if (typeof window.gtag === "function") {
+          if (!skipAnalytics && typeof window.gtag === "function") {
             window.gtag("event", "lead_form_submitted", {
               form_id: serverForm.id || serverForm.dataset.upsellioLeadForm || "lead-form",
             });
           }
-          pushDataLayerEvent("generate_lead", buildLeadPayload(serverForm));
-          if (buildLeadPayload(serverForm).lead_magnet_name) {
-            pushDataLayerEvent("lead_magnet_signup", buildLeadPayload(serverForm));
-          }
+          pushLeadConversionStack(serverForm);
           serverForm.reset();
         } catch (error) {
           feedback.textContent = error.message || "Błąd wysyłki. Spróbuj ponownie.";
@@ -898,15 +938,12 @@
           feedback.style.background = "#e8f8f2";
           feedback.style.color = "#085041";
           submitBtn.textContent = "Wysłano!";
-          if (typeof window.gtag === "function") {
+          if (!skipAnalytics && typeof window.gtag === "function") {
             window.gtag("event", "lead_form_submitted", {
               form_id: form.id || form.dataset.upsellioLeadForm || "lead-form",
             });
           }
-          pushDataLayerEvent("generate_lead", buildLeadPayload(form));
-          if (buildLeadPayload(form).lead_magnet_name) {
-            pushDataLayerEvent("lead_magnet_signup", buildLeadPayload(form));
-          }
+          pushLeadConversionStack(form);
           setTimeout(() => {
             submitBtn.textContent = defaultText;
             submitBtn.disabled = false;
@@ -971,15 +1008,12 @@
 
         submitBtn.textContent = "Wysłano! Odezwę się wkrótce ✓";
         submitBtn.style.background = "var(--teal-dark)";
-        if (typeof window.gtag === "function") {
+        if (!skipAnalytics && typeof window.gtag === "function") {
           window.gtag("event", "lead_form_submitted", {
             form_id: form.id || "contact-form",
           });
         }
-        pushDataLayerEvent("generate_lead", buildLeadPayload(form));
-        if (buildLeadPayload(form).lead_magnet_name) {
-          pushDataLayerEvent("lead_magnet_signup", buildLeadPayload(form));
-        }
+        pushLeadConversionStack(form);
         setTimeout(() => {
           submitBtn.textContent = defaultText;
           submitBtn.style.background = "";

@@ -269,6 +269,16 @@ echo wp_json_encode([
             <?php endforeach; ?>
           </select>
         </label>
+        <label>Orientacyjny budżet (opcjonalnie)
+          <select name="lead_budget">
+            <option value="">Wybierz lub pomiń</option>
+            <option value="do 2000 zł">do 2000 zł</option>
+            <option value="2000–5000 zł">2000–5000 zł</option>
+            <option value="5000–10000 zł">5000–10 000 zł</option>
+            <option value="powyżej 10000 zł">powyżej 10 000 zł</option>
+            <option value="nie wiem">nie wiem</option>
+          </select>
+        </label>
         <label>Wiadomość
           <textarea name="lead_message" placeholder="Krótko opisz sytuację: co działa, co nie działa, jaki jest cel." required></textarea>
         </label>
