@@ -66,7 +66,7 @@ function upsellio_render_internal_links_html($post_id, $limit = 3, $title = "Pow
     }
 
     $posts = get_posts([
-        "post_type" => "post",
+        "post_type" => ["post", "page"],
         "post_status" => "publish",
         "post__in" => $related_ids,
         "orderby" => "post__in",
@@ -467,7 +467,13 @@ function upsellio_blog_tool_ai_chat($ai_settings, $messages, $temperature = null
         : null;
     $raw = upsellio_anthropic_crm_send_user_prompt($full_prompt, max(800, min(4096, $max_tokens_value)), 90, $model_override, $cache_split);
     if ($raw === null || trim($raw) === "") {
-        return new WP_Error("upsellio_ai_crm_failed", "Brak odpowiedzi z Claude (CRM). Sprawdź klucz API Anthropic i limity.");
+        $detail = function_exists("upsellio_anthropic_crm_get_last_send_error") ? trim(upsellio_anthropic_crm_get_last_send_error()) : "";
+        $msg = "Brak odpowiedzi z Claude (CRM). Sprawdź klucz API Anthropic, model i limity.";
+        if ($detail !== "") {
+            $msg .= " " . $detail;
+        }
+
+        return new WP_Error("upsellio_ai_crm_failed", $msg);
     }
 
     return $raw;
