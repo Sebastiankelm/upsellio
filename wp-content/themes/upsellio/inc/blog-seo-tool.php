@@ -173,8 +173,8 @@ function upsellio_contact_form_shortcode()
           <textarea name="lead_message" rows="5" required></textarea>
         </label>
 
-        <label style="display:flex;gap:8px;align-items:flex-start;">
-          <input type="checkbox" name="lead_consent" value="1" required style="margin-top:4px;" />
+        <label class="ups-inline-consent">
+          <input type="checkbox" name="lead_consent" value="1" required />
           <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
         </label>
 
@@ -1946,10 +1946,10 @@ function upsellio_render_blog_generator_screen()
             const checks = [];
             const titleToCheck = seoTitle || title;
 
-            if (titleToCheck.length >= 45 && titleToCheck.length <= 65) {
+            if (titleToCheck.length >= 45 && titleToCheck.length <= 60) {
               score += 5;
             } else {
-              addSuggestion(checks, "<strong>Snippet:</strong> title powinien mieć 45-65 znaków.", "seo_title");
+              addSuggestion(checks, "<strong>Snippet:</strong> SEO title 45-60 znaków (CMS dokleja nazwę witryny).", "seo_title");
             }
 
             if (seoDescription.length >= 140 && seoDescription.length <= 160) {
@@ -2371,8 +2371,8 @@ function upsellio_render_blog_generator_screen()
               critical.push("Brak frazy głównej (primary query).");
             }
 
-            if (seoTitle.length >= 45 && seoTitle.length <= 65) seoScore += 8;
-            else addSuggestion(suggestions, "<strong>SEO title:</strong> ustaw 45-65 znaków.", "seo_title");
+            if (seoTitle.length >= 45 && seoTitle.length <= 60) seoScore += 8;
+            else addSuggestion(suggestions, "<strong>SEO title:</strong> ustaw 45-60 znaków (max przed sufiksem witryny).", "seo_title");
 
             if (seoDescription.length >= 140 && seoDescription.length <= 160) seoScore += 9;
             else {

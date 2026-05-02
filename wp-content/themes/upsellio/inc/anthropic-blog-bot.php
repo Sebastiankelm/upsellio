@@ -441,12 +441,17 @@ function upsellio_blog_bot_mb_cut(string $s, int $max): string
     if (upsellio_blog_bot_mb_len($s) <= $max) {
         return $s;
     }
+    $cut = function_exists("mb_substr") ? mb_substr($s, 0, $max, "UTF-8") : substr($s, 0, $max);
+    $last_space = function_exists("mb_strrpos") ? mb_strrpos($cut, " ", 0, "UTF-8") : strrpos($cut, " ");
+    if ($last_space !== false && $last_space > (int) ($max * 0.7)) {
+        $cut = function_exists("mb_substr") ? mb_substr($cut, 0, $last_space, "UTF-8") : substr($cut, 0, $last_space);
+    }
 
-    return function_exists("mb_substr") ? mb_substr($s, 0, $max, "UTF-8") : substr($s, 0, $max);
+    return rtrim($cut, ",;: ");
 }
 
 /**
- * SEO Tool: SEO title 45–65 znaków.
+ * SEO Tool: SEO title 45–60 znaków (CMS dokleja nazwę witryny do tytułu strony w SERP).
  */
 function upsellio_blog_bot_clamp_seo_title(string $seo_title, string $fallback_title, string $primary_query): string
 {
@@ -455,11 +460,11 @@ function upsellio_blog_bot_clamp_seo_title(string $seo_title, string $fallback_t
         $seo_title = trim($fallback_title);
     }
     $len = upsellio_blog_bot_mb_len($seo_title);
-    if ($len >= 45 && $len <= 65) {
+    if ($len >= 45 && $len <= 60) {
         return $seo_title;
     }
-    if ($len > 65) {
-        return upsellio_blog_bot_mb_cut($seo_title, 65);
+    if ($len > 60) {
+        return upsellio_blog_bot_mb_cut($seo_title, 60);
     }
     $suffix = " — poradnik B2B";
     $candidate = $seo_title . $suffix;
@@ -470,7 +475,7 @@ function upsellio_blog_bot_clamp_seo_title(string $seo_title, string $fallback_t
         $candidate = $candidate . " — checklista i metryki";
     }
 
-    return upsellio_blog_bot_mb_cut($candidate, 65);
+    return upsellio_blog_bot_mb_cut($candidate, 60);
 }
 
 /**
@@ -480,9 +485,14 @@ function upsellio_blog_bot_clamp_meta_description(string $meta, string $title, s
 {
     $meta = trim($meta);
     if ($meta === "") {
-        $meta = $primary_query !== ""
-            ? "Praktyczny poradnik: " . $primary_query . ". Konkretne kroki, przykłady i wnioski dla firm B2B — sprawdź jak wdrożyć i zmierzyć efekty."
-            : "Poradnik B2B — konkretne metody, przykłady wdrożeń i checklista dla marketerów i właścicieli firm.";
+        if ($primary_query !== "") {
+            $base = "Praktyczny poradnik: " . $primary_query . ". Konkretne kroki i przykłady dla firm B2B.";
+            $meta = upsellio_blog_bot_mb_len($base) <= 160
+                ? $base
+                : upsellio_blog_bot_mb_cut($base, 157) . "...";
+        } else {
+            $meta = "Poradnik B2B — konkretne metody, przykłady wdrożeń i checklista dla marketerów i właścicieli firm.";
+        }
     }
     $len = upsellio_blog_bot_mb_len($meta);
     if ($len >= 140 && $len <= 160) {
@@ -655,7 +665,7 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null)
             . "- Sekcja FAQ: <h2>FAQ</h2> + co najmniej jedno <h3> z pytaniem.\n"
             . "- article_type: zwykle \"seo_article\".\n"
             . "- meta_description: 140–160 znaków, z frazą związaną z {keyword} (dobry snippet pod Rank Math).\n"
-            . "- seo_title: 45–65 znaków (snippet w SERP; może być zbliżony do title).\n"
+            . "- seo_title: 45–60 znaków MAX (CMS dodaje nazwę witryny; może być zbliżony do title).\n"
             . "- primary_query: główna fraza SEO (Rank Math focus keyword).\n"
             . "- query_cluster: 5–12 powiązanych fraz oddzielonych przecinkami.\n"
             . "- user_questions: 3 pytania czytelnika, każde w osobnej linii (\\n).\n"
@@ -692,6 +702,13 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null)
     if (strpos($prompt_template, "{internal_url_catalog}") === false && trim($prompt_template) !== "") {
         $prompt .= "\n\n---\nINTERNAL_URL_CATALOG — używaj WYŁĄCZNIE tych adresów w linkach [tekst](url) w polu content (2–5 linków), kopiuj URL 1:1:\n"
             . $catalog_block;
+    }
+
+    if (function_exists("upsellio_ai_master_context")) {
+        $master_blog = upsellio_ai_master_context("blog");
+        if ($master_blog !== "") {
+            $prompt .= "\n\n---\nDane o skuteczności Twojego bloga (priorytety treści — co generuje leady vs martwy ruch):\n" . $master_blog;
+        }
     }
 
     $prefix = upsellio_blog_bot_company_prefix();
@@ -846,7 +863,8 @@ function upsellio_blog_bot_generate_and_save(): void
     $allowed_urls = upsellio_blog_bot_allowed_urls_map($catalog);
     $content_raw = upsellio_blog_bot_markdown_links_to_html($content_raw, $allowed_urls);
     $content_raw = upsellio_blog_bot_content_markdown_headings_to_html($content_raw);
-    $content_raw = upsellio_blog_bot_prepend_toc_block($content_raw);
+    // Spis treści jest budowany w single.php (.sp-toc) — nie wstrzykuj ups-article-toc do treści (uniknięcie podwójnego TOC).
+    // $content_raw = upsellio_blog_bot_prepend_toc_block($content_raw);
     $content_raw = upsellio_blog_bot_ensure_sbt_shortcodes($content_raw, $article_type);
     $content = wp_kses_post($content_raw);
 
@@ -880,7 +898,7 @@ function upsellio_blog_bot_generate_and_save(): void
         "post_status" => "draft",
         "post_type" => "post",
         "post_name" => $slug,
-        "post_author" => 1,
+        "post_author" => (int) get_option("ups_blog_bot_post_author", 1),
     ], true);
 
     if (is_wp_error($post_id) || (int) $post_id <= 0) {

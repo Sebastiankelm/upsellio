@@ -29,10 +29,12 @@ function upsellio_anthropic_crm_default_prompt_inbox_draft()
     return "Piszesz jako konsultant B2B agencji marketingowej (Polska). Na podstawie wątku e-mail z klientem przygotuj SZKIC odpowiedzi — profesjonalny, konkretny, bez HTML.\n"
         . "Odpowiedz WYŁĄCZNIE JSON: {\"reply_body\": \"...\", \"reply_subject\": \"...\" }\n"
         . "reply_subject: krótki temat (może być pusty \"\" jeśli wystarczy Re: z kontekstu).\n"
-        . "reply_body: 2–8 zdań, ton partnerski, jedna jasna propozycja następnego kroku.\n\n"
+        . "reply_body: 2–8 zdań, ton partnerski, jedna jasna propozycja następnego kroku.\n"
+        . "Jeśli podano zachowanie na stronie oferty — odwołaj się naturalnie (np. wybrana opcja, czas na cenniku), bez technicznego żargonu.\n\n"
         . "Etap deala (CRM): {offer_stage}\nTytuł oferty/dealu: {offer_title}\n\n"
         . "{hint_section}"
         . "{intent_section}"
+        . "{behavior_section}"
         . "Transkrypt wątku:\n{thread}";
 }
 
@@ -42,8 +44,9 @@ function upsellio_anthropic_crm_default_prompt_inbox_followup()
         . "Klient NIE otrzymał naszej odpowiedzi od około {hours_silence} godzin mimo swojej ostatniej wiadomości — ton uprzejmy, bez presji, bez oskarżeń, 3–6 zdań, bez HTML (tylko tekst).\n"
         . "Odpowiedz WYŁĄCZNIE JSON: {\"reply_body\": \"...\", \"reply_subject\": \"...\" }\n"
         . "reply_subject: opcjonalnie krótki temat (może \"\" — wtedy system użyje Re: tytułu oferty).\n"
-        . "reply_body: sam tekst wiadomości.\n\n"
-        . "Etap deala: {offer_stage}\nTytuł oferty: {offer_title}\n\n{channel_context}Transkrypt:\n{thread}";
+        . "reply_body: sam tekst wiadomości.\n"
+        . "Jeśli widać aktywność na publicznej stronie oferty (cennik, wybór opcji, CTA) — nawiąż jednym zdaniem, potem przejdź do meritum.\n\n"
+        . "Etap deala: {offer_stage}\nTytuł oferty: {offer_title}\n\n{channel_context}{behavior_section}Transkrypt:\n{thread}";
 }
 
 function upsellio_anthropic_crm_default_prompt_offer_description()
@@ -119,7 +122,7 @@ function upsellio_anthropic_crm_apply_placeholders($template, array $vars)
 /**
  * Kontekst firmy per funkcja AI — opcje `ups_ai_context_*`; puste = fallback do wspólnego `ups_ai_company_context`.
  *
- * @param string $which lead_score|inbox_draft|inbox_followup|offer_description|blog|topicgen
+ * @param string $which lead_score|inbox_draft|inbox_followup|offer_description|offer_fill|blog|topicgen
  */
 function upsellio_anthropic_crm_get_specialized_company_context(string $which): string
 {
@@ -129,6 +132,7 @@ function upsellio_anthropic_crm_get_specialized_company_context(string $which): 
         "inbox_draft" => ["ups_ai_context_draft"],
         "inbox_followup" => ["ups_ai_context_followup", "ups_ai_context_draft"],
         "offer_description" => ["ups_ai_context_draft"],
+        "offer_fill" => ["ups_ai_context_offer_fill", "ups_ai_context_draft"],
         "blog" => ["ups_ai_context_blog"],
         "topicgen" => ["ups_ai_context_blog"],
     ];
@@ -528,6 +532,13 @@ function upsellio_crm_run_ai_wp_lead_classification($lead_id)
         }
     }
 
+    if (function_exists("upsellio_ai_master_context")) {
+        $master_ctx = upsellio_ai_master_context("scoring");
+        if ($master_ctx !== "") {
+            $blob .= "\n\nKontekst operacyjny (agregat dzienny — kalibracja scoringu vs Twoja historia):\n" . $master_ctx;
+        }
+    }
+
     $prompt = upsellio_anthropic_crm_compose_api_prompt("lead_score", [
         "lead_status_list" => $status_list,
         "lead_blob" => $blob,
@@ -635,6 +646,13 @@ function upsellio_crm_inbox_ai_draft_reply_ajax()
         wp_send_json_error(["message" => "empty_thread"], 400);
     }
 
+    $behavior_ctx = function_exists("upsellio_offer_ai_behavior_context")
+        ? trim((string) upsellio_offer_ai_behavior_context($offer_id))
+        : "";
+    $behavior_section = $behavior_ctx !== ""
+        ? "Zachowanie klienta na publicznej stronie oferty:\n" . $behavior_ctx . "\n\n"
+        : "";
+
     $hint = isset($_POST["hint"]) ? sanitize_textarea_field(wp_unslash($_POST["hint"])) : "";
     if (function_exists("mb_substr")) {
         $hint = mb_substr($hint, 0, 1200, "UTF-8");
@@ -685,6 +703,7 @@ function upsellio_crm_inbox_ai_draft_reply_ajax()
         "hint_block" => $hint_section,
         "hint" => $hint,
         "intent_section" => $intent_section,
+        "behavior_section" => $behavior_section,
     ]);
 
     $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 900, 35);
@@ -829,6 +848,13 @@ function upsellio_crm_ai_inbox_followup_hourly_run()
             ? "Kontekst kanału marketingowego (GA4 / CRM):\n" . $ch_ctx . "\n\n"
             : "";
 
+        $behavior_ctx_fu = function_exists("upsellio_offer_ai_behavior_context")
+            ? trim((string) upsellio_offer_ai_behavior_context($offer_id))
+            : "";
+        $behavior_section_fu = $behavior_ctx_fu !== ""
+            ? "Zachowanie klienta na publicznej stronie oferty:\n" . $behavior_ctx_fu . "\n\n"
+            : "";
+
         $prompt = upsellio_anthropic_crm_compose_api_prompt("inbox_followup", [
             "offer_title" => $title,
             "offer_stage" => $stage_disp,
@@ -839,6 +865,7 @@ function upsellio_crm_ai_inbox_followup_hourly_run()
             "last_message" => $last_msg,
             "days_silent" => $days_silent,
             "channel_context" => $channel_context,
+            "behavior_section" => $behavior_section_fu,
         ]);
 
         $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 640, 32);

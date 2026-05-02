@@ -293,6 +293,13 @@ function upsellio_topicgen_build_prompt(int $count): string
             . trim($priority_ctx);
     }
 
+    if (function_exists("upsellio_ai_master_context")) {
+        $master_blog = upsellio_ai_master_context("blog");
+        if ($master_blog !== "") {
+            $sections[] = "WYNIKI BLOGA (co faktycznie generuje leady — priorytetyzuj podobne tematy i unikaj martwego ruchu):\n" . $master_blog;
+        }
+    }
+
     $sections[] = "ZADANIE:\nWygeneruj dokładnie {$count} tematów wpisów blogowych w języku polskim. "
         . "Tematy mają wspierać SEO, odpowiadać na realne pytania potencjalnych klientów B2B i być powiązane z usługami firmy. "
         . "Każdy temat to gotowy tytuł artykułu — konkretny, z główną frazą kluczową, bez clickbaitu.";
