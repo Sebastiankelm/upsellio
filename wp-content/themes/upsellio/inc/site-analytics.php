@@ -28,7 +28,7 @@ function upsellio_is_trackable_content_view()
         return false;
     }
 
-    if (is_user_logged_in() && current_user_can("edit_posts")) {
+    if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
         return false;
     }
 
