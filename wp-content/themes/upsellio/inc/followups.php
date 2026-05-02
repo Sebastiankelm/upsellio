@@ -4,6 +4,26 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
+/**
+ * Gdy brak sekretu REST (GSC/GA4 sync, inbound), wygeneruj losowy 64-znakowy hex przy pierwszym wejściu admina.
+ */
+function upsellio_followups_bootstrap_inbound_secret(): void
+{
+    if (!is_admin() || !current_user_can("manage_options")) {
+        return;
+    }
+    if ((string) get_option("ups_followup_inbound_secret", "") !== "") {
+        return;
+    }
+    if (function_exists("random_bytes")) {
+        $hex = bin2hex(random_bytes(32));
+    } else {
+        $hex = strtolower((string) wp_generate_password(64, false, false));
+    }
+    update_option("ups_followup_inbound_secret", $hex, false);
+}
+add_action("admin_init", "upsellio_followups_bootstrap_inbound_secret", 2);
+
 function upsellio_mailbox_log_verbose_enabled(): bool
 {
     return (string) get_option("ups_mailbox_log_verbose", "0") === "1";
