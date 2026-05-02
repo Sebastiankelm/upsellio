@@ -1192,6 +1192,7 @@ require_once get_template_directory() . "/inc/cities-seed.php";
 require_once get_template_directory() . "/inc/definitions-seed.php";
 require_once get_template_directory() . "/inc/blog-seo-tool.php";
 require_once get_template_directory() . "/inc/crm.php";
+require_once get_template_directory() . "/inc/analytics-internal-exclude.php";
 require_once get_template_directory() . "/inc/seo-automation.php";
 require_once get_template_directory() . "/inc/data-schema.php";
 require_once get_template_directory() . "/inc/site-analytics.php";
@@ -1204,6 +1205,10 @@ require_once get_template_directory() . "/inc/theme-config.php";
 require_once get_template_directory() . "/inc/offers.php";
 require_once get_template_directory() . "/inc/inbox.php";
 require_once get_template_directory() . "/inc/followups.php";
+require_once get_template_directory() . "/inc/anthropic-crm-leads-inbox.php";
+require_once get_template_directory() . "/inc/post-editor-seo-claude.php";
+// Blog Bot (WP-Cron, drafty wpisów) — korzysta z upsellio_anthropic_crm_send_user_prompt() z pliku powyżej.
+require_once get_template_directory() . "/inc/anthropic-blog-bot.php";
 require_once get_template_directory() . "/inc/sales-engine.php";
 require_once get_template_directory() . "/inc/automation-suite.php";
 require_once get_template_directory() . "/inc/crm-app.php";
@@ -1258,6 +1263,9 @@ function upsellio_print_tracking_scripts_head()
     if (is_admin()) {
         return;
     }
+    if (function_exists("upsellio_should_load_public_tracking_tags") && !upsellio_should_load_public_tracking_tags()) {
+        return;
+    }
 
     $measurement_id = upsellio_get_ga4_measurement_id();
     if ($measurement_id !== "") {
@@ -1284,6 +1292,9 @@ add_action("wp_head", "upsellio_print_tracking_scripts_head", 6);
 function upsellio_print_tracking_scripts_body()
 {
     if (is_admin()) {
+        return;
+    }
+    if (function_exists("upsellio_should_load_public_tracking_tags") && !upsellio_should_load_public_tracking_tags()) {
         return;
     }
 
@@ -1840,6 +1851,7 @@ function upsellio_assets()
                       "blogNonce" => wp_create_nonce("upsellio_blog_filter"),
                       "blogIndexUrl" => upsellio_get_blog_index_url(),
                       "contactNonce" => wp_create_nonce("upsellio_contact_click"),
+                      "skipAnalytics" => function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user(),
                   ], JSON_UNESCAPED_SLASHES); ?>;
                   (function () {
                     function loadUpsellioMain() {
@@ -1877,6 +1889,7 @@ function upsellio_assets()
             "blogNonce" => wp_create_nonce("upsellio_blog_filter"),
             "blogIndexUrl" => upsellio_get_blog_index_url(),
             "contactNonce" => wp_create_nonce("upsellio_contact_click"),
+            "skipAnalytics" => function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user(),
         ]
     );
 }
