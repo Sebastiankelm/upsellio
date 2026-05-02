@@ -819,25 +819,34 @@
   function upsellioMessageForLeadFormResponse(finalUrl, responseOk) {
     var generic =
       "Nie udało się wysłać formularza. Odśwież stronę i spróbuj ponownie, albo napisz na kontakt@upsellio.pl.";
+    var byReason = {
+      nonce:
+        "Sesja formularza wygasła (strona otwarta długo lub z pamięci podręcznej). Odśwież stronę (F5) i wyślij ponownie.",
+      fields: "Uzupełnij wymagane pola (imię, e-mail, wiadomość) i zaznacz zgodę na kontakt.",
+      rate: "Zbyt wiele prób z tej sieci lub adresu e-mail. Spróbuj ponownie za około godzinę albo napisz na kontakt@upsellio.pl.",
+      save: "Nie udało się zapisać zgłoszenia. Napisz na kontakt@upsellio.pl — odbiorę wiadomość.",
+    };
+
+    function messageForLeadErrorUrl(u) {
+      if (u.searchParams.get("ups_lead_status") !== "error") {
+        return null;
+      }
+      var reason = u.searchParams.get("ups_lead_reason") || "";
+      return byReason[reason] || generic;
+    }
+
     if (!finalUrl) {
       return responseOk ? null : generic;
     }
     try {
       var u = new URL(finalUrl, window.location.origin);
-      if (u.searchParams.get("ups_lead_status") !== "error") {
-        return null;
+      var fromRedirect = messageForLeadErrorUrl(u);
+      if (!responseOk) {
+        return fromRedirect !== null ? fromRedirect : generic;
       }
-      var reason = u.searchParams.get("ups_lead_reason") || "";
-      var byReason = {
-        nonce:
-          "Sesja formularza wygasła (strona otwarta długo lub z pamięci podręcznej). Odśwież stronę (F5) i wyślij ponownie.",
-        fields: "Uzupełnij wymagane pola (imię, e-mail, wiadomość) i zaznacz zgodę na kontakt.",
-        rate: "Zbyt wiele prób z tej sieci lub adresu e-mail. Spróbuj ponownie za około godzinę albo napisz na kontakt@upsellio.pl.",
-        save: "Nie udało się zapisać zgłoszenia. Napisz na kontakt@upsellio.pl — odbiorę wiadomość.",
-      };
-      return byReason[reason] || generic;
+      return fromRedirect;
     } catch (e) {
-      return generic;
+      return responseOk ? null : generic;
     }
   }
 
