@@ -132,6 +132,40 @@ function upsellio_blog_bot_company_prefix(): string
     return "Kontekst firmy:\n" . $company . "\n\n";
 }
 
+/**
+ * Frazy z GSC (endpoint /gsc-keywords lub import) — do wzbogacenia promptu blog bota.
+ */
+function upsellio_blog_bot_get_converting_keywords(int $top = 8): string
+{
+    $top = max(1, min(40, $top));
+    $rows = get_option("upsellio_keyword_metrics_rows", []);
+    if (!is_array($rows) || $rows === []) {
+        return "Brak danych GSC (synchronizuj przez REST /wp-json/upsellio/v1/gsc-keywords lub import w Site analytics).";
+    }
+    usort($rows, static function ($a, $b) {
+        $ca = is_array($a) ? (int) ($a["clicks"] ?? 0) : 0;
+        $cb = is_array($b) ? (int) ($b["clicks"] ?? 0) : 0;
+
+        return $cb <=> $ca;
+    });
+    $lines = [];
+    foreach (array_slice($rows, 0, $top) as $r) {
+        if (!is_array($r)) {
+            continue;
+        }
+        $kw = trim((string) ($r["keyword"] ?? ""));
+        if ($kw === "") {
+            continue;
+        }
+        $pos = (float) ($r["position"] ?? 0);
+        $cl = (int) ($r["clicks"] ?? 0);
+        $ctr = (float) ($r["ctr"] ?? 0);
+        $lines[] = sprintf('- "%s" | poz. %.1f | %d kliknięć | CTR %.1f%%', $kw, $pos, $cl, $ctr);
+    }
+
+    return $lines !== [] ? implode("\n", $lines) : "Brak przetworzonych wierszy GSC.";
+}
+
 function upsellio_blog_bot_build_prompt(string $keyword): string
 {
     $prompt_template = (string) get_option("ups_ai_prompt_blog_post", "");
@@ -139,20 +173,22 @@ function upsellio_blog_bot_build_prompt(string $keyword): string
     $posts_ctx = upsellio_blog_bot_get_posts_context(10);
     $services_ctx = upsellio_blog_bot_get_services_context();
     $tone = "partnerski, konkretny, B2B (PL)";
+    $converting_kw = upsellio_blog_bot_get_converting_keywords(8);
 
     if ($prompt_template === "") {
         $prompt_template = "Napisz artykuł blogowy na temat: {keyword}.\n"
             . "Długość: ok. {target_length} słów.\n"
             . "Ton: {tone}.\n"
             . "Istniejące wpisy (unikaj duplikowania tematów):\n{existing_posts}\n\n"
+            . "Frazy które już przynoszą kliknięcia z Google (nie powielaj tych tematów; możesz je rozwinąć lub powiązać):\n{converting_keywords}\n\n"
             . "Kontekst usług firmy:\n{services_context}\n\n"
             . "Odpowiedz TYLKO jednym obiektem JSON (bez markdown), dokładnie w formacie:\n"
             . '{"title":"...","slug":"...","meta_description":"...","tags":["..."],"content":"..."}';
     }
 
     $prompt = str_replace(
-        ["{keyword}", "{target_length}", "{existing_posts}", "{services_context}", "{tone}"],
-        [(string) $keyword, (string) $target_length, $posts_ctx, $services_ctx, $tone],
+        ["{keyword}", "{target_length}", "{existing_posts}", "{services_context}", "{tone}", "{converting_keywords}"],
+        [(string) $keyword, (string) $target_length, $posts_ctx, $services_ctx, $tone, $converting_kw],
         $prompt_template
     );
 
