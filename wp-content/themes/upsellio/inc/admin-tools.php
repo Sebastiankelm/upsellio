@@ -99,7 +99,7 @@ function upsellio_render_admin_hub_screen()
     ?>
     <div class="wrap">
       <h1>Panel Upsellio</h1>
-      <p style="max-width:820px;">Jedno miejsce do narzędzi projektu: treści, generatory, SEO, pliki techniczne, analityka. Operacje sprzedażowe (CRM) są w aplikacji <strong>CRM App</strong> na froncie — w menu WordPressa jest tylko skrót wejścia.</p>
+      <p style="max-width:820px;">Jedno miejsce do narzędzi projektu: treści, generatory, SEO, pliki techniczne, analityka. Operacje sprzedażowe (CRM) są w aplikacji <strong>CRM App</strong> na froncie — wejście: pozycja <strong>CRM App</strong> w podmenu <strong>Upsellio</strong> (lewym pasku).</p>
 
       <?php
       upsellio_admin_hub_section("Treści i konfiguracja", [
@@ -131,10 +131,6 @@ function upsellio_render_admin_hub_screen()
           ["Generator briefu SEO", "Tworzenie briefów pod wpisy i klastry treści.", upsellio_admin_url("upsellio-seo-brief")],
           ["Content Refresh", "Lista wpisów wymagających odświeżenia.", upsellio_admin_url("upsellio-content-refresh")],
           ["Analityka SEO", "Widoki, trendy, pozycje i rekomendacje per URL.", upsellio_admin_url("upsellio-site-analytics")],
-      ]);
-
-      upsellio_admin_hub_section("CRM i sprzedaż", [
-          ["CRM App", "Pulpit, lejek, klienci, oferty, zadania, skrzynka i ustawienia — cała praca w jednym miejscu (frontend).", upsellio_admin_url("upsellio-crm-app")],
       ]);
 
       upsellio_admin_hub_section("Techniczne", [
