@@ -10,10 +10,16 @@ if (!defined("UPSELLIO_ANTHROPIC_DEFAULT_MODEL")) {
 
 function upsellio_anthropic_crm_default_prompt_lead_score()
 {
-    return "Jesteś analitykiem B2B. Na podstawie treści leada z formularza strony oceń szanse sprzedaży i sugerowany etap lejka.\n"
-        . "Odpowiedz WYŁĄCZNIE jednym obiektem JSON (bez markdown, bez komentarzy), dokładnie w formacie:\n"
-        . "{\"lead_score\": <liczba całkowita 0-100>, \"lead_status\": \"<jeden z: {lead_status_list}>\"}\n\n"
-        . "lead_score: 0 = spam / brak zainteresowania, 100 = bardzo gorący lead gotowy do rozmowy handlowej.\n"
+    return "Jesteś analitykiem B2B specjalizującym się w ocenie leadów marketingowych dla Sebastiana Kelma (konsultant Google Ads + Meta Ads + strony B2B, Polska). Oceniasz leada na podstawie dopasowania do ICP:\n"
+        . "ICP: firma z budżetem reklamowym min. 2000–3000 PLN/mies., branże: SaaS, e-commerce B2B, usługi profesjonalne. Wykluczone: MLM, kryptowaluty, pojedyncze strony za <1000 PLN.\n\n"
+        . "Skala lead_score:\n"
+        . "0–20 = spam/poza ICP\n"
+        . "21–40 = słabe dopasowanie\n"
+        . "41–60 = potencjał, wymaga kwalifikacji\n"
+        . "61–80 = dobry lead, szybki kontakt\n"
+        . "81–100 = gorący, priorytet.\n\n"
+        . "Odpowiedz WYŁĄCZNIE jednym obiektem JSON (bez markdown, bez komentarzy):\n"
+        . "{\"lead_score\": <0-100>, \"lead_status\": \"<jeden z: {lead_status_list}>\", \"score_reason\": \"2–3 zdania po polsku — dlaczego taki wynik\"}\n\n"
         . "lead_status: new = świeży, contacted = warto szybki kontakt, qualified = jasna potrzeba i budżet, proposal = gotowość na ofertę.\n\n"
         . "Dane leada:\n{lead_blob}";
 }
@@ -26,6 +32,7 @@ function upsellio_anthropic_crm_default_prompt_inbox_draft()
         . "reply_body: 2–8 zdań, ton partnerski, jedna jasna propozycja następnego kroku.\n\n"
         . "Etap deala (CRM): {offer_stage}\nTytuł oferty/dealu: {offer_title}\n\n"
         . "{hint_section}"
+        . "{intent_section}"
         . "Transkrypt wątku:\n{thread}";
 }
 
@@ -110,6 +117,37 @@ function upsellio_anthropic_crm_apply_placeholders($template, array $vars)
 }
 
 /**
+ * Kontekst firmy per funkcja AI — opcje `ups_ai_context_*`; puste = fallback do wspólnego `ups_ai_company_context`.
+ *
+ * @param string $which lead_score|inbox_draft|inbox_followup|offer_description|blog|topicgen
+ */
+function upsellio_anthropic_crm_get_specialized_company_context(string $which): string
+{
+    $which = sanitize_key($which);
+    $chains = [
+        "lead_score" => ["ups_ai_context_scoring"],
+        "inbox_draft" => ["ups_ai_context_draft"],
+        "inbox_followup" => ["ups_ai_context_followup", "ups_ai_context_draft"],
+        "offer_description" => ["ups_ai_context_draft"],
+        "blog" => ["ups_ai_context_blog"],
+        "topicgen" => ["ups_ai_context_blog"],
+    ];
+    $keys = $chains[$which] ?? [];
+    foreach ($keys as $opt_key) {
+        $t = trim((string) get_option((string) $opt_key, ""));
+        if ($t !== "") {
+            return $t;
+        }
+    }
+    $fallback = trim((string) get_option("ups_ai_company_context", ""));
+    if ($fallback === "") {
+        $fallback = trim((string) get_option("ups_anthropic_company_context", ""));
+    }
+
+    return $fallback;
+}
+
+/**
  * Kontekst firmy (stały prefiks) + treść zadania — wygodne pod cache po stronie Anthropic.
  *
  * @param string $which lead_score|inbox_draft|inbox_followup|offer_description
@@ -118,10 +156,7 @@ function upsellio_anthropic_crm_apply_placeholders($template, array $vars)
 function upsellio_anthropic_crm_compose_api_prompt($which, array $vars)
 {
     $body = upsellio_anthropic_crm_apply_placeholders(upsellio_anthropic_crm_get_prompt_template($which), $vars);
-    $company = trim((string) get_option("ups_ai_company_context", ""));
-    if ($company === "") {
-        $company = trim((string) get_option("ups_anthropic_company_context", ""));
-    }
+    $company = upsellio_anthropic_crm_get_specialized_company_context((string) $which);
     if ($company !== "") {
         return $company . "\n\n--- Zadanie ---\n\n" . $body;
     }
@@ -138,12 +173,37 @@ function upsellio_anthropic_crm_api_key()
     return trim((string) get_option("ups_anthropic_api_key", ""));
 }
 
+/**
+ * Poprawka znanych literówek / nieistniejących snapshotów (HTTP 404 „model not found”).
+ * Oficjalne ID: https://docs.anthropic.com/en/docs/about-claude/models
+ */
+function upsellio_anthropic_crm_normalize_model_id(string $model): string
+{
+    $model = trim($model);
+    if ($model === "") {
+        return $model;
+    }
+    $key = strtolower($model);
+    $map = [
+        // Błędna data wersji Sonnet 4.5 — API zwraca 404
+        "claude-sonnet-4-5-20251022" => "claude-sonnet-4-5",
+        "claude-sonnet-4-5-20251001" => "claude-sonnet-4-5",
+        "claude-sonnet-4-5-20251015" => "claude-sonnet-4-5",
+    ];
+    if (isset($map[$key])) {
+        return $map[$key];
+    }
+
+    return $model;
+}
+
 function upsellio_anthropic_crm_resolve_model()
 {
     $model = trim((string) get_option("ups_anthropic_model", ""));
     if ($model === "") {
         $model = (string) UPSELLIO_ANTHROPIC_DEFAULT_MODEL;
     }
+    $model = upsellio_anthropic_crm_normalize_model_id($model);
 
     return (string) apply_filters("upsellio_anthropic_inbound_model", $model);
 }
@@ -155,12 +215,28 @@ function upsellio_anthropic_crm_extract_text_from_response_body($raw)
     }
     $piece = "";
     foreach ($raw["content"] as $block) {
-        if (is_array($block) && ($block["type"] ?? "") === "text" && isset($block["text"])) {
+        if (!is_array($block)) {
+            continue;
+        }
+        $type = (string) ($block["type"] ?? "");
+        if ($type === "text" && isset($block["text"])) {
+            $piece .= " " . (string) $block["text"];
+        } elseif ($type === "" && isset($block["text"])) {
             $piece .= " " . (string) $block["text"];
         }
     }
 
     return trim($piece);
+}
+
+/**
+ * Ostatni błąd / diagnostyka wywołania Messages API (ustawiane przez upsellio_anthropic_crm_send_user_prompt).
+ */
+function upsellio_anthropic_crm_get_last_send_error(): string
+{
+    return isset($GLOBALS["upsellio_anthropic_crm_last_send_error"])
+        ? (string) $GLOBALS["upsellio_anthropic_crm_last_send_error"]
+        : "";
 }
 
 /**
@@ -171,13 +247,17 @@ function upsellio_anthropic_crm_extract_text_from_response_body($raw)
  */
 function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $timeout = 28, $model_override = null, $cache_split = null)
 {
+    $GLOBALS["upsellio_anthropic_crm_last_send_error"] = "";
     $api_key = upsellio_anthropic_crm_api_key();
     if ($api_key === "") {
+        $GLOBALS["upsellio_anthropic_crm_last_send_error"] = "Brak klucza API (UPSELLIO_ANTHROPIC_API_KEY / ups_anthropic_api_key).";
+
         return null;
     }
     $model = $model_override !== null && trim((string) $model_override) !== ""
         ? trim((string) $model_override)
         : upsellio_anthropic_crm_resolve_model();
+    $model = upsellio_anthropic_crm_normalize_model_id($model);
     $prompt = (string) $prompt;
     if (function_exists("mb_substr")) {
         $prompt = mb_substr($prompt, 0, 48000, "UTF-8");
@@ -197,6 +277,19 @@ function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $ti
         } else {
             $cached_raw = substr($cached_raw, 0, 20000);
             $dynamic_raw = substr($dynamic_raw, 0, 28000);
+        }
+    }
+
+    // Anthropic Prompt Caching: blok z cache_control musi mieć ok. min. 1024 tokeny — krótszy prefiks powoduje HTTP 400.
+    $min_cache_chars = (int) apply_filters("upsellio_anthropic_crm_cache_min_chars", 4000);
+    if ($use_cache && $min_cache_chars > 0) {
+        $cache_len = function_exists("mb_strlen")
+            ? (int) mb_strlen($cached_raw, "UTF-8")
+            : (int) strlen($cached_raw);
+        if ($cache_len < $min_cache_chars) {
+            $use_cache = false;
+            $cached_raw = "";
+            $dynamic_raw = "";
         }
     }
 
@@ -238,19 +331,45 @@ function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $ti
         ]
     );
     if (is_wp_error($response)) {
+        $GLOBALS["upsellio_anthropic_crm_last_send_error"] = "Sieć WordPress: " . $response->get_error_message();
+
         return null;
     }
     $code = (int) wp_remote_retrieve_response_code($response);
+    $body_raw = (string) wp_remote_retrieve_body($response);
     if ($code < 200 || $code >= 300) {
+        $decoded = json_decode($body_raw, true);
+        $msg = "";
+        if (is_array($decoded) && isset($decoded["error"]) && is_array($decoded["error"])) {
+            $msg = (string) ($decoded["error"]["message"] ?? "");
+        }
+        if ($msg === "") {
+            $msg = trim(wp_strip_all_tags($body_raw));
+        }
+        if (strlen($msg) > 600) {
+            $msg = function_exists("mb_substr") ? mb_substr($msg, 0, 600, "UTF-8") : substr($msg, 0, 600);
+        }
+        $GLOBALS["upsellio_anthropic_crm_last_send_error"] = $msg !== "" ? "HTTP {$code}: {$msg}" : "HTTP {$code} (pusta odpowiedź).";
+
         return null;
     }
-    $raw = json_decode((string) wp_remote_retrieve_body($response), true);
+    $raw = json_decode($body_raw, true);
     if (!is_array($raw)) {
+        $GLOBALS["upsellio_anthropic_crm_last_send_error"] = "Niepoprawny JSON w odpowiedzi API.";
+
         return null;
     }
     $text = upsellio_anthropic_crm_extract_text_from_response_body($raw);
+    if ($text === "") {
+        $stop = isset($raw["stop_reason"]) ? (string) $raw["stop_reason"] : "";
+        $GLOBALS["upsellio_anthropic_crm_last_send_error"] = $stop !== ""
+            ? "HTTP 200, ale brak bloku text w content (stop_reason: {$stop})."
+            : "HTTP 200, ale brak tekstu w polu content odpowiedzi modelu.";
 
-    return $text !== "" ? $text : null;
+        return null;
+    }
+
+    return $text;
 }
 
 function upsellio_anthropic_crm_parse_json_object($text)
@@ -380,6 +499,35 @@ function upsellio_crm_run_ai_wp_lead_classification($lead_id)
         }
     }
 
+    if (post_type_exists("crm_offer")) {
+        $won_ids = get_posts([
+            "post_type" => "crm_offer",
+            "post_status" => ["publish", "private"],
+            "posts_per_page" => 3,
+            "orderby" => "modified",
+            "order" => "DESC",
+            "fields" => "ids",
+            "meta_query" => [
+                [
+                    "key" => "_ups_offer_status",
+                    "value" => "won",
+                ],
+            ],
+        ]);
+        $won_ctx = "";
+        foreach ($won_ids as $wid) {
+            $wid = (int) $wid;
+            $ttl = get_the_title($wid);
+            $price = (string) get_post_meta($wid, "_ups_offer_price", true);
+            if ($ttl !== "") {
+                $won_ctx .= "- " . $ttl . ($price !== "" ? ": " . $price . " PLN" : "") . "\n";
+            }
+        }
+        if ($won_ctx !== "") {
+            $blob .= "\n\nPrzykłady wygranych projektów:\n" . trim($won_ctx);
+        }
+    }
+
     $prompt = upsellio_anthropic_crm_compose_api_prompt("lead_score", [
         "lead_status_list" => $status_list,
         "lead_blob" => $blob,
@@ -395,7 +543,7 @@ function upsellio_crm_run_ai_wp_lead_classification($lead_id)
         "lead_form_origin" => $origin,
     ]);
 
-    $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 128, 22);
+    $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 280, 28);
     if ($raw === null) {
         if (function_exists("upsellio_crm_add_timeline_event")) {
             upsellio_crm_add_timeline_event($lead_id, "ai_score", "Klasyfikacja AI: brak odpowiedzi API.");
@@ -415,6 +563,12 @@ function upsellio_crm_run_ai_wp_lead_classification($lead_id)
 
     $score = isset($data["lead_score"]) ? (int) $data["lead_score"] : -1;
     $status_slug = isset($data["lead_status"]) ? sanitize_key((string) $data["lead_status"]) : "";
+    $score_reason = isset($data["score_reason"]) ? sanitize_text_field((string) $data["score_reason"]) : "";
+    if (function_exists("mb_substr")) {
+        $score_reason = mb_substr($score_reason, 0, 600, "UTF-8");
+    } else {
+        $score_reason = substr($score_reason, 0, 600);
+    }
     if ($score < 0 || $score > 100) {
         if (function_exists("upsellio_crm_add_timeline_event")) {
             upsellio_crm_add_timeline_event($lead_id, "ai_score", "Klasyfikacja AI: poza zakresem score.");
@@ -427,6 +581,9 @@ function upsellio_crm_run_ai_wp_lead_classification($lead_id)
     }
 
     update_post_meta($lead_id, "_upsellio_lead_score", $score);
+    if ($score_reason !== "") {
+        update_post_meta($lead_id, "_upsellio_lead_score_reason", $score_reason);
+    }
 
     if (function_exists("upsellio_crm_get_term_id_by_slug")) {
         $term_id = upsellio_crm_get_term_id_by_slug("lead_status", $status_slug);
@@ -436,11 +593,9 @@ function upsellio_crm_run_ai_wp_lead_classification($lead_id)
     }
 
     if (function_exists("upsellio_crm_add_timeline_event")) {
-        upsellio_crm_add_timeline_event(
-            $lead_id,
-            "ai_score",
-            "AI: score " . $score . ", sugerowany status: " . $status_slug . "."
-        );
+        $line = "AI: score " . $score . ", sugerowany status: " . $status_slug
+            . ($score_reason !== "" ? ". Powód: " . $score_reason : "") . ".";
+        upsellio_crm_add_timeline_event($lead_id, "ai_score", $line);
     }
 }
 
@@ -492,6 +647,35 @@ function upsellio_crm_inbox_ai_draft_reply_ajax()
     $stage_disp = $stage !== "" ? $stage : "nieznany";
     $hint_section = $hint !== "" ? "Notatki handlowca (opcjonalnie):\n" . $hint . "\n\n" : "";
 
+    $intent_section = "";
+    $last_in_draft = upsellio_anthropic_crm_inbox_thread_last_inbound($thread);
+    if (is_array($last_in_draft) && strlen(trim((string) ($last_in_draft["body_plain"] ?? ""))) > 40) {
+        $plain_last = (string) ($last_in_draft["body_plain"] ?? "");
+        if (function_exists("mb_substr")) {
+            $plain_last = mb_substr($plain_last, 0, 400, "UTF-8");
+        } else {
+            $plain_last = substr($plain_last, 0, 400);
+        }
+        $intent_mini = "Sklasyfikuj ostatnią wiadomość klienta jednym tokenem (EN, snake_case): "
+            . "price_question|timing_objection|positive_signal|ready_to_buy|no_interest|other.\n"
+            . "Odpowiedz tylko tym jednym tokenem, bez zdań.\n\nWiadomość:\n" . $plain_last;
+        $intent_raw = upsellio_anthropic_crm_send_user_prompt($intent_mini, 64, 14, (string) UPSELLIO_ANTHROPIC_DEFAULT_MODEL);
+        $intent_key = "";
+        if ($intent_raw !== null && trim((string) $intent_raw) !== "") {
+            $ir = trim((string) $intent_raw);
+            $split_nl = preg_split("/\r\n|\n|\r/", $ir, 2);
+            $first_line = (is_array($split_nl) && isset($split_nl[0])) ? (string) $split_nl[0] : $ir;
+            $tok = preg_split("/\s+/", trim($first_line), 2);
+            $intent_key = sanitize_key((string) ($tok[0] ?? ""));
+            if (strlen($intent_key) > 48) {
+                $intent_key = substr($intent_key, 0, 48);
+            }
+        }
+        if ($intent_key !== "") {
+            $intent_section = "Klasyfikacja intencji ostatniej wiadomości klienta: " . $intent_key . "\n\n";
+        }
+    }
+
     $prompt = upsellio_anthropic_crm_compose_api_prompt("inbox_draft", [
         "offer_title" => $title,
         "offer_stage" => $stage_disp,
@@ -500,6 +684,7 @@ function upsellio_crm_inbox_ai_draft_reply_ajax()
         "hint_section" => $hint_section,
         "hint_block" => $hint_section,
         "hint" => $hint,
+        "intent_section" => $intent_section,
     ]);
 
     $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 900, 35);
