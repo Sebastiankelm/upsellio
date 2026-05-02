@@ -485,35 +485,15 @@ function upsellio_crm_app_template_redirect()
             </div>
           </div>
           <nav class="side-nav">
-            <div class="side-section"><?php esc_html_e("Główne", "upsellio"); ?></div>
             <a class="side-link <?php echo $view === "dashboard" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "dashboard"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Pulpit", "upsellio"); ?></a>
             <a class="side-link <?php echo $view === "inbox" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "inbox"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Inbox", "upsellio"); ?><?php if ($crm_inbox_unread_total > 0) : ?><span class="side-badge hot"><?php echo (int) $crm_inbox_unread_total; ?></span><?php endif; ?></a>
             <a class="side-link <?php echo $view === "leads" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "leads"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Leady", "upsellio"); ?></a>
             <a class="side-link <?php echo $view === "pipeline" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "pipeline"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Pipeline", "upsellio"); ?></a>
             <a class="side-link <?php echo $view === "clients" || $view === "client-edit" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "clients"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Klienci", "upsellio"); ?></a>
-
-            <div class="side-section"><?php esc_html_e("Sprzedaż", "upsellio"); ?></div>
             <a class="side-link <?php echo $view === "offers" || $view === "deals" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "offers"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Oferty", "upsellio"); ?></a>
             <a class="side-link <?php echo $view === "tasks" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "tasks"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Zadania", "upsellio"); ?></a>
             <a class="side-link <?php echo $view === "analytics" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "analytics"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Analityka", "upsellio"); ?></a>
-
-            <div class="side-section"><?php esc_html_e("System", "upsellio"); ?></div>
             <a class="side-link <?php echo $view === "settings" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "general"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Ustawienia", "upsellio"); ?></a>
-
-            <div class="side-section"><?php esc_html_e("Więcej", "upsellio"); ?></div>
-            <a class="side-link <?php echo $view === "contact-queue" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "contact-queue"], home_url("/crm-app/"))); ?>">Do kontaktu</a>
-            <a class="side-link <?php echo $view === "deals" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "deals"], home_url("/crm-app/"))); ?>">Deale</a>
-            <a class="side-link <?php echo $view === "offers" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "offers"], home_url("/crm-app/"))); ?>">Oferty</a>
-            <a class="side-link <?php echo $view === "contacts" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "contacts"], home_url("/crm-app/"))); ?>">Kontakty</a>
-            <a class="side-link <?php echo $view === "contracts" || $view === "contract-detail" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "contracts"], home_url("/crm-app/"))); ?>">Umowy</a>
-            <a class="side-link <?php echo $view === "calendar" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "calendar"], home_url("/crm-app/"))); ?>">Kalendarz</a>
-            <a class="side-link <?php echo $view === "prospecting" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "prospecting"], home_url("/crm-app/"))); ?>">Produkcja / outbound</a>
-            <a class="side-link <?php echo $view === "account-360" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "account-360"], home_url("/crm-app/"))); ?>">Karta 360</a>
-            <a class="side-link <?php echo $view === "followups" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "followups"], home_url("/crm-app/"))); ?>">Szablony follow-up</a>
-            <a class="side-link <?php echo $view === "template-studio" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "template-studio"], home_url("/crm-app/"))); ?>">Generator szablonów</a>
-            <a class="side-link <?php echo $view === "services" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "services"], home_url("/crm-app/"))); ?>">Katalog usług</a>
-            <a class="side-link <?php echo $view === "engine" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "engine"], home_url("/crm-app/"))); ?>">Silnik sprzedaży</a>
-            <a class="side-link <?php echo $view === "alerts" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "alerts"], home_url("/crm-app/"))); ?>">Alerty</a>
           </nav>
         </aside>
         <main class="main">
@@ -3831,6 +3811,8 @@ function upsellio_crm_app_template_redirect()
                   <a class="btn <?php echo $settings_tab === "integrations" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "integrations"], home_url("/crm-app/"))); ?>">Integracje</a>
                   <a class="btn <?php echo $settings_tab === "notifications" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "notifications"], home_url("/crm-app/"))); ?>">Powiadomienia</a>
                   <a class="btn <?php echo $settings_tab === "ai" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "ai"], home_url("/crm-app/"))); ?>">AI / Anthropic</a>
+                  <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "engine"], home_url("/crm-app/"))); ?>">Silnik sprzedaży</a>
+                  <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "template-studio"], home_url("/crm-app/"))); ?>">Szablony ofert/umów</a>
                 </p>
               </section>
 
@@ -3932,13 +3914,22 @@ function upsellio_crm_app_template_redirect()
                     <input type="hidden" name="settings_tab" value="ai" />
                     <label style="grid-column:1/-1;font-weight:700">Kontekst firmy (<code>ups_ai_company_context</code>)</label>
                     <textarea name="ups_ai_company_context" rows="6" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit" placeholder="Np. kim jesteś, specjalizacja, ton, właściciel…"><?php echo esc_textarea($ups_ai_company_val); ?></textarea>
+                    <p class="muted" style="grid-column:1/-1;margin:-4px 0 4px;font-size:12px;line-height:1.5">Opcjonalnie: wąskie konteksty zamiast jednego bloku dla wszystkich funkcji — jeśli pole jest puste, używany jest ogólny kontekst powyżej.</p>
+                    <label style="grid-column:1/-1;font-weight:700">Kontekst — scoring leadów (<code>ups_ai_context_scoring</code>)</label>
+                    <textarea name="ups_ai_context_scoring" rows="4" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit" placeholder="<?php echo esc_attr("Przykład do wklejenia i dopasowania: Sebastian Kelm, konsultant Google Ads + Meta Ads + strony B2B. ICP: firmy z budżetem reklamowym min. 2000–3000 PLN/mies., branże SaaS, e-commerce B2B, usługi profesjonalne. Wyklucz: MLM, kryptowaluty, strony jednorazowe <1000 PLN. Oceniaj surowo — lepiej missed lead niż zmarnowany czas na niskiej jakości kontakt."); ?>"><?php echo esc_textarea(trim((string) get_option("ups_ai_context_scoring", ""))); ?></textarea>
+                    <label style="grid-column:1/-1;font-weight:700;margin-top:6px">Kontekst — draft / follow-up inbox (<code>ups_ai_context_draft</code>, follow-up: <code>ups_ai_context_followup</code> jeśli ustawiony)</label>
+                    <textarea name="ups_ai_context_draft" rows="4" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit" placeholder="<?php echo esc_attr("Przykład: Piszesz jako konsultant agencji — ton konkretny i partnerski, bez korpo-żargonu. Krótkie maile, jedna jasna propozycja następnego kroku (call, brief, termin). PL, B2B."); ?>"><?php echo esc_textarea(trim((string) get_option("ups_ai_context_draft", ""))); ?></textarea>
+                    <label style="grid-column:1/-1;font-weight:700;margin-top:6px">Kontekst — tylko auto follow-up po ciszy (<code>ups_ai_context_followup</code>)</label>
+                    <textarea name="ups_ai_context_followup" rows="3" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit" placeholder="<?php echo esc_attr("Opcjonalnie nadpisuje kontekst dla crona follow-up po ciszy; puste = użyj pola draft powyżej. Przykład: grzeczny reminder, bez presji, uzasadnij wartość jednym zdaniem."); ?>"><?php echo esc_textarea(trim((string) get_option("ups_ai_context_followup", ""))); ?></textarea>
+                    <label style="grid-column:1/-1;font-weight:700;margin-top:6px">Kontekst — Blog Bot + generator tematów (<code>ups_ai_context_blog</code>)</label>
+                    <textarea name="ups_ai_context_blog" rows="4" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit" placeholder="<?php echo esc_attr("Przykład do wklejenia: Piszesz jako Sebastian Kelm — praktyk B2B z 10-letnim doświadczeniem. Styl: partnerski, konkretny, bez korporacyjnego żargonu. Czytelnik: właściciel firmy lub marketer w firmie B2B, Polska. Unikaj teorii — każdy artykuł musi dawać czytelnikowi jeden konkretny krok do wykonania."); ?>"><?php echo esc_textarea(trim((string) get_option("ups_ai_context_blog", ""))); ?></textarea>
 
                     <label style="grid-column:1/-1;font-weight:700;margin-top:8px">Prompt — scoring leada (formularz → <code>lead</code>)</label>
-                    <p class="muted" style="grid-column:1/-1;margin:-6px 0 4px;font-size:12px">Placeholdery: <code>{lead_data}</code> / <code>{lead_blob}</code>, <code>{lead_status_list}</code>, <code>{lead_name}</code>, <code>{lead_email}</code>, <code>{lead_phone}</code>, <code>{lead_company}</code>, <code>{lead_service}</code>, <code>{lead_budget}</code>, <code>{lead_goal}</code>, <code>{lead_message}</code>, <code>{lead_form_origin}</code></p>
+                    <p class="muted" style="grid-column:1/-1;margin:-6px 0 4px;font-size:12px">Domyślny szablon oczekuje JSON z polami <code>lead_score</code>, <code>lead_status</code>, <code>score_reason</code>. Placeholdery: <code>{lead_data}</code> / <code>{lead_blob}</code>, <code>{lead_status_list}</code>, <code>{lead_name}</code>, <code>{lead_email}</code>, <code>{lead_phone}</code>, <code>{lead_company}</code>, <code>{lead_service}</code>, <code>{lead_budget}</code>, <code>{lead_goal}</code>, <code>{lead_message}</code>, <code>{lead_form_origin}</code></p>
                     <textarea name="ups_ai_prompt_lead_scoring" rows="10" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:ui-monospace,Menlo,Consolas,monospace"><?php echo esc_textarea($ups_ai_lead_prompt_val); ?></textarea>
 
                     <label style="grid-column:1/-1;font-weight:700;margin-top:8px">Prompt — draft odpowiedzi (Inbox ✨)</label>
-                    <p class="muted" style="grid-column:1/-1;margin:-6px 0 4px;font-size:12px">Placeholdery: <code>{offer_title}</code>, <code>{offer_stage}</code> / <code>{stage}</code>, <code>{thread}</code>, <code>{hint_section}</code> / <code>{hint_block}</code>, <code>{hint}</code></p>
+                    <p class="muted" style="grid-column:1/-1;margin:-6px 0 4px;font-size:12px">Placeholdery: <code>{offer_title}</code>, <code>{offer_stage}</code> / <code>{stage}</code>, <code>{thread}</code>, <code>{hint_section}</code> / <code>{hint_block}</code>, <code>{hint}</code>, <code>{intent_section}</code> (wstawiane automatycznie — klasyfikacja ostatniej wiadomości inbox)</p>
                     <textarea name="ups_ai_prompt_inbox_draft" rows="10" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:ui-monospace,Menlo,Consolas,monospace"><?php echo esc_textarea($ups_ai_inbox_draft_val); ?></textarea>
 
                     <label style="grid-column:1/-1;font-weight:700;margin-top:8px">Prompt — follow-up po ciszy (cron)</label>
@@ -3953,7 +3944,8 @@ function upsellio_crm_app_template_redirect()
                     <p class="muted" style="grid-column:1/-1;margin:-4px 0 8px;font-size:12px;line-height:1.5">Harmonogram: pierwsze uruchomienie w okolicy <strong>poniedziałku 07:00</strong> (strefa witryny), potem wg interwału. Fraza jest zdejmowana z kolejki dopiero po udanym zapisie szkicu (błąd API nie kasuje tematu).</p>
                     <label style="grid-column:1/-1"><input type="checkbox" name="ups_blog_bot_enabled" value="1" <?php checked((string) get_option("ups_blog_bot_enabled", "0"), "1"); ?> /> Włącz Blog Bota</label>
                     <label>Model (osobny od CRM)</label>
-                    <input type="text" name="ups_blog_bot_model" value="<?php echo esc_attr((string) get_option("ups_blog_bot_model", "claude-haiku-4-5-20251001")); ?>" placeholder="claude-haiku-4-5-20251001" />
+                    <input type="text" name="ups_blog_bot_model" value="<?php echo esc_attr((string) get_option("ups_blog_bot_model", "claude-haiku-4-5-20251001")); ?>" placeholder="np. claude-haiku-4-5-20251001, claude-sonnet-4-5" />
+                    <p class="muted" style="grid-column:1/-1;margin:-4px 0 0;font-size:11px;line-height:1.45">Snapshot Sonnet 4.5 w API to <code>claude-sonnet-4-5-20250929</code> lub alias <code>claude-sonnet-4-5</code> — identyfikator <code>…-20251022</code> nie istnieje (404).</p>
                     <label>Harmonogram</label>
                     <select name="ups_blog_bot_schedule">
                       <option value="daily" <?php selected($ups_blog_sched, "daily"); ?>>Codziennie</option>
@@ -3975,11 +3967,11 @@ function upsellio_crm_app_template_redirect()
                       <?php endforeach; ?>
                     </select>
                     <label style="grid-column:1/-1;font-weight:700;margin-top:6px">Kolejka tematów (jedna linia = jeden temat)</label>
-                    <textarea name="ups_blog_bot_keywords_queue" rows="10" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit"><?php echo esc_textarea((string) get_option("ups_blog_bot_keywords_queue", "")); ?></textarea>
+                    <textarea id="ups-blog-bot-keywords-queue" name="ups_blog_bot_keywords_queue" rows="10" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit"><?php echo esc_textarea((string) get_option("ups_blog_bot_keywords_queue", "")); ?></textarea>
                     <label style="grid-column:1/-1;font-weight:700">Użyte tematy (podgląd)</label>
                     <textarea readonly rows="5" style="grid-column:1/-1;width:100%;font-size:12px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-muted, rgba(0,0,0,.04));font-family:ui-monospace,Menlo,Consolas,monospace"><?php echo esc_textarea((string) get_option("ups_blog_bot_keywords_used", "")); ?></textarea>
                     <label style="grid-column:1/-1;font-weight:700;margin-top:8px">Prompt — artykuł blogowy (<code>ups_ai_prompt_blog_post</code>)</label>
-                    <p class="muted" style="grid-column:1/-1;margin:-6px 0 4px;font-size:12px">Zmienne: <code>{keyword}</code>, <code>{target_length}</code>, <code>{existing_posts}</code>, <code>{services_context}</code>, <code>{tone}</code></p>
+                    <p class="muted" style="grid-column:1/-1;margin:-6px 0 4px;font-size:12px">Zmienne: <code>{keyword}</code>, <code>{target_length}</code>, <code>{existing_posts}</code>, <code>{services_context}</code>, <code>{converting_keywords}</code>, <code>{internal_url_catalog}</code>, <code>{tone}</code> — jeśli w szablonie nie ma <code>{internal_url_catalog}</code>, katalog URL (do linków markdown) jest dopisywany na końcu promptu.</p>
                     <textarea name="ups_ai_prompt_blog_post" rows="12" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:ui-monospace,Menlo,Consolas,monospace"><?php echo esc_textarea((string) get_option("ups_ai_prompt_blog_post", "")); ?></textarea>
 
                     <h3 style="grid-column:1/-1;margin:18px 0 6px;font-size:15px;font-family:var(--font-display),Syne,sans-serif">Narzędzie SEO Blog Tool (generator w WP)</h3>
@@ -4010,6 +4002,11 @@ function upsellio_crm_app_template_redirect()
                     <button class="btn" type="submit" style="grid-column:1/-1;margin-top:6px">Zapisz ustawienia AI / Blog</button>
                   </form>
                 </section>
+                <?php
+                if (function_exists("upsellio_topicgen_render_panel")) {
+                    upsellio_topicgen_render_panel();
+                }
+                ?>
               <?php endif; ?>
 
               <?php if ($settings_tab === "mailbox") : ?>
