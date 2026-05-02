@@ -3913,10 +3913,18 @@ function upsellio_crm_app_template_redirect()
                 $ups_blog_last_run = (string) get_option("ups_blog_bot_last_run", "");
                 $ups_blog_last_draft = (int) get_option("ups_blog_bot_last_draft_id", 0);
                 $ups_blog_sched = (string) get_option("ups_blog_bot_schedule", "weekly");
+                $ups_seo_temp_raw = get_option("ups_ai_blog_seo_temperature", null);
+                $ups_seo_temp_display = $ups_seo_temp_raw === null || $ups_seo_temp_raw === ""
+                    ? 0.7
+                    : max(0.0, min(1.2, (float) $ups_seo_temp_raw));
+                $ups_seo_max_raw = get_option("ups_ai_blog_seo_max_tokens", null);
+                $ups_seo_max_display = $ups_seo_max_raw === null || $ups_seo_max_raw === ""
+                    ? 3500
+                    : max(800, min(12000, (int) $ups_seo_max_raw));
                 ?>
                 <section class="card">
                   <h2>AI / Anthropic — prompty i Blog Bot</h2>
-                  <p class="muted" style="margin:0 0 12px;font-size:13px;line-height:1.55">Kontekst firmy i prompty trafiają do <code>wp_options</code> (<code>ups_ai_*</code>). Przy zapisie kontekst jest synchronizowany także do <code>ups_anthropic_company_context</code> dla starszych integracji. Blog Bot tworzy wyłącznie <strong>szkice</strong> wpisów (nigdy nie publikuje sam). Przy włączonym kontekście firmy wywołania bloga używają <strong>Prompt Caching</strong> (Anthropic) dla pierwszego bloku tekstu.</p>
+                  <p class="muted" style="margin:0 0 12px;font-size:13px;line-height:1.55">Kontekst firmy i prompty trafiają do <code>wp_options</code> (<code>ups_ai_*</code>). Przy zapisie kontekst jest synchronizowany także do <code>ups_anthropic_company_context</code> dla starszych integracji. Blog Bot tworzy wyłącznie <strong>szkice</strong> wpisów (nigdy nie publikuje sam). Narzędzie <strong>SEO Blog Tool</strong> (WP) korzysta z tych samych kluczy Anthropic i modelu <code>ups_blog_bot_model</code>; prompty systemowe / kampanii / limity tokenów dla generatora ustawiasz poniżej (bez osobnej konfiguracji w widoku SEO Blog Tool). Przy włączonym kontekście firmy wywołania bloga używają <strong>Prompt Caching</strong> (Anthropic) dla pierwszego bloku tekstu.</p>
                   <form method="post" class="grid2" style="align-items:start">
                     <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
                     <input type="hidden" name="ups_action" value="save_quick_settings" />
@@ -3973,6 +3981,20 @@ function upsellio_crm_app_template_redirect()
                     <label style="grid-column:1/-1;font-weight:700;margin-top:8px">Prompt — artykuł blogowy (<code>ups_ai_prompt_blog_post</code>)</label>
                     <p class="muted" style="grid-column:1/-1;margin:-6px 0 4px;font-size:12px">Zmienne: <code>{keyword}</code>, <code>{target_length}</code>, <code>{existing_posts}</code>, <code>{services_context}</code>, <code>{tone}</code></p>
                     <textarea name="ups_ai_prompt_blog_post" rows="12" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:ui-monospace,Menlo,Consolas,monospace"><?php echo esc_textarea((string) get_option("ups_ai_prompt_blog_post", "")); ?></textarea>
+
+                    <h3 style="grid-column:1/-1;margin:18px 0 6px;font-size:15px;font-family:var(--font-display),Syne,sans-serif">Narzędzie SEO Blog Tool (generator w WP)</h3>
+                    <p class="muted" style="grid-column:1/-1;margin:-4px 0 8px;font-size:12px;line-height:1.5">Te pola sterują wyłącznie ręcznym generatorem (<em>Wpisy → SEO Blog Tool</em>): lista tematów + JSON wpisu. Model i klucz API jak Blog Bot powyżej.</p>
+                    <label style="grid-column:1/-1;font-weight:700">Prompt systemowy — generator SEO (<code>ups_ai_prompt_blog_seo_system</code>)</label>
+                    <p class="muted" style="grid-column:1/-1;margin:-6px 0 4px;font-size:12px">Używany jako instrukcja systemowa przy generowaniu tematów i treści JSON w narzędziu SEO Blog Tool.</p>
+                    <textarea name="ups_ai_prompt_blog_seo_system" rows="8" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit"><?php echo esc_textarea((string) get_option("ups_ai_prompt_blog_seo_system", "")); ?></textarea>
+                    <label style="grid-column:1/-1;font-weight:700;margin-top:8px">Domyślny prompt kampanii — prefill w SEO Blog Tool (<code>ups_ai_blog_seo_campaign_default</code>)</label>
+                    <p class="muted" style="grid-column:1/-1;margin:-6px 0 4px;font-size:12px">Wartość startowa pola „Prompt kampanii” w formularzu generatora (można nadpisać przy każdej serii).</p>
+                    <textarea name="ups_ai_blog_seo_campaign_default" rows="5" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit"><?php echo esc_textarea((string) get_option("ups_ai_blog_seo_campaign_default", "")); ?></textarea>
+                    <label>Temperature (SEO generator)</label>
+                    <input type="number" step="0.05" min="0" max="1.2" name="ups_ai_blog_seo_temperature" value="<?php echo esc_attr((string) $ups_seo_temp_display); ?>" />
+                    <label>Max tokens (SEO generator, max 4096 w API)</label>
+                    <input type="number" min="800" max="12000" name="ups_ai_blog_seo_max_tokens" value="<?php echo esc_attr((string) $ups_seo_max_display); ?>" />
+
                     <label style="grid-column:1/-1">Ostatnie uruchomienie</label>
                     <input type="text" readonly style="grid-column:1/-1;max-width:420px" value="<?php echo esc_attr($ups_blog_last_run !== "" ? $ups_blog_last_run : "—"); ?>" />
                     <?php
@@ -4147,7 +4169,7 @@ function upsellio_crm_app_template_redirect()
                     <input type="number" min="5" name="ups_automation_ab_min_sample" value="<?php echo esc_attr((string) get_option("ups_automation_ab_min_sample", 20)); ?>" />
                     <label>Minimalny uplift A/B (%)</label>
                     <input type="number" min="1" name="ups_automation_ab_min_lift_pct" value="<?php echo esc_attr((string) get_option("ups_automation_ab_min_lift_pct", 5)); ?>" />
-                    <label><input type="checkbox" name="ups_automation_ga4_sync_enabled" value="1" <?php checked((string) get_option("ups_automation_ga4_sync_enabled", "0"), "1"); ?> /> Włącz loop GA4 -> CRM (agregaty)</label>
+                    <label><input type="checkbox" name="ups_automation_ga4_sync_enabled" value="1" <?php checked((string) get_option("ups_automation_ga4_sync_enabled", "1"), "1"); ?> /> Włącz loop GA4 -> CRM (agregaty)</label>
                     <span></span>
                     <h3 style="grid-column:1/-1;margin-top:8px">SLA pipeline (godziny per etap decyzyjny)</h3>
                     <?php $sla_cfg = function_exists("upsellio_automation_get_pipeline_sla_definitions") ? upsellio_automation_get_pipeline_sla_definitions() : []; ?>
@@ -4164,7 +4186,8 @@ function upsellio_crm_app_template_redirect()
                     <span></span>
                     <p class="muted" style="grid-column:1 / -1">
                       Endpoint importu GA4 agregatów: <code><?php echo esc_html(rest_url("upsellio/v1/ga4-aggregate")); ?></code><br/>
-                      Nagłówek: <code>x-upsellio-secret</code> = Twój Inbound secret. Ostatni sync: <code><?php echo esc_html((string) get_option("ups_automation_ga4_last_sync", "-")); ?></code>.
+                      Endpoint słów kluczowych GSC (POST JSON, service account poza WP): <code><?php echo esc_html(rest_url("upsellio/v1/gsc-keywords")); ?></code><br/>
+                      Nagłówek: <code>x-upsellio-secret</code> = Twój Inbound secret (<code>ups_followup_inbound_secret</code>). Ostatni sync GA4: <code><?php echo esc_html((string) get_option("ups_automation_ga4_last_sync", "-")); ?></code>.
                     </p>
                     <?php for ($i = 1; $i <= 5; $i++) : ?>
                       <label>Prospecting step <?php echo esc_html((string) $i); ?> - subject</label>

@@ -821,6 +821,26 @@ function upsellio_crm_app_handle_post_actions()
                 if (isset($_POST["ups_ai_prompt_blog_post"])) {
                     update_option("ups_ai_prompt_blog_post", sanitize_textarea_field(wp_unslash($_POST["ups_ai_prompt_blog_post"])), false);
                 }
+                if (isset($_POST["ups_ai_prompt_blog_seo_system"])) {
+                    update_option("ups_ai_prompt_blog_seo_system", sanitize_textarea_field(wp_unslash($_POST["ups_ai_prompt_blog_seo_system"])), false);
+                }
+                if (isset($_POST["ups_ai_blog_seo_campaign_default"])) {
+                    update_option("ups_ai_blog_seo_campaign_default", sanitize_textarea_field(wp_unslash($_POST["ups_ai_blog_seo_campaign_default"])), false);
+                }
+                if (isset($_POST["ups_ai_blog_seo_temperature"])) {
+                    update_option(
+                        "ups_ai_blog_seo_temperature",
+                        max(0.0, min(1.2, (float) wp_unslash($_POST["ups_ai_blog_seo_temperature"]))),
+                        false
+                    );
+                }
+                if (isset($_POST["ups_ai_blog_seo_max_tokens"])) {
+                    update_option(
+                        "ups_ai_blog_seo_max_tokens",
+                        max(800, min(12000, (int) wp_unslash($_POST["ups_ai_blog_seo_max_tokens"]))),
+                        false
+                    );
+                }
                 update_option("ups_blog_bot_enabled", isset($_POST["ups_blog_bot_enabled"]) ? "1" : "0", false);
                 if (isset($_POST["ups_blog_bot_model"])) {
                     update_option("ups_blog_bot_model", sanitize_text_field(wp_unslash($_POST["ups_blog_bot_model"])), false);
