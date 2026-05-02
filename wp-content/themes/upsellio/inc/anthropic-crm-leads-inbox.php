@@ -36,7 +36,7 @@ function upsellio_anthropic_crm_default_prompt_inbox_followup()
         . "Odpowiedz WYŁĄCZNIE JSON: {\"reply_body\": \"...\", \"reply_subject\": \"...\" }\n"
         . "reply_subject: opcjonalnie krótki temat (może \"\" — wtedy system użyje Re: tytułu oferty).\n"
         . "reply_body: sam tekst wiadomości.\n\n"
-        . "Etap deala: {offer_stage}\nTytuł oferty: {offer_title}\n\nTranskrypt:\n{thread}";
+        . "Etap deala: {offer_stage}\nTytuł oferty: {offer_title}\n\n{channel_context}Transkrypt:\n{thread}";
 }
 
 function upsellio_anthropic_crm_default_prompt_offer_description()
@@ -371,6 +371,15 @@ function upsellio_crm_run_ai_wp_lead_classification($lead_id)
 
     $blob = "Tytul: {$name}\nEmail: {$email}\nTel: {$phone}\nFirma: {$company}\nUsluga: {$service}\nBudzet: {$budget}\nCel: {$goal}\nZrodlo formularza: {$origin}\n\nWiadomosc:\n{$message}";
 
+    $utm_src = sanitize_text_field((string) get_post_meta($lead_id, "_upsellio_lead_utm_source", true));
+    $utm_cmp = sanitize_text_field((string) get_post_meta($lead_id, "_upsellio_lead_utm_campaign", true));
+    if (function_exists("upsellio_automation_format_ga4_channel_for_ai")) {
+        $ch_line = upsellio_automation_format_ga4_channel_for_ai($utm_src, $utm_cmp);
+        if ($ch_line !== "") {
+            $blob .= "\n\nDane kanału marketingowego:\n" . $ch_line;
+        }
+    }
+
     $prompt = upsellio_anthropic_crm_compose_api_prompt("lead_score", [
         "lead_status_list" => $status_list,
         "lead_blob" => $blob,
@@ -626,6 +635,15 @@ function upsellio_crm_ai_inbox_followup_hourly_run()
             $last_msg = substr($last_msg, 0, 2000);
         }
         $days_silent = (string) max(1, (int) ceil($hours / 24));
+        $utm_src = sanitize_text_field((string) get_post_meta($offer_id, "_ups_offer_utm_source", true));
+        $utm_cmp = sanitize_text_field((string) get_post_meta($offer_id, "_ups_offer_utm_campaign", true));
+        $ch_ctx = function_exists("upsellio_automation_format_ga4_channel_for_ai")
+            ? upsellio_automation_format_ga4_channel_for_ai($utm_src, $utm_cmp)
+            : "";
+        $channel_context = $ch_ctx !== ""
+            ? "Kontekst kanału marketingowego (GA4 / CRM):\n" . $ch_ctx . "\n\n"
+            : "";
+
         $prompt = upsellio_anthropic_crm_compose_api_prompt("inbox_followup", [
             "offer_title" => $title,
             "offer_stage" => $stage_disp,
@@ -635,6 +653,7 @@ function upsellio_crm_ai_inbox_followup_hourly_run()
             "client_name" => $client_name,
             "last_message" => $last_msg,
             "days_silent" => $days_silent,
+            "channel_context" => $channel_context,
         ]);
 
         $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 640, 32);
