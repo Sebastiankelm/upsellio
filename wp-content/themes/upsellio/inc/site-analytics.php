@@ -1130,7 +1130,13 @@ function upsellio_render_site_analytics_page()
     $gsc_debug_logs = upsellio_gsc_get_logs();
     $keyword_source = (string) get_option("upsellio_keyword_metrics_source", "csv_import");
     $last_sync = (string) get_option("upsellio_keyword_metrics_last_sync", "");
-    $source_label = $keyword_source === "gsc_live" ? "Google Search Console (live sync)" : "Ręczny import CSV";
+    if ($keyword_source === "gsc_live") {
+        $source_label = "Google Search Console (live sync)";
+    } elseif ($keyword_source === "gsc_service_account") {
+        $source_label = "Google Search Console (service account / REST)";
+    } else {
+        $source_label = "Ręczny import CSV";
+    }
     ?>
     <div class="wrap">
       <style>
