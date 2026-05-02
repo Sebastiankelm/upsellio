@@ -19,11 +19,16 @@ if (have_posts()) :
         $hero_image_srcset = $featured_image_id ? wp_get_attachment_image_srcset($featured_image_id, "full") : "";
         $hero_image_sizes = $featured_image_id ? "(max-width: 760px) 100vw, (max-width: 1200px) 92vw, 1200px" : "";
 
-        $raw_content = apply_filters("the_content", (string) get_post_field("post_content", $post_id));
+        $raw_post_content = (string) get_post_field("post_content", $post_id);
+        $content_without_inline_toc = (string) preg_replace(
+            '/<div[^>]*class="ups-article-toc"[^>]*>.*?<\/div>/is',
+            "",
+            $raw_post_content
+        );
+        $raw_content = apply_filters("the_content", $content_without_inline_toc);
         $prepared_content = upsellio_prepare_toc_content($raw_content);
         $toc_items = $prepared_content["toc"];
         $content_html = $prepared_content["content"];
-        $raw_post_content = (string) get_post_field("post_content", $post_id);
         $has_inline_contact_shortcode = strpos($raw_post_content, "[upsellio_contact_form]") !== false;
         $lead_magnet = function_exists("upsellio_get_primary_lead_magnet") ? upsellio_get_primary_lead_magnet() : [];
         $offer_url = function_exists("upsellio_get_offer_page_url") ? (string) upsellio_get_offer_page_url() : "";
@@ -140,7 +145,7 @@ if (have_posts()) :
           ?>
           <nav class="sp-crumbs">
             <div class="sp-wrap-narrow">
-              <a href="<?php echo esc_url(home_url("/")); ?>">Strona glowna</a>
+              <a href="<?php echo esc_url(home_url("/")); ?>">Strona główna</a>
               <span>›</span>
               <a href="<?php echo esc_url($blog_index_url); ?>">Blog</a>
               <span>›</span>

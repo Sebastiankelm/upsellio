@@ -6200,6 +6200,234 @@ body.js-home-curated.home-all-sections-visible .home-semrush-flow .service-what-
   }
 }
 
+/* Shortcodes w treści wpisu: [upsellio_contact_form], [upsellio_internal_links] — spójne z single / zmiennymi motywu */
+.ups-inline-contact {
+  margin: 40px 0 0;
+  padding: clamp(22px, 3vw, 28px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-sizing: border-box;
+}
+
+.sp-prose .ups-inline-contact {
+  clear: both;
+}
+
+.ups-inline-contact-head {
+  margin-bottom: 20px;
+}
+
+.ups-inline-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 12px;
+}
+
+.ups-inline-label::before {
+  content: "";
+  width: 26px;
+  height: 2px;
+  background: var(--teal);
+  border-radius: 99px;
+}
+
+.ups-inline-contact-head h3 {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.2vw, 26px);
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ups-inline-contact-head p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text-2);
+  max-width: 62ch;
+}
+
+.ups-inline-success,
+.ups-inline-error {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+.ups-inline-success {
+  background: rgba(13, 148, 136, 0.1);
+  border: 1px solid rgba(13, 148, 136, 0.28);
+  color: var(--teal-dark);
+}
+
+.ups-inline-error {
+  background: rgba(217, 76, 76, 0.08);
+  border: 1px solid rgba(217, 76, 76, 0.25);
+  color: #8b2f2f;
+}
+
+.ups-inline-form {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+}
+
+.ups-inline-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ups-inline-form > label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.ups-inline-form input[type="text"],
+.ups-inline-form input[type="email"],
+.ups-inline-form textarea {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 11px;
+  min-height: 44px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  box-sizing: border-box;
+}
+
+.ups-inline-form textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.ups-inline-form input:focus,
+.ups-inline-form textarea:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.13);
+}
+
+.ups-inline-consent {
+  display: flex !important;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.ups-inline-consent input {
+  margin-top: 4px;
+  width: auto;
+  min-height: auto;
+  flex-shrink: 0;
+}
+
+.ups-inline-form button[type="submit"] {
+  margin-top: 4px;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--teal);
+  color: #fff;
+  padding: 13px 22px;
+  border-radius: var(--r-pill);
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.18s ease, transform 0.15s ease;
+}
+
+.ups-inline-form button[type="submit"]:hover {
+  background: var(--teal-hover);
+}
+
+.ups-inline-form button[type="submit"]:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 640px) {
+  .ups-inline-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ups-inline-form button[type="submit"] {
+    width: 100%;
+    justify-self: stretch;
+  }
+}
+
+.ups-inline-links {
+  margin: 32px 0;
+  padding: 20px 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-sizing: border-box;
+}
+
+.ups-inline-links h3 {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+
+.ups-inline-links ul {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.ups-inline-links li {
+  margin-bottom: 6px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+
+.ups-inline-links li::marker {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.ups-inline-links a {
+  color: var(--teal);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ups-inline-links a:hover {
+  color: var(--teal-hover);
+  text-decoration: underline;
+}
+
 /* Home conversion refresh */
 .home-semrush-flow .section-head {
   max-width: 760px;
