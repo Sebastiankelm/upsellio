@@ -803,6 +803,16 @@ function upsellio_crm_app_handle_post_actions()
                     update_option("ups_anthropic_company_context", $ctx, false);
                 }
                 foreach ([
+                    "ups_ai_context_scoring",
+                    "ups_ai_context_draft",
+                    "ups_ai_context_followup",
+                    "ups_ai_context_blog",
+                ] as $ctx_field) {
+                    if (isset($_POST[$ctx_field])) {
+                        update_option($ctx_field, sanitize_textarea_field(wp_unslash($_POST[$ctx_field])), false);
+                    }
+                }
+                foreach ([
                     "ups_ai_prompt_lead_scoring",
                     "ups_ai_prompt_inbox_draft",
                     "ups_ai_prompt_followup",
