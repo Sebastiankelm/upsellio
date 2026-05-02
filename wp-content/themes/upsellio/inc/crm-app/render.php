@@ -386,6 +386,141 @@ function upsellio_crm_app_template_redirect()
           }
       }
       ?>
+    <script>
+    (function () {
+      "use strict";
+      var baselines = new WeakMap();
+      var tracked = [];
+
+      function serializeFormState(form) {
+        var parts = [];
+        var els = form.elements;
+        var i;
+        var el;
+        var t;
+        for (i = 0; i < els.length; i++) {
+          el = els[i];
+          if (!el.name || el.disabled) {
+            continue;
+          }
+          t = (el.type || "").toLowerCase();
+          if (t === "submit" || t === "button" || t === "reset" || t === "image") {
+            continue;
+          }
+          if (t === "file") {
+            continue;
+          }
+          if (t === "checkbox" || t === "radio") {
+            parts.push(el.name + "=" + (el.checked ? String(el.value || "on") : ""));
+            continue;
+          }
+          if (el.tagName === "SELECT" && el.multiple) {
+            var sel = [];
+            var k;
+            for (k = 0; k < el.options.length; k++) {
+              if (el.options[k].selected) {
+                sel.push(el.options[k].value);
+              }
+            }
+            sel.sort();
+            parts.push(el.name + "=" + encodeURIComponent(sel.join(",")));
+            continue;
+          }
+          parts.push(el.name + "=" + encodeURIComponent(el.value != null ? String(el.value) : ""));
+        }
+        return parts.sort().join("\u0001");
+      }
+
+      function isDirty(form) {
+        if (!baselines.has(form)) {
+          return false;
+        }
+        return serializeFormState(form) !== baselines.get(form);
+      }
+
+      function markClean(form) {
+        if (!form) {
+          return;
+        }
+        baselines.set(form, serializeFormState(form));
+        form.dataset.crmDirty = "";
+      }
+
+      function syncDirty(form) {
+        if (!form || !baselines.has(form)) {
+          return;
+        }
+        form.dataset.crmDirty = serializeFormState(form) !== baselines.get(form) ? "1" : "";
+      }
+
+      function register(form) {
+        if (!form || baselines.has(form)) {
+          return;
+        }
+        tracked.push(form);
+        baselines.set(form, serializeFormState(form));
+        form.dataset.crmDirty = "";
+        form.addEventListener(
+          "input",
+          function () {
+            if (!baselines.has(form)) {
+              return;
+            }
+            form.dataset.crmDirty = serializeFormState(form) !== baselines.get(form) ? "1" : "";
+          },
+          true
+        );
+        form.addEventListener(
+          "change",
+          function () {
+            if (!baselines.has(form)) {
+              return;
+            }
+            form.dataset.crmDirty = serializeFormState(form) !== baselines.get(form) ? "1" : "";
+          },
+          true
+        );
+        form.addEventListener("submit", function () {
+          window.__upsCrmSkipDirtyUnload = true;
+        });
+      }
+
+      window.addEventListener("beforeunload", function (e) {
+        if (window.__upsCrmSkipDirtyUnload) {
+          return;
+        }
+        var d = false;
+        var j;
+        for (j = 0; j < tracked.length; j++) {
+          if (isDirty(tracked[j])) {
+            d = true;
+            break;
+          }
+        }
+        if (!d) {
+          return;
+        }
+        e.preventDefault();
+        e.returnValue = "";
+      });
+
+      window.UpsellioCrmDirty = {
+        register: register,
+        markClean: markClean,
+        isDirty: isDirty,
+        sync: syncDirty,
+      };
+
+      document.addEventListener("DOMContentLoaded", function () {
+        ["ups-crm-offer-layout-form", "ups-crm-contract-layout-form", "ups-crm-settings-offer-template-form", "ups-crm-settings-contract-template-form"].forEach(function (fid) {
+          var f = document.getElementById(fid);
+          if (f) {
+            register(f);
+          }
+        });
+      });
+    })();
+    </script>
     </head>
     <body>
       <?php
@@ -1592,7 +1727,13 @@ function upsellio_crm_app_template_redirect()
                   var clients=[];
                   try{clients=clientsEl?JSON.parse(clientsEl.textContent||"[]"):[];}catch(e){clients=[];}
                   function openDlg(){overlay.classList.add("open");overlay.setAttribute("aria-hidden","false");}
-                  function closeDlg(){overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");}
+                  function closeDlg(){
+                    if(window.UpsellioCrmDirty&&UpsellioCrmDirty.isDirty(form)){
+                      if(!window.confirm("Masz niezapisane zmiany w budowniczku. Zamknąć bez zapisu?")){return;}
+                      UpsellioCrmDirty.markClean(form);
+                    }
+                    overlay.classList.remove("open");overlay.setAttribute("aria-hidden","true");
+                  }
                   document.getElementById("ups-open-offer-builder").addEventListener("click",function(){
                     form.reset();
                     document.getElementById("offer_id_field").value="";
@@ -1602,6 +1743,7 @@ function upsellio_crm_app_template_redirect()
                     var m=document.querySelector("#pane-p-scope input[name=offer_has_meta]");if(m)m.checked=true;
                     var w=document.querySelector("#pane-p-scope input[name=offer_has_web]");if(w)w.checked=false;
                     openDlg();
+                    if(window.UpsellioCrmDirty){UpsellioCrmDirty.markClean(form);}
                   });
                   <?php if ($offer_editor_id > 0) : ?>
                   document.getElementById("offer_id_field").value="<?php echo esc_js((string) $offer_editor_id); ?>";
@@ -1636,23 +1778,42 @@ function upsellio_crm_app_template_redirect()
                       aiFillBtn.disabled=false;
                       if(!data||!data.success){if(st)st.textContent="✗ "+(data&&data.data&&data.data.message?String(data.data.message):"<?php echo esc_js(__("Błąd", "upsellio")); ?>");return;}
                       var d=data.data||{};
-                      var elLead=document.getElementById("fld_offer_lead");
-                      if(elLead&&d.lead)elLead.value=String(d.lead);
-                      var elInc=document.getElementById("fld_offer_include_lines");
-                      if(elInc&&d.include_lines)elInc.value=String(d.include_lines);
-                      var elQ=document.getElementById("fld_offer_questions_raw");
-                      if(elQ&&d.questions_raw)elQ.value=String(d.questions_raw);
-                      var elCta=document.getElementById("fld_offer_cta_text");
-                      if(elCta&&d.cta_text)elCta.value=String(d.cta_text);
-                      var elPn=document.getElementById("fld_offer_price_note");
-                      if(elPn&&d.price_note)elPn.value=String(d.price_note);
+                      var aiMap={
+                        title:"fld_offer_title",
+                        price:"fld_offer_price",
+                        timeline:"fld_offer_timeline",
+                        decision_date:"fld_offer_decision_date",
+                        lead:"fld_offer_lead",
+                        duration:"fld_offer_duration",
+                        billing:"fld_offer_billing",
+                        price_note:"fld_offer_price_note",
+                        proof_lines:"fld_offer_proof_lines",
+                        services_json:"fld_offer_services_json",
+                        questions_raw:"fld_offer_questions_raw",
+                        include_lines:"fld_offer_include_lines",
+                        option_lines:"fld_offer_option_lines",
+                        cta_text:"fld_offer_cta_text",
+                        scope_extra_html:"fld_offer_scope_extra_html",
+                        content:"fld_offer_content",
+                        deal_notes:"fld_deal_notes",
+                        internal_notes:"fld_offer_internal_notes"
+                      };
+                      Object.keys(aiMap).forEach(function(k){
+                        var id=aiMap[k];
+                        var el=document.getElementById(id);
+                        if(!el||d[k]===undefined||d[k]===null)return;
+                        var v=d[k];
+                        if(typeof v==="string"&&v.trim()==="")return;
+                        if(typeof v==="string"||typeof v==="number")el.value=String(v);
+                      });
                       var g=document.querySelector("#pane-p-scope input[name=offer_has_google]");
                       var m=document.querySelector("#pane-p-scope input[name=offer_has_meta]");
                       var w=document.querySelector("#pane-p-scope input[name=offer_has_web]");
                       if(g&&typeof d.has_google==="boolean")g.checked=!!d.has_google;
                       if(m&&typeof d.has_meta==="boolean")m.checked=!!d.has_meta;
                       if(w&&typeof d.has_web==="boolean")w.checked=!!d.has_web;
-                      if(st)st.textContent="<?php echo esc_js(__("✓ Pola wypełnione — sprawdź i zapisz ofertę.", "upsellio")); ?>";
+                      if(st)st.textContent="<?php echo esc_js(__("✓ Pola wypełnione — sprawdź zakładki i zapisz ofertę.", "upsellio")); ?>";
+                      if(window.UpsellioCrmDirty){UpsellioCrmDirty.sync(form);}
                     }).catch(function(){
                       aiFillBtn.disabled=false;
                       var stE=document.getElementById("ups-offer-ai-fill-status");
@@ -1672,7 +1833,9 @@ function upsellio_crm_app_template_redirect()
                     if(proof&&!proof.value&&c.industry)proof.value=c.industry;
                     var title=document.getElementById("fld_offer_title");
                     if(title&&!title.value)c.company?title.value="Oferta — "+c.company:title.value="Oferta — "+c.name;
+                    if(window.UpsellioCrmDirty){UpsellioCrmDirty.sync(form);}
                   });
+                  if(window.UpsellioCrmDirty){UpsellioCrmDirty.register(form);}
                   <?php if ($offer_editor_id > 0) : ?>openDlg();<?php endif; ?>
                   form.addEventListener("submit", function (ev) {
                     var st = document.getElementById("fld_offer_status");
@@ -1697,7 +1860,12 @@ function upsellio_crm_app_template_redirect()
                       if (noteEl) {
                         noteEl.value = res.note || "";
                       }
-                      form.submit();
+                      if (typeof form.requestSubmit === "function") {
+                        form.requestSubmit();
+                      } else {
+                        window.__upsCrmSkipDirtyUnload = true;
+                        form.submit();
+                      }
                     });
                   });
                 })();
@@ -1825,7 +1993,7 @@ function upsellio_crm_app_template_redirect()
                   <?php if ($edit_offer_layout_id > 0) : ?>
                     <p style="margin:0 0 12px"><a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "template-studio", "tab" => "offer"], home_url("/crm-app/"))); ?>">+ Nowy szablon (wyczyść formularz)</a></p>
                   <?php endif; ?>
-                  <form method="post" class="grid2">
+                  <form method="post" class="grid2" id="ups-crm-offer-layout-form">
                     <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
                     <input type="hidden" name="ups_action" value="save_offer_layout" />
                     <input type="hidden" name="crm_view" value="template-studio" />
@@ -1931,7 +2099,7 @@ function upsellio_crm_app_template_redirect()
               <?php else : ?>
                 <section class="card">
                   <h3>Nowy / edytuj szablon umowy</h3>
-                  <form method="post" class="grid2">
+                  <form method="post" class="grid2" id="ups-crm-contract-layout-form">
                     <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
                     <input type="hidden" name="ups_action" value="save_contract_layout" />
                     <input type="hidden" name="crm_view" value="template-studio" />
@@ -4525,7 +4693,15 @@ function upsellio_crm_app_template_redirect()
                     <textarea name="ups_crm_marketing_spend_csv" rows="4" placeholder="source,campaign,cost"></textarea>
                     <span></span>
                     <p class="muted" style="grid-column:1 / -1">
-                      Import GA4 z konta Google (OAuth): panel WP <strong>Wpisy → Analityka SEO</strong> — sekcja GA4. Alternatywnie endpoint: <code><?php echo esc_html(rest_url("upsellio/v1/ga4-aggregate")); ?></code><br/>
+                      <?php
+                        $upsellio_wp_analytics_url = function_exists("upsellio_site_analytics_admin_url")
+                            ? upsellio_site_analytics_admin_url()
+                            : admin_url("admin.php?page=upsellio-site-analytics");
+                        ?>
+                      Import GA4 z konta Google (OAuth):
+                      <a href="<?php echo esc_url($upsellio_wp_analytics_url); ?>" target="_blank" rel="noopener noreferrer">Analityka SEO w WordPress (GSC + GA4)</a>
+                      (menu w panelu: <strong>Analityka SEO</strong> lub <strong>Ustawienia → Analityka SEO</strong>).
+                      Alternatywnie endpoint: <code><?php echo esc_html(rest_url("upsellio/v1/ga4-aggregate")); ?></code><br/>
                       Endpoint słów kluczowych GSC (POST JSON, service account poza WP): <code><?php echo esc_html(rest_url("upsellio/v1/gsc-keywords")); ?></code><br/>
                       Nagłówek: <code>x-upsellio-secret</code> = Twój Inbound secret (<code>ups_followup_inbound_secret</code>). Ostatni sync GA4: <code><?php echo esc_html((string) get_option("ups_automation_ga4_last_sync", "-")); ?></code>.
                     </p>
@@ -4545,7 +4721,7 @@ function upsellio_crm_app_template_redirect()
                 <section class="card">
                   <h2>Szablon oferty (dynamiczne pola)</h2>
                   <p class="muted">Strony publiczne ofert korzystają teraz z <a href="<?php echo esc_url(add_query_arg(["view" => "template-studio"], home_url("/crm-app/"))); ?>"><strong>Generatora szablonów</strong></a> i budowniczka na widoku Oferty. Poniższy HTML jest używany tylko przy opcji „Regeneruj z legacy szablonu” lub starych integracjach.</p>
-                  <form method="post" class="grid2">
+                  <form method="post" class="grid2" id="ups-crm-settings-offer-template-form">
                     <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
                     <input type="hidden" name="ups_action" value="save_offer_template" />
                     <input type="hidden" name="crm_view" value="settings" />
@@ -4564,7 +4740,7 @@ function upsellio_crm_app_template_redirect()
                 <section class="card">
                   <h2>Szablon umowy (dynamiczne pola)</h2>
                   <p class="muted">Biblioteka wielu szablonów umów: <a href="<?php echo esc_url(add_query_arg(["view" => "template-studio", "tab" => "contract"], home_url("/crm-app/"))); ?>">Generator szablonów → Umowy</a>. Ten formularz to domyślny fallback, gdy nie wybierzesz szablonu z biblioteki.</p>
-                  <form method="post" class="grid2">
+                  <form method="post" class="grid2" id="ups-crm-settings-contract-template-form">
                     <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
                     <input type="hidden" name="ups_action" value="save_contract_template" />
                     <input type="hidden" name="crm_view" value="settings" />
