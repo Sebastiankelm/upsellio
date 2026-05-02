@@ -26,10 +26,7 @@ function upsellio_admin_url($page)
         "upsellio-seo-brief" => "edit.php?page=upsellio-seo-brief",
         "upsellio-content-refresh" => "edit.php?page=upsellio-content-refresh",
         "upsellio-site-analytics" => "edit.php?page=upsellio-site-analytics",
-        "upsellio-crm-pipeline" => "edit.php?post_type=lead&page=upsellio-crm-pipeline",
-        "upsellio-crm-sla" => "edit.php?post_type=lead&page=upsellio-crm-sla",
-        "upsellio-crm-tasks" => "edit.php?post_type=lead&page=upsellio-crm-tasks",
-        "upsellio-crm-reports" => "edit.php?post_type=lead&page=upsellio-crm-reports",
+        "upsellio-crm-app" => "admin.php?page=upsellio-crm-app-entry",
         "upsellio-logo-tool" => "themes.php?page=upsellio-logo-tool",
         "upsellio-server-files" => "themes.php?page=upsellio-server-files",
         "upsellio-advanced-tests" => "tools.php?page=upsellio-advanced-tests",
@@ -102,7 +99,7 @@ function upsellio_render_admin_hub_screen()
     ?>
     <div class="wrap">
       <h1>Panel Upsellio</h1>
-      <p style="max-width:820px;">Jedno miejsce do zarządzania narzędziami projektu: treściami, generatorami, SEO, plikami technicznymi, CRM i analityką. Typy wpisów nadal są dostępne w swoich standardowych menu, ale wszystkie narzędzia pomocnicze są zebrane tutaj.</p>
+      <p style="max-width:820px;">Jedno miejsce do narzędzi projektu: treści, generatory, SEO, pliki techniczne, analityka. Operacje sprzedażowe (CRM) są w aplikacji <strong>CRM App</strong> na froncie — w menu WordPressa jest tylko skrót wejścia.</p>
 
       <?php
       upsellio_admin_hub_section("Treści i konfiguracja", [
@@ -117,7 +114,6 @@ function upsellio_render_admin_hub_screen()
           ["Portfolio stron", "Lista realizacji stron WWW i landing pages.", admin_url("edit.php?post_type=portfolio")],
           ["Portfolio marketingowe", "Lista case studies kampanii i działań marketingowych.", admin_url("edit.php?post_type=marketing_portfolio")],
           ["Materiały do pobrania", "Lista lead magnetów widocznych na stronie materiałów.", admin_url("edit.php?post_type=lead_magnet")],
-          ["Leady CRM", "Zgłoszenia zapisane z formularzy i kampanii.", admin_url("edit.php?post_type=lead")],
           ["Miasta", "Lokalne podstrony usługowe.", admin_url("edit.php?post_type=miasto"), "manage_options"],
           ["Definicje", "Baza definicji marketingowych i SEO.", admin_url("edit.php?post_type=definicja"), "manage_options"],
       ]);
@@ -138,10 +134,7 @@ function upsellio_render_admin_hub_screen()
       ]);
 
       upsellio_admin_hub_section("CRM i sprzedaż", [
-          ["Pipeline CRM", "Kanban leadów i etapów sprzedaży.", upsellio_admin_url("upsellio-crm-pipeline")],
-          ["SLA Dashboard", "Kontrola czasu reakcji i priorytetów.", upsellio_admin_url("upsellio-crm-sla")],
-          ["Zadania Follow-up", "Lista zadań handlowych do wykonania.", upsellio_admin_url("upsellio-crm-tasks")],
-          ["Raporty CRM", "Efektywność źródeł leadów i statusów.", upsellio_admin_url("upsellio-crm-reports")],
+          ["CRM App", "Pulpit, lejek, klienci, oferty, zadania, skrzynka i ustawienia — cała praca w jednym miejscu (frontend).", upsellio_admin_url("upsellio-crm-app")],
       ]);
 
       upsellio_admin_hub_section("Techniczne", [

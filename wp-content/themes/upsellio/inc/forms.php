@@ -7,6 +7,13 @@ function upsellio_submit_contact_form()
 {
     check_ajax_referer("upsellio_contact_click", "nonce");
 
+    if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
+        wp_send_json_success([
+            "message" => "Wiadomosc wyslana. Odezwiemy sie wkrotce.",
+            "skipped_internal" => true,
+        ]);
+    }
+
     $name = isset($_POST["name"]) ? sanitize_text_field(wp_unslash($_POST["name"])) : "";
     $email = isset($_POST["email"]) ? sanitize_email(wp_unslash($_POST["email"])) : "";
     $message = isset($_POST["message"]) ? sanitize_textarea_field(wp_unslash($_POST["message"])) : "";
