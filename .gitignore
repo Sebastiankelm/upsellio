@@ -1,0 +1,7 @@
+# GA4 / GSC sync — sekrety i skrypty serwerowe (Upsellio v3)
+*-credentials.json
+**/upsellio-gsc-credentials.json
+gsc-sync.py
+ga4-sync.py
+auth.py
+*.log
