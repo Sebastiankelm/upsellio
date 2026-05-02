@@ -370,6 +370,12 @@ function upsellio_inbox_parse_email_field(string $raw): array
     $parts = array_filter(array_map("trim", explode(",", $raw)));
     $out = [];
     foreach ($parts as $p) {
+        if ($p === "") {
+            continue;
+        }
+        if (preg_match("/<\s*([^>]+)>\s*$/", $p, $m)) {
+            $p = trim($m[1]);
+        }
         $e = sanitize_email($p);
         if (is_email($e)) {
             $out[strtolower($e)] = $e;
@@ -623,11 +629,212 @@ function upsellio_inbox_backfill_last_direction_batch(int $limit = 80): int
 }
 
 /**
+ * Dodatkowe filtry smart (zakładki prototypu inboxu).
+ *
+ * @return array<int, mixed>
+ */
+function upsellio_inbox_segment_meta_clauses(string $segment): array
+{
+    $segment = sanitize_key((string) $segment);
+    if (!in_array($segment, ["awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline"], true)) {
+        return [];
+    }
+    if ($segment === "awaiting") {
+        return [
+            [
+                "key" => "_ups_offer_inbox_last_direction",
+                "value" => "in",
+                "compare" => "=",
+            ],
+        ];
+    }
+    if ($segment === "unlinked") {
+        return [
+            [
+                "relation" => "OR",
+                [
+                    "key" => "_ups_offer_client_id",
+                    "compare" => "NOT EXISTS",
+                ],
+                [
+                    "key" => "_ups_offer_client_id",
+                    "value" => 0,
+                    "type" => "NUMERIC",
+                    "compare" => "=",
+                ],
+            ],
+        ];
+    }
+    if ($segment === "lead_web") {
+        return [
+            [
+                "relation" => "AND",
+                [
+                    "key" => "_ups_offer_utm_source",
+                    "compare" => "EXISTS",
+                ],
+                [
+                    "key" => "_ups_offer_utm_source",
+                    "value" => "",
+                    "compare" => "!=",
+                ],
+            ],
+        ];
+    }
+    if ($segment === "email_direct") {
+        return [
+            [
+                "relation" => "OR",
+                [
+                    "key" => "_ups_offer_utm_source",
+                    "compare" => "NOT EXISTS",
+                ],
+                [
+                    "key" => "_ups_offer_utm_source",
+                    "value" => "",
+                    "compare" => "=",
+                ],
+            ],
+        ];
+    }
+    if ($segment === "open_pipeline") {
+        return [
+            [
+                "key" => "_ups_offer_status",
+                "value" => "open",
+                "compare" => "=",
+            ],
+        ];
+    }
+
+    return [];
+}
+
+/**
+ * Fragment SQL dla wyszukiwania tekstowego (segment wątków).
+ */
+function upsellio_inbox_segment_sql_fragment(string $segment): string
+{
+    global $wpdb;
+    $segment = sanitize_key((string) $segment);
+    $pm = $wpdb->postmeta;
+    if (!in_array($segment, ["awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline"], true)) {
+        return "";
+    }
+    if ($segment === "awaiting") {
+        return $wpdb->prepare(
+            " AND EXISTS (SELECT 1 FROM {$pm} sg WHERE sg.post_id = p.ID AND sg.meta_key = %s AND sg.meta_value = %s)",
+            "_ups_offer_inbox_last_direction",
+            "in"
+        );
+    }
+    if ($segment === "unlinked") {
+        return " AND (
+            NOT EXISTS (SELECT 1 FROM {$pm} uc WHERE uc.post_id = p.ID AND uc.meta_key = '_ups_offer_client_id')
+            OR EXISTS (SELECT 1 FROM {$pm} uc2 WHERE uc2.post_id = p.ID AND uc2.meta_key = '_ups_offer_client_id' AND (TRIM(IFNULL(uc2.meta_value,'')) = '' OR uc2.meta_value = '0'))
+        )";
+    }
+    if ($segment === "lead_web") {
+        return " AND EXISTS (SELECT 1 FROM {$pm} ut WHERE ut.post_id = p.ID AND ut.meta_key = '_ups_offer_utm_source' AND TRIM(IFNULL(ut.meta_value,'')) <> '')";
+    }
+    if ($segment === "email_direct") {
+        return " AND (
+            NOT EXISTS (SELECT 1 FROM {$pm} ut2 WHERE ut2.post_id = p.ID AND ut2.meta_key = '_ups_offer_utm_source')
+            OR EXISTS (SELECT 1 FROM {$pm} ut3 WHERE ut3.post_id = p.ID AND ut3.meta_key = '_ups_offer_utm_source' AND TRIM(IFNULL(ut3.meta_value,'')) = '')
+        )";
+    }
+    if ($segment === "open_pipeline") {
+        return $wpdb->prepare(
+            " AND EXISTS (SELECT 1 FROM {$pm} st WHERE st.post_id = p.ID AND st.meta_key = %s AND st.meta_value = %s)",
+            "_ups_offer_status",
+            "open"
+        );
+    }
+
+    return "";
+}
+
+/**
+ * KPI dla paska nad listą (folder / flaga / bucket — bez segmentu i bez wyszukiwania).
+ *
+ * @param array{folder?: string, flag?: string, bucket?: string} $ctx
+ * @return array{awaiting_reply: int, unlinked: int, lead_web: int, email_direct: int, open_pipeline: int, capped: bool}
+ */
+function upsellio_inbox_aggregate_kpis(array $ctx): array
+{
+    $out = [
+        "awaiting_reply" => 0,
+        "unlinked" => 0,
+        "lead_web" => 0,
+        "email_direct" => 0,
+        "open_pipeline" => 0,
+        "capped" => false,
+    ];
+    if (!post_type_exists("crm_offer")) {
+        return $out;
+    }
+    $folder = sanitize_key((string) ($ctx["folder"] ?? "fld_inbox"));
+    if ($folder === "") {
+        $folder = "fld_inbox";
+    }
+    $flag = sanitize_key((string) ($ctx["flag"] ?? ""));
+    if ($flag !== "" && !isset(upsellio_inbox_flag_palette()[$flag])) {
+        $flag = "";
+    }
+    $bucket = sanitize_key((string) ($ctx["bucket"] ?? "all"));
+    if (!in_array($bucket, ["all", "received", "sent"], true)) {
+        $bucket = "all";
+    }
+    $mq = upsellio_inbox_list_meta_query($folder, $flag, $bucket);
+    $q = new WP_Query([
+        "post_type" => "crm_offer",
+        "post_status" => ["publish", "draft", "private", "pending"],
+        "posts_per_page" => 400,
+        "paged" => 1,
+        "fields" => "ids",
+        "orderby" => "modified",
+        "order" => "DESC",
+        "meta_query" => $mq,
+        "no_found_rows" => false,
+        "update_post_meta_cache" => false,
+        "update_post_term_cache" => false,
+    ]);
+    $ids = array_map("intval", (array) $q->posts);
+    if ((int) $q->found_posts > 400) {
+        $out["capped"] = true;
+    }
+    foreach ($ids as $oid) {
+        if ($oid <= 0) {
+            continue;
+        }
+        $sum = upsellio_inbox_get_thread_summary($oid);
+        if (($sum["last_direction"] ?? "") === "in") {
+            $out["awaiting_reply"]++;
+        }
+        $cid = (int) get_post_meta($oid, "_ups_offer_client_id", true);
+        if ($cid <= 0) {
+            $out["unlinked"]++;
+        }
+        $utm = trim((string) get_post_meta($oid, "_ups_offer_utm_source", true));
+        if ($utm !== "") {
+            $out["lead_web"]++;
+        } else {
+            $out["email_direct"]++;
+        }
+        if ((string) get_post_meta($oid, "_ups_offer_status", true) === "open") {
+            $out["open_pipeline"]++;
+        }
+    }
+
+    return $out;
+}
+
+/**
  * Meta zapytania listy inbox (wątek istnieje + folder + opcjonalnie flaga + widok odebrane/wysłane).
  *
  * @return array<int, mixed>
  */
-function upsellio_inbox_list_meta_query(string $folder_id, string $flag_key, string $bucket = "all"): array
+function upsellio_inbox_list_meta_query(string $folder_id, string $flag_key, string $bucket = "all", string $segment = ""): array
 {
     $folder_id = sanitize_key((string) $folder_id);
     if ($folder_id === "") {
@@ -637,6 +844,10 @@ function upsellio_inbox_list_meta_query(string $folder_id, string $flag_key, str
     $bucket = sanitize_key((string) $bucket);
     if (!in_array($bucket, ["all", "received", "sent"], true)) {
         $bucket = "all";
+    }
+    $segment = sanitize_key((string) $segment);
+    if (!in_array($segment, ["", "awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline"], true)) {
+        $segment = "";
     }
 
     $mq = [
@@ -690,13 +901,17 @@ function upsellio_inbox_list_meta_query(string $folder_id, string $flag_key, str
         ];
     }
 
+    foreach (upsellio_inbox_segment_meta_clauses($segment) as $clause) {
+        $mq[] = $clause;
+    }
+
     return $mq;
 }
 
 /**
  * Lista inbox z paginacją (folder, flaga, opcjonalnie wyszukiwanie po tytule / meta wątku / e-mailu klienta).
  *
- * @param array{folder?: string, flag?: string, bucket?: string, search?: string, page?: int, post_statuses?: string[]} $ctx
+ * @param array{folder?: string, flag?: string, bucket?: string, segment?: string, search?: string, page?: int, post_statuses?: string[]} $ctx
  * @return array{posts: WP_Post[], total: int, page: int, per_page: int}
  */
 function upsellio_inbox_query_list(array $ctx): array
@@ -715,6 +930,10 @@ function upsellio_inbox_query_list(array $ctx): array
     if (!in_array($bucket, ["all", "received", "sent"], true)) {
         $bucket = "all";
     }
+    $segment = sanitize_key((string) ($ctx["segment"] ?? ""));
+    if (!in_array($segment, ["", "awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline"], true)) {
+        $segment = "";
+    }
     $search = trim((string) ($ctx["search"] ?? ""));
     if (strlen($search) > 160) {
         $search = substr($search, 0, 160);
@@ -732,7 +951,7 @@ function upsellio_inbox_query_list(array $ctx): array
     }
 
     if ($search !== "") {
-        return upsellio_inbox_query_list_with_search($folder, $flag, $search, $page, $per_page, $statuses, $bucket);
+        return upsellio_inbox_query_list_with_search($folder, $flag, $search, $page, $per_page, $statuses, $bucket, $segment);
     }
 
     $q = new WP_Query([
@@ -742,7 +961,7 @@ function upsellio_inbox_query_list(array $ctx): array
         "paged" => $page,
         "orderby" => "modified",
         "order" => "DESC",
-        "meta_query" => upsellio_inbox_list_meta_query($folder, $flag, $bucket),
+        "meta_query" => upsellio_inbox_list_meta_query($folder, $flag, $bucket, $segment),
         "update_post_meta_cache" => true,
         "update_post_term_cache" => false,
         "no_found_rows" => false,
@@ -767,7 +986,8 @@ function upsellio_inbox_query_list_with_search(
     int $page,
     int $per_page,
     array $statuses,
-    string $bucket = "all"
+    string $bucket = "all",
+    string $segment = ""
 ): array {
     global $wpdb;
 
@@ -776,6 +996,10 @@ function upsellio_inbox_query_list_with_search(
     $bucket = sanitize_key($bucket);
     if (!in_array($bucket, ["all", "received", "sent"], true)) {
         $bucket = "all";
+    }
+    $segment = sanitize_key((string) $segment);
+    if (!in_array($segment, ["", "awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline"], true)) {
+        $segment = "";
     }
     if ($folder_id === "") {
         $folder_id = "fld_inbox";
@@ -831,6 +1055,8 @@ function upsellio_inbox_query_list_with_search(
         );
     }
 
+    $segment_sql = upsellio_inbox_segment_sql_fragment($segment);
+
     $like = "%" . $wpdb->esc_like($search) . "%";
     $search_sql = $wpdb->prepare(
         " AND (
@@ -851,7 +1077,7 @@ function upsellio_inbox_query_list_with_search(
     );
 
     $where_core =
-        "p.post_type = 'crm_offer' AND p.post_status IN ({$in_status}) AND {$thread_exists}{$folder_sql}{$flag_sql}{$bucket_sql}{$search_sql}";
+        "p.post_type = 'crm_offer' AND p.post_status IN ({$in_status}) AND {$thread_exists}{$folder_sql}{$flag_sql}{$bucket_sql}{$segment_sql}{$search_sql}";
 
     $count_sql = "SELECT COUNT(DISTINCT p.ID) FROM {$p} p WHERE {$where_core}";
     $total = (int) $wpdb->get_var($count_sql);

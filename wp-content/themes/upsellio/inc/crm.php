@@ -47,7 +47,7 @@ function upsellio_crm_register_post_type()
         ],
         "public" => false,
         "show_ui" => true,
-        "show_in_menu" => true,
+        "show_in_menu" => false,
         "menu_position" => 25,
         "menu_icon" => "dashicons-groups",
         "supports" => ["title", "editor", "author"],
@@ -82,6 +82,7 @@ function upsellio_crm_register_taxonomies()
         ],
         "public" => false,
         "show_ui" => true,
+        "show_in_menu" => false,
         "show_admin_column" => true,
         "hierarchical" => false,
     ]);
@@ -93,6 +94,7 @@ function upsellio_crm_register_taxonomies()
         ],
         "public" => false,
         "show_ui" => true,
+        "show_in_menu" => false,
         "show_admin_column" => true,
         "hierarchical" => false,
     ]);
@@ -220,6 +222,8 @@ function upsellio_crm_create_lead($payload)
 
     upsellio_crm_add_timeline_event($leadId, "created", "Lead został utworzony.");
     upsellio_crm_create_followup_tasks_for_owner($leadId, $ownerId);
+
+    do_action("upsellio_crm_contact_lead_created", (int) $leadId);
 
     return (int) $leadId;
 }
@@ -396,6 +400,11 @@ function upsellio_crm_handle_lead_submission()
 
     $honeypot = isset($_POST["lead_website"]) ? sanitize_text_field(wp_unslash($_POST["lead_website"])) : "";
     if ($honeypot !== "") {
+        wp_safe_redirect(add_query_arg("ups_lead_status", "success", $redirectUrl));
+        exit;
+    }
+
+    if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
         wp_safe_redirect(add_query_arg("ups_lead_status", "success", $redirectUrl));
         exit;
     }
@@ -843,47 +852,6 @@ function upsellio_crm_get_sla_badge_class($hours_open)
     return "ups-badge ups-badge--green";
 }
 
-function upsellio_crm_add_admin_menu()
-{
-    add_submenu_page(
-        "edit.php?post_type=lead",
-        "Pipeline CRM",
-        "Pipeline",
-        "edit_posts",
-        "upsellio-crm-pipeline",
-        "upsellio_crm_render_pipeline_page",
-        60
-    );
-    add_submenu_page(
-        "edit.php?post_type=lead",
-        "SLA Dashboard",
-        "SLA Dashboard",
-        "edit_posts",
-        "upsellio-crm-sla",
-        "upsellio_crm_render_sla_page",
-        61
-    );
-    add_submenu_page(
-        "edit.php?post_type=lead",
-        "Zadania Follow-up",
-        "Zadania Follow-up",
-        "edit_posts",
-        "upsellio-crm-tasks",
-        "upsellio_crm_render_tasks_page",
-        62
-    );
-    add_submenu_page(
-        "edit.php?post_type=lead",
-        "Raporty CRM",
-        "Raporty CRM",
-        "edit_posts",
-        "upsellio-crm-reports",
-        "upsellio_crm_render_reports_page",
-        63
-    );
-}
-add_action("admin_menu", "upsellio_crm_add_admin_menu");
-
 function upsellio_crm_render_pipeline_page()
 {
     if (!current_user_can("edit_posts")) {
@@ -1285,6 +1253,10 @@ function upsellio_crm_render_reports_page()
 function upsellio_crm_track_contact_click()
 {
     check_ajax_referer("upsellio_contact_click", "nonce");
+
+    if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
+        wp_send_json_success(["skipped_internal" => true]);
+    }
 
     $type = isset($_POST["contact_type"]) ? sanitize_text_field(wp_unslash($_POST["contact_type"])) : "";
     $target = isset($_POST["target"]) ? sanitize_text_field(wp_unslash($_POST["target"])) : "";

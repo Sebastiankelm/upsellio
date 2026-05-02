@@ -212,7 +212,7 @@ function upsellio_followup_register_post_type()
         ],
         "public" => false,
         "show_ui" => true,
-        "show_in_menu" => "edit.php?post_type=crm_offer",
+        "show_in_menu" => false,
         "menu_icon" => "dashicons-email-alt2",
         "supports" => ["title", "editor"],
     ]);
@@ -233,6 +233,7 @@ function upsellio_followup_get_sender_settings()
     $mailbox_username = sanitize_text_field((string) get_option("ups_followup_mailbox_username", ""));
     $mailbox_folder = sanitize_text_field((string) get_option("ups_followup_mailbox_folder", "INBOX"));
     $mailbox_enabled = (string) get_option("ups_followup_mailbox_enabled", "0") === "1";
+    $mailbox_ssl_novalidate = (string) get_option("ups_followup_mailbox_ssl_novalidate", "0") === "1";
     $mailbox_password = upsellio_followup_get_mailbox_password();
     $smtp_enabled = (string) get_option("ups_followup_smtp_enabled", "0") === "1";
     $smtp_host = sanitize_text_field((string) get_option("ups_followup_smtp_host", ""));
@@ -253,6 +254,7 @@ function upsellio_followup_get_sender_settings()
         "mailbox_encryption" => $mailbox_encryption,
         "mailbox_username" => $mailbox_username,
         "mailbox_password" => $mailbox_password,
+        "mailbox_ssl_novalidate" => $mailbox_ssl_novalidate,
         "mailbox_folder" => $mailbox_folder !== "" ? $mailbox_folder : "INBOX",
         "smtp_enabled" => $smtp_enabled,
         "smtp_host" => $smtp_host,
@@ -436,6 +438,29 @@ function upsellio_followup_send_html_mail_via_smtp($to_email, $subject, $html, $
             upsellio_mailbox_log("smtp", "info", "Start wysyłki przez SMTP", "Host: {$host}:{$port}, enc: {$enc}, temat: {$subject}, załączników: {$att_n}");
         }
         $mail->setFrom($from_email, $from_name, false);
+        $from_domain = "";
+        $at_pos = strpos($from_email, "@");
+        if ($at_pos !== false) {
+            $from_domain = strtolower((string) substr($from_email, $at_pos + 1));
+        }
+        if ($from_domain === "" || !preg_match("/^[a-z0-9.-]+\\.[a-z]{2,}$/i", $from_domain)) {
+            $site_host = wp_parse_url(home_url(), PHP_URL_HOST);
+            $from_domain = is_string($site_host) && $site_host !== "" ? strtolower($site_host) : "localhost";
+        }
+        try {
+            $mid_left = bin2hex(random_bytes(12));
+        } catch (\Throwable $e) {
+            $rb = function_exists("openssl_random_pseudo_bytes") ? openssl_random_pseudo_bytes(12) : false;
+            $mid_left = is_string($rb) && $rb !== "" ? bin2hex($rb) : substr(md5((string) microtime(true)), 0, 24);
+        }
+        $mail->MessageID = "<{$mid_left}@{$from_domain}>";
+        $mail->Sender = $from_email;
+        $reply_to = apply_filters("upsellio_followup_smtp_reply_to_email", $from_email, $args, $settings);
+        $reply_to = sanitize_email((string) $reply_to);
+        if (is_email($reply_to) && strtolower($reply_to) !== strtolower($from_email)) {
+            $mail->addReplyTo($reply_to, $from_name);
+        }
+        $mail->XMailer = "Upsellio-CRM";
         $mail->addAddress($to_email);
         foreach (($args["additional_to"] ?? []) as $xto) {
             $xto = sanitize_email((string) $xto);
@@ -458,7 +483,14 @@ function upsellio_followup_send_html_mail_via_smtp($to_email, $subject, $html, $
         $mail->Subject = $subject;
         $mail->isHTML(true);
         $mail->Body = $html;
-        $mail->AltBody = wp_strip_all_tags($html);
+        $alt_plain = wp_strip_all_tags($html);
+        if (trim($alt_plain) === "") {
+            $alt_plain = __(
+                "Ta wiadomość jest w formacie HTML. Otwórz ją w programie pocztowym obsługującym HTML.",
+                "upsellio"
+            );
+        }
+        $mail->AltBody = $alt_plain;
         foreach (($args["attachments"] ?? []) as $att) {
             if (!is_array($att)) {
                 continue;
@@ -469,6 +501,14 @@ function upsellio_followup_send_html_mail_via_smtp($to_email, $subject, $html, $
                 $mail->addAttachment($p, $n !== "" ? $n : basename($p));
             }
         }
+
+        /**
+         * Ostatnia szansa na modyfikację PHPMailera (np. niestandardowe nagłówki na hostingu).
+         *
+         * @param \PHPMailer\PHPMailer\PHPMailer $mail
+         * @param array<string,mixed> $args
+         */
+        do_action("upsellio_followup_phpmailer_before_send", $mail, $args);
 
         $ok = (bool) $mail->send();
         if (function_exists("upsellio_mailbox_log")) {
@@ -545,6 +585,39 @@ function upsellio_followup_mask_secret($value)
     return substr($value, 0, 1) . str_repeat("*", max(2, $len - 3)) . substr($value, -2);
 }
 
+/**
+ * Flagi połączenia IMAP (imap_open) — spójne dla testu i poll.
+ */
+function upsellio_followup_imap_connection_flags(string $encryption, bool $ssl_novalidate): string
+{
+    $base = $encryption === "ssl" ? "/imap/ssl" : ($encryption === "tls" ? "/imap/tls" : "/imap/notls");
+    if ($ssl_novalidate && $encryption !== "none") {
+        $base .= "/novalidate-cert";
+    }
+
+    return $base;
+}
+
+/**
+ * Rozszerza komunikat błędu imap_open (np. timeout = firewall hostingu, nie złe hasło).
+ */
+function upsellio_followup_imap_format_error_message(string $detail_raw): string
+{
+    $detail_raw = trim((string) $detail_raw);
+    $lower = strtolower($detail_raw);
+    $base = $detail_raw !== "" ? ("Błąd IMAP: " . $detail_raw) : "Błąd połączenia IMAP.";
+    $looks_like_timeout =
+        strpos($lower, "timed out") !== false ||
+        strpos($lower, "timeout") !== false ||
+        strpos($lower, "operation timed out") !== false;
+    if (!$looks_like_timeout) {
+        return $base;
+    }
+
+    return $base .
+        " Połączenie jest zestawiane z serwera WWW (WordPress), nie z Twojego komputera. Powtarzający się timeout na porcie 993 i 143 oznacza zwykle blokadę ruchu wychodzącego do hosta poczty przez hosting albo izolację sieci — poproś administratora o odblokowanie lub użyj webhooka inbound zamiast IMAP.";
+}
+
 function upsellio_followup_test_mailbox_connection()
 {
     $settings = upsellio_followup_get_sender_settings();
@@ -560,13 +633,13 @@ function upsellio_followup_test_mailbox_connection()
     $port = max(1, (int) $settings["mailbox_port"]);
     $folder = (string) $settings["mailbox_folder"];
     $enc = (string) $settings["mailbox_encryption"];
-    $flags = $enc === "ssl" ? "/imap/ssl" : ($enc === "tls" ? "/imap/tls" : "/imap/notls");
+    $flags = upsellio_followup_imap_connection_flags($enc, !empty($settings["mailbox_ssl_novalidate"]));
     $mailbox = "{" . $host . ":" . $port . $flags . "}" . $folder;
     $imap = @imap_open($mailbox, $username, $password);
     if (!$imap) {
         $errors = imap_errors();
         $msg = is_array($errors) && !empty($errors) ? (string) end($errors) : "Nie można połączyć się ze skrzynką IMAP.";
-        return ["ok" => false, "message" => $msg];
+        return ["ok" => false, "message" => upsellio_followup_imap_format_error_message($msg)];
     }
     imap_close($imap);
     return ["ok" => true, "message" => "Połączenie IMAP działa poprawnie."];
@@ -604,7 +677,7 @@ function upsellio_followup_render_template_meta_box($post)
       <label><strong>Trigger event</strong></label><br />
       <select class="widefat" name="ups_followup_trigger_event">
         <?php
-        $events = ["any", "offer_view", "offer_section_view", "offer_engagement_tick", "offer_cta_click", "offer_hot_detected", "inbound_positive", "inbound_price_objection", "inbound_timing_objection", "inbound_no_priority"];
+        $events = ["any", "offer_email_sent", "offer_view", "offer_section_view", "offer_engagement_tick", "offer_cta_click", "offer_hot_detected", "inbound_positive", "inbound_price_objection", "inbound_timing_objection", "inbound_no_priority"];
         foreach ($events as $event) :
         ?>
           <option value="<?php echo esc_attr($event); ?>" <?php selected($trigger_event, $event); ?>><?php echo esc_html($event); ?></option>
@@ -651,19 +724,6 @@ function upsellio_followup_save_template_meta_box($post_id)
     update_post_meta((int) $post_id, "_ups_followup_active", isset($_POST["ups_followup_active"]) ? "1" : "0");
 }
 add_action("save_post", "upsellio_followup_save_template_meta_box");
-
-function upsellio_followup_register_settings_page()
-{
-    add_submenu_page(
-        "edit.php?post_type=crm_offer",
-        "Konfiguracja follow-up",
-        "Konfiguracja follow-up",
-        "manage_options",
-        "upsellio-followup-settings",
-        "upsellio_followup_render_settings_page"
-    );
-}
-add_action("admin_menu", "upsellio_followup_register_settings_page");
 
 function upsellio_followup_render_settings_page()
 {
@@ -1118,6 +1178,46 @@ function upsellio_followup_send_due_queue()
                 continue;
             }
             $template_id = (int) ($item["template_id"] ?? 0);
+            $builtin_kind = sanitize_key((string) ($item["builtin_reminder"] ?? ""));
+            if ($template_id <= 0 && $builtin_kind !== "" && function_exists("upsellio_offer_send_builtin_reminder_email")) {
+                $sent_builtin = upsellio_offer_send_builtin_reminder_email($offer_id, $builtin_kind, $stage);
+                $queue[$idx]["status"] = $sent_builtin ? "sent" : "failed";
+                $queue[$idx]["sent_at"] = current_time("mysql");
+                $queue[$idx]["template_id"] = 0;
+                $updated = true;
+                do_action("upsellio_followup_delivery_status", $offer_id, 0, $sent_builtin ? "sent" : "failed");
+                if (function_exists("upsellio_offer_add_timeline_event")) {
+                    $lab = $sent_builtin ? "Wysłano przypomnienie (wbudowane): " . $builtin_kind : "Błąd przypomnienia (wbudowane): " . $builtin_kind;
+                    upsellio_offer_add_timeline_event($offer_id, $sent_builtin ? "followup_sent" : "followup_failed", $lab);
+                }
+                if ($sent_builtin && function_exists("upsellio_inbox_append_message")) {
+                    $sender = upsellio_followup_get_sender_settings();
+                    $parts = function_exists("upsellio_offer_builtin_reminder_parts") ? upsellio_offer_builtin_reminder_parts($offer_id, $builtin_kind) : ["subject" => "", "html" => ""];
+                    $subj = (string) ($parts["subject"] ?? "");
+                    $html_frag = (string) ($parts["html"] ?? "");
+                    $crm_mail_args = ["crm_smtp" => true];
+                    $html_full = "<html><head><meta charset='utf-8'></head><body>" . wp_kses_post($html_frag) . "</body></html>";
+                    $html_for_thread = function_exists("upsellio_followup_finalize_crm_html")
+                        ? upsellio_followup_finalize_crm_html($html_full, $crm_mail_args)
+                        : $html_full;
+                    $client_email = "";
+                    $cid_b = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
+                    if ($cid_b > 0) {
+                        $client_email = sanitize_email((string) get_post_meta($cid_b, "_ups_client_email", true));
+                    }
+                    upsellio_inbox_append_message($offer_id, [
+                        "direction" => "out",
+                        "from" => (string) ($sender["from_email"] ?? ""),
+                        "to" => is_email($client_email) ? $client_email : "",
+                        "subject" => $subj,
+                        "body_plain" => wp_strip_all_tags($html_frag),
+                        "body_html" => $html_for_thread,
+                        "source" => "followup_builtin",
+                        "read" => true,
+                    ]);
+                }
+                continue;
+            }
             if ($template_id <= 0) {
                 $queue[$idx]["status"] = "skipped";
                 $updated = true;
@@ -1247,6 +1347,96 @@ function upsellio_followup_find_offer_by_email($from_email)
     return !empty($offers) ? (int) $offers[0] : 0;
 }
 
+function upsellio_followup_imap_decode_body_part($data, $structure)
+{
+    $data = (string) $data;
+    $enc = isset($structure->encoding) ? (int) $structure->encoding : 0;
+    if ($enc === 3) {
+        $bin = base64_decode($data, true);
+        $data = is_string($bin) ? $bin : $data;
+    } elseif ($enc === 4) {
+        $data = quoted_printable_decode($data);
+    }
+    if (isset($structure->parameters) && is_array($structure->parameters)) {
+        foreach ($structure->parameters as $param) {
+            if (!isset($param->attribute, $param->value)) {
+                continue;
+            }
+            if (strtolower((string) $param->attribute) !== "charset") {
+                continue;
+            }
+            $charset = (string) $param->value;
+            if ($charset !== "" && strtoupper($charset) !== "UTF-8" && function_exists("iconv")) {
+                $conv = @iconv($charset, "UTF-8//IGNORE", $data);
+                if (is_string($conv) && $conv !== "") {
+                    $data = $conv;
+                }
+            }
+            break;
+        }
+    }
+
+    return $data;
+}
+
+function upsellio_followup_imap_walk_text_parts($imap, $msg_no, $structure, $part_prefix, &$plain, &$html)
+{
+    $msg_no = (int) $msg_no;
+    $type = isset($structure->type) ? (int) $structure->type : -1;
+    if (($type === 1 || $type === 2) && isset($structure->parts) && is_array($structure->parts)) {
+        foreach ($structure->parts as $idx => $sub) {
+            $num = $idx + 1;
+            $part = $part_prefix === "" ? (string) $num : $part_prefix . "." . $num;
+            upsellio_followup_imap_walk_text_parts($imap, $msg_no, $sub, $part, $plain, $html);
+        }
+
+        return;
+    }
+    if ($type !== 0) {
+        return;
+    }
+    $subtype = isset($structure->subtype) ? strtolower((string) $structure->subtype) : "";
+    if ($subtype !== "plain" && $subtype !== "html") {
+        return;
+    }
+    $raw =
+        $part_prefix === ""
+            ? (string) @imap_body($imap, $msg_no)
+            : (string) @imap_fetchbody($imap, $msg_no, $part_prefix);
+    if ($raw === "") {
+        return;
+    }
+    $decoded = upsellio_followup_imap_decode_body_part($raw, $structure);
+    if ($subtype === "plain" && $decoded !== "") {
+        $plain = $decoded;
+    } elseif ($subtype === "html" && $decoded !== "") {
+        $html = $decoded;
+    }
+}
+
+/**
+ * Tekst wiadomości do importu (MIME multipart, base64/qp, charset).
+ */
+function upsellio_followup_imap_get_message_plain_text($imap, $msg_no)
+{
+    $msg_no = (int) $msg_no;
+    $structure = @imap_fetchstructure($imap, $msg_no);
+    if (!$structure || !is_object($structure)) {
+        return trim(wp_strip_all_tags((string) @imap_body($imap, $msg_no)));
+    }
+    $plain = "";
+    $html = "";
+    upsellio_followup_imap_walk_text_parts($imap, $msg_no, $structure, "", $plain, $html);
+    if ($plain !== "") {
+        return trim(wp_strip_all_tags($plain));
+    }
+    if ($html !== "") {
+        return trim(wp_strip_all_tags($html));
+    }
+
+    return trim(wp_strip_all_tags((string) @imap_body($imap, $msg_no)));
+}
+
 function upsellio_followup_store_inbound_reply($offer_id, $from_email, $subject, $body, $source = "webhook")
 {
     $offer_id = (int) $offer_id;
@@ -1346,7 +1536,7 @@ function upsellio_followup_run_mailbox_poll(): array
     $port = max(1, (int) $settings["mailbox_port"]);
     $folder = (string) $settings["mailbox_folder"];
     $enc = (string) $settings["mailbox_encryption"];
-    $flags = $enc === "ssl" ? "/imap/ssl" : ($enc === "tls" ? "/imap/tls" : "/imap/notls");
+    $flags = upsellio_followup_imap_connection_flags($enc, !empty($settings["mailbox_ssl_novalidate"]));
     $mailbox = "{" . $host . ":" . $port . $flags . "}" . $folder;
     if (function_exists("upsellio_mailbox_log")) {
         upsellio_mailbox_log("imap", "info", "Łączenie z IMAP…", "Mailbox string: {" . $host . ":" . $port . $flags . "}" . $folder . " · user: " . $username);
@@ -1356,15 +1546,28 @@ function upsellio_followup_run_mailbox_poll(): array
         $errs = imap_errors();
         $detail = is_array($errs) && $errs !== [] ? (string) end($errs) : "nie udało się połączyć";
 
-        $out["message"] = "Błąd IMAP: " . $detail;
+        $out["message"] = upsellio_followup_imap_format_error_message($detail);
         if (function_exists("upsellio_mailbox_log")) {
             upsellio_mailbox_log("imap", "error", "imap_open nie powiodło się.", $detail);
         }
 
         return $out;
     }
+    if (function_exists("imap_errors")) {
+        imap_errors();
+    }
     $messages = @imap_search($imap, "UNSEEN");
-    if (!is_array($messages) || $messages === []) {
+    if ($messages === false) {
+        $detail = function_exists("imap_last_error") ? (string) imap_last_error() : "imap_search nie powiodło się";
+        imap_close($imap);
+        $out["message"] = "Błąd wyszukiwania IMAP: " . ($detail !== "" ? $detail : "nieznany");
+        if (function_exists("upsellio_mailbox_log")) {
+            upsellio_mailbox_log("imap", "error", "imap_search(UNSEEN) zwróciło false.", $detail);
+        }
+
+        return $out;
+    }
+    if ($messages === []) {
         imap_close($imap);
         update_option("ups_followup_mailbox_last_poll_at", current_time("mysql"), false);
         $out["ok"] = true;
@@ -1395,11 +1598,7 @@ function upsellio_followup_run_mailbox_poll(): array
         if ($from_email === "") {
             $from_email = sanitize_email($from_raw);
         }
-        $body_raw = (string) @imap_fetchbody($imap, (int) $msg_no, "1.1");
-        if ($body_raw === "") {
-            $body_raw = (string) @imap_body($imap, (int) $msg_no);
-        }
-        $body = trim(wp_strip_all_tags($body_raw));
+        $body = upsellio_followup_imap_get_message_plain_text($imap, (int) $msg_no);
         $offer_id = upsellio_followup_extract_offer_id_from_text($subject);
         if ($offer_id <= 0) {
             $offer_id = upsellio_followup_find_offer_by_email($from_email);
