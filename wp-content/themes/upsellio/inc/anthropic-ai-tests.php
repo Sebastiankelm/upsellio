@@ -58,14 +58,31 @@ function upsellio_ai_test_group_api(): array {
         $model = defined('UPSELLIO_ANTHROPIC_DEFAULT_MODEL') ? (string) UPSELLIO_ANTHROPIC_DEFAULT_MODEL : 'claude-haiku-4-5-20251001';
         $results[] = upsellio_ai_tests_warn('Model CRM', "Brak ustawienia — używa domyślnego: {$model}");
     } else {
-        $results[] = upsellio_ai_tests_pass('Model CRM', $model);
+        $crm_effective = function_exists('upsellio_anthropic_crm_normalize_model_id')
+            ? upsellio_anthropic_crm_normalize_model_id($model)
+            : $model;
+        if (strtolower($crm_effective) !== strtolower($model)) {
+            $results[] = upsellio_ai_tests_pass('Model CRM', "W opcji: {$model} — do API idzie: {$crm_effective}");
+        } else {
+            $results[] = upsellio_ai_tests_pass('Model CRM', $model);
+        }
     }
 
     $blog_model = trim((string) get_option('ups_blog_bot_model', ''));
     if ($blog_model === '') {
         $results[] = upsellio_ai_tests_warn('Model Blog Bot', 'Brak — używa domyślnego: claude-haiku-4-5-20251001');
     } else {
-        $results[] = upsellio_ai_tests_pass('Model Blog Bot', $blog_model);
+        $blog_effective = function_exists('upsellio_anthropic_crm_normalize_model_id')
+            ? upsellio_anthropic_crm_normalize_model_id($blog_model)
+            : $blog_model;
+        if (strtolower($blog_effective) !== strtolower($blog_model)) {
+            $results[] = upsellio_ai_tests_pass(
+                'Model Blog Bot',
+                "W opcji: {$blog_model} — do API idzie: {$blog_effective} (poprawka nieistniejącego snapshotu)"
+            );
+        } else {
+            $results[] = upsellio_ai_tests_pass('Model Blog Bot', $blog_model);
+        }
     }
 
     // 4. Żywy ping do API
@@ -336,10 +353,10 @@ function upsellio_ai_test_group_data(): array {
     $rest_url_ga4 = rest_url('upsellio/v1/ga4-aggregate');
     $results[] = upsellio_ai_tests_info('Endpoint REST GA4', $rest_url_ga4 . ' (POST, wymaga X-Upsellio-Secret)');
 
-    // Secret key
+    // Secret key (pusty = auto-ustawiany przy admin_init dla administratora — followups.php)
     $secret = (string) get_option('ups_followup_inbound_secret', '');
     if ($secret === '') {
-        $results[] = upsellio_ai_tests_fail('Tajny klucz REST (ups_followup_inbound_secret)', 'Brak! Endpointy GSC i GA4 odrzucą każdy request. Wygeneruj: wp option update ups_followup_inbound_secret "$(openssl rand -hex 32)"');
+        $results[] = upsellio_ai_tests_fail('Tajny klucz REST (ups_followup_inbound_secret)', 'Brak — odśwież stronę (sekret ustawia się przy pierwszym wejściu admina do panelu) lub ustaw ręcznie: wp option update ups_followup_inbound_secret "$(openssl rand -hex 32)"');
     } else {
         $masked = substr($secret, 0, 6) . str_repeat('*', max(4, strlen($secret) - 10)) . substr($secret, -4);
         $results[] = upsellio_ai_tests_pass('Tajny klucz REST', $masked);
@@ -451,7 +468,27 @@ function upsellio_ai_tests_run_blog_bot_ajax(): void {
         ]);
     } else {
         $last_run = (string) get_option('ups_blog_bot_last_run', '');
-        wp_send_json_error(['message' => "Bot uruchomiony, ale draft nie powstał. Możliwe przyczyny: błąd API (sprawdź test Ping), pusty klucz API, lub problem z parsowaniem odpowiedzi JSON. Ostatnie uruchomienie: {$last_run}"]);
+        $diag = get_option('ups_blog_bot_last_error', null);
+        $diag_txt = '';
+        if (is_array($diag) && !empty($diag['code'])) {
+            $labels = [
+                'disabled'       => 'Blog Bot wyłączony',
+                'no_api_key'     => 'Brak klucza Anthropic',
+                'empty_queue'    => 'Pusta kolejka',
+                'api_null'       => 'Błąd wywołania API',
+                'bad_json'       => 'Niepoprawny JSON z modelu',
+                'empty_fields'   => 'Brak title/content w JSON (sprawdź prompt ups_ai_prompt_blog_post)',
+                'wp_insert_failed' => 'Błąd zapisu wpisu',
+            ];
+            $code = (string) $diag['code'];
+            $diag_txt = ' ' . ($labels[$code] ?? $code);
+            if (!empty($diag['detail'])) {
+                $diag_txt .= ': ' . (string) $diag['detail'];
+            }
+        }
+        wp_send_json_error([
+            'message' => "Bot uruchomiony, ale draft nie powstał.{$diag_txt} Ostatnie pomyślne uruchomienie (last_run): {$last_run}",
+        ]);
     }
 }
 add_action('wp_ajax_upsellio_ai_tests_run_blog_bot', 'upsellio_ai_tests_run_blog_bot_ajax');
