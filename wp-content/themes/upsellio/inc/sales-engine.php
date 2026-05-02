@@ -785,7 +785,7 @@ function upsellio_sales_engine_sync_offer_status_to_crm($offer_id, $new_status, 
 {
     $offer_id = (int) $offer_id;
     $new_status = sanitize_key((string) $new_status);
-    if ($offer_id <= 0 || !in_array($new_status, ["won", "lost", "open"], true)) {
+    if ($offer_id <= 0 || !in_array($new_status, ["won", "lost", "open", "sent"], true)) {
         return;
     }
     $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
@@ -960,7 +960,7 @@ function upsellio_sales_engine_classify_inbound_via_claude($subject, $body)
     }
     $model = trim((string) get_option("ups_anthropic_model", ""));
     if ($model === "") {
-        $model = "claude-3-5-haiku-20241022";
+        $model = "claude-haiku-4-5-20251001";
     }
     $model = (string) apply_filters("upsellio_anthropic_inbound_model", $model);
     $subject = (string) $subject;
@@ -1041,19 +1041,6 @@ function upsellio_sales_engine_classify_inbound($offer_id, $subject, $body, $fro
     }
 }
 add_action("upsellio_followup_inbound_received", "upsellio_sales_engine_classify_inbound", 10, 4);
-
-function upsellio_sales_engine_add_admin_pages()
-{
-    add_submenu_page(
-        "edit.php?post_type=crm_offer",
-        "Sales Engine",
-        "Sales Engine",
-        "manage_options",
-        "upsellio-sales-engine",
-        "upsellio_sales_engine_render_admin_page"
-    );
-}
-add_action("admin_menu", "upsellio_sales_engine_add_admin_pages");
 
 function upsellio_sales_engine_get_campaign_costs()
 {
