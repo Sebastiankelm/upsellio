@@ -455,3 +455,26 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
             return $empty;
     }
 }
+
+/**
+ * Długie opcje (prompty, konteksty AI) — zachowuje dosłowny znak mniejszości (np. porównania budżetu w ICP), bez przycinania jak {@see sanitize_textarea_field()}.
+ */
+function upsellio_crm_app_sanitize_large_text_option($value)
+{
+    $value = wp_unslash((string) $value);
+    $value = wp_check_invalid_utf8($value, true);
+    $max = (int) apply_filters("upsellio_crm_app_max_option_text_length", 500000);
+    if ($max > 0 && strlen($value) > $max) {
+        $value = substr($value, 0, $max);
+    }
+
+    return $value;
+}
+
+/**
+ * Zapis ustawień CRM App — zsynchronizowany z {@see upsellio_crm_app_user_can_access()} (nie wymaga wyłącznie manage_options).
+ */
+function upsellio_crm_app_user_can_save_quick_settings()
+{
+    return current_user_can("manage_options") || current_user_can("edit_posts");
+}

@@ -239,6 +239,12 @@ function upsellio_crm_app_handle_post_actions()
             update_post_meta($client_id, "_ups_client_cancellation_date", isset($_POST["client_cancellation_date"]) ? sanitize_text_field(wp_unslash($_POST["client_cancellation_date"])) : "");
             update_post_meta($client_id, "_ups_client_cancellation_reason", isset($_POST["client_cancellation_reason"]) ? sanitize_textarea_field(wp_unslash($_POST["client_cancellation_reason"])) : "");
             update_post_meta($client_id, "_ups_client_notes", isset($_POST["client_notes"]) ? sanitize_textarea_field(wp_unslash($_POST["client_notes"])) : "");
+            if (isset($_POST["client_last_call_notes"])) {
+                update_post_meta($client_id, "_ups_client_last_call_notes", sanitize_textarea_field(wp_unslash($_POST["client_last_call_notes"])));
+            }
+            if (isset($_POST["client_next_contact_date"])) {
+                update_post_meta($client_id, "_ups_client_next_contact_date", sanitize_text_field(wp_unslash($_POST["client_next_contact_date"])));
+            }
             if ($previous_subscription_status !== "cancelled" && $subscription_status === "cancelled") {
                 do_action("upsellio_client_subscription_cancelled", $client_id);
             }
@@ -764,16 +770,19 @@ function upsellio_crm_app_handle_post_actions()
             fclose($handle);
         }
     } elseif ($action === "save_quick_settings") {
-        if (current_user_can("manage_options")) {
+        $is_admin = current_user_can("manage_options");
+        if (upsellio_crm_app_user_can_save_quick_settings()) {
             update_option("ups_contract_reminder_first_days", isset($_POST["contract_reminder_first_days"]) ? max(1, (int) wp_unslash($_POST["contract_reminder_first_days"])) : 3);
             update_option("ups_contract_reminder_second_days", isset($_POST["contract_reminder_second_days"]) ? max(2, (int) wp_unslash($_POST["contract_reminder_second_days"])) : 7);
             update_option("ups_followup_cooldown_hours", isset($_POST["followup_cooldown_hours"]) ? max(0, (int) wp_unslash($_POST["followup_cooldown_hours"])) : 24);
             update_option("ups_followup_max_per_offer", isset($_POST["followup_max_per_offer"]) ? max(1, (int) wp_unslash($_POST["followup_max_per_offer"])) : 5);
             $settings_tab_save = isset($_POST["settings_tab"]) ? sanitize_key(wp_unslash($_POST["settings_tab"])) : "";
             if ($settings_tab_save === "general") {
-                $anthropic_key_in = isset($_POST["ups_anthropic_api_key"]) ? trim(sanitize_text_field(wp_unslash($_POST["ups_anthropic_api_key"]))) : "";
-                if ($anthropic_key_in !== "") {
-                    update_option("ups_anthropic_api_key", $anthropic_key_in);
+                if ($is_admin) {
+                    $anthropic_key_in = isset($_POST["ups_anthropic_api_key"]) ? trim(sanitize_text_field(wp_unslash($_POST["ups_anthropic_api_key"]))) : "";
+                    if ($anthropic_key_in !== "") {
+                        update_option("ups_anthropic_api_key", $anthropic_key_in);
+                    }
                 }
                 update_option("ups_anthropic_inbound_enabled", isset($_POST["ups_anthropic_inbound_enabled"]) ? "1" : "0");
                 update_option("ups_anthropic_wp_lead_form_enabled", isset($_POST["ups_anthropic_wp_lead_form_enabled"]) ? "1" : "0");
@@ -798,7 +807,7 @@ function upsellio_crm_app_handle_post_actions()
 
             if ($settings_tab_save === "ai") {
                 if (isset($_POST["ups_ai_company_context"])) {
-                    $ctx = sanitize_textarea_field(wp_unslash($_POST["ups_ai_company_context"]));
+                    $ctx = upsellio_crm_app_sanitize_large_text_option($_POST["ups_ai_company_context"]);
                     update_option("ups_ai_company_context", $ctx, false);
                     update_option("ups_anthropic_company_context", $ctx, false);
                 }
@@ -807,9 +816,10 @@ function upsellio_crm_app_handle_post_actions()
                     "ups_ai_context_draft",
                     "ups_ai_context_followup",
                     "ups_ai_context_blog",
+                    "ups_ai_context_offer_fill",
                 ] as $ctx_field) {
                     if (isset($_POST[$ctx_field])) {
-                        update_option($ctx_field, sanitize_textarea_field(wp_unslash($_POST[$ctx_field])), false);
+                        update_option($ctx_field, upsellio_crm_app_sanitize_large_text_option($_POST[$ctx_field]), false);
                     }
                 }
                 foreach ([
@@ -818,24 +828,24 @@ function upsellio_crm_app_handle_post_actions()
                     "ups_ai_prompt_followup",
                 ] as $ai_prompt_field) {
                     if (isset($_POST[$ai_prompt_field])) {
-                        update_option($ai_prompt_field, sanitize_textarea_field(wp_unslash($_POST[$ai_prompt_field])), false);
+                        update_option($ai_prompt_field, upsellio_crm_app_sanitize_large_text_option($_POST[$ai_prompt_field]), false);
                     }
                 }
                 if (isset($_POST["ups_anthropic_prompt_offer_description"])) {
                     update_option(
                         "ups_anthropic_prompt_offer_description",
-                        sanitize_textarea_field(wp_unslash($_POST["ups_anthropic_prompt_offer_description"])),
+                        upsellio_crm_app_sanitize_large_text_option($_POST["ups_anthropic_prompt_offer_description"]),
                         false
                     );
                 }
                 if (isset($_POST["ups_ai_prompt_blog_post"])) {
-                    update_option("ups_ai_prompt_blog_post", sanitize_textarea_field(wp_unslash($_POST["ups_ai_prompt_blog_post"])), false);
+                    update_option("ups_ai_prompt_blog_post", upsellio_crm_app_sanitize_large_text_option($_POST["ups_ai_prompt_blog_post"]), false);
                 }
                 if (isset($_POST["ups_ai_prompt_blog_seo_system"])) {
-                    update_option("ups_ai_prompt_blog_seo_system", sanitize_textarea_field(wp_unslash($_POST["ups_ai_prompt_blog_seo_system"])), false);
+                    update_option("ups_ai_prompt_blog_seo_system", upsellio_crm_app_sanitize_large_text_option($_POST["ups_ai_prompt_blog_seo_system"]), false);
                 }
                 if (isset($_POST["ups_ai_blog_seo_campaign_default"])) {
-                    update_option("ups_ai_blog_seo_campaign_default", sanitize_textarea_field(wp_unslash($_POST["ups_ai_blog_seo_campaign_default"])), false);
+                    update_option("ups_ai_blog_seo_campaign_default", upsellio_crm_app_sanitize_large_text_option($_POST["ups_ai_blog_seo_campaign_default"]), false);
                 }
                 if (isset($_POST["ups_ai_blog_seo_temperature"])) {
                     update_option(
@@ -866,6 +876,9 @@ function upsellio_crm_app_handle_post_actions()
                 if (isset($_POST["ups_blog_bot_notify_email"])) {
                     update_option("ups_blog_bot_notify_email", sanitize_email(wp_unslash($_POST["ups_blog_bot_notify_email"])), false);
                 }
+                if (isset($_POST["ups_blog_bot_post_author"])) {
+                    update_option("ups_blog_bot_post_author", max(1, (int) wp_unslash($_POST["ups_blog_bot_post_author"])), false);
+                }
                 if (isset($_POST["ups_blog_bot_target_length"])) {
                     update_option("ups_blog_bot_target_length", max(400, (int) wp_unslash($_POST["ups_blog_bot_target_length"])), false);
                 }
@@ -873,7 +886,7 @@ function upsellio_crm_app_handle_post_actions()
                     update_option("ups_blog_bot_category", max(0, (int) wp_unslash($_POST["ups_blog_bot_category"])), false);
                 }
                 if (isset($_POST["ups_blog_bot_keywords_queue"])) {
-                    update_option("ups_blog_bot_keywords_queue", sanitize_textarea_field(wp_unslash($_POST["ups_blog_bot_keywords_queue"])), false);
+                    update_option("ups_blog_bot_keywords_queue", upsellio_crm_app_sanitize_large_text_option($_POST["ups_blog_bot_keywords_queue"]), false);
                 }
                 if (function_exists("upsellio_blog_bot_ensure_cron")) {
                     upsellio_blog_bot_ensure_cron();
@@ -912,7 +925,7 @@ function upsellio_crm_app_handle_post_actions()
                 update_option("ups_sales_fit_ideal_budget_min_pln", max(0, (float) wp_unslash($_POST["ups_sales_fit_ideal_budget_min_pln"])), false);
             }
 
-            if ($settings_tab_save === "mailbox") {
+            if ($settings_tab_save === "mailbox" && $is_admin) {
                 if (isset($_POST["ups_followup_from_name"])) {
                     update_option("ups_followup_from_name", sanitize_text_field(wp_unslash($_POST["ups_followup_from_name"])));
                 }
@@ -1108,8 +1121,14 @@ function upsellio_crm_app_handle_post_actions()
         $redirect_url = add_query_arg(["settings_tab" => $redirect_settings_tab], $redirect_url);
     }
     $redirect_task_tab = isset($_POST["task_tab"]) ? sanitize_key(wp_unslash($_POST["task_tab"])) : "";
-    if ($redirect_view === "tasks" && $redirect_task_tab !== "" && in_array($redirect_task_tab, ["all", "today", "tomorrow", "overdue"], true)) {
+    if ($redirect_view === "tasks" && $redirect_task_tab !== "" && in_array($redirect_task_tab, ["all", "today", "tomorrow", "overdue", "week"], true)) {
         $redirect_url = add_query_arg(["task_tab" => $redirect_task_tab], $redirect_url);
+    }
+    if ($redirect_view === "tasks" && $redirect_task_tab === "week" && isset($_POST["week_offset"])) {
+        $wo = (int) wp_unslash($_POST["week_offset"]);
+        if ($wo !== 0) {
+            $redirect_url = add_query_arg(["week_offset" => $wo], $redirect_url);
+        }
     }
     if ($redirect_client > 0 && $redirect_view === "client-edit") {
         $redirect_url = add_query_arg(["client_id" => $redirect_client], $redirect_url);
