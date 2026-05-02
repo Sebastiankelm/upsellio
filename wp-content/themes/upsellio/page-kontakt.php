@@ -241,11 +241,26 @@ echo wp_json_encode([
           <h2 class="ct-h2">Zamów bezpłatną diagnozę</h2>
           <p>Krótko opisz, co chcesz poprawić. Odezwę się z kierunkiem.</p>
         </div>
-        <?php $ups_form_status = isset($_GET["ups_lead_status"]) ? sanitize_text_field(wp_unslash($_GET["ups_lead_status"])) : ""; ?>
+        <?php
+        $ups_form_status = isset($_GET["ups_lead_status"]) ? sanitize_text_field(wp_unslash($_GET["ups_lead_status"])) : "";
+        $ups_form_reason = isset($_GET["ups_lead_reason"]) ? sanitize_key(wp_unslash($_GET["ups_lead_reason"])) : "";
+        $ups_form_error_text = "Nie udało się wysłać formularza. Spróbuj ponownie.";
+        if ($ups_form_status === "error") {
+            if ($ups_form_reason === "nonce") {
+                $ups_form_error_text = "Sesja formularza wygasła (np. strona była otwarta długo lub z cache). Odśwież stronę (F5) i wyślij ponownie.";
+            } elseif ($ups_form_reason === "fields") {
+                $ups_form_error_text = "Uzupełnij wymagane pola (imię, e-mail, wiadomość) i zaznacz zgodę na kontakt.";
+            } elseif ($ups_form_reason === "rate") {
+                $ups_form_error_text = "Zbyt wiele prób z tej sieci lub adresu e-mail. Spróbuj ponownie za około godzinę albo napisz na kontakt@upsellio.pl.";
+            } elseif ($ups_form_reason === "save") {
+                $ups_form_error_text = "Nie udało się zapisać zgłoszenia po stronie serwera. Napisz na kontakt@upsellio.pl — odbiorę wiadomość.";
+            }
+        }
+        ?>
         <?php if ($ups_form_status === "success") : ?>
           <p style="margin:0 0 10px;color:#0f766e;">Dziękuję! Formularz dotarł i wrócę z odpowiedzią.</p>
         <?php elseif ($ups_form_status === "error") : ?>
-          <p style="margin:0 0 10px;color:#b13a3a;">Nie udało się wysłać formularza. Spróbuj ponownie.</p>
+          <p style="margin:0 0 10px;color:#b13a3a;"><?php echo esc_html($ups_form_error_text); ?></p>
         <?php endif; ?>
         <div class="ct-row">
           <label>Imię

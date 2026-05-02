@@ -816,6 +816,31 @@
     });
   });
 
+  function upsellioMessageForLeadFormResponse(finalUrl, responseOk) {
+    var generic =
+      "Nie udało się wysłać formularza. Odśwież stronę i spróbuj ponownie, albo napisz na kontakt@upsellio.pl.";
+    if (!finalUrl) {
+      return responseOk ? null : generic;
+    }
+    try {
+      var u = new URL(finalUrl, window.location.origin);
+      if (u.searchParams.get("ups_lead_status") !== "error") {
+        return null;
+      }
+      var reason = u.searchParams.get("ups_lead_reason") || "";
+      var byReason = {
+        nonce:
+          "Sesja formularza wygasła (strona otwarta długo lub z pamięci podręcznej). Odśwież stronę (F5) i wyślij ponownie.",
+        fields: "Uzupełnij wymagane pola (imię, e-mail, wiadomość) i zaznacz zgodę na kontakt.",
+        rate: "Zbyt wiele prób z tej sieci lub adresu e-mail. Spróbuj ponownie za około godzinę albo napisz na kontakt@upsellio.pl.",
+        save: "Nie udało się zapisać zgłoszenia. Napisz na kontakt@upsellio.pl — odbiorę wiadomość.",
+      };
+      return byReason[reason] || generic;
+    } catch (e) {
+      return generic;
+    }
+  }
+
   function initServerLeadForms() {
     const serverForms = Array.from(document.querySelectorAll("form[data-upsellio-server-form='1']"));
     if (!serverForms.length) return;
@@ -852,7 +877,8 @@
             redirect: "follow",
           });
           if (!response.ok || (response.url && response.url.includes("ups_lead_status=error"))) {
-            throw new Error("Nie udało się wysłać formularza. Sprawdź pola i spróbuj ponownie.");
+            var msg = upsellioMessageForLeadFormResponse(response.url, response.ok);
+            throw new Error(msg || "Nie udało się wysłać formularza. Odśwież stronę i spróbuj ponownie.");
           }
 
           feedback.textContent = "Dziękuję! Wiadomość została zapisana i odezwę się możliwie szybko.";
@@ -929,7 +955,8 @@
             redirect: "follow",
           });
           if (!response.ok || (response.url && response.url.includes("ups_lead_status=error"))) {
-            throw new Error("Nie udało się wysłać formularza. Sprawdź pola i spróbuj ponownie.");
+            var msgOffer = upsellioMessageForLeadFormResponse(response.url, response.ok);
+            throw new Error(msgOffer || "Nie udało się wysłać formularza. Odśwież stronę i spróbuj ponownie.");
           }
 
           feedback.textContent = "Dziękuję! Wiadomość została zapisana i odezwę się możliwie szybko.";
