@@ -860,6 +860,694 @@ function upsellio_handle_gsc_logs_clear_submit()
 }
 add_action("admin_init", "upsellio_handle_gsc_logs_clear_submit");
 
+/**
+ * Redirect URI rejestrowany w Google Cloud Console (OAuth client typ „Web application”).
+ */
+function upsellio_google_oauth_redirect_uri()
+{
+    return admin_url("edit.php?page=upsellio-site-analytics");
+}
+
+function upsellio_google_oauth_scope_string()
+{
+    $scopes = [
+        "https://www.googleapis.com/auth/webmasters.readonly",
+        "https://www.googleapis.com/auth/analytics.readonly",
+    ];
+
+    return implode(" ", $scopes);
+}
+
+function upsellio_google_oauth_transient_key($user_id)
+{
+    return "upsellio_goauth_" . (int) $user_id;
+}
+
+/**
+ * @return array{state:string,gsc_property:string,ga4_property_id:string}|null
+ */
+function upsellio_google_oauth_get_pending($user_id)
+{
+    $raw = get_transient(upsellio_google_oauth_transient_key($user_id));
+    if (!is_array($raw) || !isset($raw["state"], $raw["gsc_property"], $raw["ga4_property_id"])) {
+        return null;
+    }
+
+    return [
+        "state" => (string) $raw["state"],
+        "gsc_property" => (string) $raw["gsc_property"],
+        "ga4_property_id" => (string) $raw["ga4_property_id"],
+    ];
+}
+
+function upsellio_google_oauth_handle_callback()
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+    if (!isset($_GET["page"]) || (string) $_GET["page"] !== "upsellio-site-analytics") {
+        return;
+    }
+
+    $uid = get_current_user_id();
+    if ($uid <= 0) {
+        return;
+    }
+
+    if (isset($_GET["error"])) {
+        $pending = upsellio_google_oauth_get_pending($uid);
+        if ($pending !== null && isset($_GET["state"]) && hash_equals($pending["state"], (string) wp_unslash($_GET["state"]))) {
+            delete_transient(upsellio_google_oauth_transient_key($uid));
+        }
+        $err = sanitize_text_field((string) wp_unslash($_GET["error"]));
+        $desc = isset($_GET["error_description"]) ? sanitize_text_field((string) wp_unslash($_GET["error_description"])) : "";
+        $msg = $desc !== "" ? "{$err}: {$desc}" : $err;
+        wp_safe_redirect(
+            add_query_arg(
+                [
+                    "page" => "upsellio-site-analytics",
+                    "upsellio_google_oauth_error" => rawurlencode($msg),
+                ],
+                admin_url("edit.php")
+            )
+        );
+        exit;
+    }
+
+    if (!isset($_GET["code"], $_GET["state"])) {
+        return;
+    }
+
+    $code = (string) wp_unslash($_GET["code"]);
+    $state_in = (string) wp_unslash($_GET["state"]);
+    $pending = upsellio_google_oauth_get_pending($uid);
+    if ($pending === null || !hash_equals($pending["state"], $state_in)) {
+        wp_safe_redirect(
+            add_query_arg(
+                [
+                    "page" => "upsellio-site-analytics",
+                    "upsellio_google_oauth_error" => rawurlencode("Nieprawidłowy stan OAuth (odśwież stronę i spróbuj ponownie)."),
+                ],
+                admin_url("edit.php")
+            )
+        );
+        exit;
+    }
+
+    delete_transient(upsellio_google_oauth_transient_key($uid));
+
+    $creds = upsellio_get_gsc_credentials();
+    $client_id = (string) ($creds["client_id"] ?? "");
+    $client_secret = (string) ($creds["client_secret"] ?? "");
+    if ($client_id === "" || $client_secret === "") {
+        wp_safe_redirect(
+            add_query_arg(
+                [
+                    "page" => "upsellio-site-analytics",
+                    "upsellio_google_oauth_error" => rawurlencode("Brak Client ID / Secret — uzupełnij je przed autoryzacją."),
+                ],
+                admin_url("edit.php")
+            )
+        );
+        exit;
+    }
+
+    $trace_id = upsellio_gsc_debug_trace_id();
+    upsellio_gsc_log("google.oauth.code_exchange.started", ["trace_id" => $trace_id], $trace_id);
+
+    $response = wp_remote_post("https://oauth2.googleapis.com/token", [
+        "timeout" => 25,
+        "body" => [
+            "code" => $code,
+            "client_id" => $client_id,
+            "client_secret" => $client_secret,
+            "redirect_uri" => upsellio_google_oauth_redirect_uri(),
+            "grant_type" => "authorization_code",
+        ],
+    ]);
+
+    if (is_wp_error($response)) {
+        upsellio_gsc_log("google.oauth.code_exchange.wp_error", ["message" => $response->get_error_message()], $trace_id);
+        wp_safe_redirect(
+            add_query_arg(
+                [
+                    "page" => "upsellio-site-analytics",
+                    "upsellio_google_oauth_error" => rawurlencode($response->get_error_message()),
+                ],
+                admin_url("edit.php")
+            )
+        );
+        exit;
+    }
+
+    $status = (int) wp_remote_retrieve_response_code($response);
+    $raw_body = (string) wp_remote_retrieve_body($response);
+    $body = json_decode($raw_body, true);
+    upsellio_gsc_log("google.oauth.code_exchange.response", [
+        "status" => $status,
+        "body" => is_array($body) ? upsellio_gsc_redact_sensitive_fields($body) : upsellio_gsc_truncate($raw_body),
+    ], $trace_id);
+
+    if ($status >= 400) {
+        $msg = upsellio_gsc_extract_error_message(is_array($body) ? $body : [], "Wymiana kodu OAuth nie powiodła się.");
+        wp_safe_redirect(
+            add_query_arg(
+                [
+                    "page" => "upsellio-site-analytics",
+                    "upsellio_google_oauth_error" => rawurlencode($msg),
+                ],
+                admin_url("edit.php")
+            )
+        );
+        exit;
+    }
+
+    $new_refresh = is_array($body) ? trim((string) ($body["refresh_token"] ?? "")) : "";
+    $existing_refresh = trim((string) ($creds["refresh_token"] ?? ""));
+    $refresh_to_store = $new_refresh !== "" ? $new_refresh : $existing_refresh;
+    if ($refresh_to_store === "") {
+        wp_safe_redirect(
+            add_query_arg(
+                [
+                    "page" => "upsellio-site-analytics",
+                    "upsellio_google_oauth_error" => rawurlencode("Google nie zwrócił refresh tokena. Usuń powiązanie aplikacji w ustawieniach konta Google i spróbuj ponownie z prompt=consent (użyj ponownie przycisku autoryzacji)."),
+                ],
+                admin_url("edit.php")
+            )
+        );
+        exit;
+    }
+
+    $gsc_property = $pending["gsc_property"] !== ""
+        ? sanitize_text_field($pending["gsc_property"])
+        : (string) ($creds["property"] ?? "");
+    upsellio_save_gsc_credentials($client_id, $client_secret, $refresh_to_store, $gsc_property);
+
+    if ($pending["ga4_property_id"] !== "") {
+        upsellio_save_ga4_property_id($pending["ga4_property_id"]);
+    }
+
+    upsellio_gsc_log("google.oauth.code_exchange.success", ["trace_id" => $trace_id], $trace_id);
+
+    wp_safe_redirect(
+        add_query_arg(
+            [
+                "page" => "upsellio-site-analytics",
+                "upsellio_google_connected" => "1",
+            ],
+            admin_url("edit.php")
+        )
+    );
+    exit;
+}
+add_action("admin_init", "upsellio_google_oauth_handle_callback", 1);
+
+function upsellio_google_oauth_handle_start()
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+
+    if (!isset($_POST["upsellio_google_oauth_start"])) {
+        return;
+    }
+
+    check_admin_referer("upsellio_google_oauth_start_action", "upsellio_google_oauth_start_nonce");
+
+    $client_id = isset($_POST["g_oauth_client_id"]) ? wp_unslash($_POST["g_oauth_client_id"]) : "";
+    $client_secret = isset($_POST["g_oauth_client_secret"]) ? wp_unslash($_POST["g_oauth_client_secret"]) : "";
+    $gsc_property_in = isset($_POST["g_oauth_gsc_property"]) ? wp_unslash($_POST["g_oauth_gsc_property"]) : "";
+    $ga4_id_in = isset($_POST["g_oauth_ga4_property_id"]) ? wp_unslash($_POST["g_oauth_ga4_property_id"]) : "";
+
+    $existing = upsellio_get_gsc_credentials();
+    if (trim((string) $client_id) === "") {
+        $client_id = (string) ($existing["client_id"] ?? "");
+    }
+    if (trim((string) $client_secret) === "") {
+        $client_secret = (string) ($existing["client_secret"] ?? "");
+    }
+    $gsc_property = trim((string) $gsc_property_in) !== ""
+        ? sanitize_text_field(trim((string) $gsc_property_in))
+        : (string) ($existing["property"] ?? "");
+
+    upsellio_save_gsc_credentials(
+        $client_id,
+        $client_secret,
+        (string) ($existing["refresh_token"] ?? ""),
+        $gsc_property
+    );
+
+    $saved = upsellio_get_gsc_credentials();
+    if ($saved["client_id"] === "" || $saved["client_secret"] === "") {
+        wp_safe_redirect(
+            add_query_arg(
+                [
+                    "page" => "upsellio-site-analytics",
+                    "upsellio_google_oauth_error" => rawurlencode("Uzupełnij Client ID i Client Secret z Google Cloud Console."),
+                ],
+                admin_url("edit.php")
+            )
+        );
+        exit;
+    }
+
+    if (trim((string) $ga4_id_in) !== "") {
+        upsellio_save_ga4_property_id($ga4_id_in);
+    }
+
+    $state = bin2hex(random_bytes(16));
+    $uid = get_current_user_id();
+    set_transient(
+        upsellio_google_oauth_transient_key($uid),
+        [
+            "state" => $state,
+            "gsc_property" => $gsc_property,
+            "ga4_property_id" => preg_replace("/\D+/", "", (string) $ga4_id_in),
+        ],
+        15 * MINUTE_IN_SECONDS
+    );
+
+    $auth_url = add_query_arg(
+        [
+            "client_id" => $saved["client_id"],
+            "redirect_uri" => upsellio_google_oauth_redirect_uri(),
+            "response_type" => "code",
+            "scope" => upsellio_google_oauth_scope_string(),
+            "access_type" => "offline",
+            "prompt" => "consent",
+            "include_granted_scopes" => "true",
+            "state" => $state,
+        ],
+        "https://accounts.google.com/o/oauth2/v2/auth"
+    );
+
+    upsellio_gsc_log("google.oauth.redirect", ["user_id" => $uid], upsellio_gsc_debug_trace_id());
+
+    wp_safe_redirect($auth_url);
+    exit;
+}
+add_action("admin_init", "upsellio_google_oauth_handle_start", 2);
+
+function upsellio_google_oauth_handle_disconnect()
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+
+    if (!isset($_POST["upsellio_google_oauth_disconnect"])) {
+        return;
+    }
+
+    check_admin_referer("upsellio_google_oauth_disconnect_action", "upsellio_google_oauth_disconnect_nonce");
+
+    $c = upsellio_get_gsc_credentials();
+    upsellio_save_gsc_credentials(
+        (string) ($c["client_id"] ?? ""),
+        (string) ($c["client_secret"] ?? ""),
+        "",
+        (string) ($c["property"] ?? "")
+    );
+
+    wp_safe_redirect(
+        add_query_arg(
+            [
+                "page" => "upsellio-site-analytics",
+                "upsellio_google_disconnected" => "1",
+            ],
+            admin_url("edit.php")
+        )
+    );
+    exit;
+}
+add_action("admin_init", "upsellio_google_oauth_handle_disconnect", 2);
+
+/**
+ * Numeryczne ID właściwości GA4 (Admin → Ustawienia właściwości).
+ */
+function upsellio_get_ga4_property_id()
+{
+    $raw = get_option("upsellio_ga4_property_id", "");
+    $digits = preg_replace("/\D+/", "", (string) $raw);
+
+    return $digits;
+}
+
+function upsellio_save_ga4_property_id($property_id)
+{
+    $digits = preg_replace("/\D+/", "", (string) $property_id);
+    update_option("upsellio_ga4_property_id", $digits, false);
+}
+
+/**
+ * Opcjonalny osobny OAuth tylko do GA4. Gdy pusty — używane są dane z sekcji GSC (wspólny refresh token musi mieć scope analytics.readonly).
+ *
+ * @return array{client_id:string,client_secret:string,refresh_token:string}
+ */
+function upsellio_get_ga4_oauth_override()
+{
+    $stored = get_option("upsellio_ga4_oauth_credentials", []);
+    if (!is_array($stored)) {
+        return ["client_id" => "", "client_secret" => "", "refresh_token" => ""];
+    }
+
+    return [
+        "client_id" => trim((string) ($stored["client_id"] ?? "")),
+        "client_secret" => trim((string) ($stored["client_secret"] ?? "")),
+        "refresh_token" => trim((string) ($stored["refresh_token"] ?? "")),
+    ];
+}
+
+function upsellio_save_ga4_oauth_override($client_id, $client_secret, $refresh_token)
+{
+    $prev = upsellio_get_ga4_oauth_override();
+    $payload = [
+        "client_id" => upsellio_normalize_oauth_credential($client_id),
+        "client_secret" => upsellio_normalize_oauth_credential($client_secret),
+        "refresh_token" => upsellio_normalize_oauth_credential($refresh_token),
+    ];
+    if ($payload["client_id"] === "" && $payload["client_secret"] === "" && $payload["refresh_token"] === "") {
+        delete_option("upsellio_ga4_oauth_credentials");
+        delete_transient(upsellio_gsc_access_token_transient_key([
+            "client_id" => $prev["client_id"],
+            "client_secret" => $prev["client_secret"],
+            "refresh_token" => $prev["refresh_token"],
+        ]));
+
+        return;
+    }
+    if (
+        $prev["client_id"] !== $payload["client_id"] ||
+        $prev["client_secret"] !== $payload["client_secret"] ||
+        $prev["refresh_token"] !== $payload["refresh_token"]
+    ) {
+        delete_transient(upsellio_gsc_access_token_transient_key([
+            "client_id" => $prev["client_id"],
+            "client_secret" => $prev["client_secret"],
+            "refresh_token" => $prev["refresh_token"],
+        ]));
+        delete_transient(upsellio_gsc_access_token_transient_key([
+            "client_id" => $payload["client_id"],
+            "client_secret" => $payload["client_secret"],
+            "refresh_token" => $payload["refresh_token"],
+        ]));
+    }
+    update_option("upsellio_ga4_oauth_credentials", $payload, false);
+}
+
+/**
+ * Tablica zgodna z upsellio_gsc_get_access_token (pole property ignorowane przy tokenie).
+ */
+function upsellio_get_oauth_credentials_for_ga4()
+{
+    $ov = upsellio_get_ga4_oauth_override();
+    if ($ov["refresh_token"] !== "" && $ov["client_id"] !== "" && $ov["client_secret"] !== "") {
+        return [
+            "client_id" => $ov["client_id"],
+            "client_secret" => $ov["client_secret"],
+            "refresh_token" => $ov["refresh_token"],
+            "property" => "",
+        ];
+    }
+
+    return upsellio_get_gsc_credentials();
+}
+
+function upsellio_ga4_sync_days_to_start_relative($sync_days)
+{
+    $sync_days = in_array((int) $sync_days, [7, 14, 30, 60, 90], true) ? (int) $sync_days : 30;
+    $map = [
+        7 => "7daysAgo",
+        14 => "14daysAgo",
+        30 => "30daysAgo",
+        60 => "60daysAgo",
+        90 => "90daysAgo",
+    ];
+
+    return $map[$sync_days] ?? "30daysAgo";
+}
+
+/**
+ * Pobiera agregaty źródło / medium / kampania z GA4 Data API (OAuth).
+ *
+ * @return array<int, array<string, mixed>>|WP_Error
+ */
+function upsellio_ga4_data_api_fetch_aggregates($property_numeric_id, $sync_days, $trace_id = "")
+{
+    $property_numeric_id = preg_replace("/\D+/", "", (string) $property_numeric_id);
+    if ($property_numeric_id === "") {
+        return new WP_Error("upsellio_ga4_missing_property", "Uzupełnij numeryczne ID właściwości GA4.");
+    }
+
+    $oauth = upsellio_get_oauth_credentials_for_ga4();
+    if (
+        (string) ($oauth["client_id"] ?? "") === "" ||
+        (string) ($oauth["client_secret"] ?? "") === "" ||
+        (string) ($oauth["refresh_token"] ?? "") === ""
+    ) {
+        return new WP_Error(
+            "upsellio_ga4_missing_oauth",
+            "Brak OAuth: uzupełnij Google Client ID / Secret / Refresh token w sekcji GSC powyżej (z scope analytics.readonly) albo osobne pola OAuth tylko dla GA4."
+        );
+    }
+
+    $access_token = upsellio_gsc_get_access_token($oauth, $trace_id);
+    if (is_wp_error($access_token)) {
+        return $access_token;
+    }
+
+    $prop_resource = "properties/" . $property_numeric_id;
+    $endpoint = "https://analyticsdata.googleapis.com/v1beta/" . $prop_resource . ":runReport";
+    $start_rel = upsellio_ga4_sync_days_to_start_relative($sync_days);
+    $metric_attempts = [
+        [
+            ["name" => "sessions"],
+            ["name" => "engagedSessions"],
+            ["name" => "conversions"],
+            ["name" => "totalRevenue"],
+        ],
+        [
+            ["name" => "sessions"],
+            ["name" => "engagedSessions"],
+        ],
+    ];
+
+    $token_key = upsellio_gsc_access_token_transient_key($oauth);
+    $decoded = null;
+    $status = 0;
+    foreach ($metric_attempts as $attempt => $metrics) {
+        $body = [
+            "dateRanges" => [
+                [
+                    "startDate" => $start_rel,
+                    "endDate" => "yesterday",
+                ],
+            ],
+            "dimensions" => [
+                ["name" => "sessionSource"],
+                ["name" => "sessionMedium"],
+                ["name" => "sessionCampaignName"],
+            ],
+            "metrics" => $metrics,
+            "limit" => 250000,
+        ];
+
+        $response = null;
+        for ($try = 0; $try < 2; $try++) {
+            upsellio_gsc_log("ga4.run_report.request", [
+                "attempt_metrics" => $attempt + 1,
+                "try" => $try + 1,
+                "endpoint" => $endpoint,
+            ], $trace_id);
+            $response = wp_remote_post($endpoint, [
+                "timeout" => 45,
+                "headers" => [
+                    "Authorization" => "Bearer " . $access_token,
+                    "Content-Type" => "application/json",
+                ],
+                "body" => wp_json_encode($body),
+            ]);
+            if (is_wp_error($response)) {
+                upsellio_gsc_log("ga4.run_report.http_error", ["message" => $response->get_error_message()], $trace_id);
+
+                return $response;
+            }
+            $status = (int) wp_remote_retrieve_response_code($response);
+            $raw = (string) wp_remote_retrieve_body($response);
+            $decoded = json_decode($raw, true);
+            if ($status === 401) {
+                delete_transient($token_key);
+                $access_token = upsellio_gsc_get_access_token($oauth, $trace_id);
+                if (is_wp_error($access_token)) {
+                    return $access_token;
+                }
+                continue;
+            }
+            break;
+        }
+
+        upsellio_gsc_log("ga4.run_report.response", [
+            "attempt_metrics" => $attempt + 1,
+            "status" => $status,
+            "body" => is_array($decoded) ? upsellio_gsc_redact_sensitive_fields($decoded) : upsellio_gsc_truncate($raw),
+        ], $trace_id);
+
+        if ($status < 400) {
+            break;
+        }
+        if ($attempt === count($metric_attempts) - 1) {
+            $msg = upsellio_gsc_extract_error_message(is_array($decoded) ? $decoded : [], "Błąd GA4 Data API (HTTP {$status}).");
+            return new WP_Error("upsellio_ga4_api_error", $msg);
+        }
+    }
+
+    if (!is_array($decoded)) {
+        return new WP_Error("upsellio_ga4_api_error", "Nieprawidłowa odpowiedź GA4 Data API.");
+    }
+
+    $api_rows = isset($decoded["rows"]) && is_array($decoded["rows"]) ? $decoded["rows"] : [];
+    $metric_headers = isset($decoded["metricHeaders"]) && is_array($decoded["metricHeaders"]) ? $decoded["metricHeaders"] : [];
+    $metric_count = count($metric_headers);
+    $sync_date = wp_date("Y-m-d");
+    $out = [];
+    foreach ($api_rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $dims = isset($row["dimensionValues"]) && is_array($row["dimensionValues"]) ? $row["dimensionValues"] : [];
+        $mets = isset($row["metricValues"]) && is_array($row["metricValues"]) ? $row["metricValues"] : [];
+        $source = sanitize_text_field((string) ($dims[0]["value"] ?? ""));
+        $medium = sanitize_text_field((string) ($dims[1]["value"] ?? ""));
+        $campaign = sanitize_text_field((string) ($dims[2]["value"] ?? ""));
+        if ($source === "" && $campaign === "") {
+            continue;
+        }
+        $sessions = (int) round((float) ($mets[0]["value"] ?? 0));
+        $engaged = (int) round((float) ($mets[1]["value"] ?? 0));
+        $conversions = 0;
+        $revenue = 0.0;
+        if ($metric_count >= 4 && count($mets) >= 4) {
+            $conversions = (int) round((float) ($mets[2]["value"] ?? 0));
+            $revenue = (float) ($mets[3]["value"] ?? 0);
+        }
+        $key = strtolower(trim($source . "|" . $campaign));
+        if ($key === "|") {
+            continue;
+        }
+        $out[$key] = [
+            "date" => $sync_date,
+            "source" => $source !== "" ? $source : "(direct)",
+            "medium" => $medium,
+            "campaign" => $campaign !== "" ? $campaign : "(not set)",
+            "sessions" => max(0, $sessions),
+            "engaged_sessions" => max(0, $engaged),
+            "conversions" => max(0, $conversions),
+            "revenue" => max(0.0, $revenue),
+        ];
+    }
+
+    upsellio_gsc_log("ga4.fetch.finished", ["rows" => count($out)], $trace_id);
+
+    return array_values($out);
+}
+
+function upsellio_ga4_apply_aggregates_to_crm(array $normalized_rows)
+{
+    update_option("ups_automation_ga4_daily_aggregates", array_values($normalized_rows), false);
+    update_option("ups_automation_ga4_last_sync", current_time("mysql"), false);
+    if (function_exists("upsellio_automation_sync_ga4_channel_quality")) {
+        upsellio_automation_sync_ga4_channel_quality();
+    }
+}
+
+function upsellio_handle_ga4_sync_submit()
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+
+    if (!isset($_POST["upsellio_ga4_sync_submit"])) {
+        return;
+    }
+
+    check_admin_referer("upsellio_ga4_sync_action", "upsellio_ga4_sync_nonce");
+
+    $property_id = isset($_POST["ga4_property_id"]) ? wp_unslash($_POST["ga4_property_id"]) : "";
+    $sync_days = isset($_POST["ga4_sync_days"]) ? (int) $_POST["ga4_sync_days"] : 30;
+    $sync_days = in_array($sync_days, [7, 14, 30, 60, 90], true) ? $sync_days : 30;
+
+    $ga4_cid = isset($_POST["ga4_oauth_client_id"]) ? wp_unslash($_POST["ga4_oauth_client_id"]) : "";
+    $ga4_cs = isset($_POST["ga4_oauth_client_secret"]) ? wp_unslash($_POST["ga4_oauth_client_secret"]) : "";
+    $ga4_rt = isset($_POST["ga4_oauth_refresh_token"]) ? wp_unslash($_POST["ga4_oauth_refresh_token"]) : "";
+    upsellio_save_ga4_property_id($property_id);
+    upsellio_save_ga4_oauth_override($ga4_cid, $ga4_cs, $ga4_rt);
+    update_option("upsellio_ga4_sync_days_last", $sync_days, false);
+
+    $trace_id = upsellio_gsc_debug_trace_id();
+    $pid = upsellio_get_ga4_property_id();
+    $rows = upsellio_ga4_data_api_fetch_aggregates($pid, $sync_days, $trace_id);
+
+    if (is_wp_error($rows)) {
+        upsellio_gsc_log("ga4.sync.failed", ["message" => $rows->get_error_message()], $trace_id);
+        wp_safe_redirect(
+            add_query_arg(
+                [
+                    "page" => "upsellio-site-analytics",
+                    "upsellio_ga4_error" => rawurlencode($rows->get_error_message()),
+                    "upsellio_ga4_trace_id" => rawurlencode($trace_id),
+                ],
+                admin_url("edit.php")
+            )
+        );
+        exit;
+    }
+
+    upsellio_ga4_apply_aggregates_to_crm($rows);
+    upsellio_gsc_log("ga4.sync.success", ["rows" => count($rows)], $trace_id);
+
+    wp_safe_redirect(
+        add_query_arg(
+            [
+                "page" => "upsellio-site-analytics",
+                "upsellio_ga4_synced" => (string) count($rows),
+                "upsellio_ga4_trace_id" => rawurlencode($trace_id),
+            ],
+            admin_url("edit.php")
+        )
+    );
+    exit;
+}
+add_action("admin_init", "upsellio_handle_ga4_sync_submit");
+
+/**
+ * Codzienny import GA4 do CRM, jeśli skonfigurowano ID właściwości i OAuth.
+ */
+function upsellio_ga4_daily_oauth_sync_job()
+{
+    if ((string) get_option("ups_automation_ga4_sync_enabled", "1") !== "1") {
+        return;
+    }
+    $pid = upsellio_get_ga4_property_id();
+    if ($pid === "") {
+        return;
+    }
+    $oauth = upsellio_get_oauth_credentials_for_ga4();
+    if ($oauth["client_id"] === "" || $oauth["client_secret"] === "" || $oauth["refresh_token"] === "") {
+        return;
+    }
+    $trace_id = "ga4_cron_" . (function_exists("wp_generate_uuid4") ? wp_generate_uuid4() : uniqid("", true));
+    $rows = upsellio_ga4_data_api_fetch_aggregates($pid, 30, $trace_id);
+    if (is_wp_error($rows) || $rows === []) {
+        if (is_wp_error($rows)) {
+            upsellio_gsc_log("ga4.cron.failed", ["message" => $rows->get_error_message()], $trace_id);
+        }
+
+        return;
+    }
+    upsellio_ga4_apply_aggregates_to_crm($rows);
+    upsellio_gsc_log("ga4.cron.success", ["rows" => count($rows)], $trace_id);
+}
+add_action("upsellio_automation_daily", "upsellio_ga4_daily_oauth_sync_job", 8);
+
 function upsellio_get_leads_for_post_url($post_url, $from_date)
 {
     $from_timestamp = strtotime($from_date . " 00:00:00");
@@ -1128,6 +1816,11 @@ function upsellio_render_site_analytics_page()
     $priority_rows = array_slice($priority_rows, 0, 10);
     $gsc_credentials = upsellio_get_gsc_credentials();
     $gsc_debug_logs = upsellio_gsc_get_logs();
+    $ga4_property_id_display = upsellio_get_ga4_property_id();
+    $ga4_oauth_override = upsellio_get_ga4_oauth_override();
+    $ga4_last = (string) get_option("ups_automation_ga4_last_sync", "");
+    $ga4_ui_days = (int) get_option("upsellio_ga4_sync_days_last", 30);
+    $ga4_ui_days = in_array($ga4_ui_days, [7, 14, 30, 60, 90], true) ? $ga4_ui_days : 30;
     $keyword_source = (string) get_option("upsellio_keyword_metrics_source", "csv_import");
     $last_sync = (string) get_option("upsellio_keyword_metrics_last_sync", "");
     if ($keyword_source === "gsc_live") {
@@ -1392,6 +2085,56 @@ function upsellio_render_site_analytics_page()
         </div>
 
         <div class="ups-import-box">
+          <h2 style="margin-top:0;">Google — logowanie przez konto Gmail (GSC + GA4)</h2>
+          <?php if (isset($_GET["upsellio_google_connected"])) : ?>
+            <div class="notice notice-success inline"><p>Konto Google połączone. Refresh token zapisany — możesz zsynchronizować GSC i GA4 poniżej.</p></div>
+          <?php endif; ?>
+          <?php if (isset($_GET["upsellio_google_disconnected"])) : ?>
+            <div class="notice notice-success inline"><p>Odłączono refresh token (Client ID / Secret i property GSC zostają).</p></div>
+          <?php endif; ?>
+          <?php if (isset($_GET["upsellio_google_oauth_error"])) : ?>
+            <div class="notice notice-error inline"><p>OAuth Google: <?php echo esc_html(rawurldecode((string) $_GET["upsellio_google_oauth_error"])); ?></p></div>
+          <?php endif; ?>
+          <p style="font-size:13px;color:#3f3f39;">
+            W <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console</a> utwórz klienta OAuth typu <strong>Web application</strong> i dodaj dokładnie ten adres jako <strong>Authorized redirect URI</strong>:
+          </p>
+          <p><code style="word-break:break-all;"><?php echo esc_html(upsellio_google_oauth_redirect_uri()); ?></code></p>
+          <p style="font-size:12px;color:#5f6368;">Zakresy zgody: Search Console (read-only) oraz Analytics (read-only). Po kliknięciu zalogujesz się na Google i zatwierdzisz dostęp — refresh token uzupełni się automatycznie.</p>
+          <form method="post" style="margin-bottom:16px;">
+            <?php wp_nonce_field("upsellio_google_oauth_start_action", "upsellio_google_oauth_start_nonce"); ?>
+            <input type="hidden" name="upsellio_google_oauth_start" value="1" />
+            <p>
+              <label><strong>OAuth Client ID</strong><br />
+                <input type="text" name="g_oauth_client_id" class="large-text" value="<?php echo esc_attr($gsc_credentials["client_id"]); ?>" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off" />
+              </label>
+            </p>
+            <p>
+              <label><strong>OAuth Client Secret</strong><br />
+                <input type="password" name="g_oauth_client_secret" class="large-text" value="<?php echo esc_attr($gsc_credentials["client_secret"]); ?>" placeholder="GOCSPX-..." autocomplete="new-password" />
+              </label>
+            </p>
+            <p>
+              <label><strong>GSC Property</strong> (opcjonalnie teraz; ten sam co w formularzu niżej)<br />
+                <input type="text" name="g_oauth_gsc_property" class="regular-text" value="<?php echo esc_attr($gsc_credentials["property"]); ?>" placeholder="https://twojadomena.pl/ albo sc-domain:twojadomena.pl" />
+              </label>
+            </p>
+            <p>
+              <label><strong>ID właściwości GA4</strong> (opcjonalnie; cyfry)<br />
+                <input type="text" name="g_oauth_ga4_property_id" class="regular-text" value="<?php echo esc_attr($ga4_property_id_display); ?>" placeholder="np. 123456789" inputmode="numeric" />
+              </label>
+            </p>
+            <p>
+              <button type="submit" class="button button-primary">Zaloguj przez Google i autoryzuj GSC + GA4</button>
+            </p>
+          </form>
+          <?php if ($gsc_credentials["refresh_token"] !== "") : ?>
+            <form method="post" style="display:inline-block;margin-right:8px;">
+              <?php wp_nonce_field("upsellio_google_oauth_disconnect_action", "upsellio_google_oauth_disconnect_nonce"); ?>
+              <input type="hidden" name="upsellio_google_oauth_disconnect" value="1" />
+              <button type="submit" class="button">Odłącz konto Google (usuń refresh token)</button>
+            </form>
+          <?php endif; ?>
+          <hr />
           <h2 style="margin-top:0;">Google Search Console API (darmowe live dane)</h2>
           <?php if (isset($_GET["upsellio_gsc_synced"])) : ?>
             <div class="notice notice-success inline"><p>Zsynchronizowano live dane z GSC: <?php echo esc_html((string) ((int) $_GET["upsellio_gsc_synced"])); ?> rekordów.</p></div>
@@ -1419,7 +2162,7 @@ function upsellio_render_site_analytics_page()
               </label>
             </p>
             <p>
-              <label><strong>Google Refresh Token</strong><br />
+              <label><strong>Google Refresh Token</strong> (opcjonalnie ręcznie — inaczej ustawia się po „Zaloguj przez Google” powyżej)<br />
                 <input type="text" name="gsc_refresh_token" class="large-text" value="<?php echo esc_attr($gsc_credentials["refresh_token"]); ?>" placeholder="1//0g..." />
               </label>
             </p>
@@ -1441,8 +2184,63 @@ function upsellio_render_site_analytics_page()
             </p>
             <p><button type="submit" class="button button-primary">Połącz i zsynchronizuj live z GSC</button></p>
             <p style="font-size:12px;color:#5f6368;margin-top:8px;">
-              API GSC jest darmowe. Wymaga jednorazowego przygotowania OAuth i dostępu do property w Search Console.
+              API GSC jest darmowe. Najpierw użyj sekcji <strong>logowania przez Google</strong> powyżej (ten sam token obejmuje GSC + GA4). Ręczne wklejanie refresh tokena jest opcjonalne.
             </p>
+          </form>
+          <hr />
+          <h2 style="margin-top:0;">Google Analytics 4 — kanały do CRM (OAuth, bez zewnętrznego skryptu)</h2>
+          <?php if (isset($_GET["upsellio_ga4_synced"])) : ?>
+            <div class="notice notice-success inline"><p>Zapisano agregaty GA4 (źródło / kampania) do CRM: <?php echo esc_html((string) ((int) $_GET["upsellio_ga4_synced"])); ?> wierszy.</p></div>
+          <?php endif; ?>
+          <?php if (isset($_GET["upsellio_ga4_trace_id"])) : ?>
+            <div class="notice notice-info inline"><p>Trace GA4: <code><?php echo esc_html(rawurldecode((string) $_GET["upsellio_ga4_trace_id"])); ?></code></p></div>
+          <?php endif; ?>
+          <?php if (isset($_GET["upsellio_ga4_error"])) : ?>
+            <div class="notice notice-error inline"><p>Błąd GA4: <?php echo esc_html(rawurldecode((string) $_GET["upsellio_ga4_error"])); ?></p></div>
+          <?php endif; ?>
+          <p style="font-size:13px;color:#3f3f39;">
+            <strong>Google Tag Manager</strong> nie udostępnia API z raportami o konwersjach — dane zbiera GA4. Tu WordPress pobiera raport z <strong>GA4 Data API</strong> przy użyciu konta Google (OAuth), tak jak GSC.
+            <strong>Google Ads</strong> to osobne API i osobna integracja — obecnie nie ma jej w tym motywie.
+          </p>
+          <form method="post">
+            <?php wp_nonce_field("upsellio_ga4_sync_action", "upsellio_ga4_sync_nonce"); ?>
+            <input type="hidden" name="upsellio_ga4_sync_submit" value="1" />
+            <p>
+              <label><strong>ID właściwości GA4</strong> (tylko cyfry, Admin GA4 → Ustawienia właściwości)<br />
+                <input type="text" name="ga4_property_id" class="regular-text" value="<?php echo esc_attr($ga4_property_id_display); ?>" placeholder="np. 123456789" inputmode="numeric" />
+              </label>
+            </p>
+            <p>
+              <label><strong>Zakres dat raportu</strong><br />
+                <select name="ga4_sync_days">
+                  <option value="7" <?php selected($ga4_ui_days, 7); ?>>7 dni</option>
+                  <option value="14" <?php selected($ga4_ui_days, 14); ?>>14 dni</option>
+                  <option value="30" <?php selected($ga4_ui_days, 30); ?>>30 dni</option>
+                  <option value="60" <?php selected($ga4_ui_days, 60); ?>>60 dni</option>
+                  <option value="90" <?php selected($ga4_ui_days, 90); ?>>90 dni</option>
+                </select>
+              </label>
+            </p>
+            <p style="font-size:12px;color:#5f6368;">
+              Domyślnie używane są <strong>Client ID / Secret / Refresh token z formularza GSC</strong> powyżej. Jeśli chcesz inne konto tylko do GA4, uzupełnij pola opcjonalne (nadpisują token tylko dla tego importu):
+            </p>
+            <p>
+              <label><strong>Opcjonalnie: Client ID (tylko GA4)</strong><br />
+                <input type="text" name="ga4_oauth_client_id" class="large-text" value="<?php echo esc_attr($ga4_oauth_override["client_id"]); ?>" placeholder="puste = jak GSC" />
+              </label>
+            </p>
+            <p>
+              <label><strong>Opcjonalnie: Client Secret (tylko GA4)</strong><br />
+                <input type="text" name="ga4_oauth_client_secret" class="large-text" value="<?php echo esc_attr($ga4_oauth_override["client_secret"]); ?>" />
+              </label>
+            </p>
+            <p>
+              <label><strong>Opcjonalnie: Refresh token (tylko GA4)</strong><br />
+                <input type="text" name="ga4_oauth_refresh_token" class="large-text" value="<?php echo esc_attr($ga4_oauth_override["refresh_token"]); ?>" />
+              </label>
+            </p>
+            <p><button type="submit" class="button button-primary">Pobierz z GA4 i zapisz w CRM</button></p>
+            <p style="font-size:12px;color:#5f6368;">Ostatni zapisany sync w CRM: <code><?php echo esc_html($ga4_last !== "" ? $ga4_last : "—"); ?></code>. Przy włączonej automatyzacji dzienny cron spróbuje odświeżyć dane raz dziennie.</p>
           </form>
           <hr />
           <h3 style="margin-bottom:8px;">Logi debug autoryzacji GSC</h3>
