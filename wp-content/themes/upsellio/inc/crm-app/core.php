@@ -243,8 +243,12 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
 
     switch ($view) {
         case "dashboard":
-            $empty["clients"] = $qlist("crm_client", 8);
-            $empty["contracts"] = $qlist("crm_contract", 5);
+            $empty["clients"] = $qlist("crm_client", 12);
+            $empty["contracts"] = $qlist("crm_contract", 8);
+            if (post_type_exists("crm_lead")) {
+                $empty["leads"] = $qlist("crm_lead", 500);
+            }
+            $empty["offers"] = $qlist("crm_offer", 500);
             if (post_type_exists("lead_task")) {
                 $ta = upsellio_crm_app_get_tasks_query_args(150);
                 $empty["tasks"] = upsellio_crm_app_sort_tasks_by_priority(get_posts($ta));
@@ -341,6 +345,7 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
                         "folder" => (string) ($inbox_ctx["folder"] ?? "fld_inbox"),
                         "flag" => (string) ($inbox_ctx["flag"] ?? ""),
                         "bucket" => (string) ($inbox_ctx["bucket"] ?? "all"),
+                        "segment" => (string) ($inbox_ctx["segment"] ?? ""),
                         "search" => (string) ($inbox_ctx["search"] ?? ""),
                         "page" => (int) ($inbox_ctx["page"] ?? 1),
                         "post_statuses" => $st,
@@ -387,6 +392,56 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
         case "analytics":
             $empty["offers"] = $qlist("crm_offer", 300);
             $empty["contracts"] = $qlist("crm_contract", 300);
+
+            return $empty;
+
+        case "deals":
+            $empty["clients"] = $qlist("crm_client", 300);
+            $empty["offers"] = $qlist("crm_offer", 300);
+            $empty["followups"] = $qlist("ups_followup_template", 300);
+            $empty["offer_layout_templates"] = $qlist("crm_offer_layout", 200, "title", "ASC");
+
+            return $empty;
+
+        case "contact-queue":
+            $empty["clients"] = $qlist("crm_client", 300);
+            $empty["offers"] = $qlist("crm_offer", 300);
+            if (post_type_exists("lead_task")) {
+                $ta = upsellio_crm_app_get_tasks_query_args(500);
+                $empty["tasks"] = upsellio_crm_app_sort_tasks_by_priority(get_posts($ta));
+            }
+
+            return $empty;
+
+        case "search":
+            $sq = isset($_GET["crm_q"]) ? sanitize_text_field(wp_unslash($_GET["crm_q"])) : "";
+            $sq = trim((string) $sq);
+            if ($sq !== "") {
+                if (post_type_exists("crm_client")) {
+                    $empty["clients"] = get_posts([
+                        "post_type" => "crm_client",
+                        "post_status" => $st,
+                        "s" => $sq,
+                        "posts_per_page" => 60,
+                    ]);
+                }
+                if (post_type_exists("crm_offer")) {
+                    $empty["offers"] = get_posts([
+                        "post_type" => "crm_offer",
+                        "post_status" => $st,
+                        "s" => $sq,
+                        "posts_per_page" => 60,
+                    ]);
+                }
+                if (post_type_exists("lead_task")) {
+                    $empty["tasks"] = get_posts([
+                        "post_type" => "lead_task",
+                        "post_status" => $st,
+                        "s" => $sq,
+                        "posts_per_page" => 60,
+                    ]);
+                }
+            }
 
             return $empty;
 
