@@ -224,86 +224,20 @@ echo wp_json_encode([
         </div>
       </aside>
 
-      <form class="ct-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-upsellio-lead-form="1" data-upsellio-server-form="1">
-        <input type="hidden" name="action" value="upsellio_submit_lead" />
-        <input type="hidden" name="redirect_url" value="<?php echo esc_url($contact_page_url); ?>" />
-        <input type="hidden" name="lead_form_origin" value="contact-page-form" />
-        <input type="hidden" name="lead_source" value="contact-page-form" />
-        <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
-        <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
-        <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
-        <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
-        <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
-        <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
-        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
-
-        <div class="ct-form-head">
-          <h2 class="ct-h2">Zamów bezpłatną diagnozę</h2>
-          <p>Krótko opisz, co chcesz poprawić. Odezwę się z kierunkiem.</p>
-        </div>
-        <?php
-        $ups_form_status = isset($_GET["ups_lead_status"]) ? sanitize_text_field(wp_unslash($_GET["ups_lead_status"])) : "";
-        $ups_form_reason = isset($_GET["ups_lead_reason"]) ? sanitize_key(wp_unslash($_GET["ups_lead_reason"])) : "";
-        $ups_form_error_text = "Nie udało się wysłać formularza. Spróbuj ponownie.";
-        if ($ups_form_status === "error") {
-            if ($ups_form_reason === "nonce") {
-                $ups_form_error_text = "Sesja formularza wygasła (np. strona była otwarta długo lub z cache). Odśwież stronę (F5) i wyślij ponownie.";
-            } elseif ($ups_form_reason === "fields") {
-                $ups_form_error_text = "Uzupełnij wymagane pola (imię, e-mail, wiadomość) i zaznacz zgodę na kontakt.";
-            } elseif ($ups_form_reason === "rate") {
-                $ups_form_error_text = "Zbyt wiele prób z tej sieci lub adresu e-mail. Spróbuj ponownie za około godzinę albo napisz na kontakt@upsellio.pl.";
-            } elseif ($ups_form_reason === "save") {
-                $ups_form_error_text = "Nie udało się zapisać zgłoszenia po stronie serwera. Napisz na kontakt@upsellio.pl — odbiorę wiadomość.";
-            }
-        }
-        ?>
-        <?php if ($ups_form_status === "success") : ?>
-          <p style="margin:0 0 10px;color:#0f766e;">Dziękuję! Formularz dotarł i wrócę z odpowiedzią.</p>
-        <?php elseif ($ups_form_status === "error") : ?>
-          <p style="margin:0 0 10px;color:#b13a3a;"><?php echo esc_html($ups_form_error_text); ?></p>
-        <?php endif; ?>
-        <div class="ct-row">
-          <label>Imię
-            <input type="text" name="lead_name" placeholder="Sebastian" required />
-          </label>
-          <label>Firma
-            <input type="text" name="lead_company" placeholder="Nazwa firmy" />
-          </label>
-        </div>
-        <label>E-mail firmowy
-          <input type="email" name="lead_email" placeholder="kontakt@firma.pl" required />
-        </label>
-        <label>Telefon (opcjonalnie)
-          <input type="tel" name="lead_phone" placeholder="+48..." />
-        </label>
-        <label>Czego szukasz?
-          <select name="lead_service">
-            <option value="">Wybierz</option>
-            <?php foreach ($contact_service_options as $service_option) : ?>
-              <option value="<?php echo esc_attr((string) $service_option); ?>"><?php echo esc_html((string) $service_option); ?></option>
-            <?php endforeach; ?>
-          </select>
-        </label>
-        <label>Orientacyjny budżet (opcjonalnie)
-          <select name="lead_budget">
-            <option value="">Wybierz lub pomiń</option>
-            <option value="do 2000 zł">do 2000 zł</option>
-            <option value="2000–5000 zł">2000–5000 zł</option>
-            <option value="5000–10000 zł">5000–10 000 zł</option>
-            <option value="powyżej 10000 zł">powyżej 10 000 zł</option>
-            <option value="nie wiem">nie wiem</option>
-          </select>
-        </label>
-        <label>Wiadomość
-          <textarea name="lead_message" placeholder="Krótko opisz sytuację: co działa, co nie działa, jaki jest cel." required></textarea>
-        </label>
-        <label class="ct-consent">
-          <input type="checkbox" name="lead_consent" value="1" required />
-          <span>Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</span>
-        </label>
-        <button type="submit" class="ct-btn ct-btn-primary">Wyślij i umów rozmowę →</button>
-        <p class="ct-fineprint">Nie wysyłam newslettera ani ofert. Tylko odpowiedź na Twoje pytanie.</p>
-      </form>
+      <?php
+      echo upsellio_render_lead_form([
+          "origin" => "contact-page-form",
+          "variant" => "full",
+          "show_budget" => true,
+          "heading" => "Zamów bezpłatną diagnozę",
+          "subheading" => "Krótko opisz, co chcesz poprawić. Odezwę się z kierunkiem.",
+          "submit_label" => "Wyślij i umów rozmowę →",
+          "fineprint" => "Nie wysyłam newslettera ani ofert. Tylko odpowiedź na Twoje pytanie.",
+          "redirect_url" => $contact_page_url,
+          "service_options" => $contact_service_options,
+          "css_class" => "ct-form",
+      ]);
+      ?>
     </div>
   </section>
 

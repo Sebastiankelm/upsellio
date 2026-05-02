@@ -80,40 +80,17 @@ if (!defined("ABSPATH")) {
         </div>
       </div>
 
-      <form class="hero-microform" id="hero-analiza" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" novalidate data-upsellio-lead-form="1" data-upsellio-server-form="1">
-        <input type="hidden" name="action" value="upsellio_submit_lead" />
-        <input type="hidden" name="redirect_url" value="<?php echo esc_url(home_url("/#start")); ?>" />
-        <input type="hidden" name="lead_name" value="Szybka analiza strony" />
-        <input type="hidden" name="lead_form_origin" value="hero-microform" />
-        <input type="hidden" name="lead_source" value="hero-microform" />
-        <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
-        <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
-        <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
-        <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
-        <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
-        <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
-        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
-        <div class="hero-microform-title">Szybka analiza strony</div>
-        <label for="hero-site">Adres strony</label>
-        <input class="input" id="hero-site" type="url" name="lead_company" placeholder="https://twojastrona.pl" required />
-        <label for="hero-email">E-mail do odpowiedzi</label>
-        <input class="input" id="hero-email" type="email" name="lead_email" placeholder="kontakt@firma.pl" required />
-        <label for="hero-focus">Czego szukasz? (opcjonalnie)</label>
-        <select class="input" id="hero-focus" name="lead_context">
-          <option value="">Wybierz obszar (opcjonalne)</option>
-          <option value="google_ads">Poprawy kampanii Google Ads</option>
-          <option value="meta_ads">Poprawy kampanii Meta Ads</option>
-          <option value="strona_cro">Lepszej konwersji strony</option>
-          <option value="lejek_sprzedazy">Uporządkowania lejka i jakości leadów</option>
-        </select>
-        <input type="hidden" name="lead_service" value="Szybka analiza strony" />
-        <input type="hidden" name="lead_message" value="Proszę o szybką analizę potencjału strony i wskazanie, co blokuje wyniki." />
-        <label class="hero-consent">
-          <input type="checkbox" name="lead_consent" value="1" required />
-          <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
-        </label>
-        <button type="submit" class="btn btn-primary">Sprawdź potencjał</button>
-      </form>
+      <?php
+      echo upsellio_render_lead_form([
+          "origin" => "hero-microform",
+          "variant" => "micro",
+          "heading" => "Szybka analiza strony",
+          "submit_label" => "Umów bezpłatną analizę →",
+          "redirect_url" => home_url("/#kontakt"),
+          "css_class" => "hero-microform",
+          "form_id" => "hero-analiza",
+      ]);
+      ?>
     </aside>
   </div>
 </section>

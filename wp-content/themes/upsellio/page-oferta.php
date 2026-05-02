@@ -600,74 +600,24 @@ $offer_faq_items = [
           <p class="offer-body" style="margin-left:auto;margin-right:auto;">Bezpłatna diagnoza to 30-45 minut rozmowy lub analizy pisemnej, po której wiesz: co hamuje wyniki, który kanał ma największy potencjał w Twoim przypadku i od czego zacząć, żeby nie przepalić budżetu.</p>
         </div>
 
-        <?php $ups_form_status = isset($_GET["ups_lead_status"]) ? sanitize_text_field(wp_unslash($_GET["ups_lead_status"])) : ""; ?>
-        <?php if ($ups_form_status === "success") : ?>
-          <div class="offer-form-alert is-success">Dziękuję! Wiadomość została zapisana i odezwę się możliwie szybko.</div>
-        <?php elseif ($ups_form_status === "error") : ?>
-          <div class="offer-form-alert is-error">Nie udało się wysłać formularza. Sprawdź pola i spróbuj ponownie.</div>
-        <?php endif; ?>
-
-        <form id="contact-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" novalidate data-upsellio-lead-form="1" data-upsellio-server-form="1">
-          <input type="hidden" name="action" value="upsellio_submit_lead" />
-          <input type="hidden" name="redirect_url" value="<?php echo esc_url($offer_page_url . "#formularz-oferta"); ?>" />
-          <input type="hidden" name="lead_form_origin" value="offer-page-form" />
-          <input type="hidden" name="lead_source" value="offer-page-form" />
-          <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
-          <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
-          <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
-          <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
-          <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
-          <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
-          <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
-
-          <div class="offer-form-grid">
-            <div class="field">
-              <label for="offer-name">Imię i nazwa firmy *</label>
-              <input class="input" type="text" id="offer-name" name="lead_name" placeholder="np. Marek Kowalski, firma XYZ" required />
-              <span class="field-error" id="offer-name-err">Podaj imię i nazwę firmy</span>
-            </div>
-            <div class="field">
-              <label for="offer-email">E-mail służbowy *</label>
-              <input class="input" type="email" id="offer-email" name="lead_email" placeholder="adres@twojafirma.pl" required />
-              <span class="field-error" id="offer-email-err">Podaj poprawny adres e-mail</span>
-            </div>
-            <div class="field">
-              <label for="offer-phone">Telefon (opcjonalnie)</label>
-              <input class="input" type="tel" id="offer-phone" name="lead_phone" placeholder="<?php echo esc_attr($contact_phone); ?>" autocomplete="tel" />
-            </div>
-            <div class="field">
-              <label for="offer-service">Zakres wsparcia</label>
-              <select class="select" id="offer-service" name="lead_service">
-                <option value="">— wybierz —</option>
-                <option>Google Ads</option>
-                <option>Meta Ads</option>
-                <option>Tworzenie strony internetowej</option>
-                <option>Nie wiem, co wybrać</option>
-                <?php foreach ($contact_service_options as $service_option) : ?>
-                  <?php $service_option = trim((string) $service_option); ?>
-                  <?php if ($service_option === "") : ?>
-                    <?php continue; ?>
-                  <?php endif; ?>
-                  <option><?php echo esc_html($service_option); ?></option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-            <div class="field full">
-              <label for="offer-message">Co sprzedajesz, do kogo i co dziś nie działa? *</label>
-              <textarea class="textarea" id="offer-message" name="lead_message" placeholder="Opisz krótko ofertę, grupę docelową, obecne działania i główny problem..." required></textarea>
-              <span class="field-error" id="offer-message-err">Opisz w kilku słowach swoją sytuację</span>
-            </div>
-            <div class="field full">
-              <label class="offer-consent-label">
-                <input type="checkbox" name="lead_consent" value="1" required />
-                <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
-              </label>
-            </div>
-          </div>
-
-          <button type="submit" class="offer-btn offer-btn-primary offer-submit" id="submit-btn">Wyślij i umów diagnozę →</button>
+        <?php
+        $offer_service_choices = array_values(array_filter(array_unique(array_merge(
+            ["Google Ads", "Meta Ads", "Tworzenie strony internetowej", "Nie wiem, co wybrać"],
+            is_array($contact_service_options) ? $contact_service_options : []
+        )), static function ($item) {
+            return trim((string) $item) !== "";
+        }));
+        echo upsellio_render_lead_form([
+            "origin" => "offer-page-form",
+            "variant" => "full",
+            "submit_label" => "Wyślij zapytanie →",
+            "redirect_url" => $offer_page_url !== "" ? $offer_page_url . "#formularz-oferta" : home_url("/oferta/#formularz-oferta"),
+            "service_options" => $offer_service_choices,
+            "form_id" => "contact-form",
+            "submit_button_id" => "submit-btn",
+        ]);
+        ?>
           <p class="offer-form-note">Dane z formularza służą wyłącznie do kontaktu i przygotowania rekomendacji. Możesz też napisać bezpośrednio: <a href="<?php echo esc_url($contact_email_href); ?>"><?php echo esc_html($contact_email_display); ?></a></p>
-        </form>
 
         <div class="offer-form-alt">
           <div>✓ Bez presji sprzedażowej i bez ogólnych porad.</div>
