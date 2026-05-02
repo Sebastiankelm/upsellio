@@ -63,7 +63,7 @@ function upsellio_automation_defaults()
         "ups_automation_cold_followup_days" => 3,
         "ups_automation_ab_min_sample" => 20,
         "ups_automation_ab_min_lift_pct" => 5,
-        "ups_automation_ga4_sync_enabled" => "0",
+        "ups_automation_ga4_sync_enabled" => "1",
         "ups_crm_lifecycle_default" => "new_lead",
         "ups_crm_pipeline_sla_config" => [
             "new_lead" => ["hours" => 24, "action" => "Pierwszy kontakt z leadem", "escalation" => 1],
@@ -329,6 +329,11 @@ function upsellio_automation_register_rest_routes()
         "callback" => "upsellio_automation_receive_ga4_aggregate",
         "permission_callback" => "__return_true",
     ]);
+    register_rest_route("upsellio/v1", "/gsc-keywords", [
+        "methods" => "POST",
+        "callback" => "upsellio_automation_receive_gsc_keywords",
+        "permission_callback" => "__return_true",
+    ]);
     register_rest_route("upsellio/v1", "/lead-capture", [
         "methods" => "POST",
         "callback" => "upsellio_automation_capture_lead_from_form",
@@ -370,6 +375,79 @@ function upsellio_automation_receive_ga4_aggregate($request)
     }
     update_option("ups_automation_ga4_daily_aggregates", array_values($normalized), false);
     update_option("ups_automation_ga4_last_sync", current_time("mysql"), false);
+    upsellio_automation_sync_ga4_channel_quality();
+
+    return new WP_REST_Response(["ok" => true, "rows" => count($normalized)], 200);
+}
+
+/**
+ * Tekst do promptów AI (lead / follow-up) na podstawie UTM i agregatów GA4 w CRM.
+ */
+function upsellio_automation_format_ga4_channel_for_ai(string $utm_source, string $utm_campaign): string
+{
+    $utm_source = trim($utm_source);
+    $utm_campaign = trim($utm_campaign);
+    if ($utm_source === "" && $utm_campaign === "") {
+        return "";
+    }
+    $scores = get_option("ups_automation_channel_quality_scores", []);
+    if (!is_array($scores)) {
+        $scores = [];
+    }
+    $ch_key = strtolower(trim($utm_source . "|" . $utm_campaign));
+    if (isset($scores[$ch_key]) && is_array($scores[$ch_key])) {
+        $sc = $scores[$ch_key];
+        $s = (int) ($sc["score"] ?? 0);
+        $sess = (int) ($sc["sessions"] ?? 0);
+        $conv = (int) ($sc["conversions"] ?? 0);
+
+        return "Kanał: {$utm_source} / kampania: {$utm_campaign} / jakość kanału (GA4): {$s}/100. Sesje: {$sess}, konwersje: {$conv}.";
+    }
+
+    return "Kanał: {$utm_source} / kampania: {$utm_campaign} (brak dopasowania do agregatów GA4 w CRM).";
+}
+
+function upsellio_automation_receive_gsc_keywords($request)
+{
+    $secret = (string) get_option("ups_followup_inbound_secret", "");
+    $header_secret = (string) $request->get_header("x-upsellio-secret");
+    if ($secret === "" || !hash_equals($secret, $header_secret)) {
+        return new WP_REST_Response(["ok" => false, "message" => "forbidden"], 403);
+    }
+    $payload = $request->get_json_params();
+    $rows = isset($payload["rows"]) && is_array($payload["rows"]) ? $payload["rows"] : [];
+    $normalized = [];
+    $date_re = "/^\d{4}-\d{2}-\d{2}$/";
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $keyword = sanitize_text_field((string) ($row["keyword"] ?? ""));
+        $url = esc_url_raw((string) ($row["url"] ?? ""));
+        $date = sanitize_text_field((string) ($row["date"] ?? ""));
+        if ($keyword === "" || $url === "") {
+            continue;
+        }
+        if ($date !== "" && !preg_match($date_re, $date)) {
+            continue;
+        }
+        $normalized[] = [
+            "keyword" => $keyword,
+            "url" => $url,
+            "date" => $date,
+            "position" => round((float) ($row["position"] ?? 0), 2),
+            "impressions" => max(0, (int) ($row["impressions"] ?? 0)),
+            "clicks" => max(0, (int) ($row["clicks"] ?? 0)),
+            "ctr" => round((float) ($row["ctr"] ?? 0), 2),
+        ];
+        if (count($normalized) >= 25000) {
+            break;
+        }
+    }
+    update_option("upsellio_keyword_metrics_rows", $normalized, false);
+    update_option("upsellio_keyword_metrics_source", "gsc_service_account", false);
+    update_option("upsellio_keyword_metrics_last_sync", current_time("mysql"), false);
+
     return new WP_REST_Response(["ok" => true, "rows" => count($normalized)], 200);
 }
 
@@ -818,7 +896,7 @@ function upsellio_automation_promote_followup_winners()
 
 function upsellio_automation_sync_ga4_channel_quality()
 {
-    if ((string) get_option("ups_automation_ga4_sync_enabled", "0") !== "1") {
+    if ((string) get_option("ups_automation_ga4_sync_enabled", "1") !== "1") {
         return;
     }
     $rows = get_option("ups_automation_ga4_daily_aggregates", []);
