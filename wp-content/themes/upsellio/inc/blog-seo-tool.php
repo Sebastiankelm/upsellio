@@ -373,388 +373,104 @@ function upsellio_blog_tool_add_post_row_action($actions, $post)
 add_filter("post_row_actions", "upsellio_blog_tool_add_post_row_action", 10, 2);
 
 
+/**
+ * Parametry AI dla narzędzia SEO Blog Tool — wyłącznie z CRM (Ustawienia → AI).
+ * Opcjonalnie odczyt ze starej opcji upsellio_blog_ai_settings, jeśli nowe pola CRM są puste.
+ *
+ * @return array{temperature: float, max_tokens: int, system_prompt: string, campaign_prompt_template: string}
+ */
 function upsellio_blog_tool_get_ai_settings()
 {
-    $settings = get_option("upsellio_blog_ai_settings", []);
-    if (!is_array($settings)) {
-        $settings = [];
+    $legacy = get_option("upsellio_blog_ai_settings", []);
+    if (!is_array($legacy)) {
+        $legacy = [];
     }
 
-    $legacy_endpoint = esc_url_raw((string) ($settings["api_endpoint"] ?? "https://api.openai.com/v1/chat/completions"));
-    $legacy_api_key = sanitize_text_field((string) ($settings["api_key"] ?? ""));
-    $legacy_model = sanitize_text_field((string) ($settings["model"] ?? "gpt-4.1-mini"));
-    $legacy_temperature = max(0.0, min(1.2, (float) ($settings["temperature"] ?? 0.7)));
-    $legacy_max_tokens = max(800, min(12000, (int) ($settings["max_tokens"] ?? 3500)));
-    $legacy_system_prompt = sanitize_textarea_field((string) ($settings["system_prompt"] ?? "Tworzysz merytoryczne, praktyczne wpisy blogowe po polsku, gotowe do publikacji w WordPress."));
+    $def_system = "Tworzysz merytoryczne, praktyczne wpisy blogowe po polsku, gotowe do publikacji w WordPress.";
+    $def_campaign = "Pisz w języku polskim, konkretnie i merytorycznie. Używaj przykładów, checklist i sekcji FAQ.";
 
-    $providers = isset($settings["providers"]) && is_array($settings["providers"]) ? $settings["providers"] : [];
-    $tasks = isset($settings["tasks"]) && is_array($settings["tasks"]) ? $settings["tasks"] : [];
+    $system = trim((string) get_option("ups_ai_prompt_blog_seo_system", ""));
+    if ($system === "" && isset($legacy["system_prompt"]) && trim((string) $legacy["system_prompt"]) !== "") {
+        $system = sanitize_textarea_field((string) $legacy["system_prompt"]);
+    }
+    if ($system === "") {
+        $system = $def_system;
+    }
+
+    $campaign = trim((string) get_option("ups_ai_blog_seo_campaign_default", ""));
+    if ($campaign === "" && isset($legacy["campaign_prompt_template"]) && trim((string) $legacy["campaign_prompt_template"]) !== "") {
+        $campaign = sanitize_textarea_field((string) $legacy["campaign_prompt_template"]);
+    }
+    if ($campaign === "") {
+        $campaign = $def_campaign;
+    }
+
+    $temp_opt = get_option("ups_ai_blog_seo_temperature", null);
+    if ($temp_opt === null || $temp_opt === "") {
+        $temperature = isset($legacy["temperature"]) ? (float) $legacy["temperature"] : 0.7;
+    } else {
+        $temperature = (float) $temp_opt;
+    }
+    $temperature = max(0.0, min(1.2, $temperature));
+
+    $max_opt = get_option("ups_ai_blog_seo_max_tokens", null);
+    if ($max_opt === null || $max_opt === "") {
+        $max_tokens = isset($legacy["max_tokens"]) ? (int) $legacy["max_tokens"] : 3500;
+    } else {
+        $max_tokens = (int) $max_opt;
+    }
+    $max_tokens = max(800, min(12000, $max_tokens));
 
     return [
-        "temperature" => $legacy_temperature,
-        "max_tokens" => $legacy_max_tokens,
-        "system_prompt" => $legacy_system_prompt,
-        "campaign_prompt_template" => sanitize_textarea_field((string) ($settings["campaign_prompt_template"] ?? "Pisz w języku polskim, konkretnie i merytorycznie. Używaj przykładów, checklist i sekcji FAQ.")),
-        "providers" => [
-            "chatgpt" => [
-                "chat_endpoint" => esc_url_raw((string) (($providers["chatgpt"]["chat_endpoint"] ?? "") !== "" ? $providers["chatgpt"]["chat_endpoint"] : $legacy_endpoint)),
-                "api_key" => sanitize_text_field((string) (($providers["chatgpt"]["api_key"] ?? "") !== "" ? $providers["chatgpt"]["api_key"] : $legacy_api_key)),
-                "chat_model" => sanitize_text_field((string) (($providers["chatgpt"]["chat_model"] ?? "") !== "" ? $providers["chatgpt"]["chat_model"] : $legacy_model)),
-                "image_endpoint" => esc_url_raw((string) ($providers["chatgpt"]["image_endpoint"] ?? "https://api.openai.com/v1/images/generations")),
-                "image_model" => sanitize_text_field((string) ($providers["chatgpt"]["image_model"] ?? "gpt-image-1")),
-            ],
-            "claude" => [
-                "endpoint" => esc_url_raw((string) ($providers["claude"]["endpoint"] ?? "https://api.anthropic.com/v1/messages")),
-                "api_key" => sanitize_text_field((string) ($providers["claude"]["api_key"] ?? "")),
-                "model" => sanitize_text_field((string) ($providers["claude"]["model"] ?? "claude-3-7-sonnet-latest")),
-            ],
-        ],
-        "tasks" => [
-            "topics_provider" => in_array((string) ($tasks["topics_provider"] ?? ""), ["chatgpt", "claude"], true) ? (string) $tasks["topics_provider"] : "chatgpt",
-            "blog_provider" => in_array((string) ($tasks["blog_provider"] ?? ""), ["chatgpt", "claude"], true) ? (string) $tasks["blog_provider"] : "claude",
-            "image_provider" => in_array((string) ($tasks["image_provider"] ?? ""), ["chatgpt", "claude"], true) ? (string) $tasks["image_provider"] : "chatgpt",
-        ],
+        "temperature" => $temperature,
+        "max_tokens" => $max_tokens,
+        "system_prompt" => $system,
+        "campaign_prompt_template" => $campaign,
     ];
 }
 
-function upsellio_blog_tool_save_ai_settings_from_array($settings)
-{
-    $settings = is_array($settings) ? $settings : [];
-    $providers = isset($settings["providers"]) && is_array($settings["providers"]) ? $settings["providers"] : [];
-    $tasks = isset($settings["tasks"]) && is_array($settings["tasks"]) ? $settings["tasks"] : [];
-
-    update_option("upsellio_blog_ai_settings", [
-        "temperature" => max(0.0, min(1.2, (float) ($settings["temperature"] ?? 0.7))),
-        "max_tokens" => max(800, min(12000, (int) ($settings["max_tokens"] ?? 3500))),
-        "system_prompt" => sanitize_textarea_field((string) ($settings["system_prompt"] ?? "")),
-        "campaign_prompt_template" => sanitize_textarea_field((string) ($settings["campaign_prompt_template"] ?? "")),
-        "providers" => [
-            "chatgpt" => [
-                "chat_endpoint" => esc_url_raw((string) ($providers["chatgpt"]["chat_endpoint"] ?? "https://api.openai.com/v1/chat/completions")),
-                "api_key" => sanitize_text_field((string) ($providers["chatgpt"]["api_key"] ?? "")),
-                "chat_model" => sanitize_text_field((string) ($providers["chatgpt"]["chat_model"] ?? "gpt-4.1-mini")),
-                "image_endpoint" => esc_url_raw((string) ($providers["chatgpt"]["image_endpoint"] ?? "https://api.openai.com/v1/images/generations")),
-                "image_model" => sanitize_text_field((string) ($providers["chatgpt"]["image_model"] ?? "gpt-image-1")),
-            ],
-            "claude" => [
-                "endpoint" => esc_url_raw((string) ($providers["claude"]["endpoint"] ?? "https://api.anthropic.com/v1/messages")),
-                "api_key" => sanitize_text_field((string) ($providers["claude"]["api_key"] ?? "")),
-                "model" => sanitize_text_field((string) ($providers["claude"]["model"] ?? "claude-3-7-sonnet-latest")),
-            ],
-        ],
-        "tasks" => [
-            "topics_provider" => in_array((string) ($tasks["topics_provider"] ?? ""), ["chatgpt", "claude"], true) ? (string) $tasks["topics_provider"] : "chatgpt",
-            "blog_provider" => in_array((string) ($tasks["blog_provider"] ?? ""), ["chatgpt", "claude"], true) ? (string) $tasks["blog_provider"] : "claude",
-            "image_provider" => in_array((string) ($tasks["image_provider"] ?? ""), ["chatgpt", "claude"], true) ? (string) $tasks["image_provider"] : "chatgpt",
-        ],
-    ], false);
-}
-
-function upsellio_blog_tool_save_ai_settings($api_endpoint, $api_key, $model, $temperature, $max_tokens, $system_prompt)
-{
-    $existing = upsellio_blog_tool_get_ai_settings();
-    $existing["providers"]["chatgpt"]["chat_endpoint"] = esc_url_raw((string) $api_endpoint);
-    $existing["providers"]["chatgpt"]["api_key"] = sanitize_text_field((string) $api_key);
-    $existing["providers"]["chatgpt"]["chat_model"] = sanitize_text_field((string) $model);
-    $existing["temperature"] = max(0.0, min(1.2, (float) $temperature));
-    $existing["max_tokens"] = max(800, min(12000, (int) $max_tokens));
-    $existing["system_prompt"] = sanitize_textarea_field((string) $system_prompt);
-    upsellio_blog_tool_save_ai_settings_from_array($existing);
-}
-
-function upsellio_handle_blog_tool_ai_settings_submit()
-{
-    if (!is_admin() || !current_user_can("edit_posts")) {
-        return;
-    }
-    if (!isset($_POST["upsellio_blog_ai_settings_submit"])) {
-        return;
-    }
-
-    check_admin_referer("upsellio_blog_ai_settings_action", "upsellio_blog_ai_settings_nonce");
-    $existing = upsellio_blog_tool_get_ai_settings();
-    $settings = $existing;
-
-    $settings["providers"]["chatgpt"]["chat_endpoint"] = isset($_POST["ai_chatgpt_chat_endpoint"]) ? esc_url_raw(wp_unslash($_POST["ai_chatgpt_chat_endpoint"])) : (string) ($existing["providers"]["chatgpt"]["chat_endpoint"] ?? "");
-    $settings["providers"]["chatgpt"]["api_key"] = isset($_POST["ai_chatgpt_api_key"]) ? sanitize_text_field(wp_unslash($_POST["ai_chatgpt_api_key"])) : (string) ($existing["providers"]["chatgpt"]["api_key"] ?? "");
-    $settings["providers"]["chatgpt"]["chat_model"] = isset($_POST["ai_chatgpt_chat_model"]) ? sanitize_text_field(wp_unslash($_POST["ai_chatgpt_chat_model"])) : (string) ($existing["providers"]["chatgpt"]["chat_model"] ?? "");
-    $settings["providers"]["chatgpt"]["image_endpoint"] = isset($_POST["ai_chatgpt_image_endpoint"]) ? esc_url_raw(wp_unslash($_POST["ai_chatgpt_image_endpoint"])) : (string) ($existing["providers"]["chatgpt"]["image_endpoint"] ?? "");
-    $settings["providers"]["chatgpt"]["image_model"] = isset($_POST["ai_chatgpt_image_model"]) ? sanitize_text_field(wp_unslash($_POST["ai_chatgpt_image_model"])) : (string) ($existing["providers"]["chatgpt"]["image_model"] ?? "");
-
-    $settings["providers"]["claude"]["endpoint"] = isset($_POST["ai_claude_endpoint"]) ? esc_url_raw(wp_unslash($_POST["ai_claude_endpoint"])) : (string) ($existing["providers"]["claude"]["endpoint"] ?? "");
-    $settings["providers"]["claude"]["api_key"] = isset($_POST["ai_claude_api_key"]) ? sanitize_text_field(wp_unslash($_POST["ai_claude_api_key"])) : (string) ($existing["providers"]["claude"]["api_key"] ?? "");
-    $settings["providers"]["claude"]["model"] = isset($_POST["ai_claude_model"]) ? sanitize_text_field(wp_unslash($_POST["ai_claude_model"])) : (string) ($existing["providers"]["claude"]["model"] ?? "");
-
-    $settings["tasks"]["topics_provider"] = isset($_POST["ai_topics_provider"]) ? sanitize_key(wp_unslash($_POST["ai_topics_provider"])) : (string) ($existing["tasks"]["topics_provider"] ?? "chatgpt");
-    $settings["tasks"]["blog_provider"] = isset($_POST["ai_blog_provider"]) ? sanitize_key(wp_unslash($_POST["ai_blog_provider"])) : (string) ($existing["tasks"]["blog_provider"] ?? "claude");
-    $settings["tasks"]["image_provider"] = isset($_POST["ai_image_provider"]) ? sanitize_key(wp_unslash($_POST["ai_image_provider"])) : (string) ($existing["tasks"]["image_provider"] ?? "chatgpt");
-
-    $settings["temperature"] = isset($_POST["ai_temperature"]) ? (float) wp_unslash($_POST["ai_temperature"]) : (float) ($existing["temperature"] ?? 0.7);
-    $settings["max_tokens"] = isset($_POST["ai_max_tokens"]) ? (int) wp_unslash($_POST["ai_max_tokens"]) : (int) ($existing["max_tokens"] ?? 3500);
-    $settings["system_prompt"] = isset($_POST["ai_system_prompt"]) ? sanitize_textarea_field(wp_unslash($_POST["ai_system_prompt"])) : (string) ($existing["system_prompt"] ?? "");
-    $settings["campaign_prompt_template"] = isset($_POST["ai_campaign_prompt_template"]) ? sanitize_textarea_field(wp_unslash($_POST["ai_campaign_prompt_template"])) : (string) ($existing["campaign_prompt_template"] ?? "");
-
-    upsellio_blog_tool_save_ai_settings_from_array($settings);
-    wp_safe_redirect(add_query_arg([
-        "page" => "upsellio-seo-blog-tool",
-        "upsellio_ai_saved" => 1,
-    ], admin_url("edit.php")));
-    exit;
-}
-add_action("admin_init", "upsellio_handle_blog_tool_ai_settings_submit");
-
-function upsellio_blog_tool_get_task_provider($ai_settings, $task_name)
-{
-    $task_name = sanitize_key((string) $task_name);
-    $providers = isset($ai_settings["tasks"]) && is_array($ai_settings["tasks"]) ? $ai_settings["tasks"] : [];
-    $provider = (string) ($providers[$task_name . "_provider"] ?? "");
-    return in_array($provider, ["chatgpt", "claude"], true) ? $provider : "chatgpt";
-}
-
-function upsellio_blog_tool_ai_chat_via_chatgpt($ai_settings, $messages, $temperature, $max_tokens)
-{
-    $provider = is_array($ai_settings["providers"]["chatgpt"] ?? null) ? $ai_settings["providers"]["chatgpt"] : [];
-    $endpoint = esc_url_raw((string) ($provider["chat_endpoint"] ?? ""));
-    $api_key = sanitize_text_field((string) ($provider["api_key"] ?? ""));
-    $model = sanitize_text_field((string) ($provider["chat_model"] ?? ""));
-    if ($endpoint === "" || $api_key === "" || $model === "") {
-        return new WP_Error("upsellio_ai_missing_chatgpt", "Brak konfiguracji ChatGPT (endpoint / API key / model).");
-    }
-
-    $payload = [
-        "model" => $model,
-        "messages" => is_array($messages) ? $messages : [],
-        "temperature" => max(0.0, min(1.2, (float) $temperature)),
-        "max_tokens" => max(800, min(12000, (int) $max_tokens)),
-    ];
-
-    $response = wp_remote_post($endpoint, [
-        "timeout" => 90,
-        "headers" => [
-            "Authorization" => "Bearer " . $api_key,
-            "Content-Type" => "application/json",
-        ],
-        "body" => wp_json_encode($payload),
-    ]);
-
-    if (is_wp_error($response)) {
-        return $response;
-    }
-
-    $status = (int) wp_remote_retrieve_response_code($response);
-    $body_raw = (string) wp_remote_retrieve_body($response);
-    $body = json_decode($body_raw, true);
-    if ($status >= 400) {
-        $message = "Błąd połączenia z AI API.";
-        if (is_array($body)) {
-            $message = (string) ($body["error"]["message"] ?? $message);
-        }
-        return new WP_Error("upsellio_ai_api_error", $message);
-    }
-
-    $content = "";
-    if (is_array($body)) {
-        $content = (string) ($body["choices"][0]["message"]["content"] ?? "");
-    }
-
-    if (trim($content) === "") {
-        return new WP_Error("upsellio_ai_empty_response", "AI zwróciło pustą odpowiedź.");
-    }
-
-    return $content;
-}
-
-function upsellio_blog_tool_ai_chat_via_claude($ai_settings, $messages, $temperature, $max_tokens)
-{
-    $provider = is_array($ai_settings["providers"]["claude"] ?? null) ? $ai_settings["providers"]["claude"] : [];
-    $endpoint = esc_url_raw((string) ($provider["endpoint"] ?? ""));
-    $api_key = sanitize_text_field((string) ($provider["api_key"] ?? ""));
-    $model = sanitize_text_field((string) ($provider["model"] ?? ""));
-    if ($endpoint === "" || $api_key === "" || $model === "") {
-        return new WP_Error("upsellio_ai_missing_claude", "Brak konfiguracji Claude (endpoint / API key / model).");
-    }
-
-    $system_text = "";
-    $claude_messages = [];
-    foreach ((array) $messages as $message) {
-        $role = sanitize_key((string) ($message["role"] ?? "user"));
-        $content = (string) ($message["content"] ?? "");
-        if ($content === "") {
-            continue;
-        }
-        if ($role === "system") {
-            $system_text .= ($system_text !== "" ? "\n\n" : "") . $content;
-            continue;
-        }
-        $claude_messages[] = [
-            "role" => $role === "assistant" ? "assistant" : "user",
-            "content" => $content,
-        ];
-    }
-    if (empty($claude_messages)) {
-        $claude_messages[] = [
-            "role" => "user",
-            "content" => "Przygotuj odpowiedź na podstawie podanych wytycznych.",
-        ];
-    }
-
-    $payload = [
-        "model" => $model,
-        "max_tokens" => max(800, min(12000, (int) $max_tokens)),
-        "temperature" => max(0.0, min(1.2, (float) $temperature)),
-        "messages" => $claude_messages,
-    ];
-    if ($system_text !== "") {
-        $payload["system"] = $system_text;
-    }
-
-    $response = wp_remote_post($endpoint, [
-        "timeout" => 90,
-        "headers" => [
-            "x-api-key" => $api_key,
-            "anthropic-version" => "2023-06-01",
-            "content-type" => "application/json",
-        ],
-        "body" => wp_json_encode($payload),
-    ]);
-    if (is_wp_error($response)) {
-        return $response;
-    }
-
-    $status = (int) wp_remote_retrieve_response_code($response);
-    $body = json_decode((string) wp_remote_retrieve_body($response), true);
-    if ($status >= 400) {
-        $message = "Błąd połączenia z Claude API.";
-        if (is_array($body)) {
-            $message = (string) ($body["error"]["message"] ?? $message);
-        }
-        return new WP_Error("upsellio_ai_claude_error", $message);
-    }
-
-    $content = "";
-    $items = isset($body["content"]) && is_array($body["content"]) ? $body["content"] : [];
-    foreach ($items as $item) {
-        if ((string) ($item["type"] ?? "") === "text") {
-            $content .= (string) ($item["text"] ?? "");
-        }
-    }
-    if (trim($content) === "") {
-        return new WP_Error("upsellio_ai_empty_response", "Claude zwrócił pustą odpowiedź.");
-    }
-
-    return $content;
-}
-
+/**
+ * Chat dla generatora SEO — wyłącznie Anthropic CRM (jak blog bot).
+ *
+ * @return string|WP_Error
+ */
 function upsellio_blog_tool_ai_chat($ai_settings, $messages, $temperature = null, $max_tokens = null, $task_name = "blog")
 {
     $temperature_value = $temperature === null ? (float) ($ai_settings["temperature"] ?? 0.7) : (float) $temperature;
     $max_tokens_value = $max_tokens === null ? (int) ($ai_settings["max_tokens"] ?? 3500) : (int) $max_tokens;
     $task_name = sanitize_key((string) $task_name);
 
-    $use_crm = in_array($task_name, ["topics", "blog"], true)
-        && function_exists("upsellio_anthropic_crm_send_user_prompt")
-        && function_exists("upsellio_anthropic_crm_api_key")
-        && upsellio_anthropic_crm_api_key() !== "";
+    if (!in_array($task_name, ["topics", "blog"], true)) {
+        return new WP_Error("upsellio_ai_task_unsupported", "Ten generator obsługuje tylko zadania topics/blog przez Claude (CRM).");
+    }
+    if (!function_exists("upsellio_anthropic_crm_send_user_prompt") || !function_exists("upsellio_anthropic_crm_api_key") || upsellio_anthropic_crm_api_key() === "") {
+        return new WP_Error("upsellio_ai_crm_no_key", "Brak klucza Anthropic (CRM). Ustaw UPSELLIO_ANTHROPIC_API_KEY lub ups_anthropic_api_key.");
+    }
 
-    if ($use_crm) {
-        $model = trim((string) get_option("ups_blog_bot_model", ""));
-        $model_override = $model !== "" ? $model : null;
-        $parts = [];
-        foreach ((array) $messages as $message) {
-            $role = strtoupper(sanitize_key((string) ($message["role"] ?? "user")));
-            $content = trim((string) ($message["content"] ?? ""));
-            if ($content === "") {
-                continue;
-            }
-            $parts[] = $role . ":\n" . $content;
+    $model = trim((string) get_option("ups_blog_bot_model", ""));
+    $model_override = $model !== "" ? $model : null;
+    $parts = [];
+    foreach ((array) $messages as $message) {
+        $role = strtoupper(sanitize_key((string) ($message["role"] ?? "user")));
+        $content = trim((string) ($message["content"] ?? ""));
+        if ($content === "") {
+            continue;
         }
-        $full_prompt = implode("\n\n", $parts);
-        if ($full_prompt === "") {
-            return new WP_Error("upsellio_ai_crm_empty_prompt", "Brak treści promptu dla Claude.");
-        }
-        $cache_split = function_exists("upsellio_blog_bot_prompt_cache_split")
-            ? upsellio_blog_bot_prompt_cache_split($full_prompt)
-            : null;
-        $raw = upsellio_anthropic_crm_send_user_prompt($full_prompt, max(800, min(4096, $max_tokens_value)), 90, $model_override, $cache_split);
-        if ($raw === null || trim($raw) === "") {
-            return new WP_Error("upsellio_ai_crm_failed", "Brak odpowiedzi z Claude (CRM). Sprawdź klucz API Anthropic i limity.");
-        }
-
-        return $raw;
+        $parts[] = $role . ":\n" . $content;
+    }
+    $full_prompt = implode("\n\n", $parts);
+    if ($full_prompt === "") {
+        return new WP_Error("upsellio_ai_crm_empty_prompt", "Brak treści promptu dla Claude.");
+    }
+    $cache_split = function_exists("upsellio_blog_bot_prompt_cache_split")
+        ? upsellio_blog_bot_prompt_cache_split($full_prompt)
+        : null;
+    $raw = upsellio_anthropic_crm_send_user_prompt($full_prompt, max(800, min(4096, $max_tokens_value)), 90, $model_override, $cache_split);
+    if ($raw === null || trim($raw) === "") {
+        return new WP_Error("upsellio_ai_crm_failed", "Brak odpowiedzi z Claude (CRM). Sprawdź klucz API Anthropic i limity.");
     }
 
-    $provider = upsellio_blog_tool_get_task_provider($ai_settings, $task_name);
-
-    if ($provider === "claude") {
-        return upsellio_blog_tool_ai_chat_via_claude($ai_settings, $messages, $temperature_value, $max_tokens_value);
-    }
-
-    return upsellio_blog_tool_ai_chat_via_chatgpt($ai_settings, $messages, $temperature_value, $max_tokens_value);
-}
-
-function upsellio_blog_tool_generate_image_via_ai($ai_settings, $image_prompt)
-{
-    $provider = upsellio_blog_tool_get_task_provider($ai_settings, "image");
-    if ($provider !== "chatgpt") {
-        return new WP_Error("upsellio_ai_image_provider_not_supported", "Automatyczne generowanie obrazów jest obsługiwane przez integrację ChatGPT.");
-    }
-
-    $chatgpt = is_array($ai_settings["providers"]["chatgpt"] ?? null) ? $ai_settings["providers"]["chatgpt"] : [];
-    $endpoint = esc_url_raw((string) ($chatgpt["image_endpoint"] ?? ""));
-    $api_key = sanitize_text_field((string) ($chatgpt["api_key"] ?? ""));
-    $model = sanitize_text_field((string) ($chatgpt["image_model"] ?? "gpt-image-1"));
-    if ($endpoint === "" || $api_key === "" || $model === "") {
-        return new WP_Error("upsellio_ai_image_missing_config", "Brak konfiguracji obrazów w ChatGPT.");
-    }
-
-    $response = wp_remote_post($endpoint, [
-        "timeout" => 120,
-        "headers" => [
-            "Authorization" => "Bearer " . $api_key,
-            "Content-Type" => "application/json",
-        ],
-        "body" => wp_json_encode([
-            "model" => $model,
-            "prompt" => (string) $image_prompt,
-            "size" => "1536x1024",
-            "response_format" => "b64_json",
-        ]),
-    ]);
-    if (is_wp_error($response)) {
-        return $response;
-    }
-
-    $status = (int) wp_remote_retrieve_response_code($response);
-    $body = json_decode((string) wp_remote_retrieve_body($response), true);
-    if ($status >= 400) {
-        $message = "Błąd generowania obrazka przez ChatGPT.";
-        if (is_array($body)) {
-            $message = (string) ($body["error"]["message"] ?? $message);
-        }
-        return new WP_Error("upsellio_ai_image_error", $message);
-    }
-
-    $image_url = (string) ($body["data"][0]["url"] ?? "");
-    if ($image_url !== "") {
-        return $image_url;
-    }
-
-    $image_b64 = (string) ($body["data"][0]["b64_json"] ?? "");
-    if ($image_b64 === "") {
-        return new WP_Error("upsellio_ai_image_empty", "Brak danych obrazka z API.");
-    }
-    $image_binary = base64_decode($image_b64, true);
-    if (!is_string($image_binary) || $image_binary === "") {
-        return new WP_Error("upsellio_ai_image_decode_error", "Nie udało się zdekodować obrazka AI.");
-    }
-
-    $filename = "upsellio-ai-" . wp_generate_password(8, false, false) . ".png";
-    $upload = wp_upload_bits($filename, null, $image_binary);
-    if (!empty($upload["error"])) {
-        return new WP_Error("upsellio_ai_image_upload_error", (string) $upload["error"]);
-    }
-
-    return esc_url_raw((string) ($upload["url"] ?? ""));
+    return $raw;
 }
 
 function upsellio_blog_tool_extract_json_object($raw_content)
@@ -1267,8 +983,6 @@ function upsellio_handle_blog_generator_submit()
     $ai_topics_count = max(1, min(40, $ai_topics_count));
     $ai_campaign_prompt = isset($_POST["ai_campaign_prompt"]) ? sanitize_textarea_field(wp_unslash($_POST["ai_campaign_prompt"])) : "";
     $ai_extra_instructions = isset($_POST["ai_extra_instructions"]) ? sanitize_textarea_field(wp_unslash($_POST["ai_extra_instructions"])) : "";
-    $ai_generate_images = isset($_POST["ai_generate_images"]) && (string) wp_unslash($_POST["ai_generate_images"]) === "1";
-    $ai_image_style_prompt = isset($_POST["ai_image_style_prompt"]) ? sanitize_textarea_field(wp_unslash($_POST["ai_image_style_prompt"])) : "";
     $publish_schedule_mode = isset($_POST["publish_schedule_mode"]) ? sanitize_key(wp_unslash($_POST["publish_schedule_mode"])) : "immediate";
     $publish_schedule_mode = in_array($publish_schedule_mode, ["immediate", "at_time", "interval"], true) ? $publish_schedule_mode : "immediate";
     $publish_interval_value = isset($_POST["publish_interval_value"]) ? (int) wp_unslash($_POST["publish_interval_value"]) : 1;
@@ -1301,14 +1015,6 @@ function upsellio_handle_blog_generator_submit()
         if (!$crm_ready) {
             wp_safe_redirect(add_query_arg("upsellio_tool_status", "ai_missing_config", menu_page_url("upsellio-seo-blog-tool", false)));
             exit;
-        }
-        $image_provider = upsellio_blog_tool_get_task_provider($ai_settings, "image");
-        if ($ai_generate_images && $image_provider === "chatgpt") {
-            $has_chatgpt_image = ((string) ($ai_settings["providers"]["chatgpt"]["api_key"] ?? "") !== "" && (string) ($ai_settings["providers"]["chatgpt"]["image_model"] ?? "") !== "");
-            if (!$has_chatgpt_image) {
-                wp_safe_redirect(add_query_arg("upsellio_tool_status", "ai_missing_config", menu_page_url("upsellio-seo-blog-tool", false)));
-                exit;
-            }
         }
 
         $topics = upsellio_blog_tool_parse_topics($ai_topics_raw);
@@ -1408,16 +1114,6 @@ function upsellio_handle_blog_generator_submit()
 
             if ($featured_image_url !== "") {
                 update_post_meta($post_id, "_upsellio_featured_image_url", $featured_image_url);
-            } elseif ($ai_generate_images) {
-                $image_prompt = "Przygotuj realistyczny, wysokiej jakości obraz hero do artykułu blogowego. " .
-                    "Temat: " . (string) ($ai_payload["title"] ?? $topic_item) . ". " .
-                    "Fraza główna: " . (string) ($ai_payload["primary_query"] ?? $topic_item) . ". " .
-                    "Wytyczne stylu: " . $ai_image_style_prompt . ". " .
-                    "Prompt kampanii: " . (string) ($ai_settings["campaign_prompt_template"] ?? "");
-                $generated_image_url = upsellio_blog_tool_generate_image_via_ai($ai_settings, $image_prompt);
-                if (!is_wp_error($generated_image_url) && (string) $generated_image_url !== "") {
-                    update_post_meta($post_id, "_upsellio_featured_image_url", esc_url_raw((string) $generated_image_url));
-                }
             }
 
             upsellio_save_seo_meta_for_post(
@@ -1592,8 +1288,6 @@ function upsellio_render_blog_generator_screen()
         "ai_topics_count" => 1,
         "ai_campaign_prompt" => (string) ($ai_settings["campaign_prompt_template"] ?? ""),
         "ai_extra_instructions" => "",
-        "ai_generate_images" => 0,
-        "ai_image_style_prompt" => "Nowoczesny, profesjonalny hero banner bez napisów. Kompozycja szeroka 16:9.",
         "publish_schedule_mode" => "immediate",
         "publish_interval_value" => 1,
         "publish_interval_unit" => "days",
@@ -1797,7 +1491,7 @@ function upsellio_render_blog_generator_screen()
       <?php elseif ($status === "missing_title") : ?>
         <div class="notice notice-error is-dismissible"><p>Uzupełnij tytuł wpisu.</p></div>
       <?php elseif ($status === "ai_missing_config") : ?>
-        <div class="notice notice-error is-dismissible"><p>Uzupełnij najpierw konfigurację AI (endpoint, API key i model).</p></div>
+        <div class="notice notice-error is-dismissible"><p>Skonfiguruj klucz Anthropic dla CRM (<code>UPSELLIO_ANTHROPIC_API_KEY</code> lub opcja <code>ups_anthropic_api_key</code>).</p></div>
       <?php elseif ($status === "ai_missing_seed") : ?>
         <div class="notice notice-error is-dismissible"><p>Podaj temat bazowy albo listę tematów do wygenerowania wpisów.</p></div>
       <?php elseif ($status === "ai_empty_topics") : ?>
@@ -1806,9 +1500,6 @@ function upsellio_render_blog_generator_screen()
         <div class="notice notice-error is-dismissible"><p>Błąd AI: <?php echo esc_html($ai_error !== "" ? $ai_error : "Nie udało się wygenerować wpisów."); ?></p></div>
       <?php elseif ($status === "error") : ?>
         <div class="notice notice-error is-dismissible"><p>Wystąpił błąd podczas zapisu wpisu.</p></div>
-      <?php endif; ?>
-      <?php if (isset($_GET["upsellio_ai_saved"])) : ?>
-        <div class="notice notice-success is-dismissible"><p>Zapisano ustawienia połączenia z AI.</p></div>
       <?php endif; ?>
 
       <?php if ($is_quick_edit) : ?>
@@ -1819,57 +1510,6 @@ function upsellio_render_blog_generator_screen()
           </p>
         </div>
       <?php endif; ?>
-
-      <div class="ups-tool-form" style="max-width:1280px;margin-top:14px;">
-        <h2 style="margin-top:0;">Integracja Claude (Upsellio CRM)</h2>
-        <p style="margin-top:0;font-size:13px;line-height:1.55">Tematy i treść wpisów w trybie <strong>AI</strong> korzystają z tego samego API co CRM: klucz <code>UPSELLIO_ANTHROPIC_API_KEY</code> lub opcja <code>ups_anthropic_api_key</code> (Ustawienia CRM → Ogólne). Prompty blogowe: <strong>CRM → Ustawienia → AI</strong> (<code>ups_ai_prompt_blog_post</code>, kontekst firmy). Obrazki hero nadal wymagają osobnego klucza OpenAI poniżej (opcjonalnie).</p>
-        <form method="post" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-          <?php wp_nonce_field("upsellio_blog_ai_settings_action", "upsellio_blog_ai_settings_nonce"); ?>
-          <input type="hidden" name="upsellio_blog_ai_settings_submit" value="1" />
-          <h3 style="grid-column:1 / -1; margin:0;">OpenAI — tylko obrazki (opcjonalnie)</h3>
-          <label class="ups-field">
-            <strong>Image endpoint</strong>
-            <input type="url" name="ai_chatgpt_image_endpoint" value="<?php echo esc_attr((string) ($ai_settings["providers"]["chatgpt"]["image_endpoint"] ?? "")); ?>" placeholder="https://api.openai.com/v1/images/generations" />
-          </label>
-          <label class="ups-field">
-            <strong>Image model</strong>
-            <input type="text" name="ai_chatgpt_image_model" value="<?php echo esc_attr((string) ($ai_settings["providers"]["chatgpt"]["image_model"] ?? "")); ?>" placeholder="gpt-image-1" />
-          </label>
-          <label class="ups-field" style="grid-column:1 / -1;">
-            <strong>API key (OpenAI) — do generacji obrazków</strong>
-            <input type="password" name="ai_chatgpt_api_key" value="<?php echo esc_attr((string) ($ai_settings["providers"]["chatgpt"]["api_key"] ?? "")); ?>" autocomplete="off" />
-          </label>
-          <label class="ups-field" style="grid-column:1 / -1;">
-            <strong>Domyślny prompt kampanii (generator SEO Tool)</strong>
-            <textarea name="ai_campaign_prompt_template" rows="4"><?php echo esc_textarea((string) ($ai_settings["campaign_prompt_template"] ?? "")); ?></textarea>
-          </label>
-          <label class="ups-field" style="grid-column:1 / -1;">
-            <strong>System prompt (tematy + rozbudowany JSON wpisu w tym narzędziu)</strong>
-            <textarea name="ai_system_prompt" rows="4"><?php echo esc_textarea((string) ($ai_settings["system_prompt"] ?? "")); ?></textarea>
-          </label>
-          <div class="ups-form-grid-2" style="grid-column:1 / -1;">
-            <label class="ups-field">
-              <strong>Temperature</strong>
-              <input type="number" step="0.1" min="0" max="1.2" name="ai_temperature" value="<?php echo esc_attr((string) ($ai_settings["temperature"] ?? 0.7)); ?>" />
-            </label>
-            <label class="ups-field">
-              <strong>Max tokens</strong>
-              <input type="number" min="800" max="12000" name="ai_max_tokens" value="<?php echo esc_attr((string) ((int) ($ai_settings["max_tokens"] ?? 3500))); ?>" />
-            </label>
-          </div>
-          <input type="hidden" name="ai_topics_provider" value="chatgpt" />
-          <input type="hidden" name="ai_blog_provider" value="claude" />
-          <input type="hidden" name="ai_image_provider" value="chatgpt" />
-          <input type="hidden" name="ai_chatgpt_chat_endpoint" value="<?php echo esc_attr((string) ($ai_settings["providers"]["chatgpt"]["chat_endpoint"] ?? "")); ?>" />
-          <input type="hidden" name="ai_chatgpt_chat_model" value="<?php echo esc_attr((string) ($ai_settings["providers"]["chatgpt"]["chat_model"] ?? "")); ?>" />
-          <input type="hidden" name="ai_claude_endpoint" value="<?php echo esc_attr((string) ($ai_settings["providers"]["claude"]["endpoint"] ?? "")); ?>" />
-          <input type="hidden" name="ai_claude_model" value="<?php echo esc_attr((string) ($ai_settings["providers"]["claude"]["model"] ?? "")); ?>" />
-          <input type="hidden" name="ai_claude_api_key" value="<?php echo esc_attr((string) ($ai_settings["providers"]["claude"]["api_key"] ?? "")); ?>" />
-          <div style="display:flex;align-items:center;gap:10px;grid-column:1 / -1;">
-            <button type="submit" class="button">Zapisz ustawienia</button>
-          </div>
-        </form>
-      </div>
 
       <div class="ups-tool-grid">
         <form method="post" class="ups-tool-form js-ups-seo-form">
@@ -1919,20 +1559,6 @@ function upsellio_render_blog_generator_screen()
             <strong>Dodatkowe wytyczne dla AI</strong>
             <textarea name="ai_extra_instructions" rows="4" placeholder="Styl, długość, czego unikać, jak ma wyglądać CTA itd."><?php echo esc_textarea($prefill_values["ai_extra_instructions"]); ?></textarea>
           </label>
-          <div class="ups-form-grid-2" style="margin-top:14px;">
-            <label class="ups-field">
-              <strong>Automatycznie generuj obrazki hero (AI)</strong>
-              <select name="ai_generate_images">
-                <option value="0" <?php selected((int) $prefill_values["ai_generate_images"], 0); ?>>Nie</option>
-                <option value="1" <?php selected((int) $prefill_values["ai_generate_images"], 1); ?>>Tak</option>
-              </select>
-            </label>
-            <label class="ups-field">
-              <strong>Wytyczne do obrazków</strong>
-              <textarea name="ai_image_style_prompt" rows="3" placeholder="np. editorial, clean, bez tekstu, konkretna kolorystyka"><?php echo esc_textarea($prefill_values["ai_image_style_prompt"]); ?></textarea>
-            </label>
-          </div>
-
           <div class="ups-form-grid-2">
             <label class="ups-field">
               <strong>Tytuł wpisu *</strong>
