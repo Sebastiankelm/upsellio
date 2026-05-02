@@ -326,7 +326,7 @@ function upsellio_ai_test_group_data(): array {
 
     if ($ga4_count === 0) {
         if ($ga4_enabled) {
-            $results[] = upsellio_ai_tests_warn('Dane GA4 (kanały)', 'Flaga włączona, ale brak danych. Użyj WordPress: Wpisy → Analityka SEO → sekcja „GA4 — kanały do CRM” (OAuth) albo endpoint REST / skrypt ga4-sync.py — sprawdź logi GSC/GA4 w tym panelu.');
+            $results[] = upsellio_ai_tests_warn('Dane GA4 (kanały)', 'Flaga włączona, ale brak danych. Użyj WordPress: menu Analityka SEO (lub Ustawienia → Analityka SEO) → sekcja „GA4 — kanały do CRM” (OAuth) albo endpoint REST / skrypt ga4-sync.py — sprawdź logi GSC/GA4 w tym panelu.');
         } else {
             $results[] = upsellio_ai_tests_info('Dane GA4 (kanały)', 'Brak — flaga ups_automation_ga4_sync_enabled wyłączona. Scoring nie zna jakości kanałów. Działa poprawnie bez GA4.');
         }

@@ -354,25 +354,38 @@ function upsellio_offer_ai_fill_ajax(): void
 
     $master_ctx = function_exists("upsellio_ai_master_context") ? upsellio_ai_master_context("offer") : "";
 
-    $task = "Na podstawie danych klienta przygotuj wypełnienie formularza oferty B2B. "
+    $task = "Na podstawie danych klienta przygotuj wypełnienie formularza oferty B2B (CRM budowniczek). "
         . "Odpowiedz WYŁĄCZNIE jednym obiektem JSON (bez markdown, bez komentarzy). "
-        . "Nie podawaj kwoty ceny ani liczb PLN w polach — cena jest uzupełniana ręcznie przez handlowca.\n\n"
+        . "Nie wymyślaj fikcyjnych kwot — jeśli w danych jest budżet lub widełki, możesz je odzwierciedlić w polu price jako krótki tekst; "
+        . "jeśli brak danych o cenie, ustaw price na pusty string \"\".\n\n"
         . "Klient: {$client_name} | Firma: {$client_company} | Branża: {$client_industry} | Budżet (orientacyjnie): {$client_budget}\n"
         . ($client_last_call !== "" ? "Notatka z ostatniej rozmowy: {$client_last_call}\n" : "")
         . ($notes_snip !== "" ? "Notatki o kliencie: {$notes_snip}\n" : "")
         . ($thread_ctx !== "" ? "Ostatnia korespondencja (skrót): {$thread_ctx}\n" : "")
         . ($won_patterns !== "" ? "Przykłady wygranych ofert:\n{$won_patterns}\n" : "")
         . ($offer_title !== "" ? "Tytuł bieżącej oferty (jeśli edycja): {$offer_title} | Etap: {$offer_stage}\n" : "")
-        . "\nPola JSON (wszystkie stringi po polsku poza has_*):\n"
-        . "- lead: 2–3 zdania intro pod tytułem (problem, dla kogo, jeden konkret)\n"
-        . "- include_lines: lista punktów „co zawiera pakiet”, każdy punkt w osobnej linii tekstu (bez myślników na początku)\n"
-        . "- questions_raw: pytania do klienta, format: Pytanie?|Krótkie uzasadnienie. Jedna para na linię\n"
-        . "- cta_text: tekst przycisku akceptacji, max 6 słów\n"
-        . "- price_note: krótka notka pod ceną (VAT, warunki — bez kwoty liczbowej)\n"
-        . "- has_google: true/false — czy zakres obejmuje Google Ads\n"
-        . "- has_meta: true/false — Meta Ads\n"
-        . "- has_web: true/false — strona / landing\n\n"
-        . 'Schema: {"lead":"...","include_lines":"...","questions_raw":"...","cta_text":"...","price_note":"...","has_google":true,"has_meta":false,"has_web":false}';
+        . "\nPola JSON — uzupełnij sensownie wszystkie, które da się wywieść z kontekstu; brak info → pusty string \"\" lub false przy boolean:\n"
+        . "- title: krótki tytuł oferty (np. „Usługi marketingowe — Nazwa firmy”)\n"
+        . "- price: jedna linia — proponowane brzmienie ceny lub widełki TYLKO jeśli wynikają z danych klienta, inaczej puste\n"
+        . "- timeline: start / harmonogram (np. „Start po akceptacji, tygodnie 1–2: audyt”)\n"
+        . "- duration: pole „czas trwania” na karcie (np. „3 miesiące optymalizacji”)\n"
+        . "- billing: model rozliczenia (np. „Miesięczny retainer + budżet media przekazywany do Google”)\n"
+        . "- decision_date: YYYY-MM-DD sugerowana data decyzji klienta jeśli da się oszacować z rozmowy, inaczej \"\"\n"
+        . "- lead: 2–4 zdania intro pod tytułem (problem, dla kogo, jeden konkret)\n"
+        . "- include_lines: punkty „co zawiera pakiet”, każdy w osobnej linii (bez myślników na początku)\n"
+        . "- option_lines: opcje dodatkowe (linie)\n"
+        . "- questions_raw: pytania do klienta: Pytanie?|Krótkie uzasadnienie — jedna para na linię\n"
+        . "- cta_text: przycisk akceptacji, max 8 słów\n"
+        . "- price_note: notka pod ceną (VAT, warunki)\n"
+        . "- proof_lines: jedna linia = jeden badge „logo/branża” lub krótka nazwa segmentu\n"
+        . "- services_json: tablica JSON obiektów [{\"key\":\"...\",\"label\":\"...\",\"price_hint\":\"...\"}] — 2–4 warianty zainteresowania; musi być poprawnym JSON\n"
+        . "- scope_extra_html: krótki HTML (lista <ul><li>) doprecyzowanie zakresu poza checkboxami\n"
+        . "- content: treść sekcji szczegóły — HTML uproszczony (<p>, <ul>, <li>, <strong>), 3–8 akapitów max.\n"
+        . "- deal_notes: krótka notatka deala (wewnętrzna)\n"
+        . "- internal_notes: krótka notatka oferty (wewnętrzna)\n"
+        . "- has_google / has_meta / has_web: boolean — zakres checkboxów\n\n"
+        . 'Minimalny szkielet (uzupełnij wszystkie klucze): '
+        . '{"title":"","price":"","timeline":"","duration":"","billing":"","decision_date":"","lead":"","include_lines":"","option_lines":"","questions_raw":"","cta_text":"","price_note":"","proof_lines":"","services_json":[],"scope_extra_html":"","content":"","deal_notes":"","internal_notes":"","has_google":true,"has_meta":true,"has_web":false}';
 
     if ($master_ctx !== "") {
         $task .= "\n\n---\nKontekst agregatowy (GA4, klienci, typowe zakresy wygranych):\n" . $master_ctx;
@@ -382,7 +395,7 @@ function upsellio_offer_ai_fill_ajax(): void
 
     $model = defined("UPSELLIO_ANTHROPIC_DEFAULT_MODEL") ? (string) UPSELLIO_ANTHROPIC_DEFAULT_MODEL : "claude-haiku-4-5-20251001";
     $raw = function_exists("upsellio_anthropic_crm_send_user_prompt")
-        ? upsellio_anthropic_crm_send_user_prompt($prompt, 900, 42, $model)
+        ? upsellio_anthropic_crm_send_user_prompt($prompt, 4096, 42, $model)
         : null;
     if ($raw === null) {
         $err = function_exists("upsellio_anthropic_crm_get_last_send_error") ? upsellio_anthropic_crm_get_last_send_error() : "";
@@ -396,12 +409,43 @@ function upsellio_offer_ai_fill_ajax(): void
         wp_send_json_error(["message" => "Niepoprawny JSON z modelu."], 502);
     }
 
+    $services_json_str = "";
+    $sj = $data["services_json"] ?? null;
+    if (is_array($sj)) {
+        $enc = wp_json_encode($sj);
+        $services_json_str = is_string($enc) ? $enc : "";
+    } elseif (is_string($sj) && $sj !== "") {
+        $dec = json_decode($sj, true);
+        if (is_array($dec)) {
+            $enc = wp_json_encode($dec);
+            $services_json_str = is_string($enc) ? $enc : "";
+        }
+    }
+
+    $decision_date = (string) ($data["decision_date"] ?? "");
+    if ($decision_date !== "" && !preg_match("/^\d{4}-\d{2}-\d{2}$/", $decision_date)) {
+        $decision_date = "";
+    }
+
     wp_send_json_success([
+        "title" => sanitize_text_field((string) ($data["title"] ?? "")),
+        "price" => sanitize_text_field((string) ($data["price"] ?? "")),
+        "timeline" => sanitize_text_field((string) ($data["timeline"] ?? "")),
+        "duration" => sanitize_text_field((string) ($data["duration"] ?? "")),
+        "billing" => sanitize_text_field((string) ($data["billing"] ?? "")),
+        "decision_date" => $decision_date,
         "lead" => sanitize_textarea_field((string) ($data["lead"] ?? "")),
         "include_lines" => sanitize_textarea_field((string) ($data["include_lines"] ?? "")),
+        "option_lines" => sanitize_textarea_field((string) ($data["option_lines"] ?? "")),
         "questions_raw" => sanitize_textarea_field((string) ($data["questions_raw"] ?? "")),
         "cta_text" => sanitize_text_field((string) ($data["cta_text"] ?? "")),
         "price_note" => sanitize_text_field((string) ($data["price_note"] ?? "")),
+        "proof_lines" => sanitize_textarea_field((string) ($data["proof_lines"] ?? "")),
+        "services_json" => $services_json_str,
+        "scope_extra_html" => wp_kses_post((string) ($data["scope_extra_html"] ?? "")),
+        "content" => wp_kses_post((string) ($data["content"] ?? "")),
+        "deal_notes" => sanitize_textarea_field((string) ($data["deal_notes"] ?? "")),
+        "internal_notes" => sanitize_textarea_field((string) ($data["internal_notes"] ?? "")),
         "has_google" => !empty($data["has_google"]),
         "has_meta" => !empty($data["has_meta"]),
         "has_web" => !empty($data["has_web"]),

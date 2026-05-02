@@ -376,13 +376,124 @@ function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $ti
     return $text;
 }
 
+/**
+ * Usuwa otoczkę markdown ```json ... ``` (model często ją dodaje mimo „samego JSON”).
+ */
+function upsellio_anthropic_crm_strip_json_markdown_fence(string $text): string
+{
+    $text = trim($text);
+    if ($text === "") {
+        return $text;
+    }
+    if (strncmp($text, "\xEF\xBB\xBF", 3) === 0) {
+        $text = substr($text, 3);
+    }
+    // Początek: ``` lub ```json
+    if (preg_match("/^```[a-zA-Z0-9_-]*\s*/", $text)) {
+        $text = preg_replace("/^```[a-zA-Z0-9_-]*\s*/", "", $text);
+    }
+    // Koniec: ```
+    if (strpos($text, "```") !== false) {
+        $text = preg_replace("/\s*```\s*$/", "", $text);
+        $text = rtrim($text);
+    }
+
+    return trim($text);
+}
+
+/**
+ * Pierwszy kompletny obiekt JSON od pierwszego „{” (respektuje stringi i nawiasy).
+ *
+ * @return string|null
+ */
+function upsellio_anthropic_crm_extract_first_json_object(string $text)
+{
+    $start = strpos($text, "{");
+    if ($start === false) {
+        return null;
+    }
+    $len = strlen($text);
+    $depth = 0;
+    $in_string = false;
+    $escape = false;
+    for ($i = $start; $i < $len; $i++) {
+        $ch = $text[$i];
+        if ($in_string) {
+            if ($escape) {
+                $escape = false;
+                continue;
+            }
+            if ($ch === "\\") {
+                $escape = true;
+                continue;
+            }
+            if ($ch === '"') {
+                $in_string = false;
+            }
+
+            continue;
+        }
+        if ($ch === '"') {
+            $in_string = true;
+            continue;
+        }
+        if ($ch === "{") {
+            $depth++;
+        } elseif ($ch === "}") {
+            $depth--;
+            if ($depth === 0) {
+                return substr($text, $start, $i - $start + 1);
+            }
+        }
+    }
+
+    return null;
+}
+
 function upsellio_anthropic_crm_parse_json_object($text)
 {
     $text = trim((string) $text);
     if ($text === "") {
         return null;
     }
-    if (preg_match("/\{[\s\S]*\}/", $text, $m)) {
+
+    $stripped = upsellio_anthropic_crm_strip_json_markdown_fence($text);
+
+    $try_decode = static function ($payload) {
+        $payload = trim((string) $payload);
+        if ($payload === "") {
+            return null;
+        }
+        $j = json_decode($payload, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($j)) {
+            return $j;
+        }
+
+        return null;
+    };
+
+    $decoded = $try_decode($stripped);
+    if (is_array($decoded)) {
+        return $decoded;
+    }
+
+    $slice = upsellio_anthropic_crm_extract_first_json_object($stripped);
+    if ($slice !== null && $slice !== "") {
+        $decoded = $try_decode($slice);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+    }
+
+    $slice2 = upsellio_anthropic_crm_extract_first_json_object($text);
+    if ($slice2 !== null && $slice2 !== "") {
+        $decoded = $try_decode($slice2);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+    }
+
+    if (preg_match("/\{[\s\S]*\}/", $stripped, $m)) {
         $j = json_decode($m[0], true);
         if (is_array($j)) {
             return $j;
