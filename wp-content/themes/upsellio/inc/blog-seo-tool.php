@@ -372,616 +372,6 @@ function upsellio_blog_tool_add_post_row_action($actions, $post)
 }
 add_filter("post_row_actions", "upsellio_blog_tool_add_post_row_action", 10, 2);
 
-function upsellio_blog_tool_get_gsc_credentials()
-{
-    if (function_exists("upsellio_get_gsc_credentials")) {
-        return upsellio_get_gsc_credentials();
-    }
-
-    return [
-        "client_id" => "",
-        "client_secret" => "",
-        "refresh_token" => "",
-        "property" => "",
-    ];
-}
-
-function upsellio_blog_tool_save_gsc_credentials($client_id, $client_secret, $refresh_token, $property)
-{
-    if (function_exists("upsellio_save_gsc_credentials")) {
-        upsellio_save_gsc_credentials($client_id, $client_secret, $refresh_token, $property);
-        return;
-    }
-
-    update_option("upsellio_gsc_credentials", [
-        "client_id" => sanitize_text_field((string) $client_id),
-        "client_secret" => sanitize_text_field((string) $client_secret),
-        "refresh_token" => sanitize_text_field((string) $refresh_token),
-        "property" => sanitize_text_field((string) $property),
-    ], false);
-}
-
-function upsellio_blog_tool_get_oauth_redirect_url()
-{
-    return add_query_arg(
-        [
-            "page" => "upsellio-seo-blog-tool",
-            "upsellio_gsc_oauth_callback" => 1,
-        ],
-        admin_url("edit.php")
-    );
-}
-
-function upsellio_blog_tool_get_cache_key($page_url, $days)
-{
-    $page_url = esc_url_raw((string) $page_url);
-    $days = in_array((int) $days, [7, 14, 30, 60, 90], true) ? (int) $days : 30;
-    return "upsellio_blog_gsc_insights_" . md5($page_url . "|" . $days . "|v1");
-}
-
-function upsellio_blog_tool_get_cached_insights($page_url, $days, $max_age_seconds = 21600)
-{
-    $cache_key = upsellio_blog_tool_get_cache_key($page_url, $days);
-    $payload = get_transient($cache_key);
-    if (!is_array($payload)) {
-        return null;
-    }
-    $stored_at = (int) ($payload["stored_at"] ?? 0);
-    if ($stored_at <= 0 || (time() - $stored_at) > max(300, (int) $max_age_seconds)) {
-        return null;
-    }
-
-    $data = $payload["data"] ?? null;
-    return is_array($data) ? $data : null;
-}
-
-function upsellio_blog_tool_set_cached_insights($page_url, $days, $data, $ttl_seconds = 21600)
-{
-    if (!is_array($data)) {
-        return;
-    }
-    $cache_key = upsellio_blog_tool_get_cache_key($page_url, $days);
-    $payload = [
-        "stored_at" => time(),
-        "data" => $data,
-    ];
-    set_transient($cache_key, $payload, max(600, (int) $ttl_seconds));
-}
-
-function upsellio_blog_tool_get_sync_days()
-{
-    $sync_days = (int) get_option("upsellio_blog_tool_gsc_days", 30);
-    return in_array($sync_days, [7, 14, 30, 60, 90], true) ? $sync_days : 30;
-}
-
-function upsellio_blog_tool_fetch_gsc_properties($credentials)
-{
-    if (!function_exists("upsellio_gsc_get_access_token")) {
-        return new WP_Error("upsellio_gsc_missing_api", "Brak funkcji Google Search Console API w motywie.");
-    }
-    $access_token = upsellio_gsc_get_access_token($credentials);
-    if (is_wp_error($access_token)) {
-        return $access_token;
-    }
-
-    $response = wp_remote_get("https://searchconsole.googleapis.com/webmasters/v3/sites", [
-        "timeout" => 25,
-        "headers" => [
-            "Authorization" => "Bearer " . $access_token,
-            "Content-Type" => "application/json",
-        ],
-    ]);
-    if (is_wp_error($response)) {
-        return $response;
-    }
-
-    $status = (int) wp_remote_retrieve_response_code($response);
-    $body = json_decode((string) wp_remote_retrieve_body($response), true);
-    if ($status >= 400) {
-        $message = "Nie udało się pobrać listy property z Google Search Console.";
-        if (is_array($body) && isset($body["error"]["message"])) {
-            $message = (string) $body["error"]["message"];
-        }
-        return new WP_Error("upsellio_gsc_sites_error", $message);
-    }
-
-    $entries = is_array($body) && isset($body["siteEntry"]) && is_array($body["siteEntry"]) ? $body["siteEntry"] : [];
-    $properties = [];
-    foreach ($entries as $entry) {
-        $site_url = sanitize_text_field((string) ($entry["siteUrl"] ?? ""));
-        if ($site_url === "") {
-            continue;
-        }
-        $properties[] = $site_url;
-    }
-
-    return array_values(array_unique($properties));
-}
-
-function upsellio_blog_tool_extract_questions_from_queries($queries)
-{
-    $questions = [];
-    foreach ($queries as $row) {
-        $query = trim((string) ($row["query"] ?? ""));
-        if ($query === "") {
-            continue;
-        }
-        if (preg_match("/\?$/u", $query) || preg_match("/^(jak|co|dlaczego|kiedy|ile|czy|który|która|ktore|gdzie)\b/ui", $query)) {
-            $normalized = function_exists("mb_convert_case")
-                ? mb_convert_case($query, MB_CASE_TITLE, "UTF-8")
-                : ucwords(strtolower($query));
-            if (!preg_match("/\?$/u", $normalized)) {
-                $normalized .= "?";
-            }
-            $questions[] = $normalized;
-        }
-    }
-
-    return array_slice(array_values(array_unique($questions)), 0, 8);
-}
-
-function upsellio_blog_tool_expected_ctr_by_position($position)
-{
-    $position = (float) $position;
-    if ($position <= 1.5) return 28.0;
-    if ($position <= 2.5) return 16.0;
-    if ($position <= 3.5) return 11.0;
-    if ($position <= 5) return 7.0;
-    if ($position <= 8) return 4.0;
-    if ($position <= 12) return 2.4;
-    if ($position <= 20) return 1.2;
-    return 0.6;
-}
-
-function upsellio_blog_tool_collect_cannibalization($top_queries, $target_url)
-{
-    $rows = get_option("upsellio_keyword_metrics_rows", []);
-    if (!is_array($rows) || empty($rows)) {
-        return [];
-    }
-
-    $target_path = (string) wp_parse_url($target_url, PHP_URL_PATH);
-    $top_query_names = array_map(
-        static function ($item) {
-            return strtolower((string) ($item["query"] ?? ""));
-        },
-        array_slice($top_queries, 0, 8)
-    );
-    $top_query_names = array_values(array_filter($top_query_names));
-    if (empty($top_query_names)) {
-        return [];
-    }
-
-    $bucket = [];
-    foreach ($rows as $row) {
-        $query = strtolower((string) ($row["keyword"] ?? ""));
-        if (!in_array($query, $top_query_names, true)) {
-            continue;
-        }
-        $row_url = (string) ($row["url"] ?? "");
-        $row_path = (string) wp_parse_url($row_url, PHP_URL_PATH);
-        if ($row_path === "" || $target_path === "" || $row_path === $target_path) {
-            continue;
-        }
-        if (!isset($bucket[$query])) {
-            $bucket[$query] = [];
-        }
-        if (!isset($bucket[$query][$row_path])) {
-            $bucket[$query][$row_path] = [
-                "url" => $row_url,
-                "impressions" => 0,
-                "clicks" => 0,
-            ];
-        }
-        $bucket[$query][$row_path]["impressions"] += (int) ($row["impressions"] ?? 0);
-        $bucket[$query][$row_path]["clicks"] += (int) ($row["clicks"] ?? 0);
-    }
-
-    $result = [];
-    foreach ($bucket as $query => $paths) {
-        uasort($paths, static function ($a, $b) {
-            return ((int) $b["impressions"]) <=> ((int) $a["impressions"]);
-        });
-        $other_pages = array_slice(array_values($paths), 0, 3);
-        if (empty($other_pages)) {
-            continue;
-        }
-        $result[] = [
-            "query" => $query,
-            "otherPages" => $other_pages,
-        ];
-    }
-
-    return array_slice($result, 0, 6);
-}
-
-function upsellio_blog_tool_fetch_gsc_queries_for_url($credentials, $page_url, $days = 30)
-{
-    if (!function_exists("upsellio_gsc_get_access_token")) {
-        return new WP_Error("upsellio_gsc_missing_api", "Brak funkcji Google Search Console API w motywie.");
-    }
-    $access_token = upsellio_gsc_get_access_token($credentials);
-    if (is_wp_error($access_token)) {
-        return $access_token;
-    }
-
-    $property = (string) ($credentials["property"] ?? "");
-    if ($property === "") {
-        return new WP_Error("upsellio_gsc_missing_property", "Najpierw wybierz GSC property.");
-    }
-
-    $page_url = esc_url_raw((string) $page_url);
-    if ($page_url === "") {
-        return new WP_Error("upsellio_gsc_missing_url", "Brak URL wpisu do analizy.");
-    }
-
-    $end_date = wp_date("Y-m-d");
-    $start_date = wp_date("Y-m-d", strtotime("-" . max(2, (int) $days) . " days"));
-    $endpoint = "https://searchconsole.googleapis.com/webmasters/v3/sites/" . rawurlencode($property) . "/searchAnalytics/query";
-
-    $request_body = [
-        "startDate" => $start_date,
-        "endDate" => $end_date,
-        "dimensions" => ["query"],
-        "dimensionFilterGroups" => [[
-            "groupType" => "and",
-            "filters" => [[
-                "dimension" => "page",
-                "operator" => "equals",
-                "expression" => $page_url,
-            ]],
-        ]],
-        "rowLimit" => 250,
-        "dataState" => "final",
-    ];
-
-    $response = wp_remote_post($endpoint, [
-        "timeout" => 35,
-        "headers" => [
-            "Authorization" => "Bearer " . $access_token,
-            "Content-Type" => "application/json",
-        ],
-        "body" => wp_json_encode($request_body),
-    ]);
-    if (is_wp_error($response)) {
-        return $response;
-    }
-
-    $status = (int) wp_remote_retrieve_response_code($response);
-    $body = json_decode((string) wp_remote_retrieve_body($response), true);
-    if ($status >= 400) {
-        $message = "Błąd API Google Search Console.";
-        if (is_array($body) && isset($body["error"]["message"])) {
-            $message = (string) $body["error"]["message"];
-        }
-        return new WP_Error("upsellio_gsc_query_error", $message);
-    }
-
-    $rows = is_array($body) && isset($body["rows"]) && is_array($body["rows"]) ? $body["rows"] : [];
-    $queries = [];
-    foreach ($rows as $row) {
-        $keys = isset($row["keys"]) && is_array($row["keys"]) ? $row["keys"] : [];
-        $query = sanitize_text_field((string) ($keys[0] ?? ""));
-        if ($query === "") {
-            continue;
-        }
-        $clicks = (int) round((float) ($row["clicks"] ?? 0));
-        $impressions = (int) round((float) ($row["impressions"] ?? 0));
-        $ctr = round(((float) ($row["ctr"] ?? 0)) * 100, 2);
-        $position = round((float) ($row["position"] ?? 0), 2);
-        $queries[] = [
-            "query" => $query,
-            "clicks" => max(0, $clicks),
-            "impressions" => max(0, $impressions),
-            "ctr" => max(0, $ctr),
-            "position" => max(1, $position),
-        ];
-    }
-
-    usort($queries, static function ($a, $b) {
-        if ((int) $b["impressions"] === (int) $a["impressions"]) {
-            return ((int) $b["clicks"]) <=> ((int) $a["clicks"]);
-        }
-        return ((int) $b["impressions"]) <=> ((int) $a["impressions"]);
-    });
-
-    $top_queries = array_slice($queries, 0, 20);
-    $primary_query = "";
-    if (!empty($top_queries)) {
-        $sorted_by_clicks = $top_queries;
-        usort($sorted_by_clicks, static function ($a, $b) {
-            if ((int) $b["clicks"] === (int) $a["clicks"]) {
-                return ((int) $b["impressions"]) <=> ((int) $a["impressions"]);
-            }
-            return ((int) $b["clicks"]) <=> ((int) $a["clicks"]);
-        });
-        $primary_query = (string) ($sorted_by_clicks[0]["query"] ?? "");
-    }
-
-    $quick_wins = [];
-    $topical_gaps = [];
-    $opportunity_score = 0.0;
-    foreach ($top_queries as $row) {
-        $expected_ctr = upsellio_blog_tool_expected_ctr_by_position((float) $row["position"]);
-        $ctr_gap = max(0.0, $expected_ctr - (float) $row["ctr"]);
-        $position_factor = 0.0;
-        if ((float) $row["position"] >= 8 && (float) $row["position"] <= 20) {
-            $position_factor = 1.0;
-        } elseif ((float) $row["position"] > 20) {
-            $position_factor = 0.45;
-        } elseif ((float) $row["position"] > 3) {
-            $position_factor = 0.7;
-        }
-        $row_opportunity = ((float) $row["impressions"] * ($ctr_gap / 100)) * (0.5 + $position_factor);
-        $opportunity_score += $row_opportunity;
-
-        if ((float) $row["position"] >= 8 && (float) $row["position"] <= 20 && (int) $row["impressions"] >= 60) {
-            $quick_wins[] = $row;
-        }
-        if ((int) $row["impressions"] >= 80 && ((float) $row["ctr"] < 1.5 || (float) $row["position"] > 10)) {
-            $topical_gaps[] = $row;
-        }
-    }
-
-    usort($quick_wins, static function ($a, $b) {
-        return ((int) $b["impressions"]) <=> ((int) $a["impressions"]);
-    });
-    usort($topical_gaps, static function ($a, $b) {
-        return ((int) $b["impressions"]) <=> ((int) $a["impressions"]);
-    });
-
-    $cluster = array_map(
-        static function ($row) {
-            return (string) ($row["query"] ?? "");
-        },
-        array_slice($top_queries, 0, 10)
-    );
-    $questions = upsellio_blog_tool_extract_questions_from_queries($top_queries);
-    $cannibalization = upsellio_blog_tool_collect_cannibalization($top_queries, $page_url);
-
-    return [
-        "primaryQuery" => $primary_query,
-        "queryCluster" => $cluster,
-        "userQuestions" => $questions,
-        "topQueries" => $top_queries,
-        "quickWins" => array_slice($quick_wins, 0, 6),
-        "topicalGaps" => array_slice($topical_gaps, 0, 8),
-        "cannibalization" => $cannibalization,
-        "opportunityScoreRaw" => round($opportunity_score, 2),
-    ];
-}
-
-function upsellio_blog_tool_build_keyword_index()
-{
-    $rows = get_option("upsellio_keyword_metrics_rows", []);
-    if (!is_array($rows)) {
-        return [];
-    }
-
-    $index = [];
-    foreach ($rows as $row) {
-        $url = (string) ($row["url"] ?? "");
-        $path = (string) wp_parse_url($url, PHP_URL_PATH);
-        if ($path === "") {
-            continue;
-        }
-        if (!isset($index[$path])) {
-            $index[$path] = [
-                "impressions" => 0,
-                "clicks" => 0,
-                "position_weighted_sum" => 0.0,
-                "position_weight" => 0,
-            ];
-        }
-        $impressions = max(0, (int) ($row["impressions"] ?? 0));
-        $clicks = max(0, (int) ($row["clicks"] ?? 0));
-        $position = max(1.0, (float) ($row["position"] ?? 0));
-
-        $index[$path]["impressions"] += $impressions;
-        $index[$path]["clicks"] += $clicks;
-        $weight = max(1, $impressions);
-        $index[$path]["position_weighted_sum"] += $position * $weight;
-        $index[$path]["position_weight"] += $weight;
-    }
-
-    return $index;
-}
-
-function upsellio_blog_tool_get_priority_post_ids_for_sync($limit = 40, $days = 30)
-{
-    $limit = max(5, min(120, (int) $limit));
-    $pool_size = max(80, $limit * 6);
-    $posts = get_posts([
-        "post_type" => "post",
-        "post_status" => "publish",
-        "posts_per_page" => $pool_size,
-        "orderby" => "date",
-        "order" => "DESC",
-        "fields" => "ids",
-    ]);
-    if (empty($posts)) {
-        return [];
-    }
-
-    $keyword_index = upsellio_blog_tool_build_keyword_index();
-    $candidates = [];
-    $now = time();
-    foreach ($posts as $post_id) {
-        $post_id = (int) $post_id;
-        $post_url = (string) get_permalink($post_id);
-        $path = (string) wp_parse_url($post_url, PHP_URL_PATH);
-        $metrics = $path !== "" && isset($keyword_index[$path]) ? $keyword_index[$path] : [
-            "impressions" => 0,
-            "clicks" => 0,
-            "position_weighted_sum" => 0.0,
-            "position_weight" => 0,
-        ];
-
-        $impressions = (int) $metrics["impressions"];
-        $views_total = max(0, (int) get_post_meta($post_id, "_upsellio_views_total", true));
-        $avg_position = (int) $metrics["position_weight"] > 0
-            ? ((float) $metrics["position_weighted_sum"] / (int) $metrics["position_weight"])
-            : 0.0;
-
-        $position_opportunity = 0.25;
-        if ($avg_position >= 8.0 && $avg_position <= 20.0) {
-            $position_opportunity = 1.0;
-        } elseif ($avg_position > 20.0) {
-            $position_opportunity = 0.55;
-        } elseif ($avg_position > 3.0) {
-            $position_opportunity = 0.7;
-        }
-
-        $post_timestamp = (int) get_post_time("U", true, $post_id);
-        $age_days = $post_timestamp > 0 ? max(1, (int) floor(($now - $post_timestamp) / DAY_IN_SECONDS)) : 365;
-        $freshness_boost = $age_days <= 30 ? 1.0 : ($age_days <= 90 ? 0.6 : 0.2);
-
-        $cache_stale_boost = 0.0;
-        $cached = upsellio_blog_tool_get_cached_insights($post_url, $days, 6 * HOUR_IN_SECONDS);
-        if (!is_array($cached)) {
-            $cache_stale_boost = 0.8;
-        }
-
-        $score = (log(1 + $impressions) * 0.62)
-            + (log(1 + $views_total) * 0.24)
-            + ($position_opportunity * 1.2)
-            + ($freshness_boost * 0.45)
-            + $cache_stale_boost;
-
-        $candidates[] = [
-            "post_id" => $post_id,
-            "score" => $score,
-            "impressions" => $impressions,
-            "views" => $views_total,
-        ];
-    }
-
-    usort($candidates, static function ($a, $b) {
-        if ((float) $b["score"] === (float) $a["score"]) {
-            if ((int) $b["impressions"] === (int) $a["impressions"]) {
-                return ((int) $b["views"]) <=> ((int) $a["views"]);
-            }
-            return ((int) $b["impressions"]) <=> ((int) $a["impressions"]);
-        }
-        return ((float) $b["score"] <=> (float) $a["score"]);
-    });
-
-    $selected = array_slice($candidates, 0, $limit);
-    return array_map(static function ($row) {
-        return (int) ($row["post_id"] ?? 0);
-    }, $selected);
-}
-
-function upsellio_blog_tool_run_sync($limit = 40)
-{
-    $credentials = upsellio_blog_tool_get_gsc_credentials();
-    if ((string) ($credentials["refresh_token"] ?? "") === "" || (string) ($credentials["property"] ?? "") === "") {
-        return new WP_Error("upsellio_gsc_sync_missing_credentials", "Brak konfiguracji OAuth/property dla GSC.");
-    }
-
-    $days = upsellio_blog_tool_get_sync_days();
-    $limit = max(5, min(120, (int) $limit));
-    $posts = upsellio_blog_tool_get_priority_post_ids_for_sync($limit, $days);
-
-    $synced = 0;
-    $errors = [];
-    foreach ($posts as $post_id) {
-        $post_url = (string) get_permalink((int) $post_id);
-        if ($post_url === "") {
-            continue;
-        }
-        $result = upsellio_blog_tool_fetch_gsc_queries_for_url($credentials, $post_url, $days);
-        if (is_wp_error($result)) {
-            $errors[] = $result->get_error_message();
-            continue;
-        }
-        upsellio_blog_tool_set_cached_insights($post_url, $days, $result, 6 * HOUR_IN_SECONDS);
-        $synced++;
-    }
-
-    update_option("upsellio_blog_tool_gsc_cache_last_sync", wp_date("Y-m-d H:i:s"), false);
-    update_option("upsellio_blog_tool_gsc_cache_last_count", $synced, false);
-    if (!empty($errors)) {
-        update_option("upsellio_blog_tool_gsc_cache_last_error", (string) $errors[0], false);
-    } else {
-        delete_option("upsellio_blog_tool_gsc_cache_last_error");
-    }
-
-    return [
-        "synced" => $synced,
-        "errors" => array_slice(array_values(array_unique($errors)), 0, 3),
-    ];
-}
-
-function upsellio_blog_tool_schedule_gsc_sync()
-{
-    if (!wp_next_scheduled("upsellio_blog_tool_gsc_sync_event")) {
-        wp_schedule_event(time() + 300, "hourly", "upsellio_blog_tool_gsc_sync_event");
-    }
-}
-add_action("init", "upsellio_blog_tool_schedule_gsc_sync");
-
-function upsellio_blog_tool_handle_scheduled_sync()
-{
-    upsellio_blog_tool_run_sync(30);
-}
-add_action("upsellio_blog_tool_gsc_sync_event", "upsellio_blog_tool_handle_scheduled_sync");
-
-function upsellio_handle_blog_tool_gsc_settings_submit()
-{
-    if (!is_admin() || !current_user_can("edit_posts")) {
-        return;
-    }
-    if (!isset($_POST["upsellio_blog_gsc_settings_submit"])) {
-        return;
-    }
-
-    check_admin_referer("upsellio_blog_gsc_settings_action", "upsellio_blog_gsc_settings_nonce");
-    $existing = upsellio_blog_tool_get_gsc_credentials();
-    $client_id = isset($_POST["gsc_client_id"]) ? sanitize_text_field(wp_unslash($_POST["gsc_client_id"])) : (string) ($existing["client_id"] ?? "");
-    $client_secret = isset($_POST["gsc_client_secret"]) ? sanitize_text_field(wp_unslash($_POST["gsc_client_secret"])) : (string) ($existing["client_secret"] ?? "");
-    $property = isset($_POST["gsc_property"]) ? sanitize_text_field(wp_unslash($_POST["gsc_property"])) : (string) ($existing["property"] ?? "");
-    $sync_days = isset($_POST["gsc_sync_days"]) ? (int) $_POST["gsc_sync_days"] : 30;
-    $sync_days = in_array($sync_days, [7, 14, 30, 60, 90], true) ? $sync_days : 30;
-
-    upsellio_blog_tool_save_gsc_credentials($client_id, $client_secret, (string) ($existing["refresh_token"] ?? ""), $property);
-    update_option("upsellio_blog_tool_gsc_days", $sync_days, false);
-
-    wp_safe_redirect(add_query_arg([
-        "page" => "upsellio-seo-blog-tool",
-        "upsellio_gsc_saved" => 1,
-    ], admin_url("edit.php")));
-    exit;
-}
-add_action("admin_init", "upsellio_handle_blog_tool_gsc_settings_submit");
-
-function upsellio_handle_blog_tool_gsc_run_sync_submit()
-{
-    if (!is_admin() || !current_user_can("edit_posts")) {
-        return;
-    }
-    if (!isset($_POST["upsellio_blog_gsc_run_sync_submit"])) {
-        return;
-    }
-
-    check_admin_referer("upsellio_blog_gsc_run_sync_action", "upsellio_blog_gsc_run_sync_nonce");
-    $result = upsellio_blog_tool_run_sync(50);
-    if (is_wp_error($result)) {
-        wp_safe_redirect(add_query_arg([
-            "page" => "upsellio-seo-blog-tool",
-            "upsellio_gsc_error" => rawurlencode($result->get_error_message()),
-        ], admin_url("edit.php")));
-        exit;
-    }
-
-    $sync_count = (int) ($result["synced"] ?? 0);
-    wp_safe_redirect(add_query_arg([
-        "page" => "upsellio-seo-blog-tool",
-        "upsellio_gsc_cache_synced" => $sync_count,
-    ], admin_url("edit.php")));
-    exit;
-}
-add_action("admin_init", "upsellio_handle_blog_tool_gsc_run_sync_submit");
 
 function upsellio_blog_tool_get_ai_settings()
 {
@@ -1259,11 +649,46 @@ function upsellio_blog_tool_ai_chat($ai_settings, $messages, $temperature = null
 {
     $temperature_value = $temperature === null ? (float) ($ai_settings["temperature"] ?? 0.7) : (float) $temperature;
     $max_tokens_value = $max_tokens === null ? (int) ($ai_settings["max_tokens"] ?? 3500) : (int) $max_tokens;
+    $task_name = sanitize_key((string) $task_name);
+
+    $use_crm = in_array($task_name, ["topics", "blog"], true)
+        && function_exists("upsellio_anthropic_crm_send_user_prompt")
+        && function_exists("upsellio_anthropic_crm_api_key")
+        && upsellio_anthropic_crm_api_key() !== "";
+
+    if ($use_crm) {
+        $model = trim((string) get_option("ups_blog_bot_model", ""));
+        $model_override = $model !== "" ? $model : null;
+        $parts = [];
+        foreach ((array) $messages as $message) {
+            $role = strtoupper(sanitize_key((string) ($message["role"] ?? "user")));
+            $content = trim((string) ($message["content"] ?? ""));
+            if ($content === "") {
+                continue;
+            }
+            $parts[] = $role . ":\n" . $content;
+        }
+        $full_prompt = implode("\n\n", $parts);
+        if ($full_prompt === "") {
+            return new WP_Error("upsellio_ai_crm_empty_prompt", "Brak treści promptu dla Claude.");
+        }
+        $cache_split = function_exists("upsellio_blog_bot_prompt_cache_split")
+            ? upsellio_blog_bot_prompt_cache_split($full_prompt)
+            : null;
+        $raw = upsellio_anthropic_crm_send_user_prompt($full_prompt, max(800, min(4096, $max_tokens_value)), 90, $model_override, $cache_split);
+        if ($raw === null || trim($raw) === "") {
+            return new WP_Error("upsellio_ai_crm_failed", "Brak odpowiedzi z Claude (CRM). Sprawdź klucz API Anthropic i limity.");
+        }
+
+        return $raw;
+    }
+
     $provider = upsellio_blog_tool_get_task_provider($ai_settings, $task_name);
 
     if ($provider === "claude") {
         return upsellio_blog_tool_ai_chat_via_claude($ai_settings, $messages, $temperature_value, $max_tokens_value);
     }
+
     return upsellio_blog_tool_ai_chat_via_chatgpt($ai_settings, $messages, $temperature_value, $max_tokens_value);
 }
 
@@ -1487,6 +912,119 @@ function upsellio_blog_tool_generate_post_payload_via_ai($ai_settings, $topic, $
     ];
 }
 
+/**
+ * Claude (CRM) — uzupełnienie istniejącego wpisu tym samym schematem JSON co generator AI.
+ *
+ * @return array<string, mixed>|WP_Error
+ */
+function upsellio_blog_tool_run_claude_editor_fill(int $post_id, string $extra_user_notes = "")
+{
+    $post_id = max(1, $post_id);
+    $post = get_post($post_id);
+    if (!($post instanceof WP_Post) || $post->post_type !== "post") {
+        return new WP_Error("upsellio_editor_invalid_post", "Nieprawidłowy wpis.");
+    }
+    if (!function_exists("upsellio_anthropic_crm_api_key") || upsellio_anthropic_crm_api_key() === "") {
+        return new WP_Error("upsellio_editor_no_crm", "Brak klucza Anthropic (CRM / UPSELLIO_ANTHROPIC_API_KEY).");
+    }
+
+    $ai_settings = upsellio_blog_tool_get_ai_settings();
+    $body = (string) $post->post_content;
+    if (function_exists("mb_substr")) {
+        $body = mb_substr($body, 0, 42000, "UTF-8");
+    } else {
+        $body = substr($body, 0, 42000);
+    }
+
+    $snapshot = [
+        "current_title" => (string) get_the_title($post_id),
+        "current_excerpt" => (string) $post->post_excerpt,
+        "article_type" => (string) get_post_meta($post_id, "_upsellio_article_type", true),
+        "primary_query_meta" => (string) get_post_meta($post_id, "_upsellio_primary_query", true),
+        "query_cluster_meta" => (string) get_post_meta($post_id, "_upsellio_query_cluster", true),
+        "user_questions_meta" => (string) get_post_meta($post_id, "_upsellio_user_questions", true),
+        "yoast_title" => (string) get_post_meta($post_id, "_yoast_wpseo_title", true),
+        "yoast_desc" => (string) get_post_meta($post_id, "_yoast_wpseo_metadesc", true),
+        "focus_kw" => (string) get_post_meta($post_id, "_yoast_wpseo_focuskw", true),
+        "post_content_html" => $body,
+    ];
+    if ($snapshot["article_type"] === "" || !in_array($snapshot["article_type"], ["blog_educational", "seo_article", "landing_sales"], true)) {
+        $snapshot["article_type"] = "seo_article";
+    }
+
+    $system_prompt = (string) ($ai_settings["system_prompt"] ?? "");
+    $campaign_prompt = (string) ($ai_settings["campaign_prompt_template"] ?? "");
+    $notes = sanitize_textarea_field($extra_user_notes);
+
+    $messages = [
+        [
+            "role" => "system",
+            "content" => $system_prompt . " Tworzysz / aktualizujesz wpisy WordPress. Zwracaj wyłącznie jeden obiekt JSON (bez markdown).",
+        ],
+        [
+            "role" => "user",
+            "content" => "Przygotuj kompletny wpis blogowy (PL, B2B). Zwróć TYLKO JSON z kluczami: "
+                . "title, seo_title, seo_description, primary_query, query_cluster (array string), user_questions (array string), "
+                . "content_html, tags (array string), audience, search_intent, problem, outcome, cta_text, article_type "
+                . "(jeden z: blog_educational, seo_article, landing_sales). "
+                . "Treść HTML: min. 900 słów, H2/H3, FAQ, shortcode [upsellio_internal_links] i dla seo_article/landing_sales [upsellio_contact_form]. "
+                . "Prompt kampanii: " . $campaign_prompt . ". "
+                . ($notes !== "" ? "Notatki redaktora: " . $notes . "\n" : "")
+                . "Bieżący stan wpisu (uzupełnij / popraw): " . wp_json_encode($snapshot),
+        ],
+    ];
+
+    $response = upsellio_blog_tool_ai_chat($ai_settings, $messages, 0.65, null, "blog");
+    if (is_wp_error($response)) {
+        return $response;
+    }
+
+    $json = upsellio_blog_tool_extract_json_object($response);
+    if (!is_array($json)) {
+        return new WP_Error("upsellio_editor_bad_json", "Model nie zwrócił poprawnego JSON.");
+    }
+
+    $title = sanitize_text_field((string) ($json["title"] ?? $snapshot["current_title"]));
+    $seo_title = sanitize_text_field((string) ($json["seo_title"] ?? ""));
+    $seo_description = sanitize_text_field((string) ($json["seo_description"] ?? ""));
+    $primary_query = sanitize_text_field((string) ($json["primary_query"] ?? ""));
+    $content_html = wp_kses_post((string) ($json["content_html"] ?? ""));
+
+    $query_cluster_arr = isset($json["query_cluster"]) && is_array($json["query_cluster"]) ? $json["query_cluster"] : [];
+    $user_questions_arr = isset($json["user_questions"]) && is_array($json["user_questions"]) ? $json["user_questions"] : [];
+    $tags_arr = isset($json["tags"]) && is_array($json["tags"]) ? $json["tags"] : [];
+
+    $query_cluster_arr = array_values(array_filter(array_map("sanitize_text_field", $query_cluster_arr)));
+    $user_questions_arr = array_values(array_filter(array_map("sanitize_text_field", $user_questions_arr)));
+    $tags_arr = array_values(array_filter(array_map("sanitize_text_field", $tags_arr)));
+
+    $article_type = sanitize_key((string) ($json["article_type"] ?? $snapshot["article_type"]));
+    if (!in_array($article_type, ["blog_educational", "seo_article", "landing_sales"], true)) {
+        $article_type = (string) $snapshot["article_type"];
+    }
+
+    if ($content_html === "") {
+        return new WP_Error("upsellio_editor_empty_content", "Model nie zwrócił treści HTML.");
+    }
+
+    return [
+        "title" => $title !== "" ? $title : $snapshot["current_title"],
+        "seo_title" => $seo_title,
+        "seo_description" => $seo_description,
+        "primary_query" => $primary_query,
+        "query_cluster" => implode(", ", array_slice($query_cluster_arr, 0, 14)),
+        "user_questions" => implode("\n", array_slice($user_questions_arr, 0, 8)),
+        "content_html" => $content_html,
+        "tags" => array_slice($tags_arr, 0, 12),
+        "article_type" => $article_type,
+        "audience" => sanitize_text_field((string) ($json["audience"] ?? "")),
+        "search_intent" => sanitize_text_field((string) ($json["search_intent"] ?? "")),
+        "problem" => sanitize_textarea_field((string) ($json["problem"] ?? "")),
+        "outcome" => sanitize_textarea_field((string) ($json["outcome"] ?? "")),
+        "cta_text" => sanitize_text_field((string) ($json["cta_text"] ?? "")),
+    ];
+}
+
 function upsellio_blog_tool_get_batch_publish_date($schedule_mode, $publish_at_raw, $interval_value, $interval_unit, $index)
 {
     $schedule_mode = sanitize_key((string) $schedule_mode);
@@ -1522,149 +1060,6 @@ function upsellio_blog_tool_get_batch_publish_date($schedule_mode, $publish_at_r
 
     return null;
 }
-
-function upsellio_handle_blog_tool_gsc_oauth_flow()
-{
-    if (!is_admin() || !current_user_can("edit_posts")) {
-        return;
-    }
-    $page = isset($_GET["page"]) ? sanitize_text_field(wp_unslash($_GET["page"])) : "";
-    if ($page !== "upsellio-seo-blog-tool") {
-        return;
-    }
-
-    $credentials = upsellio_blog_tool_get_gsc_credentials();
-    $client_id = (string) ($credentials["client_id"] ?? "");
-    $client_secret = (string) ($credentials["client_secret"] ?? "");
-
-    if (isset($_GET["upsellio_gsc_oauth_start"])) {
-        check_admin_referer("upsellio_gsc_oauth_start", "_upsellio_nonce");
-        if ($client_id === "" || $client_secret === "") {
-            wp_safe_redirect(add_query_arg([
-                "page" => "upsellio-seo-blog-tool",
-                "upsellio_gsc_error" => rawurlencode("Uzupełnij najpierw Client ID i Client Secret."),
-            ], admin_url("edit.php")));
-            exit;
-        }
-
-        $state = wp_generate_password(22, false, false);
-        set_transient("upsellio_blog_gsc_oauth_state_" . get_current_user_id(), $state, 15 * MINUTE_IN_SECONDS);
-        $redirect_uri = upsellio_blog_tool_get_oauth_redirect_url();
-        $auth_url = add_query_arg([
-            "client_id" => $client_id,
-            "redirect_uri" => $redirect_uri,
-            "response_type" => "code",
-            "scope" => "https://www.googleapis.com/auth/webmasters.readonly",
-            "access_type" => "offline",
-            "prompt" => "consent",
-            "include_granted_scopes" => "true",
-            "state" => $state,
-        ], "https://accounts.google.com/o/oauth2/v2/auth");
-
-        wp_safe_redirect($auth_url);
-        exit;
-    }
-
-    if (!isset($_GET["upsellio_gsc_oauth_callback"])) {
-        return;
-    }
-
-    $state = isset($_GET["state"]) ? sanitize_text_field(wp_unslash($_GET["state"])) : "";
-    $expected_state = get_transient("upsellio_blog_gsc_oauth_state_" . get_current_user_id());
-    delete_transient("upsellio_blog_gsc_oauth_state_" . get_current_user_id());
-    if ($state === "" || !is_string($expected_state) || !hash_equals($expected_state, $state)) {
-        wp_safe_redirect(add_query_arg([
-            "page" => "upsellio-seo-blog-tool",
-            "upsellio_gsc_error" => rawurlencode("Nieprawidłowy stan OAuth. Spróbuj ponownie."),
-        ], admin_url("edit.php")));
-        exit;
-    }
-
-    $code = isset($_GET["code"]) ? sanitize_text_field(wp_unslash($_GET["code"])) : "";
-    if ($code === "") {
-        $oauth_error = isset($_GET["error"]) ? sanitize_text_field(wp_unslash($_GET["error"])) : "Brak kodu OAuth.";
-        wp_safe_redirect(add_query_arg([
-            "page" => "upsellio-seo-blog-tool",
-            "upsellio_gsc_error" => rawurlencode($oauth_error),
-        ], admin_url("edit.php")));
-        exit;
-    }
-
-    $response = wp_remote_post("https://oauth2.googleapis.com/token", [
-        "timeout" => 25,
-        "body" => [
-            "code" => $code,
-            "client_id" => $client_id,
-            "client_secret" => $client_secret,
-            "redirect_uri" => upsellio_blog_tool_get_oauth_redirect_url(),
-            "grant_type" => "authorization_code",
-        ],
-    ]);
-    if (is_wp_error($response)) {
-        wp_safe_redirect(add_query_arg([
-            "page" => "upsellio-seo-blog-tool",
-            "upsellio_gsc_error" => rawurlencode($response->get_error_message()),
-        ], admin_url("edit.php")));
-        exit;
-    }
-
-    $body = json_decode((string) wp_remote_retrieve_body($response), true);
-    $refresh_token = is_array($body) ? sanitize_text_field((string) ($body["refresh_token"] ?? "")) : "";
-    if ($refresh_token === "") {
-        $error_message = "Google nie zwrócił refresh tokena. Upewnij się, że wymuszasz prompt=consent.";
-        if (is_array($body) && isset($body["error_description"])) {
-            $error_message = (string) $body["error_description"];
-        }
-        wp_safe_redirect(add_query_arg([
-            "page" => "upsellio-seo-blog-tool",
-            "upsellio_gsc_error" => rawurlencode($error_message),
-        ], admin_url("edit.php")));
-        exit;
-    }
-
-    upsellio_blog_tool_save_gsc_credentials($client_id, $client_secret, $refresh_token, (string) ($credentials["property"] ?? ""));
-    delete_transient("upsellio_gsc_access_token");
-    wp_safe_redirect(add_query_arg([
-        "page" => "upsellio-seo-blog-tool",
-        "upsellio_gsc_connected" => 1,
-    ], admin_url("edit.php")));
-    exit;
-}
-add_action("admin_init", "upsellio_handle_blog_tool_gsc_oauth_flow");
-
-function upsellio_ajax_blog_tool_gsc_insights()
-{
-    if (!current_user_can("edit_posts")) {
-        wp_send_json_error(["message" => "Brak uprawnień."], 403);
-    }
-    check_ajax_referer("upsellio_blog_gsc_insights", "nonce");
-
-    $page_url = isset($_POST["page_url"]) ? esc_url_raw(wp_unslash($_POST["page_url"])) : "";
-    $days = isset($_POST["days"]) ? (int) $_POST["days"] : 30;
-    $days = in_array($days, [7, 14, 30, 60, 90], true) ? $days : 30;
-    $force_refresh = isset($_POST["force_refresh"]) && (string) wp_unslash($_POST["force_refresh"]) === "1";
-
-    $credentials = upsellio_blog_tool_get_gsc_credentials();
-    if (!$force_refresh) {
-        $cached = upsellio_blog_tool_get_cached_insights($page_url, $days, 6 * HOUR_IN_SECONDS);
-        if (is_array($cached)) {
-            $cached["opportunityScore"] = min(15, (int) round(log(1 + max(0.0, (float) ($cached["opportunityScoreRaw"] ?? 0.0)), 1.6)));
-            $cached["cacheStatus"] = "hit";
-            wp_send_json_success($cached);
-        }
-    }
-
-    $result = upsellio_blog_tool_fetch_gsc_queries_for_url($credentials, $page_url, $days);
-    if (is_wp_error($result)) {
-        wp_send_json_error(["message" => $result->get_error_message()], 400);
-    }
-
-    upsellio_blog_tool_set_cached_insights($page_url, $days, $result, 6 * HOUR_IN_SECONDS);
-    $result["opportunityScore"] = min(15, (int) round(log(1 + max(0.0, (float) ($result["opportunityScoreRaw"] ?? 0.0)), 1.6)));
-    $result["cacheStatus"] = "miss";
-    wp_send_json_success($result);
-}
-add_action("wp_ajax_upsellio_blog_gsc_insights", "upsellio_ajax_blog_tool_gsc_insights");
 
 function upsellio_generate_default_post_content($headline, $primary_query, $query_cluster, $user_questions, $audience, $intent, $problem, $outcome, $cta_text, $article_type)
 {
@@ -1736,6 +1131,71 @@ function upsellio_generate_default_post_content($headline, $primary_query, $quer
             $contact_form_shortcode,
         ]
     );
+}
+
+/**
+ * Zapisuje wynik generatora (tablica jak z upsellio_blog_tool_generate_post_payload_via_ai) do istniejącego wpisu.
+ *
+ * @param array<string, mixed> $ai_payload
+ */
+function upsellio_blog_tool_apply_ai_payload_to_post(int $post_id, array $ai_payload): void
+{
+    $post_id = max(1, $post_id);
+    $title = sanitize_text_field((string) ($ai_payload["title"] ?? ""));
+    $content_html = wp_kses_post((string) ($ai_payload["content_html"] ?? ""));
+    $excerpt = sanitize_textarea_field((string) ($ai_payload["seo_description"] ?? ""));
+
+    $update = ["ID" => $post_id];
+    if ($title !== "") {
+        $update["post_title"] = $title;
+    }
+    if ($content_html !== "") {
+        $update["post_content"] = $content_html;
+    }
+    if ($excerpt !== "") {
+        $update["post_excerpt"] = $excerpt;
+    }
+    if (count($update) > 1) {
+        wp_update_post($update);
+    }
+
+    $tags = isset($ai_payload["tags"]) && is_array($ai_payload["tags"]) ? $ai_payload["tags"] : [];
+    $tags = array_values(array_filter(array_map("sanitize_text_field", $tags)));
+    if ($tags !== []) {
+        wp_set_post_tags($post_id, $tags, false);
+    }
+
+    $article_type = (string) ($ai_payload["article_type"] ?? "");
+    if ($article_type === "" || !in_array($article_type, ["blog_educational", "seo_article", "landing_sales"], true)) {
+        $article_type = (string) get_post_meta($post_id, "_upsellio_article_type", true);
+    }
+    if ($article_type === "" || !in_array($article_type, ["blog_educational", "seo_article", "landing_sales"], true)) {
+        $article_type = "seo_article";
+    }
+
+    upsellio_save_seo_meta_for_post(
+        $post_id,
+        (string) ($ai_payload["seo_title"] ?? ""),
+        (string) ($ai_payload["seo_description"] ?? ""),
+        (string) ($ai_payload["primary_query"] ?? ""),
+        (string) ($ai_payload["query_cluster"] ?? ""),
+        (string) ($ai_payload["user_questions"] ?? ""),
+        $article_type
+    );
+
+    $optional = [
+        "_upsellio_audience" => (string) ($ai_payload["audience"] ?? ""),
+        "_upsellio_search_intent" => (string) ($ai_payload["search_intent"] ?? ""),
+        "_upsellio_problem" => (string) ($ai_payload["problem"] ?? ""),
+        "_upsellio_outcome" => (string) ($ai_payload["outcome"] ?? ""),
+        "_upsellio_cta_text" => (string) ($ai_payload["cta_text"] ?? ""),
+    ];
+    foreach ($optional as $meta_key => $meta_val) {
+        $meta_val = is_string($meta_val) ? trim($meta_val) : "";
+        if ($meta_val !== "") {
+            update_post_meta($post_id, $meta_key, $meta_val);
+        }
+    }
 }
 
 function upsellio_save_seo_meta_for_post($post_id, $seo_title, $seo_description, $primary_query, $query_cluster, $user_questions, $article_type)
@@ -1837,23 +1297,12 @@ function upsellio_handle_blog_generator_submit()
         if ($ai_campaign_prompt !== "") {
             $ai_settings["campaign_prompt_template"] = $ai_campaign_prompt;
         }
-        $has_chatgpt = ((string) ($ai_settings["providers"]["chatgpt"]["api_key"] ?? "") !== "" && (string) ($ai_settings["providers"]["chatgpt"]["chat_model"] ?? "") !== "");
-        $has_claude = ((string) ($ai_settings["providers"]["claude"]["api_key"] ?? "") !== "" && (string) ($ai_settings["providers"]["claude"]["model"] ?? "") !== "");
-        if (!$has_chatgpt && !$has_claude) {
+        $crm_ready = function_exists("upsellio_anthropic_crm_api_key") && upsellio_anthropic_crm_api_key() !== "";
+        if (!$crm_ready) {
             wp_safe_redirect(add_query_arg("upsellio_tool_status", "ai_missing_config", menu_page_url("upsellio-seo-blog-tool", false)));
             exit;
         }
-        $topics_provider = upsellio_blog_tool_get_task_provider($ai_settings, "topics");
-        $blog_provider = upsellio_blog_tool_get_task_provider($ai_settings, "blog");
         $image_provider = upsellio_blog_tool_get_task_provider($ai_settings, "image");
-        if (($topics_provider === "claude" || $blog_provider === "claude") && !$has_claude) {
-            wp_safe_redirect(add_query_arg("upsellio_tool_status", "ai_missing_config", menu_page_url("upsellio-seo-blog-tool", false)));
-            exit;
-        }
-        if (($topics_provider === "chatgpt" || $blog_provider === "chatgpt") && !$has_chatgpt) {
-            wp_safe_redirect(add_query_arg("upsellio_tool_status", "ai_missing_config", menu_page_url("upsellio-seo-blog-tool", false)));
-            exit;
-        }
         if ($ai_generate_images && $image_provider === "chatgpt") {
             $has_chatgpt_image = ((string) ($ai_settings["providers"]["chatgpt"]["api_key"] ?? "") !== "" && (string) ($ai_settings["providers"]["chatgpt"]["image_model"] ?? "") !== "");
             if (!$has_chatgpt_image) {
@@ -2092,38 +1541,10 @@ function upsellio_render_blog_generator_screen()
     $categories = get_categories(["hide_empty" => false]);
     $status = isset($_GET["upsellio_tool_status"]) ? sanitize_text_field(wp_unslash($_GET["upsellio_tool_status"])) : "";
     $created_post_id = isset($_GET["post_id"]) ? (int) $_GET["post_id"] : 0;
-    $gsc_credentials = upsellio_blog_tool_get_gsc_credentials();
-    $gsc_sync_days = (int) get_option("upsellio_blog_tool_gsc_days", 30);
-    $gsc_sync_days = in_array($gsc_sync_days, [7, 14, 30, 60, 90], true) ? $gsc_sync_days : 30;
-    $gsc_properties = [];
-    $gsc_properties_error = "";
-    if ((string) ($gsc_credentials["refresh_token"] ?? "") !== "") {
-        $properties_result = upsellio_blog_tool_fetch_gsc_properties($gsc_credentials);
-        if (is_wp_error($properties_result)) {
-            $gsc_properties_error = $properties_result->get_error_message();
-        } else {
-            $gsc_properties = $properties_result;
-        }
-    }
-    $gsc_oauth_start_url = wp_nonce_url(
-        add_query_arg(
-            [
-                "page" => "upsellio-seo-blog-tool",
-                "upsellio_gsc_oauth_start" => 1,
-            ],
-            admin_url("edit.php")
-        ),
-        "upsellio_gsc_oauth_start",
-        "_upsellio_nonce"
-    );
-    $gsc_ajax_nonce = wp_create_nonce("upsellio_blog_gsc_insights");
     $ai_settings = upsellio_blog_tool_get_ai_settings();
     $created_count = isset($_GET["created_count"]) ? (int) $_GET["created_count"] : 0;
     $failed_count = isset($_GET["failed_count"]) ? (int) $_GET["failed_count"] : 0;
     $ai_error = isset($_GET["upsellio_ai_error"]) ? sanitize_text_field(rawurldecode((string) wp_unslash($_GET["upsellio_ai_error"]))) : "";
-    $gsc_cache_last_sync = (string) get_option("upsellio_blog_tool_gsc_cache_last_sync", "");
-    $gsc_cache_last_count = (int) get_option("upsellio_blog_tool_gsc_cache_last_count", 0);
-    $gsc_cache_last_error = (string) get_option("upsellio_blog_tool_gsc_cache_last_error", "");
     $existing_posts = get_posts([
         "post_type" => "post",
         "post_status" => "publish",
@@ -2386,20 +1807,8 @@ function upsellio_render_blog_generator_screen()
       <?php elseif ($status === "error") : ?>
         <div class="notice notice-error is-dismissible"><p>Wystąpił błąd podczas zapisu wpisu.</p></div>
       <?php endif; ?>
-      <?php if (isset($_GET["upsellio_gsc_saved"])) : ?>
-        <div class="notice notice-success is-dismissible"><p>Zapisano ustawienia Google Search Console dla SEO Blog Tool.</p></div>
-      <?php endif; ?>
       <?php if (isset($_GET["upsellio_ai_saved"])) : ?>
         <div class="notice notice-success is-dismissible"><p>Zapisano ustawienia połączenia z AI.</p></div>
-      <?php endif; ?>
-      <?php if (isset($_GET["upsellio_gsc_connected"])) : ?>
-        <div class="notice notice-success is-dismissible"><p>Połączenie OAuth z Google Search Console zostało zakończone sukcesem.</p></div>
-      <?php endif; ?>
-      <?php if (isset($_GET["upsellio_gsc_cache_synced"])) : ?>
-        <div class="notice notice-success is-dismissible"><p>Ręczny sync cache GSC zakończony. Zsynchronizowano URL-i: <?php echo esc_html((string) ((int) $_GET["upsellio_gsc_cache_synced"])); ?>.</p></div>
-      <?php endif; ?>
-      <?php if (isset($_GET["upsellio_gsc_error"])) : ?>
-        <div class="notice notice-error is-dismissible"><p>Błąd GSC: <?php echo esc_html(rawurldecode((string) $_GET["upsellio_gsc_error"])); ?></p></div>
       <?php endif; ?>
 
       <?php if ($is_quick_edit) : ?>
@@ -2412,112 +1821,12 @@ function upsellio_render_blog_generator_screen()
       <?php endif; ?>
 
       <div class="ups-tool-form" style="max-width:1280px;margin-top:14px;">
-        <h2 style="margin-top:0;">Google Search Console - live data dla wpisu</h2>
-        <p style="margin-top:0;">Połącz konto OAuth, wybierz property i pobieraj realne query per URL wpisu (intent, luki tematyczne, quick wins, cannibalization).</p>
-        <p style="margin-top:0;font-size:12px;color:#5f5f57;">
-          Auto sync cache (WP-Cron): co godzinę.
-          Prewarm wybiera URL-e selektywnie: największy potencjał (impressions + ruch + pozycje 8-20 + brak świeżego cache).
-          <?php if ($gsc_cache_last_sync !== "") : ?>
-            Ostatni sync: <?php echo esc_html($gsc_cache_last_sync); ?> (URL-i: <?php echo esc_html((string) $gsc_cache_last_count); ?>).
-          <?php endif; ?>
-          <?php if ($gsc_cache_last_error !== "") : ?>
-            Ostatni błąd: <?php echo esc_html($gsc_cache_last_error); ?>.
-          <?php endif; ?>
-        </p>
-        <form method="post" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-          <?php wp_nonce_field("upsellio_blog_gsc_settings_action", "upsellio_blog_gsc_settings_nonce"); ?>
-          <input type="hidden" name="upsellio_blog_gsc_settings_submit" value="1" />
-          <label class="ups-field">
-            <strong>Google OAuth Client ID</strong>
-            <input type="text" name="gsc_client_id" value="<?php echo esc_attr((string) ($gsc_credentials["client_id"] ?? "")); ?>" placeholder="xxxx.apps.googleusercontent.com" />
-          </label>
-          <label class="ups-field">
-            <strong>Google OAuth Client Secret</strong>
-            <input type="text" name="gsc_client_secret" value="<?php echo esc_attr((string) ($gsc_credentials["client_secret"] ?? "")); ?>" placeholder="GOCSPX-..." />
-          </label>
-          <label class="ups-field">
-            <strong>GSC Property</strong>
-            <select name="gsc_property">
-              <option value="">-- wybierz property --</option>
-              <?php foreach ($gsc_properties as $property_option) : ?>
-                <option value="<?php echo esc_attr($property_option); ?>" <?php selected((string) ($gsc_credentials["property"] ?? ""), $property_option); ?>>
-                  <?php echo esc_html($property_option); ?>
-                </option>
-              <?php endforeach; ?>
-              <?php if (empty($gsc_properties) && (string) ($gsc_credentials["property"] ?? "") !== "") : ?>
-                <option value="<?php echo esc_attr((string) $gsc_credentials["property"]); ?>" selected><?php echo esc_html((string) $gsc_credentials["property"]); ?></option>
-              <?php endif; ?>
-            </select>
-          </label>
-          <label class="ups-field">
-            <strong>Zakres danych GSC</strong>
-            <select name="gsc_sync_days">
-              <option value="7" <?php selected($gsc_sync_days, 7); ?>>7 dni</option>
-              <option value="14" <?php selected($gsc_sync_days, 14); ?>>14 dni</option>
-              <option value="30" <?php selected($gsc_sync_days, 30); ?>>30 dni</option>
-              <option value="60" <?php selected($gsc_sync_days, 60); ?>>60 dni</option>
-              <option value="90" <?php selected($gsc_sync_days, 90); ?>>90 dni</option>
-            </select>
-          </label>
-          <div style="display:flex;align-items:center;gap:10px;grid-column:1 / -1;">
-            <button type="submit" class="button">Zapisz ustawienia GSC</button>
-            <a href="<?php echo esc_url($gsc_oauth_start_url); ?>" class="button button-primary">Połącz OAuth z Google</a>
-            <span style="font-size:12px;color:#5f5f57;">Refresh token zapisuje się automatycznie po callbacku OAuth.</span>
-          </div>
-        </form>
-        <form method="post" style="margin-top:10px;">
-          <?php wp_nonce_field("upsellio_blog_gsc_run_sync_action", "upsellio_blog_gsc_run_sync_nonce"); ?>
-          <input type="hidden" name="upsellio_blog_gsc_run_sync_submit" value="1" />
-          <button type="submit" class="button">Uruchom sync cache teraz</button>
-        </form>
-        <?php if ($gsc_properties_error !== "") : ?>
-          <p style="margin:10px 0 0;color:#a12622;font-size:12px;">Nie udało się pobrać listy property: <?php echo esc_html($gsc_properties_error); ?></p>
-        <?php endif; ?>
-      </div>
-
-      <div class="ups-tool-form" style="max-width:1280px;margin-top:14px;">
-        <h2 style="margin-top:0;">Ustawienia AI (generator wpisów)</h2>
-        <p style="margin-top:0;">Skonfiguruj osobno ChatGPT i Claude oraz przypisz dostawcę do konkretnych zadań (tematy, pisanie bloga, obrazki).</p>
+        <h2 style="margin-top:0;">Integracja Claude (Upsellio CRM)</h2>
+        <p style="margin-top:0;font-size:13px;line-height:1.55">Tematy i treść wpisów w trybie <strong>AI</strong> korzystają z tego samego API co CRM: klucz <code>UPSELLIO_ANTHROPIC_API_KEY</code> lub opcja <code>ups_anthropic_api_key</code> (Ustawienia CRM → Ogólne). Prompty blogowe: <strong>CRM → Ustawienia → AI</strong> (<code>ups_ai_prompt_blog_post</code>, kontekst firmy). Obrazki hero nadal wymagają osobnego klucza OpenAI poniżej (opcjonalnie).</p>
         <form method="post" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
           <?php wp_nonce_field("upsellio_blog_ai_settings_action", "upsellio_blog_ai_settings_nonce"); ?>
           <input type="hidden" name="upsellio_blog_ai_settings_submit" value="1" />
-
-          <h3 style="grid-column:1 / -1; margin:0;">Task routing</h3>
-          <label class="ups-field">
-            <strong>Provider dla generowania tematów</strong>
-            <select name="ai_topics_provider">
-              <option value="chatgpt" <?php selected((string) ($ai_settings["tasks"]["topics_provider"] ?? "chatgpt"), "chatgpt"); ?>>ChatGPT</option>
-              <option value="claude" <?php selected((string) ($ai_settings["tasks"]["topics_provider"] ?? "chatgpt"), "claude"); ?>>Claude</option>
-            </select>
-          </label>
-          <label class="ups-field">
-            <strong>Provider dla pisania wpisu</strong>
-            <select name="ai_blog_provider">
-              <option value="chatgpt" <?php selected((string) ($ai_settings["tasks"]["blog_provider"] ?? "claude"), "chatgpt"); ?>>ChatGPT</option>
-              <option value="claude" <?php selected((string) ($ai_settings["tasks"]["blog_provider"] ?? "claude"), "claude"); ?>>Claude</option>
-            </select>
-          </label>
-          <label class="ups-field">
-            <strong>Provider dla obrazków</strong>
-            <select name="ai_image_provider">
-              <option value="chatgpt" <?php selected((string) ($ai_settings["tasks"]["image_provider"] ?? "chatgpt"), "chatgpt"); ?>>ChatGPT</option>
-              <option value="claude" <?php selected((string) ($ai_settings["tasks"]["image_provider"] ?? "chatgpt"), "claude"); ?>>Claude</option>
-            </select>
-          </label>
-
-          <h3 style="grid-column:1 / -1; margin:8px 0 0;">ChatGPT (OpenAI)</h3>
-          <label class="ups-field">
-            <strong>Chat endpoint</strong>
-            <input type="url" name="ai_chatgpt_chat_endpoint" value="<?php echo esc_attr((string) ($ai_settings["providers"]["chatgpt"]["chat_endpoint"] ?? "")); ?>" placeholder="https://api.openai.com/v1/chat/completions" />
-          </label>
-          <label class="ups-field">
-            <strong>Chat model</strong>
-            <input type="text" name="ai_chatgpt_chat_model" value="<?php echo esc_attr((string) ($ai_settings["providers"]["chatgpt"]["chat_model"] ?? "")); ?>" placeholder="gpt-4.1-mini" />
-          </label>
-          <label class="ups-field">
-            <strong>API key (OpenAI)</strong>
-            <input type="password" name="ai_chatgpt_api_key" value="<?php echo esc_attr((string) ($ai_settings["providers"]["chatgpt"]["api_key"] ?? "")); ?>" autocomplete="off" />
-          </label>
+          <h3 style="grid-column:1 / -1; margin:0;">OpenAI — tylko obrazki (opcjonalnie)</h3>
           <label class="ups-field">
             <strong>Image endpoint</strong>
             <input type="url" name="ai_chatgpt_image_endpoint" value="<?php echo esc_attr((string) ($ai_settings["providers"]["chatgpt"]["image_endpoint"] ?? "")); ?>" placeholder="https://api.openai.com/v1/images/generations" />
@@ -2526,22 +1835,19 @@ function upsellio_render_blog_generator_screen()
             <strong>Image model</strong>
             <input type="text" name="ai_chatgpt_image_model" value="<?php echo esc_attr((string) ($ai_settings["providers"]["chatgpt"]["image_model"] ?? "")); ?>" placeholder="gpt-image-1" />
           </label>
-
-          <h3 style="grid-column:1 / -1; margin:8px 0 0;">Claude (Anthropic)</h3>
-          <label class="ups-field">
-            <strong>Claude endpoint</strong>
-            <input type="url" name="ai_claude_endpoint" value="<?php echo esc_attr((string) ($ai_settings["providers"]["claude"]["endpoint"] ?? "")); ?>" placeholder="https://api.anthropic.com/v1/messages" />
+          <label class="ups-field" style="grid-column:1 / -1;">
+            <strong>API key (OpenAI) — do generacji obrazków</strong>
+            <input type="password" name="ai_chatgpt_api_key" value="<?php echo esc_attr((string) ($ai_settings["providers"]["chatgpt"]["api_key"] ?? "")); ?>" autocomplete="off" />
           </label>
-          <label class="ups-field">
-            <strong>Claude model</strong>
-            <input type="text" name="ai_claude_model" value="<?php echo esc_attr((string) ($ai_settings["providers"]["claude"]["model"] ?? "")); ?>" placeholder="claude-3-7-sonnet-latest" />
+          <label class="ups-field" style="grid-column:1 / -1;">
+            <strong>Domyślny prompt kampanii (generator SEO Tool)</strong>
+            <textarea name="ai_campaign_prompt_template" rows="4"><?php echo esc_textarea((string) ($ai_settings["campaign_prompt_template"] ?? "")); ?></textarea>
           </label>
-          <label class="ups-field">
-            <strong>API key (Claude)</strong>
-            <input type="password" name="ai_claude_api_key" value="<?php echo esc_attr((string) ($ai_settings["providers"]["claude"]["api_key"] ?? "")); ?>" autocomplete="off" />
+          <label class="ups-field" style="grid-column:1 / -1;">
+            <strong>System prompt (tematy + rozbudowany JSON wpisu w tym narzędziu)</strong>
+            <textarea name="ai_system_prompt" rows="4"><?php echo esc_textarea((string) ($ai_settings["system_prompt"] ?? "")); ?></textarea>
           </label>
-
-          <div class="ups-form-grid-2">
+          <div class="ups-form-grid-2" style="grid-column:1 / -1;">
             <label class="ups-field">
               <strong>Temperature</strong>
               <input type="number" step="0.1" min="0" max="1.2" name="ai_temperature" value="<?php echo esc_attr((string) ($ai_settings["temperature"] ?? 0.7)); ?>" />
@@ -2551,17 +1857,16 @@ function upsellio_render_blog_generator_screen()
               <input type="number" min="800" max="12000" name="ai_max_tokens" value="<?php echo esc_attr((string) ((int) ($ai_settings["max_tokens"] ?? 3500))); ?>" />
             </label>
           </div>
-          <label class="ups-field" style="grid-column:1 / -1;">
-            <strong>System prompt</strong>
-            <textarea name="ai_system_prompt" rows="4"><?php echo esc_textarea((string) ($ai_settings["system_prompt"] ?? "")); ?></textarea>
-          </label>
-          <label class="ups-field" style="grid-column:1 / -1;">
-            <strong>Domyślny prompt kampanii (globalny)</strong>
-            <textarea name="ai_campaign_prompt_template" rows="4"><?php echo esc_textarea((string) ($ai_settings["campaign_prompt_template"] ?? "")); ?></textarea>
-          </label>
+          <input type="hidden" name="ai_topics_provider" value="chatgpt" />
+          <input type="hidden" name="ai_blog_provider" value="claude" />
+          <input type="hidden" name="ai_image_provider" value="chatgpt" />
+          <input type="hidden" name="ai_chatgpt_chat_endpoint" value="<?php echo esc_attr((string) ($ai_settings["providers"]["chatgpt"]["chat_endpoint"] ?? "")); ?>" />
+          <input type="hidden" name="ai_chatgpt_chat_model" value="<?php echo esc_attr((string) ($ai_settings["providers"]["chatgpt"]["chat_model"] ?? "")); ?>" />
+          <input type="hidden" name="ai_claude_endpoint" value="<?php echo esc_attr((string) ($ai_settings["providers"]["claude"]["endpoint"] ?? "")); ?>" />
+          <input type="hidden" name="ai_claude_model" value="<?php echo esc_attr((string) ($ai_settings["providers"]["claude"]["model"] ?? "")); ?>" />
+          <input type="hidden" name="ai_claude_api_key" value="<?php echo esc_attr((string) ($ai_settings["providers"]["claude"]["api_key"] ?? "")); ?>" />
           <div style="display:flex;align-items:center;gap:10px;grid-column:1 / -1;">
-            <button type="submit" class="button">Zapisz ustawienia AI</button>
-            <span style="font-size:12px;color:#5f5f57;">Klucz API jest używany wyłącznie po stronie serwera (wp_remote_post).</span>
+            <button type="submit" class="button">Zapisz ustawienia</button>
           </div>
         </form>
       </div>
@@ -2677,24 +1982,6 @@ function upsellio_render_blog_generator_screen()
               <strong>Pytania użytkowników (po 1 w linii)</strong>
               <textarea name="user_questions" data-seo-field="user_questions" rows="4" placeholder="Jak...?&#10;Ile trwa...?&#10;Co wybrać...?"><?php echo esc_textarea($prefill_values["user_questions"]); ?></textarea>
             </label>
-          </div>
-
-          <div style="margin-top:12px;padding:10px;border:1px solid #e6e6e2;border-radius:10px;background:#fafaf8;">
-            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-              <label class="ups-field" style="margin:0;max-width:220px;">
-                <strong>Zakres GSC dla autofill</strong>
-                <select class="js-ups-gsc-days">
-                  <option value="7" <?php selected($gsc_sync_days, 7); ?>>7 dni</option>
-                  <option value="14" <?php selected($gsc_sync_days, 14); ?>>14 dni</option>
-                  <option value="30" <?php selected($gsc_sync_days, 30); ?>>30 dni</option>
-                  <option value="60" <?php selected($gsc_sync_days, 60); ?>>60 dni</option>
-                  <option value="90" <?php selected($gsc_sync_days, 90); ?>>90 dni</option>
-                </select>
-              </label>
-              <button type="button" class="button button-secondary js-ups-gsc-autofill">Pobierz z GSC i auto-uzupełnij pola</button>
-              <button type="button" class="button js-ups-gsc-autofill-refresh">Wymuś live refresh</button>
-              <span class="js-ups-gsc-feedback" style="font-size:12px;color:#4f4f48;"></span>
-            </div>
           </div>
 
           <div class="ups-form-grid-2" style="margin-top:14px;">
@@ -2882,12 +2169,6 @@ function upsellio_render_blog_generator_screen()
           if (!form) return;
 
           const existingPosts = <?php echo wp_json_encode($existing_posts_data); ?> || [];
-          const gscAjaxConfig = {
-            nonce: <?php echo wp_json_encode($gsc_ajax_nonce); ?>,
-            defaultDays: <?php echo (int) $gsc_sync_days; ?>,
-            homeUrl: <?php echo wp_json_encode(home_url("/")); ?>,
-            editedPostUrl: <?php echo wp_json_encode($is_quick_edit ? get_permalink($quick_edit_post_id) : ""); ?>
-          };
 
           const ring = document.querySelector(".js-ups-score-ring");
           const scoreValue = document.querySelector(".js-ups-score-value");
@@ -2917,10 +2198,6 @@ function upsellio_render_blog_generator_screen()
           const contentFill = document.querySelector(".js-score-fill-content");
           const conversionFill = document.querySelector(".js-score-fill-conversion");
           const fixButtons = Array.from(document.querySelectorAll(".js-fix-btn"));
-          const gscAutofillButton = document.querySelector(".js-ups-gsc-autofill");
-          const gscAutofillRefreshButton = document.querySelector(".js-ups-gsc-autofill-refresh");
-          const gscDaysSelect = document.querySelector(".js-ups-gsc-days");
-          const gscFeedback = document.querySelector(".js-ups-gsc-feedback");
 
           const fields = {
             post_title: form.querySelector('[name="post_title"]'),
@@ -2960,7 +2237,6 @@ function upsellio_render_blog_generator_screen()
           let actionQueue = [];
           let actionQueueIndex = 0;
           let actionQueueSignature = "";
-          let gscInsights = null;
 
           function textValue(key) {
             return (fields[key]?.value || "").trim();
@@ -3018,64 +2294,6 @@ function upsellio_render_blog_generator_screen()
               .split(/[\n,;]+/)
               .map((item) => item.trim())
               .filter(Boolean);
-          }
-
-          function inferTargetUrl() {
-            if (gscAjaxConfig.editedPostUrl) return gscAjaxConfig.editedPostUrl;
-            const slugBase = textValue("primary_query") || textValue("post_title");
-            if (!slugBase) return gscAjaxConfig.homeUrl;
-            const slug = plainText(slugBase).trim().replace(/\s+/g, "-");
-            if (!slug) return gscAjaxConfig.homeUrl;
-            const base = (gscAjaxConfig.homeUrl || "").replace(/\/+$/, "");
-            return `${base}/${slug}/`;
-          }
-
-          async function fetchGscInsightsAndAutofill(forceRefresh = false) {
-            if (!gscAutofillButton) return;
-            const targetUrl = inferTargetUrl();
-            const days = Number(gscDaysSelect?.value || gscAjaxConfig.defaultDays || 30);
-            gscAutofillButton.disabled = true;
-            if (gscFeedback) gscFeedback.textContent = "Pobieram dane z Google Search Console...";
-
-            try {
-              const payload = new URLSearchParams();
-              payload.append("action", "upsellio_blog_gsc_insights");
-              payload.append("nonce", gscAjaxConfig.nonce);
-              payload.append("page_url", targetUrl);
-              payload.append("days", String(days));
-              payload.append("force_refresh", forceRefresh ? "1" : "0");
-              const response = await fetch(window.ajaxurl, {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
-                body: payload.toString()
-              });
-              const data = await response.json();
-              if (!data || !data.success) {
-                const message = data?.data?.message || "Nie udało się pobrać danych GSC.";
-                throw new Error(message);
-              }
-
-              const insights = data.data || {};
-              gscInsights = insights;
-              if (fields.primary_query && insights.primaryQuery) fields.primary_query.value = insights.primaryQuery;
-              if (fields.query_cluster && Array.isArray(insights.queryCluster)) fields.query_cluster.value = insights.queryCluster.join("\n");
-              if (fields.user_questions && Array.isArray(insights.userQuestions)) fields.user_questions.value = insights.userQuestions.join("\n");
-              if (fields.competitive_notes && Array.isArray(insights.topicalGaps) && insights.topicalGaps.length) {
-                const sections = insights.topicalGaps.slice(0, 6).map((row) => `${row.query} | imp: ${row.impressions} | ctr: ${row.ctr}% | pos: ${row.position}`);
-                fields.competitive_notes.value = sections.join("\n");
-              }
-
-              if (gscFeedback) {
-                const topCount = Array.isArray(insights.topQueries) ? insights.topQueries.length : 0;
-                const cacheLabel = insights.cacheStatus === "hit" ? "cache hit" : "live fetch";
-                gscFeedback.textContent = `Gotowe: pobrano ${topCount} zapytań dla URL i uzupełniono pola (${cacheLabel}).`;
-              }
-              render();
-            } catch (error) {
-              if (gscFeedback) gscFeedback.textContent = `Błąd GSC: ${error.message || "nieznany błąd"}`;
-            } finally {
-              gscAutofillButton.disabled = false;
-            }
           }
 
           function getSemanticTargets(primaryQuery, queryCluster, userQuestions, intent) {
@@ -3211,9 +2429,6 @@ function upsellio_render_blog_generator_screen()
             if (score < 22) {
               addSuggestion(checks, "<strong>Intent:</strong> rozwiń treść pod deklarowaną intencję wyszukiwania.", "content_template");
             }
-            if (factQueries.length && factCoverage < 0.5) {
-              addSuggestion(checks, "<strong>Intent (GSC):</strong> treść słabo pokrywa realne zapytania, na które już się wyświetlasz.", "content_template");
-            }
             return { score, checks, targetTokens };
           }
 
@@ -3307,19 +2522,16 @@ function upsellio_render_blog_generator_screen()
             return { score, checks };
           }
 
-          function scoreOpportunity(gscData) {
+          function scoreOpportunity(competitiveNotes) {
             const checks = [];
-            if (!gscData || typeof gscData !== "object") {
-              addSuggestion(checks, "<strong>Opportunity:</strong> pobierz live zapytania z GSC, aby wyznaczyć quick wins.", "primary_query");
+            const notes = parseMultiValueList(competitiveNotes);
+            if (!notes.length) {
+              addSuggestion(checks, "<strong>Opportunity:</strong> uzupełnij benchmark TOP10, aby wskazać luki tematyczne.", "competitive_notes");
               return { score: 0, checks };
             }
-            const score = Math.max(0, Math.min(metricRanges.opportunityScore, Number(gscData.opportunityScore || 0)));
-            const quickWins = Array.isArray(gscData.quickWins) ? gscData.quickWins : [];
-            if (!quickWins.length) {
-              addSuggestion(checks, "<strong>Opportunity:</strong> brak quick wins (pozycje 8-20). Szukaj nowych subtopiców.", "query_cluster");
-            } else {
-              const top = quickWins[0];
-              addSuggestion(checks, `<strong>Quick win:</strong> dodaj sekcję pod zapytanie "${top.query}" (poz. ${top.position}, ${top.impressions} imp).`, "content_template");
+            const score = Math.min(metricRanges.opportunityScore, Math.min(15, notes.length * 3));
+            if (score < 10) {
+              addSuggestion(checks, "<strong>Opportunity:</strong> porównaj treść z notatkami konkurencji i dodaj brakujące podtematy.", "competitive_notes");
             }
             return { score, checks };
           }
@@ -3575,29 +2787,22 @@ function upsellio_render_blog_generator_screen()
             if (cta.length >= 12) conversionScore += 5;
             else addSuggestion(suggestions, "<strong>CTA:</strong> użyj bardziej konkretnego wezwania do działania.", "cta_text");
 
-            const gscTopQueries = Array.isArray(gscInsights?.topQueries) ? gscInsights.topQueries : [];
-            const intentResult = scoreIntentMatch(content, primaryQuery, queryCluster, userQuestions, textValue("search_intent"), gscTopQueries);
+            const intentResult = scoreIntentMatch(content, primaryQuery, queryCluster, userQuestions, textValue("search_intent"), []);
             const semanticResult = scoreSemanticCoverage(content, intentResult.targetTokens, userQuestions);
             const topicalResult = scoreTopicalCoverage(content, queryCluster, userQuestions);
             const competitiveResult = scoreCompetitiveFit(content, competitiveNotes);
-            const opportunityResult = scoreOpportunity(gscInsights);
+            const opportunityResult = scoreOpportunity(competitiveNotes);
             const linksResult = scoreInternalLinks(content);
             const snippetResult = scoreSnippetStrength(title, seoTitle, seoDescription, primaryQuery);
             const readabilityResult = scoreReadability(content);
             const trustResult = scoreTrustSignals(content);
             const conversionReadinessResult = scoreConversionReadiness(content, cta, problem, outcome, articleType);
             const cannibalization = detectCannibalization(title, primaryQuery);
-            const gscCannibalization = Array.isArray(gscInsights?.cannibalization) ? gscInsights.cannibalization : [];
-            const gscTopicalGaps = Array.isArray(gscInsights?.topicalGaps) ? gscInsights.topicalGaps : [];
 
             suggestions.push(...intentResult.checks, ...semanticResult.checks, ...topicalResult.checks, ...competitiveResult.checks, ...opportunityResult.checks, ...linksResult.checks, ...snippetResult.checks, ...readabilityResult.checks, ...trustResult.checks, ...conversionReadinessResult.checks);
 
             if (cannibalization.length) {
               addSuggestion(suggestions, "<strong>Kanibalizacja:</strong> podobne wpisy już istnieją. Rozważ linkowanie zamiast duplikacji tematu.", "post_title");
-            }
-            if (gscTopicalGaps.length) {
-              const gapQueries = gscTopicalGaps.slice(0, 3).map((row) => row.query).join(", ");
-              addSuggestion(suggestions, "<strong>Topical gaps (GSC):</strong> dodaj sekcje pod zapytania: " + gapQueries + ".", "content_template");
             }
 
             seoScore = Math.min(30, seoScore);
@@ -3661,13 +2866,6 @@ function upsellio_render_blog_generator_screen()
                   .map((item) => `${item.post.title} (${Math.round(item.similarity * 100)}%)`)
                   .join(", ");
                 canonList.unshift({ html: `<strong>Kanibalizacja:</strong> podobne tematy: ${cannibalHtml}.`, targetField: "post_title", label: "zweryfikuj temat wpisu" });
-              }
-              if (gscCannibalization.length) {
-                const gscCannibalHtml = gscCannibalization
-                  .slice(0, 2)
-                  .map((item) => `${item.query} (${(item.otherPages || []).length} URL)`)
-                  .join(", ");
-                canonList.unshift({ html: `<strong>Kanibalizacja (GSC):</strong> zapytania rankują na wielu URL: ${gscCannibalHtml}.`, targetField: "post_title", label: "połącz kanibalizujące treści" });
               }
               const actionableQueue = canonList.filter((item) => item.targetField);
               setActionQueue(actionableQueue);
@@ -3738,13 +2936,6 @@ function upsellio_render_blog_generator_screen()
               }
               renderNextAction();
             });
-          }
-
-          if (gscAutofillButton) {
-            gscAutofillButton.addEventListener("click", () => fetchGscInsightsAndAutofill(false));
-          }
-          if (gscAutofillRefreshButton) {
-            gscAutofillRefreshButton.addEventListener("click", () => fetchGscInsightsAndAutofill(true));
           }
 
           form.addEventListener("input", render);
