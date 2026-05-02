@@ -1206,6 +1206,8 @@ require_once get_template_directory() . "/inc/offers.php";
 require_once get_template_directory() . "/inc/inbox.php";
 require_once get_template_directory() . "/inc/followups.php";
 require_once get_template_directory() . "/inc/anthropic-crm-leads-inbox.php";
+require_once get_template_directory() . "/inc/anthropic-offer-ai.php";
+require_once get_template_directory() . "/inc/ai-master-snapshot.php";
 require_once get_template_directory() . "/inc/post-editor-seo-claude.php";
 // Blog Bot (WP-Cron, drafty wpisów) — korzysta z upsellio_anthropic_crm_send_user_prompt() z pliku powyżej.
 require_once get_template_directory() . "/inc/anthropic-blog-bot.php";
