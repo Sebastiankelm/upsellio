@@ -494,6 +494,9 @@ function upsellio_contract_track_event_ajax()
     if ($contract_id <= 0) {
         wp_send_json_error(["message" => "not_found"], 404);
     }
+    if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
+        wp_send_json_success(["ok" => true, "skipped_internal" => true]);
+    }
     $rows = get_post_meta($contract_id, "_ups_contract_track_events", true);
     if (!is_array($rows)) {
         $rows = [];

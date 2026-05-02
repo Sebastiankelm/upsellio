@@ -85,6 +85,7 @@ function upsellio_contract_render_public_landing(WP_Post $contract)
 
     $gtm = function_exists("upsellio_get_site_gtm_container_id") ? (string) upsellio_get_site_gtm_container_id() : "";
     $ajax_url = admin_url("admin-ajax.php");
+    $upsellio_contract_track_public = !function_exists("upsellio_should_load_public_tracking_tags") || upsellio_should_load_public_tracking_tags();
     $contract_title = (string) $contract->post_title;
 
     if ($status === "draft") {
@@ -109,7 +110,7 @@ function upsellio_contract_render_public_landing(WP_Post $contract)
 <meta name="robots" content="noindex,nofollow"/>
 <title><?php echo esc_html($contract_title); ?> — Upsellio</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&amp;family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet"/>
-<?php if ($gtm !== "") : ?>
+<?php if ($gtm !== "" && $upsellio_contract_track_public) : ?>
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','<?php echo esc_js($gtm); ?>');</script>
 <?php endif; ?>
 <script>
@@ -121,7 +122,9 @@ window.UPS={
   offer_id:'<?php echo esc_js((string) $offer_id); ?>',
   person_id:'<?php echo esc_js($person_id); ?>'
 };
+<?php if ($upsellio_contract_track_public) : ?>
 dataLayer.push({event:'contract_view',contract_id:UPS.contract_id,contract_title:UPS.contract_title,person_id:UPS.person_id,offer_id:UPS.offer_id});
+<?php endif; ?>
 </script>
 <style>
 :root{
@@ -273,7 +276,7 @@ a{text-decoration:none;color:inherit}
 </style>
 </head>
 <body>
-<?php if ($gtm !== "") : ?>
+<?php if ($gtm !== "" && $upsellio_contract_track_public) : ?>
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=<?php echo esc_attr($gtm); ?>" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <?php endif; ?>
 <div id="bar"></div>
@@ -524,6 +527,7 @@ a{text-decoration:none;color:inherit}
 (function(){
 var ajaxUrl=<?php echo wp_json_encode($ajax_url); ?>;
 var token=<?php echo wp_json_encode($token); ?>;
+var __upsTrackPublic=<?php echo $upsellio_contract_track_public ? "true" : "false"; ?>;
 window.addEventListener('scroll',function(){
   var h=document.documentElement.scrollHeight-document.documentElement.clientHeight;
   document.getElementById('bar').style.width=(h>0?Math.min(window.scrollY/h*100,100):0)+'%';
@@ -602,6 +606,7 @@ var sigEl=document.getElementById('sec-podpisy');
 if(sigEl)sigObs.observe(sigEl);
 
 function ping(ev,ex){
+  if(!__upsTrackPublic)return;
   var body=new URLSearchParams();
   body.append('action','upsellio_contract_track_event');
   body.append('contract_token',token);
@@ -610,6 +615,7 @@ function ping(ev,ex){
   fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString(),credentials:'same-origin',keepalive:true}).catch(function(){});
 }
 function pushDl(ev,ex){
+  if(!__upsTrackPublic)return;
   window.dataLayer=window.dataLayer||[];
   dataLayer.push(Object.assign({event:ev,contract_id:UPS.contract_id,person_id:UPS.person_id},ex||{}));
 }
