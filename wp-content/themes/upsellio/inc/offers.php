@@ -18,6 +18,7 @@ function upsellio_register_offers_post_types()
         ],
         "public" => false,
         "show_ui" => true,
+        "show_in_menu" => false,
         "menu_icon" => "dashicons-businessperson",
         "supports" => ["title"],
     ]);
@@ -32,6 +33,7 @@ function upsellio_register_offers_post_types()
         ],
         "public" => false,
         "show_ui" => true,
+        "show_in_menu" => false,
         "menu_icon" => "dashicons-media-spreadsheet",
         "supports" => ["title", "editor"],
     ]);
@@ -248,7 +250,163 @@ function upsellio_offer_send_email($offer_id)
     if (function_exists("upsellio_offer_add_timeline_event")) {
         upsellio_offer_add_timeline_event($offer_id, $sent ? "offer_email_sent" : "offer_email_failed", "Mail z oferta: " . ($sent ? "wyslany" : "blad"));
     }
+    if ($sent) {
+        upsellio_offer_run_post_email_sent_automation($offer_id);
+    }
     return $sent;
+}
+
+/**
+ * Automatyka po skutecznym wysłaniu maila z ofertą (szablon „Wyślij ofertę mailem”).
+ * Status „wysłana”, data pierwszej wysyłki, follow-upy (szablony + wbudowane 2/5/10 dni).
+ */
+function upsellio_offer_run_post_email_sent_automation($offer_id)
+{
+    $offer_id = (int) $offer_id;
+    if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
+        return;
+    }
+    $prev = (string) get_post_meta($offer_id, "_ups_offer_status", true);
+    $prev_norm = $prev !== "" ? $prev : "open";
+    if ($prev_norm === "won" || $prev_norm === "lost") {
+        return;
+    }
+    $now = current_time("mysql");
+    if ((string) get_post_meta($offer_id, "_ups_offer_first_sent_at", true) === "") {
+        update_post_meta($offer_id, "_ups_offer_first_sent_at", $now);
+    }
+    if ($prev_norm === "open") {
+        update_post_meta($offer_id, "_ups_offer_status", "sent");
+        update_post_meta($offer_id, "_ups_offer_stage", "consideration");
+        do_action("upsellio_offer_status_changed", $offer_id, "sent", "open");
+        upsellio_offer_add_timeline_event($offer_id, "offer_marked_sent", "Status deala: oferta wysłana do klienta.");
+    } else {
+        upsellio_offer_add_timeline_event($offer_id, "offer_resent", "Ponowna wysyłka maila z ofertą.");
+    }
+    if (function_exists("upsellio_followup_handle_offer_event")) {
+        upsellio_followup_handle_offer_event($offer_id, "offer_email_sent", [], "awareness");
+    }
+    upsellio_offer_queue_builtin_sent_reminders($offer_id);
+}
+
+/**
+ * Kolejka domyślnych przypomnień mailowych po pierwszym „sent” (wyłączalne opcją).
+ */
+function upsellio_offer_queue_builtin_sent_reminders($offer_id)
+{
+    $offer_id = (int) $offer_id;
+    if ($offer_id <= 0 || (string) get_option("ups_offer_builtin_sent_reminders", "1") !== "1") {
+        return;
+    }
+    if ((string) get_post_meta($offer_id, "_ups_offer_builtin_reminders_scheduled", true) === "1") {
+        return;
+    }
+    $defs = [
+        ["kind" => "day2", "delay_minutes" => 2 * 24 * 60],
+        ["kind" => "day5", "delay_minutes" => 5 * 24 * 60],
+        ["kind" => "day10", "delay_minutes" => 10 * 24 * 60],
+    ];
+    $queue = get_post_meta($offer_id, "_ups_offer_followup_queue", true);
+    if (!is_array($queue)) {
+        $queue = [];
+    }
+    foreach ($defs as $def) {
+        $kind = sanitize_key((string) ($def["kind"] ?? ""));
+        $delay = max(0, (int) ($def["delay_minutes"] ?? 0));
+        $signature = "builtin_sent:" . $kind;
+        $dup = false;
+        foreach ($queue as $ex) {
+            if ((string) ($ex["signature"] ?? "") === $signature && (string) ($ex["status"] ?? "") !== "sent") {
+                $dup = true;
+                break;
+            }
+        }
+        if ($dup) {
+            continue;
+        }
+        $queue[] = [
+            "template_id" => 0,
+            "builtin_reminder" => $kind,
+            "stage" => "awareness",
+            "signature" => $signature,
+            "status" => "queued",
+            "created_at" => current_time("mysql"),
+            "send_at" => gmdate("Y-m-d H:i:s", time() + $delay * MINUTE_IN_SECONDS),
+        ];
+    }
+    update_post_meta($offer_id, "_ups_offer_followup_queue", $queue);
+    update_post_meta($offer_id, "_ups_offer_builtin_reminders_scheduled", "1");
+    upsellio_offer_add_timeline_event($offer_id, "builtin_followups_queued", "Zaplanowano przypomnienia po wysłaniu oferty (2/5/10 dni).");
+}
+
+function upsellio_offer_builtin_reminder_parts($offer_id, $kind)
+{
+    $offer_id = (int) $offer_id;
+    $offer_title = $offer_id > 0 ? (string) get_the_title($offer_id) : "Oferta";
+    $url = function_exists("upsellio_offer_get_public_url") ? (string) upsellio_offer_get_public_url($offer_id) : "";
+    $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
+    $first = $client_id > 0 ? (string) get_the_title($client_id) : "{{client_name}}";
+    $kind = sanitize_key((string) $kind);
+    $lines = [
+        "day2" => [
+            "subject" => "Przypomnienie: " . $offer_title,
+            "html" => "<p>Cześć " . esc_html($first) . ",</p><p>Wracam z krótkim przypomnieniem — udało się zapoznać z naszą propozycją? Jeśli masz pytania, odpowiedz na tego maila.</p>"
+                . ($url !== "" ? "<p><a href=\"" . esc_url($url) . "\">Link do oferty online</a></p>" : ""),
+        ],
+        "day5" => [
+            "subject" => "Oferta: " . $offer_title . " — kontakt",
+            "html" => "<p>Cześć " . esc_html($first) . ",</p><p>Chciałbym domknąć temat oferty — daj znać, czy jesteś na „tak”, „nie”, czy potrzebujesz jeszcze doprecyzowań.</p>"
+                . ($url !== "" ? "<p><a href=\"" . esc_url($url) . "\">Podgląd oferty</a></p>" : ""),
+        ],
+        "day10" => [
+            "subject" => "Zamykam temat oferty — " . $offer_title,
+            "html" => "<p>Cześć " . esc_html($first) . ",</p><p>Jeśli teraz nie jest dobry moment — bez problemu. Ostatnia wiadomość w tej rundzie; jak wrócisz do tematu, napisz śmiało.</p>"
+                . ($url !== "" ? "<p><a href=\"" . esc_url($url) . "\">Link do oferty</a></p>" : ""),
+        ],
+    ];
+    if (!isset($lines[$kind])) {
+        $kind = "day2";
+    }
+
+    return [
+        "subject" => $lines[$kind]["subject"],
+        "html" => $lines[$kind]["html"],
+    ];
+}
+
+function upsellio_offer_send_builtin_reminder_email($offer_id, $kind, $stage)
+{
+    $offer_id = (int) $offer_id;
+    $kind = sanitize_key((string) $kind);
+    if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
+        return false;
+    }
+    $status = (string) get_post_meta($offer_id, "_ups_offer_status", true);
+    if ($status === "won" || $status === "lost") {
+        return false;
+    }
+    $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
+    $client_email = $client_id > 0 ? sanitize_email((string) get_post_meta($client_id, "_ups_client_email", true)) : "";
+    if (!is_email($client_email)) {
+        return false;
+    }
+    $parts = upsellio_offer_builtin_reminder_parts($offer_id, $kind);
+    $subject_tpl = (string) ($parts["subject"] ?? "");
+    $html_fragment = (string) ($parts["html"] ?? "");
+    if (function_exists("upsellio_followup_resolve_placeholders")) {
+        $subject_tpl = upsellio_followup_resolve_placeholders($subject_tpl, $offer_id, sanitize_key((string) $stage));
+        $html_fragment = upsellio_followup_resolve_placeholders($html_fragment, $offer_id, sanitize_key((string) $stage));
+    }
+    $subject = sanitize_text_field($subject_tpl);
+    if (strpos($subject, "[OFFER#") === false) {
+        $subject .= " [OFFER#" . $offer_id . "]";
+    }
+    $css = "body{font-family:Arial,sans-serif;color:#0f172a}a{color:#0ea5e9}";
+    $html = "<html><head><meta charset='utf-8'><style>" . $css . "</style></head><body>" . wp_kses_post($html_fragment) . "</body></html>";
+
+    return function_exists("upsellio_followup_send_html_mail")
+        ? (bool) upsellio_followup_send_html_mail($client_email, $subject, $html, ["crm_smtp" => true])
+        : false;
 }
 
 function upsellio_offer_get_expires_at($offer_id)
@@ -603,7 +761,7 @@ function upsellio_render_offer_meta_box($post)
     <p>
       <label><strong>Status oferty</strong></label><br />
       <select class="widefat" name="ups_offer_status">
-        <?php foreach (["open" => "Open", "won" => "Won", "lost" => "Lost"] as $status_key => $status_label) : ?>
+        <?php foreach (["open" => "Szkic / przygotowanie", "sent" => "Wysłana", "won" => "Won", "lost" => "Lost"] as $status_key => $status_label) : ?>
           <option value="<?php echo esc_attr($status_key); ?>" <?php selected($offer_status, $status_key); ?>><?php echo esc_html($status_label); ?></option>
         <?php endforeach; ?>
       </select>
@@ -637,6 +795,12 @@ function upsellio_render_offer_meta_box($post)
         <input type="checkbox" name="ups_offer_send_email_now" value="1" />
         <span>Wyslij te oferte mailem do klienta po zapisaniu</span>
       </label>
+      <?php
+        $first_sent_at = (string) get_post_meta($post_id, "_ups_offer_first_sent_at", true);
+      ?>
+      <?php if ($first_sent_at !== "") : ?>
+        <small>Pierwsza wysyłka do klienta: <?php echo esc_html($first_sent_at); ?></small><br />
+      <?php endif; ?>
       <?php if ($last_email_sent !== "") : ?>
         <small>Ostatnia wysylka: <?php echo esc_html($last_email_sent); ?> (<?php echo esc_html($last_email_status !== "" ? $last_email_status : "unknown"); ?>)</small>
       <?php endif; ?>
@@ -693,6 +857,9 @@ function upsellio_save_offer_meta_box($post_id)
     update_post_meta((int) $post_id, "_ups_offer_timeline", isset($_POST["ups_offer_timeline"]) ? sanitize_text_field(wp_unslash($_POST["ups_offer_timeline"])) : "");
     update_post_meta((int) $post_id, "_ups_offer_cta_text", isset($_POST["ups_offer_cta_text"]) ? sanitize_text_field(wp_unslash($_POST["ups_offer_cta_text"])) : "");
     $new_status = isset($_POST["ups_offer_status"]) ? sanitize_key(wp_unslash($_POST["ups_offer_status"])) : "open";
+    if (!in_array($new_status, ["open", "sent", "won", "lost"], true)) {
+        $new_status = "open";
+    }
     update_post_meta((int) $post_id, "_ups_offer_status", $new_status);
     update_post_meta((int) $post_id, "_ups_offer_won_value", isset($_POST["ups_offer_won_value"]) ? (float) wp_unslash($_POST["ups_offer_won_value"]) : 0);
     $owner_from_form = isset($_POST["ups_offer_owner_id"]) ? (int) wp_unslash($_POST["ups_offer_owner_id"]) : 0;
@@ -742,6 +909,13 @@ function upsellio_save_offer_meta_box($post_id)
         if ($new_status === "won" || $new_status === "lost") {
             update_post_meta((int) $post_id, "_ups_offer_closed_at", current_time("mysql"));
         }
+        if ($new_status === "sent" && $previous_status !== "sent") {
+            if ((string) get_post_meta((int) $post_id, "_ups_offer_first_sent_at", true) === "") {
+                update_post_meta((int) $post_id, "_ups_offer_first_sent_at", current_time("mysql"));
+            }
+            update_post_meta((int) $post_id, "_ups_offer_stage", "consideration");
+            upsellio_offer_queue_builtin_sent_reminders((int) $post_id);
+        }
         do_action("upsellio_offer_status_changed", (int) $post_id, (string) $new_status, (string) $previous_status);
     }
     if (isset($_POST["ups_offer_send_email_now"]) && (string) wp_unslash($_POST["ups_offer_send_email_now"]) === "1") {
@@ -756,6 +930,9 @@ function upsellio_offer_track_event()
     $event_name = isset($_POST["event_name"]) ? sanitize_key(wp_unslash($_POST["event_name"])) : "";
     if ($offer_id <= 0 || $event_name === "" || get_post_type($offer_id) !== "crm_offer") {
         wp_send_json_error(["message" => "invalid_payload"], 400);
+    }
+    if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
+        wp_send_json_success(["ok" => true, "skipped_internal" => true]);
     }
     if (upsellio_offer_is_expired($offer_id)) {
         wp_send_json_error(["message" => "offer_expired"], 410);
@@ -869,8 +1046,10 @@ function upsellio_offer_render_public_page()
     }
 
     if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["ups_offer_accept_nonce"]) && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["ups_offer_accept_nonce"])), "ups_offer_accept_" . $offer_id)) {
+        $prev_accept_status = (string) get_post_meta($offer_id, "_ups_offer_status", true);
         update_post_meta($offer_id, "_ups_offer_status", "won");
         update_post_meta($offer_id, "_ups_offer_stage", "decision");
+        update_post_meta($offer_id, "_ups_offer_closed_at", current_time("mysql"));
         update_post_meta($offer_id, "_ups_offer_accepted_at", current_time("mysql"));
         update_post_meta($offer_id, "_ups_offer_accepted_version", (int) get_post_meta($offer_id, "_ups_offer_current_version", true));
         update_post_meta($offer_id, "_ups_offer_accept_ip", isset($_SERVER["REMOTE_ADDR"]) ? sanitize_text_field(wp_unslash($_SERVER["REMOTE_ADDR"])) : "");
@@ -879,7 +1058,7 @@ function upsellio_offer_render_public_page()
             $v = (int) get_post_meta($offer_id, "_ups_offer_accepted_version", true);
             upsellio_offer_add_timeline_event($offer_id, "offer_accepted", "Klient zaakceptował ofertę publicznie (wersja handlowa #" . $v . ").");
         }
-        do_action("upsellio_offer_status_changed", $offer_id, "won", "open");
+        do_action("upsellio_offer_status_changed", $offer_id, "won", $prev_accept_status !== "" ? $prev_accept_status : "open");
         if (function_exists("upsellio_offer_track_event")) {
             update_post_meta($offer_id, "_ups_offer_last_event", "offer_accepted");
         }
@@ -984,27 +1163,6 @@ function upsellio_offer_admin_filter_and_sort_query($query)
     }
 }
 add_action("pre_get_posts", "upsellio_offer_admin_filter_and_sort_query");
-
-function upsellio_offer_register_admin_pages()
-{
-    add_submenu_page(
-        "edit.php?post_type=crm_offer",
-        "Analityka ofert",
-        "Analityka ofert",
-        "edit_posts",
-        "upsellio-offers-analytics",
-        "upsellio_offer_render_analytics_page"
-    );
-    add_submenu_page(
-        "edit.php?post_type=crm_offer",
-        "Ustawienia scoringu ofert",
-        "Ustawienia scoringu",
-        "manage_options",
-        "upsellio-offers-scoring",
-        "upsellio_offer_render_scoring_settings_page"
-    );
-}
-add_action("admin_menu", "upsellio_offer_register_admin_pages");
 
 function upsellio_offer_render_scoring_settings_page()
 {

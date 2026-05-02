@@ -288,6 +288,7 @@ function upsellio_offer_render_public_landing($offer)
     $show_proof = !empty($payload["show_proof"]);
     $ajax_url = admin_url("admin-ajax.php");
     $gtm = upsellio_get_site_gtm_container_id();
+    $upsellio_offer_track_public = !function_exists("upsellio_should_load_public_tracking_tags") || upsellio_should_load_public_tracking_tags();
     $offer_title = (string) $offer->post_title;
     $content_html = (string) apply_filters("the_content", (string) $offer->post_content);
 
@@ -302,14 +303,16 @@ function upsellio_offer_render_public_landing($offer)
 <meta name="robots" content="noindex,nofollow"/>
 <title><?php echo esc_html($offer_title); ?> — Upsellio</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&amp;family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet"/>
-<?php if ($gtm !== "") : ?>
+<?php if ($gtm !== "" && $upsellio_offer_track_public) : ?>
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','<?php echo esc_js($gtm); ?>');</script>
 <?php endif; ?>
 <script>
 window.dataLayer=window.dataLayer||[];
 window.UPS={offer_id:'<?php echo esc_js((string) $offer_id); ?>',offer_slug:'<?php echo esc_js($slug); ?>',offer_title:'<?php echo esc_js($offer_title); ?>',person_id:'<?php echo esc_js($person_id); ?>',utm_source:'',utm_campaign:'',gclid:''};
 (function(){var q=new URLSearchParams(window.location.search||'');UPS.utm_source=q.get('utm_source')||'';UPS.utm_campaign=q.get('utm_campaign')||'';UPS.gclid=q.get('gclid')||'';})();
+<?php if ($upsellio_offer_track_public) : ?>
 dataLayer.push({event:'offer_view',offer_id:UPS.offer_id,offer_title:UPS.offer_title,person_id:UPS.person_id,utm_source:UPS.utm_source,utm_campaign:UPS.utm_campaign,gclid:UPS.gclid});
+<?php endif; ?>
 </script>
 <style>
 :root{
@@ -485,7 +488,7 @@ a{text-decoration:none;color:inherit}
 </style>
 </head>
 <body>
-<?php if ($gtm !== "") : ?>
+<?php if ($gtm !== "" && $upsellio_offer_track_public) : ?>
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=<?php echo esc_attr($gtm); ?>" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <?php endif; ?>
 <div id="bar"></div>
@@ -828,6 +831,7 @@ var offerId=<?php echo (int) $offer_id; ?>;
 var clientId=<?php echo (int) $client_id; ?>;
 var personId=<?php echo wp_json_encode((string) $person_id); ?>;
 var ajaxUrl=<?php echo wp_json_encode((string) $ajax_url); ?>;
+var __upsTrackPublic=<?php echo $upsellio_offer_track_public ? "true" : "false"; ?>;
 var q=new URLSearchParams(window.location.search||'');
 var utmSource=q.get('utm_source')||'';
 var utmCampaign=q.get('utm_campaign')||'';
@@ -857,6 +861,7 @@ function jumpTo(id){
 var ro=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting)x.target.classList.add('in');});},{threshold:.1});
 document.querySelectorAll('.r').forEach(function(el){ro.observe(el);});
 function trackEvent(eventName,extra){
+  if(!__upsTrackPublic)return;
   extra=extra||{};
   var body=new URLSearchParams();
   body.append('action','upsellio_offer_track_event');
@@ -873,7 +878,7 @@ function trackEvent(eventName,extra){
   if(navigator.sendBeacon)navigator.sendBeacon(ajaxUrl,body);
   else fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString(),credentials:'same-origin',keepalive:true}).catch(function(){});
 }
-function pushDl(ev,ex){window.dataLayer=window.dataLayer||[];dataLayer.push(Object.assign({event:ev,offer_id:String(offerId),person_id:String(personId||'')},ex||{}));}
+function pushDl(ev,ex){if(!__upsTrackPublic)return;window.dataLayer=window.dataLayer||[];dataLayer.push(Object.assign({event:ev,offer_id:String(offerId),person_id:String(personId||'')},ex||{}));}
 trackEvent('offer_view',{});
 var so=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting&&!x.target._tsv){x.target._tsv=true;var sid=x.target.getAttribute('data-offer-section')||'';if(sid)trackEvent('offer_section_view',{section_id:sid});}});},{threshold:0.4});
 document.querySelectorAll('[data-offer-section]').forEach(function(el){so.observe(el);});
