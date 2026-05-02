@@ -1102,6 +1102,215 @@
           { "type": "TEMPLATE", "key": "name", "value": "gclid" },
           { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
         ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "11",
+        "name": "DLV - offer_id",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "offer_id" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "12",
+        "name": "DLV - offer_title",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "offer_title" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "13",
+        "name": "DLV - contract_id",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "contract_id" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "14",
+        "name": "DLV - contract_title",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "contract_title" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "15",
+        "name": "DLV - form_origin",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "form_origin" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "16",
+        "name": "DLV - lead_service",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "lead_service" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "17",
+        "name": "DLV - lead_budget",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "lead_budget" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "18",
+        "name": "DLV - cta_label",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "cta_label" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "19",
+        "name": "DLV - section_id",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "section_id" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "20",
+        "name": "DLV - label",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "label" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "21",
+        "name": "DLV - target",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "target" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "22",
+        "name": "DLV - link_text",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "link_text" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "23",
+        "name": "DLV - click_text",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "click_text" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "24",
+        "name": "DLV - lead_source",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "lead_source" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "25",
+        "name": "DLV - has_email",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "has_email" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "26",
+        "name": "DLV - utm_medium",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "utm_medium" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "27",
+        "name": "DLV - page_location",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "page_location" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "28",
+        "name": "DLV - page_path",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "page_path" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
+      },
+      {
+        "accountId": "0",
+        "containerId": "0",
+        "variableId": "29",
+        "name": "DLV - page_title",
+        "type": "v",
+        "parameter": [
+          { "type": "TEMPLATE", "key": "name", "value": "page_title" },
+          { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }
+        ]
       }
     ],
     "folder": [
