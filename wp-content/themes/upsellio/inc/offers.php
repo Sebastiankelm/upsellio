@@ -1000,6 +1000,37 @@ function upsellio_offer_track_event()
 add_action("wp_ajax_upsellio_offer_track_event", "upsellio_offer_track_event");
 add_action("wp_ajax_nopriv_upsellio_offer_track_event", "upsellio_offer_track_event");
 
+/**
+ * Zapis akceptacji oferty ze strony publicznej (formularz POST bez JS lub wewnętrzny wywołanie z AJAX).
+ */
+function upsellio_offer_apply_public_accept($offer_id)
+{
+    $offer_id = (int) $offer_id;
+    if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
+        return false;
+    }
+    if (function_exists("upsellio_offer_is_expired") && upsellio_offer_is_expired($offer_id)) {
+        return false;
+    }
+    $prev_accept_status = (string) get_post_meta($offer_id, "_ups_offer_status", true);
+    update_post_meta($offer_id, "_ups_offer_status", "won");
+    update_post_meta($offer_id, "_ups_offer_stage", "decision");
+    update_post_meta($offer_id, "_ups_offer_closed_at", current_time("mysql"));
+    update_post_meta($offer_id, "_ups_offer_accepted_at", current_time("mysql"));
+    update_post_meta($offer_id, "_ups_offer_accepted_version", (int) get_post_meta($offer_id, "_ups_offer_current_version", true));
+    update_post_meta($offer_id, "_ups_offer_accept_ip", isset($_SERVER["REMOTE_ADDR"]) ? sanitize_text_field(wp_unslash($_SERVER["REMOTE_ADDR"])) : "");
+    update_post_meta($offer_id, "_ups_offer_accept_user_agent", isset($_SERVER["HTTP_USER_AGENT"]) ? sanitize_text_field(wp_unslash($_SERVER["HTTP_USER_AGENT"])) : "");
+    if (function_exists("upsellio_offer_add_timeline_event")) {
+        $v = (int) get_post_meta($offer_id, "_ups_offer_accepted_version", true);
+        upsellio_offer_add_timeline_event($offer_id, "offer_accepted", "Klient zaakceptował ofertę publicznie (wersja handlowa #" . $v . ").");
+    }
+    do_action("upsellio_offer_status_changed", $offer_id, "won", $prev_accept_status !== "" ? $prev_accept_status : "open");
+    if (function_exists("upsellio_offer_track_event")) {
+        update_post_meta($offer_id, "_ups_offer_last_event", "offer_accepted");
+    }
+    return true;
+}
+
 function upsellio_offer_render_expired_page()
 {
     status_header(410);
@@ -1046,22 +1077,7 @@ function upsellio_offer_render_public_page()
     }
 
     if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["ups_offer_accept_nonce"]) && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["ups_offer_accept_nonce"])), "ups_offer_accept_" . $offer_id)) {
-        $prev_accept_status = (string) get_post_meta($offer_id, "_ups_offer_status", true);
-        update_post_meta($offer_id, "_ups_offer_status", "won");
-        update_post_meta($offer_id, "_ups_offer_stage", "decision");
-        update_post_meta($offer_id, "_ups_offer_closed_at", current_time("mysql"));
-        update_post_meta($offer_id, "_ups_offer_accepted_at", current_time("mysql"));
-        update_post_meta($offer_id, "_ups_offer_accepted_version", (int) get_post_meta($offer_id, "_ups_offer_current_version", true));
-        update_post_meta($offer_id, "_ups_offer_accept_ip", isset($_SERVER["REMOTE_ADDR"]) ? sanitize_text_field(wp_unslash($_SERVER["REMOTE_ADDR"])) : "");
-        update_post_meta($offer_id, "_ups_offer_accept_user_agent", isset($_SERVER["HTTP_USER_AGENT"]) ? sanitize_text_field(wp_unslash($_SERVER["HTTP_USER_AGENT"])) : "");
-        if (function_exists("upsellio_offer_add_timeline_event")) {
-            $v = (int) get_post_meta($offer_id, "_ups_offer_accepted_version", true);
-            upsellio_offer_add_timeline_event($offer_id, "offer_accepted", "Klient zaakceptował ofertę publicznie (wersja handlowa #" . $v . ").");
-        }
-        do_action("upsellio_offer_status_changed", $offer_id, "won", $prev_accept_status !== "" ? $prev_accept_status : "open");
-        if (function_exists("upsellio_offer_track_event")) {
-            update_post_meta($offer_id, "_ups_offer_last_event", "offer_accepted");
-        }
+        upsellio_offer_apply_public_accept($offer_id);
     }
     if (function_exists("upsellio_offer_render_public_landing")) {
         upsellio_offer_render_public_landing($offer);
