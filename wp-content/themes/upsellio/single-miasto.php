@@ -480,45 +480,17 @@ while (have_posts()) :
               <?php endif; ?>
               <a href="<?php echo esc_url($contactEmailHref); ?>">Napisz: <?php echo esc_html($contactEmailDisplay); ?></a>
             </div>
-            <form method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-upsellio-lead-form="1" data-upsellio-server-form="1">
-              <input type="hidden" name="action" value="upsellio_submit_lead" />
-              <input type="hidden" name="redirect_url" value="<?php echo esc_url(get_permalink($postId)); ?>" />
-              <input type="hidden" name="lead_form_origin" value="miasto-single" />
-              <input type="hidden" name="lead_source" value="miasto-single" />
-              <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
-              <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
-              <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
-              <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
-              <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
-              <input type="hidden" name="lead_service" value="<?php echo esc_attr("Marketing lokalny " . $cityName); ?>" />
-              <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
-              <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
-              <div class="city-form-grid two">
-                <label>
-                  Imię i firma *
-                  <input type="text" name="lead_name" autocomplete="name organization" required />
-                </label>
-                <label>
-                  E-mail *
-                  <input type="email" name="lead_email" autocomplete="email" required />
-                </label>
-              </div>
-              <div class="city-form-grid">
-                <label>
-                  Telefon
-                  <input type="tel" name="lead_phone" autocomplete="tel" />
-                </label>
-                <label>
-                  Co chcesz poprawić? *
-                  <textarea name="lead_message" required>Chcę omówić działania marketingowe dla firmy z miasta <?php echo esc_textarea($cityName); ?>.</textarea>
-                </label>
-              </div>
-              <label class="city-form-consent">
-                <input type="checkbox" name="lead_consent" value="1" required />
-                <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
-              </label>
-              <button class="city-btn" type="submit">Wyślij formularz</button>
-            </form>
+            <?php
+            echo upsellio_render_lead_form([
+                "origin" => "miasto-single",
+                "variant" => "compact",
+                "submit_label" => "Wyślij zapytanie →",
+                "redirect_url" => get_permalink($postId),
+                "preset_message" => "Chcę omówić działania marketingowe dla firmy z miasta " . $cityName . ".",
+                "hidden_service" => "Marketing lokalny " . $cityName,
+                "css_class" => "city-lead-form",
+            ]);
+            ?>
           </section>
 
           <section class="city-local-links" aria-label="Linkowanie wewnętrzne lokalne">

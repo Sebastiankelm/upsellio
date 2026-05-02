@@ -30,6 +30,8 @@ if (have_posts()) :
         $toc_items = $prepared_content["toc"];
         $content_html = $prepared_content["content"];
         $has_inline_contact_shortcode = strpos($raw_post_content, "[upsellio_contact_form]") !== false;
+        $has_upsellio_content_shortcodes = $has_inline_contact_shortcode
+            || strpos($raw_post_content, "[upsellio_internal_links]") !== false;
         $lead_magnet = function_exists("upsellio_get_primary_lead_magnet") ? upsellio_get_primary_lead_magnet() : [];
         $offer_url = function_exists("upsellio_get_offer_page_url") ? (string) upsellio_get_offer_page_url() : "";
         $offer_form_url = $offer_url !== "" ? trailingslashit($offer_url) . "#formularz-oferta" : "";
@@ -130,6 +132,38 @@ if (have_posts()) :
           .sp-rel-card h3{margin:8px 0 18px;padding:0 18px;font-family:"Syne",sans-serif;font-size:16px;letter-spacing:-.3px;line-height:1.3;font-weight:700}
           @media (max-width:1050px){.sp-grid{grid-template-columns:1fr;gap:36px;width:min(880px,100% - 64px)}.sp-toc{position:static}.sp-rel-grid{grid-template-columns:1fr 1fr}}
           @media (max-width:760px){.sp-wrap,.sp-wrap-narrow,.sp-grid{width:min(1180px,100% - 24px)}.sp-rel-grid{grid-template-columns:1fr}.sp-author{flex-wrap:wrap}.sp-share{margin-left:0}.sp-contact-grid{grid-template-columns:1fr}}
+          <?php if (!empty($has_upsellio_content_shortcodes)) : ?>
+          /* [upsellio_contact_form] / [upsellio_internal_links] — inline fallback gdy pełny upsellio.css jest obcięty (critical CSS, cache) */
+          .sp-prose .ups-inline-contact{clear:both}
+          .ups-inline-contact{margin:40px 0 0;padding:clamp(22px,3vw,28px);background:#fff;border:1px solid #e7e7e1;border-radius:18px;box-sizing:border-box}
+          .ups-inline-contact-head{margin-bottom:20px}
+          .ups-inline-label{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#0d9488;margin-bottom:12px}
+          .ups-inline-label::before{content:"";width:26px;height:2px;background:#0d9488;border-radius:99px}
+          .ups-inline-contact-head h3{margin:0 0 10px;font-family:Syne,sans-serif;font-size:clamp(20px,2.2vw,26px);line-height:1.15;letter-spacing:-.5px;font-weight:700;color:#0a1410}
+          .ups-inline-contact-head p{margin:0;font-size:15px;line-height:1.65;color:#3d3d38;max-width:62ch}
+          .ups-inline-success,.ups-inline-error{margin-bottom:18px;padding:14px 16px;border-radius:12px;font-size:14px;line-height:1.5;font-weight:600}
+          .ups-inline-success{background:rgba(13,148,136,.1);border:1px solid rgba(13,148,136,.28);color:#0f766e}
+          .ups-inline-error{background:rgba(217,76,76,.08);border:1px solid rgba(217,76,76,.25);color:#8b2f2f}
+          .ups-inline-form{display:grid;gap:14px;margin:0}
+          .ups-inline-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+          .ups-inline-form>label{display:grid;gap:6px;font-size:12px;font-weight:700;color:#3d3d38}
+          .ups-inline-form input[type="text"],.ups-inline-form input[type="email"],.ups-inline-form textarea{width:100%;border:1.5px solid #e7e7e1;border-radius:11px;min-height:44px;padding:10px 12px;font:inherit;font-size:15px;color:#0a1410;background:#fff;outline:none;transition:border-color .18s ease,box-shadow .18s ease;box-sizing:border-box}
+          .ups-inline-form textarea{min-height:120px;resize:vertical;line-height:1.6}
+          .ups-inline-form input:focus,.ups-inline-form textarea:focus{border-color:#0d9488;box-shadow:0 0 0 3px rgba(13,148,136,.13)}
+          .ups-inline-consent{display:flex!important;gap:10px;align-items:flex-start;font-size:13px;font-weight:500;color:#3d3d38;line-height:1.5}
+          .ups-inline-consent input{margin-top:4px;width:auto;min-height:auto;flex-shrink:0}
+          .ups-inline-form button[type="submit"]{margin-top:4px;justify-self:start;display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#0d9488;color:#fff;padding:13px 22px;border-radius:999px;font-weight:700;font-size:14px;border:none;cursor:pointer;font-family:"DM Sans",system-ui,sans-serif;transition:background .18s ease,transform .15s ease}
+          .ups-inline-form button[type="submit"]:hover{background:#0f766e}
+          .ups-inline-form button[type="submit"]:active{transform:scale(.98)}
+          @media (max-width:640px){.ups-inline-grid{grid-template-columns:1fr}.ups-inline-form button[type="submit"]{width:100%;justify-self:stretch}}
+          .ups-inline-links{margin:32px 0;padding:20px 22px;background:#fff;border:1px solid #e7e7e1;border-radius:18px;box-sizing:border-box}
+          .ups-inline-links h3{margin:0 0 12px;font-family:Syne,sans-serif;font-size:18px;font-weight:700;letter-spacing:-.3px;color:#0a1410}
+          .ups-inline-links ul{margin:0;padding-left:22px}
+          .ups-inline-links li{margin-bottom:6px;font-size:15px;line-height:1.55;color:#3d3d38}
+          .ups-inline-links li::marker{color:#0d9488;font-weight:700}
+          .ups-inline-links a{color:#0d9488;font-weight:600;text-decoration:none}
+          .ups-inline-links a:hover{color:#0f766e;text-decoration:underline}
+          <?php endif; ?>
         </style>
 
         <main class="sp-art">
@@ -239,59 +273,18 @@ if (have_posts()) :
 
                 <?php if (!$has_inline_contact_shortcode) : ?>
                   <section class="sp-contact-shell" id="kontakt">
-                    <div class="sp-eyebrow">Sprawdź, co blokuje sprzedaż</div>
-                    <h3 class="sp-h2" style="margin:0 0 8px;">Napisz, z czym masz problem - wrócę z konkretną rekomendacją.</h3>
-                    <p class="sp-lead" style="font-size:15px;margin:0 0 18px;">Krótko opisz sytuację, a dostaniesz pierwszy kierunek działań bez zobowiązań.</p>
-                    <form method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-upsellio-lead-form="1" data-upsellio-server-form="1">
-                      <input type="hidden" name="action" value="upsellio_submit_lead" />
-                      <input type="hidden" name="redirect_url" value="<?php echo esc_url(get_permalink($post_id) . "#kontakt"); ?>" />
-                      <input type="hidden" name="lead_form_origin" value="single-post-contact-form" />
-                      <input type="hidden" name="lead_source" value="single-post-contact-form" />
-                      <input type="hidden" name="lead_service" value="Bezpłatna diagnoza marketingu" />
-                      <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
-                      <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
-                      <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
-                      <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
-                      <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
-                      <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
-                      <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
-                      <div class="sp-contact-grid">
-                        <div class="sp-contact-field">
-                          <label for="sp-contact-name">Imię i firma *</label>
-                          <input id="sp-contact-name" name="lead_name" type="text" autocomplete="name organization" required />
-                        </div>
-                        <div class="sp-contact-field">
-                          <label for="sp-contact-email">E-mail służbowy *</label>
-                          <input id="sp-contact-email" name="lead_email" type="email" autocomplete="email" required />
-                        </div>
-                        <div class="sp-contact-field">
-                          <label for="sp-contact-phone">Telefon (opcjonalnie)</label>
-                          <input id="sp-contact-phone" name="lead_phone" type="tel" autocomplete="tel" />
-                        </div>
-                        <div class="sp-contact-field">
-                          <label for="sp-contact-scope">Zakres wsparcia</label>
-                          <select id="sp-contact-scope" name="lead_message_context">
-                            <option value="Nie wiem, co blokuje wynik">Nie wiem, co blokuje wynik</option>
-                            <option value="Google Ads">Google Ads</option>
-                            <option value="Meta Ads">Meta Ads</option>
-                            <option value="Strona WWW / landing page">Strona WWW / landing page</option>
-                            <option value="Lejek i jakość leadów">Lejek i jakość leadów</option>
-                          </select>
-                        </div>
-                        <div class="sp-contact-field full">
-                          <label for="sp-contact-message">Co dokładnie dziś nie działa? *</label>
-                          <textarea id="sp-contact-message" name="lead_message" required></textarea>
-                        </div>
-                        <div class="sp-contact-field full">
-                          <label class="sp-contact-consent">
-                            <input type="checkbox" name="lead_consent" value="1" required />
-                            <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
-                          </label>
-                        </div>
-                      </div>
-                      <button class="sp-btn sp-contact-submit" type="submit">Sprawdź, co blokuje sprzedaż →</button>
-                      <p class="sp-contact-note">Możesz też napisać: <a href="<?php echo esc_url("mailto:" . $contact_email); ?>"><?php echo esc_html($contact_email); ?></a> lub zadzwonić: <a href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a></p>
-                    </form>
+                    <?php
+                    echo upsellio_render_lead_form([
+                        "origin" => "single-post-contact-form",
+                        "variant" => "compact",
+                        "heading" => "Chcesz, żebym przeanalizował Twoją sytuację marketingową?",
+                        "subheading" => "Wyślij krótką wiadomość. Otrzymasz konkretną odpowiedź.",
+                        "submit_label" => "Wyślij wiadomość",
+                        "redirect_url" => get_permalink($post_id) . "#kontakt",
+                        "hidden_service" => "Bezpłatna diagnoza marketingu",
+                    ]);
+                    ?>
+                    <p class="sp-contact-note">Możesz też napisać: <a href="<?php echo esc_url("mailto:" . $contact_email); ?>"><?php echo esc_html($contact_email); ?></a> lub zadzwonić: <a href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a></p>
                   </section>
                 <?php endif; ?>
               </article>

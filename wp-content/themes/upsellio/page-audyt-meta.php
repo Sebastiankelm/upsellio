@@ -1054,77 +1054,28 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             Wypełnij krótki formularz. Odezwę się i powiem, czego potrzebuję do szybkiej analizy Twoich reklam Meta.
           </div>
 
-          <?php $ups_form_status = isset($_GET["ups_lead_status"]) ? sanitize_text_field(wp_unslash($_GET["ups_lead_status"])) : ""; ?>
-          <?php if ($ups_form_status === "success") : ?>
-            <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #99f6e4;background:#ecfeff;border-radius:10px;color:#0f766e;font-size:13px;">Dziękuję! Zgłoszenie zostało zapisane i wrócę z odpowiedzią.</div>
-          <?php elseif ($ups_form_status === "error") : ?>
-            <div style="margin-bottom:12px;padding:10px 12px;border:1px solid #edcccc;background:#fff2f2;border-radius:10px;color:#b13a3a;font-size:13px;">Nie udało się wysłać zgłoszenia. Uzupełnij pola i spróbuj ponownie.</div>
-          <?php endif; ?>
-
-          <form id="audit-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" novalidate data-upsellio-lead-form="1" data-upsellio-server-form="1">
-            <input type="hidden" name="action" value="upsellio_submit_lead" />
-            <input type="hidden" name="redirect_url" value="<?php echo esc_url(home_url("/audyt-meta/")); ?>" />
-            <input type="hidden" name="lead_form_origin" value="audit-form" />
-            <input type="hidden" name="lead_source" value="audit-form" />
-            <input type="hidden" name="lead_service" value="Audyt Meta Ads" />
-            <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
-            <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
-            <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
-            <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
-            <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
-            <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
-            <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
-            <div class="field">
-              <label for="fname">Imię i firma *</label>
-              <input class="input" type="text" id="fname" name="lead_name" placeholder="np. Marek, firma XYZ" required />
-              <span class="field-error" id="fname-err">Podaj imię i nazwę firmy</span>
-            </div>
-
-            <div class="field">
-              <label for="femail">E-mail *</label>
-              <input class="input" type="email" id="femail" name="lead_email" placeholder="adres@firma.pl" required />
-              <span class="field-error" id="femail-err">Podaj poprawny adres e-mail</span>
-            </div>
-
-            <div class="field">
-              <label for="fbudget">Miesięczny budżet reklam Meta</label>
-              <select class="select" id="fbudget" name="lead_budget">
-                <option value="">— wybierz —</option>
-                <option>poniżej 2 000 zł</option>
-                <option>2 000 – 5 000 zł</option>
-                <option>5 000 – 15 000 zł</option>
-                <option>15 000 zł +</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label for="fgoal">Cel kampanii</label>
-              <select class="select" id="fgoal" name="lead_goal">
-                <option value="">— wybierz —</option>
-                <option>Lead generation</option>
-                <option>Sprzedaż w sklepie</option>
-                <option>Ruch na stronę</option>
-                <option>Remarketing</option>
-                <option>Nie jestem pewien</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label for="fmsg">Co dziś najbardziej Cię niepokoi? *</label>
-              <textarea class="textarea" id="fmsg" name="lead_message" placeholder="np. reklamy mają kliknięcia, ale mało wartościowych zapytań / koszt leada jest za wysoki / nie wiem, czy kampanie są dobrze prowadzone" required></textarea>
-              <span class="field-error" id="fmsg-err">Opisz w kilku słowach swoją sytuację</span>
-            </div>
-
-            <div class="field">
-              <label style="display:flex;gap:8px;align-items:flex-start;">
-                <input type="checkbox" name="lead_consent" value="1" required style="margin-top:3px;" />
-                <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
-              </label>
-            </div>
-
-            <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;justify-content:center;">Wyślij zgłoszenie →</button>
-            <p class="form-note">Formularz zapisuje zgłoszenie w CRM i uruchamia automatyczny follow-up.</p>
-          </form>
+          <?php
+          echo upsellio_render_lead_form([
+              "origin" => "audit-form",
+              "variant" => "full",
+              "submit_label" => "Zamów bezpłatny audyt →",
+              "redirect_url" => home_url("/audyt-meta/"),
+              "hidden_service" => "Audyt Meta Ads",
+              "show_budget" => true,
+              "budget_label" => "Miesięczny budżet reklam Meta",
+              "budget_options" => [
+                  "" => "— wybierz —",
+                  "poniżej 2 000 zł" => "poniżej 2 000 zł",
+                  "2 000 – 5 000 zł" => "2 000 – 5 000 zł",
+                  "5 000 – 15 000 zł" => "5 000 – 15 000 zł",
+                  "15 000 zł +" => "15 000 zł +",
+              ],
+              "show_goal" => true,
+              "form_id" => "audit-form",
+              "submit_button_id" => "submit-btn",
+              "fineprint" => "Formularz zapisuje zgłoszenie w CRM i uruchamia automatyczny follow-up.",
+          ]);
+          ?>
         </aside>
       </div>
     </section>
