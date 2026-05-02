@@ -4,16 +4,78 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
-function upsellio_site_analytics_menu()
+/**
+ * Slug strony admin „Analityka SEO” (menu Upsellio).
+ */
+function upsellio_site_analytics_page_slug(): string
 {
-    add_submenu_page(
-        "edit.php",
-        "Analityka SEO",
-        "Analityka SEO",
+    return "upsellio-site-analytics";
+}
+
+/**
+ * Kanoniczny URL panelu Analityka SEO (admin.php — OAuth redirect URI musi z tym się zgadzać).
+ *
+ * @param array<string, scalar> $extra Dodatkowe parametry GET.
+ */
+function upsellio_site_analytics_admin_url(array $extra = []): string
+{
+    $query = array_merge(["page" => upsellio_site_analytics_page_slug()], $extra);
+
+    return add_query_arg($query, admin_url("admin.php"));
+}
+
+/**
+ * Stary link Wpisy → (edit.php?page=…) — przekieruj na menu Upsellio.
+ */
+function upsellio_site_analytics_legacy_edit_redirect(): void
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+    if (!isset($_GET["page"]) || (string) wp_unslash($_GET["page"]) !== upsellio_site_analytics_page_slug()) {
+        return;
+    }
+    global $pagenow;
+    if ($pagenow !== "edit.php") {
+        return;
+    }
+    wp_safe_redirect(upsellio_site_analytics_admin_url());
+    exit;
+}
+
+add_action("admin_init", "upsellio_site_analytics_legacy_edit_redirect", 0);
+
+/**
+ * Skrót w Ustawienia → Analityka SEO: ten sam panel co w menu głównym.
+ */
+function upsellio_site_analytics_redirect_from_wp_settings(): void
+{
+    if (!current_user_can("edit_posts")) {
+        wp_die(esc_html__("Brak uprawnień.", "upsellio"));
+    }
+    wp_safe_redirect(upsellio_site_analytics_admin_url());
+    exit;
+}
+
+function upsellio_site_analytics_menu(): void
+{
+    add_menu_page(
+        __("Analityka SEO i konwersji", "upsellio"),
+        __("Analityka SEO", "upsellio"),
         "edit_posts",
-        "upsellio-site-analytics",
+        upsellio_site_analytics_page_slug(),
         "upsellio_render_site_analytics_page",
-        53
+        "dashicons-chart-area",
+        59
+    );
+
+    add_submenu_page(
+        "options-general.php",
+        __("Analityka SEO (GSC, GA4, konwersje)", "upsellio"),
+        __("Analityka SEO", "upsellio"),
+        "edit_posts",
+        "upsellio-analytics-from-settings",
+        "upsellio_site_analytics_redirect_from_wp_settings"
     );
 }
 add_action("admin_menu", "upsellio_site_analytics_menu");
@@ -252,13 +314,9 @@ function upsellio_handle_keyword_metrics_import()
 
     update_option("upsellio_keyword_metrics_rows", $rows, false);
     wp_safe_redirect(
-        add_query_arg(
-            [
-                "page" => "upsellio-site-analytics",
-                "upsellio_metrics_imported" => (string) count($rows),
-            ],
-            admin_url("edit.php")
-        )
+        upsellio_site_analytics_admin_url([
+            "upsellio_metrics_imported" => (string) count($rows),
+        ])
     );
     exit;
 }
@@ -408,6 +466,32 @@ function upsellio_gsc_access_token_transient_key($credentials)
     return "upsellio_gsc_access_token_" . $fingerprint;
 }
 
+/**
+ * Po invalid_grant z Google — usuń odwołany refresh token z opcji, żeby uniknąć pętli i wymusić ponowne „Zaloguj przez Google”.
+ */
+function upsellio_gsc_clear_stored_refresh_token_after_invalid_grant(array $attempted_credentials): void
+{
+    $stored = upsellio_get_gsc_credentials();
+    $attempted_rt = trim((string) ($attempted_credentials["refresh_token"] ?? ""));
+    $stored_rt = trim((string) ($stored["refresh_token"] ?? ""));
+    if ($attempted_rt === "" || $stored_rt === "" || !hash_equals($stored_rt, $attempted_rt)) {
+        return;
+    }
+
+    upsellio_save_gsc_credentials(
+        (string) ($stored["client_id"] ?? ""),
+        (string) ($stored["client_secret"] ?? ""),
+        "",
+        (string) ($stored["property"] ?? "")
+    );
+    delete_option(upsellio_google_oauth_permissions_option_key());
+    upsellio_gsc_log(
+        "oauth.refresh_token.cleared_invalid_grant",
+        ["message" => "Stored refresh token removed after invalid_grant; user must re-authorize OAuth."],
+        ""
+    );
+}
+
 function upsellio_gsc_get_access_token($credentials, $trace_id = "")
 {
     $transient_key = upsellio_gsc_access_token_transient_key($credentials);
@@ -477,6 +561,13 @@ function upsellio_gsc_get_access_token($credentials, $trace_id = "")
             "error_description" => $error_description,
             "details" => $details,
         ], $trace_id);
+        if ($error === "invalid_grant") {
+            upsellio_gsc_clear_stored_refresh_token_after_invalid_grant($credentials);
+            return new WP_Error(
+                "upsellio_gsc_token_revoked",
+                "Google odwołał refresh token (invalid_grant). Zapisane połączenie zostało usunięte — kliknij ponownie „Zaloguj przez Google i autoryzuj GSC + GA4” i zatwierdź dostęp."
+            );
+        }
         return new WP_Error(
             "upsellio_gsc_token_http_error",
             "OAuth token error (HTTP " . $status . "): " . $details . ". Sprawdź czy refresh token pochodzi z tego samego OAuth Client ID i aktualnego Client Secret."
@@ -800,14 +891,10 @@ function upsellio_handle_gsc_sync_submit()
             "error_message" => $rows->get_error_message(),
         ], $trace_id);
         wp_safe_redirect(
-            add_query_arg(
-                [
-                    "page" => "upsellio-site-analytics",
-                    "upsellio_gsc_error" => rawurlencode($rows->get_error_message()),
-                    "upsellio_gsc_trace_id" => rawurlencode($trace_id),
-                ],
-                admin_url("edit.php")
-            )
+            upsellio_site_analytics_admin_url([
+                "upsellio_gsc_error" => rawurlencode($rows->get_error_message()),
+                "upsellio_gsc_trace_id" => rawurlencode($trace_id),
+            ])
         );
         exit;
     }
@@ -821,14 +908,10 @@ function upsellio_handle_gsc_sync_submit()
     ], $trace_id);
 
     wp_safe_redirect(
-        add_query_arg(
-            [
-                "page" => "upsellio-site-analytics",
-                "upsellio_gsc_synced" => (string) count($rows),
-                "upsellio_gsc_trace_id" => rawurlencode($trace_id),
-            ],
-            admin_url("edit.php")
-        )
+        upsellio_site_analytics_admin_url([
+            "upsellio_gsc_synced" => (string) count($rows),
+            "upsellio_gsc_trace_id" => rawurlencode($trace_id),
+        ])
     );
     exit;
 }
@@ -848,34 +931,473 @@ function upsellio_handle_gsc_logs_clear_submit()
     delete_option(upsellio_gsc_debug_logs_option_key());
 
     wp_safe_redirect(
-        add_query_arg(
-            [
-                "page" => "upsellio-site-analytics",
-                "upsellio_gsc_logs_cleared" => "1",
-            ],
-            admin_url("edit.php")
-        )
+        upsellio_site_analytics_admin_url([
+            "upsellio_gsc_logs_cleared" => "1",
+        ])
     );
     exit;
 }
 add_action("admin_init", "upsellio_handle_gsc_logs_clear_submit");
 
 /**
+ * Opcja: wymuszenie redirect URI (musi być tym samym co w Google Cloud + ten sam host co strona).
+ */
+function upsellio_google_oauth_redirect_uri_override_option_key(): string
+{
+    return "upsellio_google_oauth_redirect_uri_override";
+}
+
+/**
+ * @deprecated Nie używany do wyboru URI od v2 — pozostawiony dla spójności nazw w bazie u starszych instalacji.
+ */
+function upsellio_google_oauth_prefer_admin_redirect_option_key(): string
+{
+    return "upsellio_google_oauth_prefer_admin_redirect";
+}
+
+/**
+ * Gdy "1" — redirect_uri = REST `/wp-json/upsellio/v1/google-oauth-callback`.
+ * Gdy "0" lub brak wpisu (domyślnie) — `admin.php?page=…` (zwykle zgodne z wpisem w Google Cloud).
+ *
+ * Sufiks _v2: reset domyślny po wcześniejszym błędnym zapisie v1 (checkbox REST); stary klucz jest ignorowany.
+ */
+function upsellio_google_oauth_use_rest_callback_option_key(): string
+{
+    return "upsellio_google_oauth_use_rest_callback_v2";
+}
+
+function upsellio_google_oauth_use_rest_callback(): bool
+{
+    return (string) get_option(upsellio_google_oauth_use_rest_callback_option_key(), "0") === "1";
+}
+
+function upsellio_google_oauth_normalize_redirect_uri_string(string $url): string
+{
+    $url = trim($url);
+    if ($url === "") {
+        return "";
+    }
+
+    return untrailingslashit(esc_url_raw($url));
+}
+
+/**
+ * Dozwolone tylko URIs z hostem zgodnym z tym, co WordPress uważa za domenę witryny (bezpieczeństwo).
+ */
+function upsellio_google_oauth_redirect_uri_is_allowed_host(string $url): bool
+{
+    $p = wp_parse_url($url);
+    $host = isset($p["host"]) ? strtolower((string) $p["host"]) : "";
+    if ($host === "") {
+        return false;
+    }
+
+    $bases = [home_url(), site_url(), admin_url()];
+    if (function_exists("network_home_url")) {
+        $bases[] = network_home_url();
+        $bases[] = network_site_url();
+    }
+
+    foreach ($bases as $b) {
+        $bh = wp_parse_url($b, PHP_URL_HOST);
+        if ($bh && strtolower((string) $bh) === $host) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Domyślny redirect OAuth (bez filtra) — krótki URL REST; Google łatwiej wpisać niż admin.php?page=…
+ */
+function upsellio_google_oauth_rest_redirect_uri_default(): string
+{
+    return upsellio_google_oauth_normalize_redirect_uri_string((string) rest_url("upsellio/v1/google-oauth-callback"));
+}
+
+function upsellio_google_oauth_admin_redirect_uri_default(): string
+{
+    return upsellio_google_oauth_normalize_redirect_uri_string((string) upsellio_site_analytics_admin_url());
+}
+
+/**
  * Redirect URI rejestrowany w Google Cloud Console (OAuth client typ „Web application”).
+ * Musi być 1:1 taki sam jak w „Authorized redirect URIs” — inaczej Google: redirect_uri_mismatch.
+ *
+ * Domyślnie: `admin.php?page=…` — opcja „Używaj REST” w panelu przełącza na `/wp-json/upsellio/v1/google-oauth-callback`.
+ * Opcja `upsellio_google_oauth_redirect_uri_override`: wklej dokładnie URI z Google (ten sam host).
+ * Filtr: `upsellio_google_oauth_redirect_uri` — np. przy proxy lub niestandardowym URL.
  */
 function upsellio_google_oauth_redirect_uri()
 {
-    return admin_url("edit.php?page=upsellio-site-analytics");
+    $override = upsellio_google_oauth_normalize_redirect_uri_string(
+        (string) get_option(upsellio_google_oauth_redirect_uri_override_option_key(), "")
+    );
+    if ($override !== "" && filter_var($override, FILTER_VALIDATE_URL) && upsellio_google_oauth_redirect_uri_is_allowed_host($override)) {
+        return $override;
+    }
+
+    $use_rest = upsellio_google_oauth_use_rest_callback();
+    $uri = $use_rest
+        ? upsellio_google_oauth_rest_redirect_uri_default()
+        : upsellio_google_oauth_admin_redirect_uri_default();
+
+    return upsellio_google_oauth_normalize_redirect_uri_string((string) apply_filters("upsellio_google_oauth_redirect_uri", $uri));
+}
+
+/**
+ * Warianty redirect_uri (REST + legacy admin + http/https) — dodaj w Google te, które pasują do Twojej domeny.
+ *
+ * @return list<string>
+ */
+function upsellio_google_oauth_redirect_uri_variants(): array
+{
+    $primary = upsellio_google_oauth_redirect_uri();
+    $saved_override = upsellio_google_oauth_normalize_redirect_uri_string(
+        (string) get_option(upsellio_google_oauth_redirect_uri_override_option_key(), "")
+    );
+    $candidates = array_unique(
+        array_filter(
+            [
+                $primary,
+                $saved_override !== "" ? $saved_override : null,
+                upsellio_google_oauth_rest_redirect_uri_default(),
+                upsellio_google_oauth_admin_redirect_uri_default(),
+            ],
+            static function ($u) {
+                return is_string($u) && $u !== "";
+            }
+        )
+    );
+
+    $variants = [];
+    foreach ($candidates as $u) {
+        $u = upsellio_google_oauth_normalize_redirect_uri_string($u);
+        if ($u === "") {
+            continue;
+        }
+        $variants[] = $u;
+        if (strpos($u, "https://") === 0) {
+            $variants[] = preg_replace('#^https://#', "http://", $u, 1);
+        } elseif (strpos($u, "http://") === 0) {
+            $variants[] = preg_replace('#^http://#', "https://", $u, 1);
+        }
+    }
+
+    $variants = array_values(array_unique(array_filter($variants)));
+
+    /**
+     * @param list<string> $variants
+     * @param string       $primary
+     */
+    $out = apply_filters("upsellio_google_oauth_redirect_uri_variants", $variants, $primary);
+
+    return is_array($out) ? array_values(array_unique(array_filter(array_map("strval", $out)))) : $variants;
+}
+
+/**
+ * OAuth wraca na REST; przekazujemy parametry do istniejącego handlera admin (wymiana kodu na token).
+ */
+function upsellio_register_google_oauth_rest_callback(): void
+{
+    register_rest_route("upsellio/v1", "/google-oauth-callback", [
+        "methods" => "GET",
+        "callback" => "upsellio_handle_google_oauth_rest_callback",
+        "permission_callback" => "__return_true",
+    ]);
+}
+add_action("rest_api_init", "upsellio_register_google_oauth_rest_callback");
+
+function upsellio_handle_google_oauth_rest_callback(WP_REST_Request $request)
+{
+    $args = array_filter(
+        [
+            "page" => upsellio_site_analytics_page_slug(),
+            "code" => $request->get_param("code"),
+            "state" => $request->get_param("state"),
+            "error" => $request->get_param("error"),
+            "error_description" => $request->get_param("error_description"),
+        ],
+        static function ($v) {
+            return $v !== null && $v !== "";
+        }
+    );
+
+    $target = add_query_arg($args, admin_url("admin.php"));
+    if (!is_user_logged_in()) {
+        wp_safe_redirect(wp_login_url($target));
+        exit;
+    }
+
+    wp_safe_redirect($target);
+    exit;
 }
 
 function upsellio_google_oauth_scope_string()
 {
-    $scopes = [
+    $default = [
         "https://www.googleapis.com/auth/webmasters.readonly",
         "https://www.googleapis.com/auth/analytics.readonly",
     ];
+    if ((string) get_option("upsellio_google_ads_include_scope", "0") === "1") {
+        $default[] = "https://www.googleapis.com/auth/adwords";
+    }
+    $scopes = apply_filters("upsellio_google_oauth_scopes", $default);
+    if (!is_array($scopes)) {
+        $scopes = $default;
+    }
+    $scopes = array_values(array_unique(array_filter(array_map("strval", $scopes))));
 
     return implode(" ", $scopes);
+}
+
+function upsellio_google_ads_config_option_key(): string
+{
+    return "upsellio_google_ads_config";
+}
+
+/**
+ * @return array{developer_token:string,customer_id:string,login_customer_id:string}
+ */
+function upsellio_google_ads_get_settings(): array
+{
+    $raw = get_option(upsellio_google_ads_config_option_key(), []);
+    if (!is_array($raw)) {
+        $raw = [];
+    }
+
+    return [
+        "developer_token" => trim((string) ($raw["developer_token"] ?? "")),
+        "customer_id" => upsellio_google_ads_normalize_customer_id((string) ($raw["customer_id"] ?? "")),
+        "login_customer_id" => upsellio_google_ads_normalize_customer_id((string) ($raw["login_customer_id"] ?? "")),
+    ];
+}
+
+function upsellio_google_ads_normalize_customer_id(string $value): string
+{
+    $digits = preg_replace("/\D+/", "", $value);
+
+    return $digits;
+}
+
+/**
+ * Wersja Google Ads API (ścieżka REST), np. v17.
+ */
+function upsellio_google_ads_api_version(): string
+{
+    $v = apply_filters("upsellio_google_ads_api_version", "v17");
+    $v = trim((string) $v);
+    if ($v === "" || !preg_match('/^v\d+$/', $v)) {
+        return "v17";
+    }
+
+    return $v;
+}
+
+function upsellio_google_ads_rest_base_url(): string
+{
+    return "https://googleads.googleapis.com/" . upsellio_google_ads_api_version();
+}
+
+/**
+ * Nagłówki wymagane przez Google Ads API (REST).
+ *
+ * @return array<string, string>
+ */
+function upsellio_google_ads_request_headers(string $access_token): array
+{
+    $access_token = trim($access_token);
+    $cfg = upsellio_google_ads_get_settings();
+    $headers = [
+        "Authorization" => "Bearer " . $access_token,
+        "developer-token" => $cfg["developer_token"],
+    ];
+    if ($cfg["login_customer_id"] !== "") {
+        $headers["login-customer-id"] = $cfg["login_customer_id"];
+    }
+
+    return $headers;
+}
+
+/**
+ * Minimalna walidacja gotowości do wywołań API (Bearer + developer token + CID + zakres adwords w cache).
+ */
+function upsellio_google_ads_api_ready(): bool
+{
+    $c = upsellio_get_gsc_credentials();
+    if (trim((string) ($c["refresh_token"] ?? "")) === "") {
+        return false;
+    }
+    $cfg = upsellio_google_ads_get_settings();
+    if ($cfg["developer_token"] === "" || $cfg["customer_id"] === "") {
+        return false;
+    }
+    $snap = upsellio_google_get_permission_snapshot();
+
+    return !empty($snap["has_google_ads"]);
+}
+
+/**
+ * Lista kont dostępnych dla tokena (diagnostyka połączenia).
+ *
+ * @return array|\WP_Error
+ */
+function upsellio_google_ads_list_accessible_customers(string $trace_id = "")
+{
+    $cfg = upsellio_google_ads_get_settings();
+    if ($cfg["developer_token"] === "") {
+        return new WP_Error("upsellio_gads_no_dev_token", "Uzupełnij Developer token w ustawieniach Google Ads.");
+    }
+
+    $creds = upsellio_get_gsc_credentials();
+    $token = upsellio_gsc_get_access_token($creds, $trace_id);
+    if (is_wp_error($token)) {
+        return $token;
+    }
+
+    $url = upsellio_google_ads_rest_base_url() . "/customers:listAccessibleCustomers";
+    $headers = upsellio_google_ads_request_headers((string) $token);
+    $response = wp_remote_get($url, [
+        "timeout" => 25,
+        "headers" => $headers,
+    ]);
+
+    if (is_wp_error($response)) {
+        return $response;
+    }
+
+    $code = (int) wp_remote_retrieve_response_code($response);
+    $body_raw = (string) wp_remote_retrieve_body($response);
+    $body = json_decode($body_raw, true);
+    if ($code >= 400) {
+        $msg = upsellio_gsc_extract_error_message(is_array($body) ? $body : [], "Google Ads API HTTP " . $code);
+
+        return new WP_Error("upsellio_gads_http", $msg);
+    }
+
+    return is_array($body) ? $body : [];
+}
+
+/**
+ * Opcja z cache’m zakresów OAuth (jak Rank Math: tokeninfo po dostępie).
+ */
+function upsellio_google_oauth_permissions_option_key(): string
+{
+    return "upsellio_google_oauth_permissions";
+}
+
+/**
+ * Normalizacja listy zakresów z pola „scope” (tokeninfo).
+ *
+ * @return array<int, string>
+ */
+function upsellio_google_normalize_scope_fragments(string $scope_raw): array
+{
+    $scope_raw = trim($scope_raw);
+    if ($scope_raw === "") {
+        return [];
+    }
+    $parts = preg_split("/\s+/", $scope_raw);
+    $out = [];
+    foreach ($parts as $p) {
+        $p = trim((string) $p);
+        if ($p === "") {
+            continue;
+        }
+        $p = str_replace("https://www.googleapis.com/auth/", "", $p);
+        $out[] = $p;
+    }
+
+    return array_values(array_unique($out));
+}
+
+/**
+ * Zapisuje skrócone nazwy zakresów po tokeninfo (Rank Math robi to samo w Permissions::fetch).
+ *
+ * @return array<int, string>|null
+ */
+function upsellio_google_fetch_and_store_permissions_from_access_token(string $access_token)
+{
+    $access_token = trim($access_token);
+    if ($access_token === "") {
+        delete_option(upsellio_google_oauth_permissions_option_key());
+
+        return null;
+    }
+
+    $url = "https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=" . rawurlencode($access_token);
+    $response = wp_remote_get($url, ["timeout" => 12]);
+    if (is_wp_error($response)) {
+        upsellio_gsc_log("google.permissions.tokeninfo_error", ["message" => $response->get_error_message()], upsellio_gsc_debug_trace_id());
+
+        return null;
+    }
+    if ((int) wp_remote_retrieve_response_code($response) !== 200) {
+        upsellio_gsc_log("google.permissions.tokeninfo_http", ["status" => (int) wp_remote_retrieve_response_code($response)], upsellio_gsc_debug_trace_id());
+
+        return null;
+    }
+
+    $body = json_decode((string) wp_remote_retrieve_body($response), true);
+    $scope_raw = is_array($body) ? (string) ($body["scope"] ?? "") : "";
+    $scopes = upsellio_google_normalize_scope_fragments($scope_raw);
+    update_option(
+        upsellio_google_oauth_permissions_option_key(),
+        [
+            "scopes" => $scopes,
+            "checked_at" => current_time("mysql"),
+        ],
+        false
+    );
+
+    return $scopes;
+}
+
+/**
+ * @return array{scopes: array<int, string>, checked_at: string, has_console: bool, has_analytics: bool, has_adsense: bool, has_google_ads: bool}
+ */
+function upsellio_google_get_permission_snapshot(): array
+{
+    $opt = get_option(upsellio_google_oauth_permissions_option_key(), []);
+    if (!is_array($opt)) {
+        $opt = [];
+    }
+    $scopes = isset($opt["scopes"]) && is_array($opt["scopes"]) ? $opt["scopes"] : [];
+    $scopes = array_map("strval", $scopes);
+
+    $has_console = false;
+    foreach (["webmasters", "webmasters.readonly"] as $s) {
+        if (in_array($s, $scopes, true)) {
+            $has_console = true;
+            break;
+        }
+    }
+
+    $has_analytics = false;
+    foreach ($scopes as $s) {
+        if (
+            $s === "analytics.readonly"
+            || $s === "analytics.edit"
+            || $s === "analytics.provision"
+            || strpos($s, "analytics") === 0
+        ) {
+            $has_analytics = true;
+            break;
+        }
+    }
+
+    $has_adsense = in_array("adsense.readonly", $scopes, true);
+    $has_google_ads = in_array("adwords", $scopes, true);
+
+    return [
+        "scopes" => $scopes,
+        "checked_at" => (string) ($opt["checked_at"] ?? ""),
+        "has_console" => $has_console,
+        "has_analytics" => $has_analytics,
+        "has_adsense" => $has_adsense,
+        "has_google_ads" => $has_google_ads,
+    ];
 }
 
 function upsellio_google_oauth_transient_key($user_id)
@@ -905,7 +1427,7 @@ function upsellio_google_oauth_handle_callback()
     if (!is_admin() || !current_user_can("edit_posts")) {
         return;
     }
-    if (!isset($_GET["page"]) || (string) $_GET["page"] !== "upsellio-site-analytics") {
+    if (!isset($_GET["page"]) || (string) wp_unslash($_GET["page"]) !== upsellio_site_analytics_page_slug()) {
         return;
     }
 
@@ -923,13 +1445,9 @@ function upsellio_google_oauth_handle_callback()
         $desc = isset($_GET["error_description"]) ? sanitize_text_field((string) wp_unslash($_GET["error_description"])) : "";
         $msg = $desc !== "" ? "{$err}: {$desc}" : $err;
         wp_safe_redirect(
-            add_query_arg(
-                [
-                    "page" => "upsellio-site-analytics",
-                    "upsellio_google_oauth_error" => rawurlencode($msg),
-                ],
-                admin_url("edit.php")
-            )
+            upsellio_site_analytics_admin_url([
+                "upsellio_google_oauth_error" => rawurlencode($msg),
+            ])
         );
         exit;
     }
@@ -943,13 +1461,9 @@ function upsellio_google_oauth_handle_callback()
     $pending = upsellio_google_oauth_get_pending($uid);
     if ($pending === null || !hash_equals($pending["state"], $state_in)) {
         wp_safe_redirect(
-            add_query_arg(
-                [
-                    "page" => "upsellio-site-analytics",
-                    "upsellio_google_oauth_error" => rawurlencode("Nieprawidłowy stan OAuth (odśwież stronę i spróbuj ponownie)."),
-                ],
-                admin_url("edit.php")
-            )
+            upsellio_site_analytics_admin_url([
+                "upsellio_google_oauth_error" => rawurlencode("Nieprawidłowy stan OAuth (odśwież stronę i spróbuj ponownie)."),
+            ])
         );
         exit;
     }
@@ -961,13 +1475,9 @@ function upsellio_google_oauth_handle_callback()
     $client_secret = (string) ($creds["client_secret"] ?? "");
     if ($client_id === "" || $client_secret === "") {
         wp_safe_redirect(
-            add_query_arg(
-                [
-                    "page" => "upsellio-site-analytics",
-                    "upsellio_google_oauth_error" => rawurlencode("Brak Client ID / Secret — uzupełnij je przed autoryzacją."),
-                ],
-                admin_url("edit.php")
-            )
+            upsellio_site_analytics_admin_url([
+                "upsellio_google_oauth_error" => rawurlencode("Brak Client ID / Secret — uzupełnij je przed autoryzacją."),
+            ])
         );
         exit;
     }
@@ -989,13 +1499,9 @@ function upsellio_google_oauth_handle_callback()
     if (is_wp_error($response)) {
         upsellio_gsc_log("google.oauth.code_exchange.wp_error", ["message" => $response->get_error_message()], $trace_id);
         wp_safe_redirect(
-            add_query_arg(
-                [
-                    "page" => "upsellio-site-analytics",
-                    "upsellio_google_oauth_error" => rawurlencode($response->get_error_message()),
-                ],
-                admin_url("edit.php")
-            )
+            upsellio_site_analytics_admin_url([
+                "upsellio_google_oauth_error" => rawurlencode($response->get_error_message()),
+            ])
         );
         exit;
     }
@@ -1011,13 +1517,9 @@ function upsellio_google_oauth_handle_callback()
     if ($status >= 400) {
         $msg = upsellio_gsc_extract_error_message(is_array($body) ? $body : [], "Wymiana kodu OAuth nie powiodła się.");
         wp_safe_redirect(
-            add_query_arg(
-                [
-                    "page" => "upsellio-site-analytics",
-                    "upsellio_google_oauth_error" => rawurlencode($msg),
-                ],
-                admin_url("edit.php")
-            )
+            upsellio_site_analytics_admin_url([
+                "upsellio_google_oauth_error" => rawurlencode($msg),
+            ])
         );
         exit;
     }
@@ -1027,13 +1529,9 @@ function upsellio_google_oauth_handle_callback()
     $refresh_to_store = $new_refresh !== "" ? $new_refresh : $existing_refresh;
     if ($refresh_to_store === "") {
         wp_safe_redirect(
-            add_query_arg(
-                [
-                    "page" => "upsellio-site-analytics",
-                    "upsellio_google_oauth_error" => rawurlencode("Google nie zwrócił refresh tokena. Usuń powiązanie aplikacji w ustawieniach konta Google i spróbuj ponownie z prompt=consent (użyj ponownie przycisku autoryzacji)."),
-                ],
-                admin_url("edit.php")
-            )
+            upsellio_site_analytics_admin_url([
+                "upsellio_google_oauth_error" => rawurlencode("Google nie zwrócił refresh tokena. Usuń powiązanie aplikacji w ustawieniach konta Google i spróbuj ponownie z prompt=consent (użyj ponownie przycisku autoryzacji)."),
+            ])
         );
         exit;
     }
@@ -1047,16 +1545,17 @@ function upsellio_google_oauth_handle_callback()
         upsellio_save_ga4_property_id($pending["ga4_property_id"]);
     }
 
+    $access_from_body = is_array($body) ? trim((string) ($body["access_token"] ?? "")) : "";
+    if ($access_from_body !== "") {
+        upsellio_google_fetch_and_store_permissions_from_access_token($access_from_body);
+    }
+
     upsellio_gsc_log("google.oauth.code_exchange.success", ["trace_id" => $trace_id], $trace_id);
 
     wp_safe_redirect(
-        add_query_arg(
-            [
-                "page" => "upsellio-site-analytics",
-                "upsellio_google_connected" => "1",
-            ],
-            admin_url("edit.php")
-        )
+        upsellio_site_analytics_admin_url([
+            "upsellio_google_connected" => "1",
+        ])
     );
     exit;
 }
@@ -1073,6 +1572,25 @@ function upsellio_google_oauth_handle_start()
     }
 
     check_admin_referer("upsellio_google_oauth_start_action", "upsellio_google_oauth_start_nonce");
+
+    if (function_exists("upsellio_google_managed_oauth_try_handle_connect_post")) {
+        upsellio_google_managed_oauth_try_handle_connect_post();
+    }
+
+    if (isset($_POST["g_oauth_redirect_uri_override"])) {
+        $ov_raw = trim(wp_unslash((string) $_POST["g_oauth_redirect_uri_override"]));
+        if ($ov_raw === "") {
+            delete_option(upsellio_google_oauth_redirect_uri_override_option_key());
+        } elseif (filter_var($ov_raw, FILTER_VALIDATE_URL)) {
+            $ov_norm = upsellio_google_oauth_normalize_redirect_uri_string(esc_url_raw($ov_raw));
+            if (upsellio_google_oauth_redirect_uri_is_allowed_host($ov_norm)) {
+                update_option(upsellio_google_oauth_redirect_uri_override_option_key(), $ov_norm, false);
+            }
+        }
+    }
+
+    $use_rest_on = isset($_POST["upsellio_google_oauth_use_rest"]) && (string) wp_unslash($_POST["upsellio_google_oauth_use_rest"]) === "1";
+    update_option(upsellio_google_oauth_use_rest_callback_option_key(), $use_rest_on ? "1" : "0", false);
 
     $client_id = isset($_POST["g_oauth_client_id"]) ? wp_unslash($_POST["g_oauth_client_id"]) : "";
     $client_secret = isset($_POST["g_oauth_client_secret"]) ? wp_unslash($_POST["g_oauth_client_secret"]) : "";
@@ -1100,13 +1618,9 @@ function upsellio_google_oauth_handle_start()
     $saved = upsellio_get_gsc_credentials();
     if ($saved["client_id"] === "" || $saved["client_secret"] === "") {
         wp_safe_redirect(
-            add_query_arg(
-                [
-                    "page" => "upsellio-site-analytics",
-                    "upsellio_google_oauth_error" => rawurlencode("Uzupełnij Client ID i Client Secret z Google Cloud Console."),
-                ],
-                admin_url("edit.php")
-            )
+            upsellio_site_analytics_admin_url([
+                "upsellio_google_oauth_error" => rawurlencode("Uzupełnij Client ID i Client Secret z Google Cloud Console."),
+            ])
         );
         exit;
     }
@@ -1114,6 +1628,9 @@ function upsellio_google_oauth_handle_start()
     if (trim((string) $ga4_id_in) !== "") {
         upsellio_save_ga4_property_id($ga4_id_in);
     }
+
+    $ads_scope_on = isset($_POST["g_oauth_include_google_ads"]) && (string) wp_unslash($_POST["g_oauth_include_google_ads"]) === "1";
+    update_option("upsellio_google_ads_include_scope", $ads_scope_on ? "1" : "0", false);
 
     $state = bin2hex(random_bytes(16));
     $uid = get_current_user_id();
@@ -1127,10 +1644,12 @@ function upsellio_google_oauth_handle_start()
         15 * MINUTE_IN_SECONDS
     );
 
+    $redirect_uri = upsellio_google_oauth_redirect_uri();
+
     $auth_url = add_query_arg(
         [
             "client_id" => $saved["client_id"],
-            "redirect_uri" => upsellio_google_oauth_redirect_uri(),
+            "redirect_uri" => $redirect_uri,
             "response_type" => "code",
             "scope" => upsellio_google_oauth_scope_string(),
             "access_type" => "offline",
@@ -1141,9 +1660,16 @@ function upsellio_google_oauth_handle_start()
         "https://accounts.google.com/o/oauth2/v2/auth"
     );
 
-    upsellio_gsc_log("google.oauth.redirect", ["user_id" => $uid], upsellio_gsc_debug_trace_id());
+    upsellio_gsc_log("google.oauth.redirect", [
+        "user_id" => $uid,
+        "redirect_uri" => $redirect_uri,
+        "oauth_redirect_mode" => upsellio_google_oauth_use_rest_callback() ? "rest" : "admin",
+        "redirect_uri_variants_hint" => upsellio_google_oauth_redirect_uri_variants(),
+        "oauth_client_id" => $saved["client_id"],
+    ], upsellio_gsc_debug_trace_id());
 
-    wp_safe_redirect($auth_url);
+    // Nie używaj wp_safe_redirect — blokuje host accounts.google.com i wpada w fallback admin_url() (kokpit).
+    wp_redirect(esc_url_raw($auth_url));
     exit;
 }
 add_action("admin_init", "upsellio_google_oauth_handle_start", 2);
@@ -1167,19 +1693,129 @@ function upsellio_google_oauth_handle_disconnect()
         "",
         (string) ($c["property"] ?? "")
     );
+    delete_option(upsellio_google_oauth_permissions_option_key());
 
     wp_safe_redirect(
-        add_query_arg(
-            [
-                "page" => "upsellio-site-analytics",
-                "upsellio_google_disconnected" => "1",
-            ],
-            admin_url("edit.php")
-        )
+        upsellio_site_analytics_admin_url([
+            "upsellio_google_disconnected" => "1",
+        ])
     );
     exit;
 }
 add_action("admin_init", "upsellio_google_oauth_handle_disconnect", 2);
+
+function upsellio_google_handle_permissions_refresh(): void
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+    if (!isset($_POST["upsellio_google_permissions_refresh"])) {
+        return;
+    }
+    check_admin_referer("upsellio_google_permissions_refresh_action", "upsellio_google_permissions_refresh_nonce");
+
+    $creds = upsellio_get_gsc_credentials();
+    $at = upsellio_gsc_get_access_token($creds, upsellio_gsc_debug_trace_id());
+    if (!is_wp_error($at) && is_string($at) && $at !== "") {
+        upsellio_google_fetch_and_store_permissions_from_access_token($at);
+    }
+
+    wp_safe_redirect(
+        upsellio_site_analytics_admin_url([
+            "upsellio_google_perm_refreshed" => "1",
+        ])
+    );
+    exit;
+}
+add_action("admin_init", "upsellio_google_handle_permissions_refresh", 2);
+
+function upsellio_google_handle_ads_scope_pref_save(): void
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+    if (!isset($_POST["upsellio_google_ads_scope_save"])) {
+        return;
+    }
+    check_admin_referer("upsellio_google_ads_scope_action", "upsellio_google_ads_scope_nonce");
+    $on = isset($_POST["upsellio_google_ads_include_scope"]) && (string) wp_unslash($_POST["upsellio_google_ads_include_scope"]) === "1";
+    update_option("upsellio_google_ads_include_scope", $on ? "1" : "0", false);
+    wp_safe_redirect(upsellio_site_analytics_admin_url(["upsellio_google_ads_scope_saved" => "1"]));
+    exit;
+}
+add_action("admin_init", "upsellio_google_handle_ads_scope_pref_save", 2);
+
+function upsellio_google_handle_oauth_redirect_mode_save(): void
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+    if (!isset($_POST["upsellio_google_oauth_redirect_mode_save"])) {
+        return;
+    }
+    check_admin_referer("upsellio_google_oauth_redirect_mode_action", "upsellio_google_oauth_redirect_mode_nonce");
+    $use_rest_on = isset($_POST["upsellio_google_oauth_use_rest"]) && (string) wp_unslash($_POST["upsellio_google_oauth_use_rest"]) === "1";
+    update_option(upsellio_google_oauth_use_rest_callback_option_key(), $use_rest_on ? "1" : "0", false);
+    wp_safe_redirect(upsellio_site_analytics_admin_url(["upsellio_google_oauth_redirect_mode_saved" => "1"]));
+    exit;
+}
+add_action("admin_init", "upsellio_google_handle_oauth_redirect_mode_save", 2);
+
+function upsellio_google_ads_handle_settings_save(): void
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+    if (!isset($_POST["upsellio_google_ads_config_save"])) {
+        return;
+    }
+    check_admin_referer("upsellio_google_ads_config_action", "upsellio_google_ads_config_nonce");
+    $cfg = [
+        "developer_token" => isset($_POST["upsellio_gads_developer_token"])
+            ? sanitize_text_field(wp_unslash($_POST["upsellio_gads_developer_token"]))
+            : "",
+        "customer_id" => upsellio_google_ads_normalize_customer_id(
+            isset($_POST["upsellio_gads_customer_id"]) ? (string) wp_unslash($_POST["upsellio_gads_customer_id"]) : ""
+        ),
+        "login_customer_id" => upsellio_google_ads_normalize_customer_id(
+            isset($_POST["upsellio_gads_login_customer_id"]) ? (string) wp_unslash($_POST["upsellio_gads_login_customer_id"]) : ""
+        ),
+    ];
+    update_option(upsellio_google_ads_config_option_key(), $cfg, false);
+    wp_safe_redirect(upsellio_site_analytics_admin_url(["upsellio_google_ads_saved" => "1"]));
+    exit;
+}
+add_action("admin_init", "upsellio_google_ads_handle_settings_save", 2);
+
+function upsellio_google_ads_handle_test_connection(): void
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+    if (!isset($_POST["upsellio_google_ads_test_submit"])) {
+        return;
+    }
+    check_admin_referer("upsellio_google_ads_test_action", "upsellio_google_ads_test_nonce");
+    $trace_id = upsellio_gsc_debug_trace_id();
+    $result = upsellio_google_ads_list_accessible_customers($trace_id);
+    if (is_wp_error($result)) {
+        set_transient(
+            "upsellio_gads_test_err_" . get_current_user_id(),
+            $result->get_error_message(),
+            120
+        );
+        wp_safe_redirect(upsellio_site_analytics_admin_url(["upsellio_google_ads_test" => "err"]));
+        exit;
+    }
+    $json = wp_json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    if (!is_string($json)) {
+        $json = "{}";
+    }
+    set_transient("upsellio_gads_test_ok_" . get_current_user_id(), $json, 120);
+    wp_safe_redirect(upsellio_site_analytics_admin_url(["upsellio_google_ads_test" => "ok"]));
+    exit;
+}
+add_action("admin_init", "upsellio_google_ads_handle_test_connection", 2);
 
 /**
  * Numeryczne ID właściwości GA4 (Admin → Ustawienia właściwości).
@@ -1489,14 +2125,10 @@ function upsellio_handle_ga4_sync_submit()
     if (is_wp_error($rows)) {
         upsellio_gsc_log("ga4.sync.failed", ["message" => $rows->get_error_message()], $trace_id);
         wp_safe_redirect(
-            add_query_arg(
-                [
-                    "page" => "upsellio-site-analytics",
-                    "upsellio_ga4_error" => rawurlencode($rows->get_error_message()),
-                    "upsellio_ga4_trace_id" => rawurlencode($trace_id),
-                ],
-                admin_url("edit.php")
-            )
+            upsellio_site_analytics_admin_url([
+                "upsellio_ga4_error" => rawurlencode($rows->get_error_message()),
+                "upsellio_ga4_trace_id" => rawurlencode($trace_id),
+            ])
         );
         exit;
     }
@@ -1505,14 +2137,10 @@ function upsellio_handle_ga4_sync_submit()
     upsellio_gsc_log("ga4.sync.success", ["rows" => count($rows)], $trace_id);
 
     wp_safe_redirect(
-        add_query_arg(
-            [
-                "page" => "upsellio-site-analytics",
-                "upsellio_ga4_synced" => (string) count($rows),
-                "upsellio_ga4_trace_id" => rawurlencode($trace_id),
-            ],
-            admin_url("edit.php")
-        )
+        upsellio_site_analytics_admin_url([
+            "upsellio_ga4_synced" => (string) count($rows),
+            "upsellio_ga4_trace_id" => rawurlencode($trace_id),
+        ])
     );
     exit;
 }
@@ -1710,6 +2338,8 @@ function upsellio_render_site_analytics_page()
         return;
     }
 
+    $upsellio_sa_form_action = upsellio_site_analytics_admin_url();
+
     $days = isset($_GET["range"]) ? (int) $_GET["range"] : 30;
     $days = in_array($days, [7, 14, 30, 60, 90], true) ? $days : 30;
     $dates = upsellio_get_analytics_dates($days);
@@ -1821,6 +2451,22 @@ function upsellio_render_site_analytics_page()
     $ga4_last = (string) get_option("ups_automation_ga4_last_sync", "");
     $ga4_ui_days = (int) get_option("upsellio_ga4_sync_days_last", 30);
     $ga4_ui_days = in_array($ga4_ui_days, [7, 14, 30, 60, 90], true) ? $ga4_ui_days : 30;
+    $google_perm = upsellio_google_get_permission_snapshot();
+    $gads_cfg = upsellio_google_ads_get_settings();
+    $gads_scope_on = (string) get_option("upsellio_google_ads_include_scope", "0") === "1";
+    $g_oauth_redirect_uri_override_val = (string) get_option(upsellio_google_oauth_redirect_uri_override_option_key(), "");
+    $g_oauth_use_rest = upsellio_google_oauth_use_rest_callback();
+    $ups_managed_google_oauth = function_exists("upsellio_google_managed_oauth_is_active") && upsellio_google_managed_oauth_is_active();
+    $gads_ready = upsellio_google_ads_api_ready();
+    $gads_test_uid = get_current_user_id();
+    $gads_test_err_msg = get_transient("upsellio_gads_test_err_" . $gads_test_uid);
+    if ($gads_test_err_msg !== false) {
+        delete_transient("upsellio_gads_test_err_" . $gads_test_uid);
+    }
+    $gads_test_ok_body = get_transient("upsellio_gads_test_ok_" . $gads_test_uid);
+    if ($gads_test_ok_body !== false) {
+        delete_transient("upsellio_gads_test_ok_" . $gads_test_uid);
+    }
     $keyword_source = (string) get_option("upsellio_keyword_metrics_source", "csv_import");
     $last_sync = (string) get_option("upsellio_keyword_metrics_last_sync", "");
     if ($keyword_source === "gsc_live") {
@@ -1874,8 +2520,8 @@ function upsellio_render_site_analytics_page()
         <p>Panel łączy odsłony stron, trendy ruchu, pozycje słów kluczowych (z importu CSV) i konwersje z CRM, a następnie generuje rekomendacje optymalizacji per URL.</p>
         <p><strong>Źródło danych keywordów:</strong> <?php echo esc_html($source_label); ?><?php echo $last_sync !== "" ? " · ostatnia synchronizacja: " . esc_html($last_sync) : ""; ?></p>
 
-        <form method="get" action="<?php echo esc_url(admin_url("edit.php")); ?>">
-          <input type="hidden" name="page" value="upsellio-site-analytics" />
+        <form method="get" action="<?php echo esc_url(admin_url("admin.php")); ?>">
+          <input type="hidden" name="page" value="<?php echo esc_attr(upsellio_site_analytics_page_slug()); ?>" />
           <label>
             Zakres danych:
             <select name="range" onchange="this.form.submit()">
@@ -2086,6 +2732,52 @@ function upsellio_render_site_analytics_page()
 
         <div class="ups-import-box">
           <h2 style="margin-top:0;">Google — logowanie przez konto Gmail (GSC + GA4)</h2>
+          <details style="margin:0 0 14px;font-size:13px;color:#5f6368;">
+            <summary style="cursor:pointer;font-weight:600;color:#1d2327;">Jak to robi Rank Math vs Upsellio</summary>
+            <p style="margin:10px 0 0;line-height:1.55;">
+              Wtyczka <strong>Rank Math</strong> kieruje Cię na ich serwer <code>oauth.rankmath.com</code> — Google widzi aplikację Rank Math;
+              tokeny wracają do WordPressa już po autoryzacji (wygodne, bez własnego OAuth Client ID).
+              <strong>Upsellio</strong> używa <strong>Twojego</strong> klienta OAuth z Google Cloud (jak „własna aplikacja”) —
+              ten sam mechanizm Google, ale redirect URI i Client ID są pod Twoją domeną.
+              Rank Math w darmowej wersji łączy Search Console, Analytics i <em>AdSense</em>. W Upsellio możesz dodać zakres OAuth
+              <code>adwords</code> i zapisać developer token / Customer ID pod wywołania Google Ads API (sekcja niżej).
+              GA4 używa zakresu <code>analytics.readonly</code>.
+            </p>
+          </details>
+          <?php if ($gsc_credentials["refresh_token"] !== "") : ?>
+            <table class="widefat" style="max-width:720px;margin-bottom:14px;">
+              <thead><tr><th>Uprawnienie Google (tokeninfo)</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>Search Console (GSC)</td>
+                  <td><?php echo $google_perm["has_console"] ? "<span style=\"color:#0a0;font-weight:700;\">tak</span>" : "<span style=\"color:#a00;\">brak</span>"; ?></td>
+                </tr>
+                <tr>
+                  <td>Google Analytics (Data API / GA4)</td>
+                  <td><?php echo $google_perm["has_analytics"] ? "<span style=\"color:#0a0;font-weight:700;\">tak</span>" : "<span style=\"color:#a00;\">brak</span>"; ?></td>
+                </tr>
+                <tr>
+                  <td>AdSense (tylko jeśli dodasz zakres <code>adsense.readonly</code> przez filtr)</td>
+                  <td><?php echo $google_perm["has_adsense"] ? "<span style=\"color:#0a0;font-weight:700;\">tak</span>" : "<span style=\"color:#666;\">—</span>"; ?></td>
+                </tr>
+                <tr>
+                  <td>Google Ads API (<code>https://www.googleapis.com/auth/adwords</code>)</td>
+                  <td><?php echo !empty($google_perm["has_google_ads"]) ? "<span style=\"color:#0a0;font-weight:700;\">tak</span>" : "<span style=\"color:#a00;\">brak</span>"; ?></td>
+                </tr>
+              </tbody>
+            </table>
+            <?php if ($google_perm["checked_at"] !== "") : ?>
+              <p class="description" style="margin:-6px 0 10px;">Ostatnie sprawdzenie zakresów: <?php echo esc_html($google_perm["checked_at"]); ?> (zapis <code>tokeninfo</code>).</p>
+            <?php endif; ?>
+            <form method="post" action="<?php echo esc_url($upsellio_sa_form_action); ?>" style="margin-bottom:16px;">
+              <?php wp_nonce_field("upsellio_google_permissions_refresh_action", "upsellio_google_permissions_refresh_nonce"); ?>
+              <input type="hidden" name="upsellio_google_permissions_refresh" value="1" />
+              <button type="submit" class="button">Odśwież status uprawnień (tokeninfo)</button>
+            </form>
+          <?php endif; ?>
+          <?php if (isset($_GET["upsellio_google_perm_refreshed"])) : ?>
+            <div class="notice notice-success inline"><p>Zaktualizowano listę przyznanych zakresów OAuth.</p></div>
+          <?php endif; ?>
           <?php if (isset($_GET["upsellio_google_connected"])) : ?>
             <div class="notice notice-success inline"><p>Konto Google połączone. Refresh token zapisany — możesz zsynchronizować GSC i GA4 poniżej.</p></div>
           <?php endif; ?>
@@ -2095,14 +2787,94 @@ function upsellio_render_site_analytics_page()
           <?php if (isset($_GET["upsellio_google_oauth_error"])) : ?>
             <div class="notice notice-error inline"><p>OAuth Google: <?php echo esc_html(rawurldecode((string) $_GET["upsellio_google_oauth_error"])); ?></p></div>
           <?php endif; ?>
+          <?php if (isset($_GET["upsellio_google_ads_scope_saved"])) : ?>
+            <div class="notice notice-success inline"><p>Zapisano preferencję zakresu Google Ads (obowiązuje przy następnym logowaniu przez Google).</p></div>
+          <?php endif; ?>
+          <?php if (isset($_GET["upsellio_google_oauth_redirect_mode_saved"])) : ?>
+            <div class="notice notice-success inline"><p>Zapisano sposób callback OAuth (REST vs panel admin). Sprawdź niebieskie pole „Redirect URI” — w Google musi być wpisany dokładnie ten adres.</p></div>
+          <?php endif; ?>
+          <?php if (isset($_GET["upsellio_google_ads_saved"])) : ?>
+            <div class="notice notice-success inline"><p>Zapisano ustawienia Google Ads API (developer token / Customer ID).</p></div>
+          <?php endif; ?>
+          <?php if (isset($_GET["upsellio_google_ads_test"]) && (string) $_GET["upsellio_google_ads_test"] === "err" && is_string($gads_test_err_msg)) : ?>
+            <div class="notice notice-error inline"><p>Test Google Ads API: <?php echo esc_html($gads_test_err_msg); ?></p></div>
+          <?php endif; ?>
+          <?php if (isset($_GET["upsellio_google_ads_test"]) && (string) $_GET["upsellio_google_ads_test"] === "ok" && is_string($gads_test_ok_body)) : ?>
+            <div class="notice notice-success inline"><p>Odpowiedź <code>customers:listAccessibleCustomers</code>:</p><pre style="max-height:200px;overflow:auto;background:#f6f8fa;padding:8px;"><?php echo esc_html($gads_test_ok_body); ?></pre></div>
+          <?php endif; ?>
+          <?php if ($ups_managed_google_oauth) : ?>
+            <div class="notice notice-success inline" style="max-width:720px;"><p style="margin:0;font-size:13px;"><strong>Tryb Upsellio Connect (zarządzany OAuth)</strong> — nie musisz tworzyć projektu ani redirectów w Google Cloud. Po kliknięciu „Zaloguj przez Google” otworzy się most Upsellio; po zalogowaniu kontem Google token zapisze się w WordPressie. Wymaga wdrożonego serwera mostu i stałych <code>UPSELLIO_MANAGED_GOOGLE_OAUTH_*</code> w <code>wp-config.php</code>.</p></div>
+          <?php else : ?>
           <p style="font-size:13px;color:#3f3f39;">
-            W <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console</a> utwórz klienta OAuth typu <strong>Web application</strong> i dodaj dokładnie ten adres jako <strong>Authorized redirect URI</strong>:
+            W <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console</a> → <strong>APIs &amp; Services</strong> → <strong>Credentials</strong> → wybierz <strong>ten sam</strong> projekt i ten sam <strong>OAuth 2.0 Client ID</strong>, którego numer masz w polu Client ID poniżej (typ klienta: <strong>Web application</strong>). W sekcji klienta dodaj wpisy w polu <strong>Authorized redirect URIs</strong> — <em>nie</em> myl z polem „Authorized JavaScript origins” (to osobna lista; dla mismatch liczy się wyłącznie redirect URIs). Zapisz w Google (Save) i odczekaj ok. minutę.
           </p>
-          <p><code style="word-break:break-all;"><?php echo esc_html(upsellio_google_oauth_redirect_uri()); ?></code></p>
-          <p style="font-size:12px;color:#5f6368;">Zakresy zgody: Search Console (read-only) oraz Analytics (read-only). Po kliknięciu zalogujesz się na Google i zatwierdzisz dostęp — refresh token uzupełni się automatycznie.</p>
-          <form method="post" style="margin-bottom:16px;">
+          <?php endif; ?>
+          <?php
+            $ups_oauth_effective_redirect = upsellio_google_oauth_redirect_uri();
+            $ups_oauth_redirect_variants = upsellio_google_oauth_redirect_uri_variants();
+            ?>
+          <?php if (!$ups_managed_google_oauth) : ?>
+          <p style="font-size:13px;margin:10px 0 8px;padding:10px 12px;background:#f0f6fc;border:1px solid #c5d9ed;border-radius:6px;">
+            <strong>Redirect URI wysyłany w żądaniu do Google (musi być wpisany w Authorized redirect URIs):</strong><br />
+            <code style="word-break:break-all;font-size:13px;"><?php echo esc_html($ups_oauth_effective_redirect); ?></code>
+          </p>
+          <p style="margin:0 0 10px;">
+            <label for="upsellio-oauth-uri-copy" style="display:block;font-size:12px;color:#5f6368;margin-bottom:4px;">Skopiuj do schowka (pole tylko do odczytu — klik zaznacza całość, potem Ctrl+C):</label>
+            <input type="text" readonly="readonly" id="upsellio-oauth-uri-copy" class="large-text code" style="font-size:13px;max-width:100%;box-sizing:border-box;" value="<?php echo esc_attr($ups_oauth_effective_redirect); ?>" onclick="this.select();" onfocus="this.select();" autocomplete="off" spellcheck="false" />
+          </p>
+          <div style="font-size:12px;color:#3f3f39;margin:0 0 12px;padding:10px 12px;background:#fff8e5;border:1px solid #e6d9a8;border-radius:6px;max-width:720px;">
+            <strong>Jeśli w logu jest <code>oauth_redirect_mode":"admin"</code> i nadal <code>redirect_uri_mismatch</code></strong> — Upsellio wysyła już właściwy adres; brakuje go wyłącznie w konsoli Google dla <strong>tego samego</strong> Client ID co w WordPressie. Sprawdź po kolei:
+            <ol style="margin:8px 0 0;padding-left:20px;line-height:1.5;">
+              <li>Otwierasz <strong>Credentials</strong> → klikasz klienta o ID kończącym się tak jak w polu „OAuth Client ID” poniżej (nie inny projekt i nie inny ekran „OAuth consent”).</li>
+              <li>Typ klienta to <strong>Web application</strong> (nie „Desktop”).</li>
+              <li>W sekcji <strong>Authorized redirect URIs</strong> (nie „Authorized JavaScript origins”) dodajesz <strong>jedną linię</strong> — dokładnie jak w niebieskim polu powyżej: ten sam schemat (<code>https://</code>), host, ścieżka, <code>?</code> i <code>page=…</code>, <strong>bez</strong> końcowego <code>/</code> i bez spacji.</li>
+              <li><strong>Save</strong> w Google Cloud, odczekaj 1–5 minut i spróbuj ponownie „Zaloguj przez Google”.</li>
+            </ol>
+          </div>
+          <p style="font-size:12px;color:#5f6368;margin:0 0 10px;">Jeśli permalinki są wyłączone, WordPress może użyć innego formatu URL (<code>?rest_route=...</code>) — wtedy skopiuj dokładnie ten z powyższego pola lub z listy.</p>
+          <ul style="font-size:13px;margin:8px 0 12px;padding-left:20px;list-style:disc;">
+            <?php foreach ($ups_oauth_redirect_variants as $ups_oauth_one_uri) : ?>
+              <li style="margin-bottom:6px;"><code style="word-break:break-all;"><?php echo esc_html($ups_oauth_one_uri); ?></code></li>
+            <?php endforeach; ?>
+          </ul>
+          <form method="post" action="<?php echo esc_url($upsellio_sa_form_action); ?>" style="margin:0 0 14px;padding:10px 12px;background:#fafafa;border:1px solid #ddd;border-radius:6px;max-width:720px;">
+            <?php wp_nonce_field("upsellio_google_oauth_redirect_mode_action", "upsellio_google_oauth_redirect_mode_nonce"); ?>
+            <input type="hidden" name="upsellio_google_oauth_redirect_mode_save" value="1" />
+            <p style="margin:0 0 8px;font-size:13px;"><strong>Callback OAuth</strong> — domyślnie wysyłany jest adres <strong>admin.php</strong> (najczęściej zgodny z wpisem w Google). Zaznacz poniżej tylko wtedy, gdy w Google Cloud masz <strong>wyłącznie</strong> URI z <code>/wp-json/upsellio/v1/google-oauth-callback</code>. Przy <code>redirect_uri_mismatch</code> „Authorized redirect URIs” musi zawierać <em>dokładnie</em> ten sam ciąg co niebieskie pole (bez końcowego <code>/</code>).</p>
+            <p style="margin:0;">
+              <label>
+                <input type="checkbox" name="upsellio_google_oauth_use_rest" value="1" <?php checked($g_oauth_use_rest); ?> />
+                Używaj endpointu <strong>REST</strong> (<code>/wp-json/upsellio/v1/google-oauth-callback</code>) zamiast <strong>admin.php</strong>
+              </label>
+            </p>
+            <p style="margin:8px 0 0;"><button type="submit" class="button">Zapisz tryb callback</button></p>
+          </form>
+          <p style="font-size:12px;color:#5f6368;margin-top:0;">
+            Nadal <code>redirect_uri_mismatch</code>? Sprawdź, czy edytujesz dane logowania powiązane z Client ID <code><?php echo esc_html((string) ($gsc_credentials["client_id"] ?? "")); ?></code>, oraz czy w Google nie ma końcowego ukośnika ani literówki. Opcjonalnie wypełnij „Nadpisanie redirect URI” w formularzu poniżej — identycznie jak w konsoli Google.
+          </p>
+          <?php endif; ?>
+          <p style="font-size:12px;color:#5f6368;">Domyślne zakresy zgody: Search Console (read-only) oraz Analytics (read-only). Opcjonalnie możesz dołączyć <strong>Google Ads API</strong> (<code>adwords</code>). Po kliknięciu zalogujesz się na Google i zatwierdzisz dostęp — refresh token uzupełni się automatycznie.</p>
+          <form method="post" action="<?php echo esc_url($upsellio_sa_form_action); ?>" style="margin-bottom:12px;">
+            <?php wp_nonce_field("upsellio_google_ads_scope_action", "upsellio_google_ads_scope_nonce"); ?>
+            <input type="hidden" name="upsellio_google_ads_scope_save" value="1" />
+            <p style="margin-bottom:6px;">
+              <label>
+                <input type="checkbox" name="upsellio_google_ads_include_scope" value="1" <?php checked($gads_scope_on); ?> />
+                Przy następnym logowaniu przez Google dołącz zakres <strong>Google Ads API</strong> (<code>https://www.googleapis.com/auth/adwords</code>)
+              </label>
+            </p>
+            <p><button type="submit" class="button">Zapisz preferencję zakresu (bez ponownego logowania)</button></p>
+          </form>
+          <form method="post" action="<?php echo esc_url($upsellio_sa_form_action); ?>"<?php echo $ups_managed_google_oauth ? "" : " target=\"_blank\""; ?> style="margin-bottom:16px;">
             <?php wp_nonce_field("upsellio_google_oauth_start_action", "upsellio_google_oauth_start_nonce"); ?>
             <input type="hidden" name="upsellio_google_oauth_start" value="1" />
+            <?php if (!$ups_managed_google_oauth) : ?>
+            <p style="margin-bottom:10px;">
+              <label>
+                <input type="checkbox" name="upsellio_google_oauth_use_rest" value="1" <?php checked($g_oauth_use_rest); ?> />
+                Ten sam wybór co wyżej: użyj <strong>REST</strong> zamiast <strong>admin.php</strong>
+              </label>
+            </p>
             <p>
               <label><strong>OAuth Client ID</strong><br />
                 <input type="text" name="g_oauth_client_id" class="large-text" value="<?php echo esc_attr($gsc_credentials["client_id"]); ?>" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off" />
@@ -2114,6 +2886,12 @@ function upsellio_render_site_analytics_page()
               </label>
             </p>
             <p>
+              <label><strong>Nadpisanie redirect URI</strong> (opcjonalnie — ten sam host co strona; puste = domyślny z niebieskiego pola powyżej)<br />
+                <input type="url" name="g_oauth_redirect_uri_override" class="large-text" value="<?php echo esc_attr($g_oauth_redirect_uri_override_val); ?>" placeholder="https://… (wklej dokładnie z Google Authorized redirect URIs)" autocomplete="off" spellcheck="false" />
+              </label>
+            </p>
+            <?php endif; ?>
+            <p>
               <label><strong>GSC Property</strong> (opcjonalnie teraz; ten sam co w formularzu niżej)<br />
                 <input type="text" name="g_oauth_gsc_property" class="regular-text" value="<?php echo esc_attr($gsc_credentials["property"]); ?>" placeholder="https://twojadomena.pl/ albo sc-domain:twojadomena.pl" />
               </label>
@@ -2124,16 +2902,71 @@ function upsellio_render_site_analytics_page()
               </label>
             </p>
             <p>
-              <button type="submit" class="button button-primary">Zaloguj przez Google i autoryzuj GSC + GA4</button>
+              <label>
+                <input type="checkbox" name="g_oauth_include_google_ads" value="1" <?php checked($gads_scope_on); ?> />
+                Dołącz zakres Google Ads API przy tej autoryzacji (ta sama preferencja co powyżej)
+              </label>
+            </p>
+            <?php if ($ups_managed_google_oauth) : ?>
+            <p class="description" style="font-size:12px;margin-top:0;">
+              Otworzy się most Upsellio, potem logowanie Google — po zakończeniu token wraca do tej witryny przez zabezpieczony webhook (serwer–serwer).
+            </p>
+            <?php else : ?>
+            <p class="description" style="font-size:12px;margin-top:0;">
+              Przekierowanie na Google otwiera się w <strong>nowej karcie</strong>, żeby ta strona została pod ręką. Jeśli przeglądarka blokuje nową kartę, zezwól na wyskakujące okna dla tej domeny lub tymczasowo wyłącz blokadę.
+            </p>
+            <?php endif; ?>
+            <p>
+              <button type="submit" class="button button-primary">Zaloguj przez Google i autoryzuj GSC + GA4<?php echo $gads_scope_on ? " + Ads" : ""; ?></button>
             </p>
           </form>
           <?php if ($gsc_credentials["refresh_token"] !== "") : ?>
-            <form method="post" style="display:inline-block;margin-right:8px;">
+            <form method="post" action="<?php echo esc_url($upsellio_sa_form_action); ?>" style="display:inline-block;margin-right:8px;">
               <?php wp_nonce_field("upsellio_google_oauth_disconnect_action", "upsellio_google_oauth_disconnect_nonce"); ?>
               <input type="hidden" name="upsellio_google_oauth_disconnect" value="1" />
               <button type="submit" class="button">Odłącz konto Google (usuń refresh token)</button>
             </form>
           <?php endif; ?>
+          <hr />
+          <h2 style="margin-top:0;">Google Ads API — przygotowanie (OAuth + Developer token)</h2>
+          <p style="font-size:13px;color:#3f3f39;">
+            Do wywołań Google Ads API potrzebny jest <strong>Developer token</strong> z konta Google Ads (API Center), opcjonalnie <strong>login-customer-id</strong> dla konta menedżerskiego (MCC) oraz <strong>Customer ID</strong> konta reklamowego (10 cyfr).
+            Token OAuth musi obejmować zakres <code>adwords</code> — włącz go w preferencji powyżej i ponownie zaloguj przez Google.
+          </p>
+          <p style="font-size:12px;color:#5f6368;">
+            Status integracji: <?php echo $gads_ready ? "<strong style=\"color:#0a0;\">gotowe do zapytań API</strong> (zakres + refresh token + developer token + CID)" : "<strong>niekompletne</strong> — sprawdź tabelę uprawnień, pola poniżej i ewentualnie test połączenia."; ?>
+          </p>
+          <form method="post" action="<?php echo esc_url($upsellio_sa_form_action); ?>" style="margin-bottom:12px;">
+            <?php wp_nonce_field("upsellio_google_ads_config_action", "upsellio_google_ads_config_nonce"); ?>
+            <input type="hidden" name="upsellio_google_ads_config_save" value="1" />
+            <p>
+              <label><strong>Developer token</strong><br />
+                <input type="text" name="upsellio_gads_developer_token" class="large-text" value="<?php echo esc_attr($gads_cfg["developer_token"]); ?>" autocomplete="off" spellcheck="false" />
+              </label>
+            </p>
+            <p>
+              <label><strong>Customer ID</strong> (tylko cyfry, bez myślników)<br />
+                <input type="text" name="upsellio_gads_customer_id" class="regular-text" value="<?php echo esc_attr($gads_cfg["customer_id"]); ?>" placeholder="np. 1234567890" inputmode="numeric" />
+              </label>
+            </p>
+            <p>
+              <label><strong>Login Customer ID</strong> (opcjonalnie; MCC — gdy pracujesz z kontem podrzędnym)<br />
+                <input type="text" name="upsellio_gads_login_customer_id" class="regular-text" value="<?php echo esc_attr($gads_cfg["login_customer_id"]); ?>" placeholder="puste jeśli nie używasz MCC" inputmode="numeric" />
+              </label>
+            </p>
+            <p>
+              <button type="submit" class="button button-primary">Zapisz ustawienia Google Ads</button>
+            </p>
+          </form>
+          <form method="post" action="<?php echo esc_url($upsellio_sa_form_action); ?>" style="margin-bottom:8px;">
+            <?php wp_nonce_field("upsellio_google_ads_test_action", "upsellio_google_ads_test_nonce"); ?>
+            <input type="hidden" name="upsellio_google_ads_test_submit" value="1" />
+            <button type="submit" class="button" <?php echo $gads_cfg["developer_token"] === "" ? "disabled" : ""; ?>>Test: listAccessibleCustomers</button>
+            <?php if ($gads_cfg["developer_token"] === "") : ?>
+              <span class="description" style="margin-left:8px;">Uzupełnij developer token, aby wysłać zapytanie testowe.</span>
+            <?php endif; ?>
+          </form>
+          <p style="font-size:12px;color:#5f6368;margin-top:0;">Wersja API REST: <code><?php echo esc_html(upsellio_google_ads_api_version()); ?></code> — filtr <code>upsellio_google_ads_api_version</code>.</p>
           <hr />
           <h2 style="margin-top:0;">Google Search Console API (darmowe live dane)</h2>
           <?php if (isset($_GET["upsellio_gsc_synced"])) : ?>
@@ -2148,7 +2981,7 @@ function upsellio_render_site_analytics_page()
           <?php if (isset($_GET["upsellio_gsc_error"])) : ?>
             <div class="notice notice-error inline"><p>Błąd GSC: <?php echo esc_html(rawurldecode((string) $_GET["upsellio_gsc_error"])); ?></p></div>
           <?php endif; ?>
-          <form method="post">
+          <form method="post" action="<?php echo esc_url($upsellio_sa_form_action); ?>">
             <?php wp_nonce_field("upsellio_gsc_sync_action", "upsellio_gsc_sync_nonce"); ?>
             <input type="hidden" name="upsellio_gsc_sync_submit" value="1" />
             <p>
@@ -2200,9 +3033,9 @@ function upsellio_render_site_analytics_page()
           <?php endif; ?>
           <p style="font-size:13px;color:#3f3f39;">
             <strong>Google Tag Manager</strong> nie udostępnia API z raportami o konwersjach — dane zbiera GA4. Tu WordPress pobiera raport z <strong>GA4 Data API</strong> przy użyciu konta Google (OAuth), tak jak GSC.
-            <strong>Google Ads</strong> to osobne API i osobna integracja — obecnie nie ma jej w tym motywie.
+            <strong>Google Ads</strong> to osobne REST API — nagłówki, developer token i diagnostykę skonfigurujesz w sekcji <em>Google Ads API — przygotowanie</em> powyżej.
           </p>
-          <form method="post">
+          <form method="post" action="<?php echo esc_url($upsellio_sa_form_action); ?>">
             <?php wp_nonce_field("upsellio_ga4_sync_action", "upsellio_ga4_sync_nonce"); ?>
             <input type="hidden" name="upsellio_ga4_sync_submit" value="1" />
             <p>
@@ -2247,7 +3080,7 @@ function upsellio_render_site_analytics_page()
           <p style="font-size:12px;color:#5f6368;margin-top:0;">
             Logi pokazują pełny przebieg OAuth i zapytań GSC (sekrety są maskowane). Najnowsze wpisy są na górze.
           </p>
-          <form method="post" style="margin:8px 0 12px;">
+          <form method="post" action="<?php echo esc_url($upsellio_sa_form_action); ?>" style="margin:8px 0 12px;">
             <?php wp_nonce_field("upsellio_gsc_logs_clear_action", "upsellio_gsc_logs_clear_nonce"); ?>
             <input type="hidden" name="upsellio_gsc_logs_clear_submit" value="1" />
             <button type="submit" class="button">Wyczyść logi debug</button>
@@ -2280,7 +3113,7 @@ function upsellio_render_site_analytics_page()
           <?php if (isset($_GET["upsellio_metrics_imported"])) : ?>
             <div class="notice notice-success inline"><p>Zaimportowano <?php echo esc_html((string) ((int) $_GET["upsellio_metrics_imported"])); ?> rekordów.</p></div>
           <?php endif; ?>
-          <form method="post">
+          <form method="post" action="<?php echo esc_url($upsellio_sa_form_action); ?>">
             <?php wp_nonce_field("upsellio_keyword_metrics_action", "upsellio_keyword_metrics_nonce"); ?>
             <input type="hidden" name="upsellio_keyword_metrics_import" value="1" />
             <textarea name="keyword_metrics_csv" rows="8" class="large-text" placeholder="keyword,url,position,impressions,clicks,ctr,date"></textarea>

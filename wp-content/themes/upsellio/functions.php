@@ -1196,6 +1196,7 @@ require_once get_template_directory() . "/inc/analytics-internal-exclude.php";
 require_once get_template_directory() . "/inc/seo-automation.php";
 require_once get_template_directory() . "/inc/data-schema.php";
 require_once get_template_directory() . "/inc/site-analytics.php";
+require_once get_template_directory() . "/inc/google-oauth-managed.php";
 require_once get_template_directory() . "/inc/breadcrumbs.php";
 require_once get_template_directory() . "/inc/advanced-tests.php";
 require_once get_template_directory() . "/inc/portfolio-seed.php";
@@ -2629,6 +2630,8 @@ add_action("wp_ajax_upsellio_filter_blog_posts", "upsellio_ajax_filter_blog_post
 add_action("wp_ajax_nopriv_upsellio_filter_blog_posts", "upsellio_ajax_filter_blog_posts");
 
 require_once get_template_directory() . "/inc/forms.php";
+
+require_once get_template_directory() . "/inc/form-component.php";
 
 require_once get_template_directory() . "/inc/post-types.php";
 
