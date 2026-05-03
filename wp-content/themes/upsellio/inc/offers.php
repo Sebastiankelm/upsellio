@@ -1256,3 +1256,264 @@ function upsellio_offer_render_analytics_page()
     </div>
     <?php
 }
+
+/**
+ * Buduje pełny raport analityczny dla oferty — sesje, sekcje, czas, lejek.
+ *
+ * @return array<string, mixed>
+ */
+function upsellio_offer_build_full_analytics(int $offer_id): array
+{
+    $events = get_post_meta($offer_id, "_ups_offer_events", true);
+    if (!is_array($events)) {
+        $events = [];
+    }
+
+    $sessions = [];
+    $current_session = [];
+    $last_ts = 0;
+
+    usort($events, static function ($a, $b) {
+        return strtotime((string) ($a["ts"] ?? "")) <=> strtotime((string) ($b["ts"] ?? ""));
+    });
+
+    foreach ($events as $ev) {
+        $ts = strtotime((string) ($ev["ts"] ?? "")) ?: 0;
+        if ($ts === 0) {
+            continue;
+        }
+
+        if ($last_ts > 0 && ($ts - $last_ts) > 1800) {
+            if ($current_session !== []) {
+                $sessions[] = $current_session;
+            }
+            $current_session = [];
+        }
+        $current_session[] = $ev;
+        $last_ts = $ts;
+    }
+    if ($current_session !== []) {
+        $sessions[] = $current_session;
+    }
+
+    $sessions_data = [];
+    foreach ($sessions as $idx => $sess) {
+        $first_ts = strtotime((string) ($sess[0]["ts"] ?? "")) ?: 0;
+        $last_ts_s = strtotime((string) ($sess[count($sess) - 1]["ts"] ?? "")) ?: $first_ts;
+        $duration = $last_ts_s - $first_ts;
+
+        $section_times = [];
+        $sections_viewed = [];
+        $cta_clicks = [];
+        $commit = "";
+        $utm = (string) ($sess[0]["utm_source"] ?? "");
+        $campaign = (string) ($sess[0]["utm_campaign"] ?? "");
+
+        foreach ($sess as $ev) {
+            $ename = (string) ($ev["event"] ?? "");
+            $sid = (string) ($ev["section_id"] ?? "");
+
+            if ($ename === "offer_section_view" && $sid !== "") {
+                $sections_viewed[$sid] = true;
+            }
+            if ($ename === "offer_engagement_tick" && $sid !== "") {
+                $section_times[$sid] = ($section_times[$sid] ?? 0) + 10;
+            }
+            if ($ename === "offer_cta_click" && $sid !== "") {
+                $cta_clicks[] = $sid;
+            }
+            if ($ename === "offer_commit_selected" && $sid !== "") {
+                $commit = $sid;
+            }
+        }
+
+        $pricing_sec = $section_times["pricing"] ?? $section_times["cennik"] ?? 0;
+
+        $sessions_data[] = [
+            "idx"             => $idx + 1,
+            "ts"              => $first_ts,
+            "ts_disp"         => $first_ts ? wp_date("d.m.Y H:i", $first_ts) : "—",
+            "duration_sec"    => $duration,
+            "sections_viewed" => array_keys($sections_viewed),
+            "section_times"   => $section_times,
+            "pricing_sec"     => $pricing_sec,
+            "cta_clicks"      => $cta_clicks,
+            "commit"          => $commit,
+            "utm"             => $utm,
+            "campaign"        => $campaign,
+            "depth"           => count($sections_viewed),
+        ];
+    }
+
+    $all_section_times = [];
+    $all_sections_viewed = [];
+    $total_cta = 0;
+
+    foreach ($sessions_data as $s) {
+        foreach ($s["section_times"] as $sid => $sec) {
+            $all_section_times[$sid] = ($all_section_times[$sid] ?? 0) + $sec;
+        }
+        foreach ($s["sections_viewed"] as $sid) {
+            $all_sections_viewed[$sid] = ($all_sections_viewed[$sid] ?? 0) + 1;
+        }
+        $total_cta += count($s["cta_clicks"]);
+    }
+
+    if (!empty($all_section_times["cennik"])) {
+        $all_section_times["pricing"] = ($all_section_times["pricing"] ?? 0) + (int) $all_section_times["cennik"];
+    }
+
+    $max_time = max(array_values($all_section_times) ?: [1]);
+
+    $section_labels = [
+        "zakres"    => "Zakres",
+        "szczegoly" => "Szczegóły",
+        "etapy"     => "Plan realizacji",
+        "pytania"   => "Pytania",
+        "pricing"   => "Cennik",
+        "faq"       => "FAQ",
+        "cennik"    => "Cennik",
+    ];
+
+    $all_keys = array_keys($all_section_times);
+    foreach (array_keys($all_sections_viewed) as $k) {
+        if (!in_array($k, $all_keys, true)) {
+            $all_keys[] = $k;
+        }
+    }
+    foreach ($sessions_data as $s) {
+        foreach ($s["sections_viewed"] as $sv) {
+            if (!in_array($sv, $all_keys, true)) {
+                $all_keys[] = $sv;
+            }
+        }
+        foreach (array_keys($s["section_times"]) as $st) {
+            if (!in_array($st, $all_keys, true)) {
+                $all_keys[] = $st;
+            }
+        }
+    }
+
+    $default_order = ["zakres", "szczegoly", "etapy", "pytania", "pricing", "faq", "cennik"];
+    $section_ids = [];
+    foreach ($default_order as $d) {
+        if (in_array($d, $all_keys, true)) {
+            $section_ids[] = $d;
+        }
+    }
+    $rest = [];
+    foreach ($all_keys as $k) {
+        if (!in_array($k, $section_ids, true)) {
+            $rest[] = $k;
+        }
+    }
+    sort($rest, SORT_STRING);
+    $section_ids = array_merge($section_ids, $rest);
+    if ($section_ids === []) {
+        $section_ids = ["zakres", "szczegoly", "etapy", "pytania", "pricing", "faq"];
+    }
+
+    $funnel = [];
+    $total_sessions = count($sessions_data);
+    foreach ($section_ids as $sid) {
+        $label = $section_labels[$sid] ?? ucwords(str_replace(["_", "-"], " ", $sid));
+        $reached = (int) ($all_sections_viewed[$sid] ?? 0);
+        $funnel[$sid] = [
+            "label"   => $label,
+            "reached" => $reached,
+            "pct"     => $total_sessions > 0 ? (int) round($reached / $total_sessions * 100) : 0,
+        ];
+    }
+
+    $last_commit = "";
+    foreach (array_reverse($events) as $ev) {
+        if ((string) ($ev["event"] ?? "") === "offer_commit_selected" && ($ev["section_id"] ?? "") !== "") {
+            $last_commit = (string) $ev["section_id"];
+            break;
+        }
+    }
+
+    return [
+        "sessions"            => $sessions_data,
+        "session_count"       => count($sessions_data),
+        "all_section_times"   => $all_section_times,
+        "all_sections_viewed" => $all_sections_viewed,
+        "max_time"            => $max_time,
+        "total_cta"           => $total_cta,
+        "funnel"              => $funnel,
+        "section_ids"         => $section_ids,
+        "last_commit"         => $last_commit,
+        "score"               => (int) get_post_meta($offer_id, "_ups_offer_score", true),
+        "is_hot"              => get_post_meta($offer_id, "_ups_offer_hot_offer", true) === "1",
+        "stage"               => (string) get_post_meta($offer_id, "_ups_offer_stage", true),
+        "last_seen"           => (string) get_post_meta($offer_id, "_ups_offer_last_seen", true),
+        "utm_source"          => (string) get_post_meta($offer_id, "_ups_offer_utm_source", true),
+    ];
+}
+
+/**
+ * Oferty z aktywnością (zdarzenia) w ostatnich 24 h.
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function upsellio_offers_active_today(int $limit = 5): array
+{
+    $since = date("Y-m-d H:i:s", time() - DAY_IN_SECONDS + (int) round((float) get_option("gmt_offset", 0) * HOUR_IN_SECONDS));
+
+    $offers = get_posts([
+        "post_type"      => "crm_offer",
+        "post_status"    => ["publish", "private"],
+        "posts_per_page" => $limit * 3,
+        "orderby"        => "modified",
+        "order"          => "DESC",
+        "meta_query"     => [[
+            "key"     => "_ups_offer_last_seen",
+            "value"   => $since,
+            "compare" => ">=",
+            "type"    => "DATETIME",
+        ]],
+    ]);
+
+    $result = [];
+    foreach ($offers as $o) {
+        $oid = (int) $o->ID;
+        $score = (int) get_post_meta($oid, "_ups_offer_score", true);
+        $last = (string) get_post_meta($oid, "_ups_offer_last_seen", true);
+        $cid = (int) get_post_meta($oid, "_ups_offer_client_id", true);
+        $events = get_post_meta($oid, "_ups_offer_events", true);
+
+        $recent_events = 0;
+        if (is_array($events)) {
+            $since_ts = time() - DAY_IN_SECONDS;
+            foreach ($events as $ev) {
+                if (strtotime((string) ($ev["ts"] ?? "")) >= $since_ts) {
+                    $recent_events++;
+                }
+            }
+        }
+
+        if ($recent_events === 0) {
+            continue;
+        }
+
+        $result[] = [
+            "id"            => $oid,
+            "title"         => $o->post_title,
+            "client_name"   => $cid > 0 ? get_the_title($cid) : "—",
+            "score"         => $score,
+            "last"          => $last,
+            "recent_events" => $recent_events,
+            "hot"           => get_post_meta($oid, "_ups_offer_hot_offer", true) === "1",
+        ];
+
+        if (count($result) >= $limit) {
+            break;
+        }
+    }
+
+    usort($result, static function ($a, $b) {
+        return ($b["score"] ?? 0) <=> ($a["score"] ?? 0);
+    });
+
+    return $result;
+}
