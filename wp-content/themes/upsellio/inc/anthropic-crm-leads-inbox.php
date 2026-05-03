@@ -691,7 +691,10 @@ function upsellio_crm_run_ai_wp_lead_classification($lead_id)
         "lead_form_origin" => $origin,
     ]);
 
-    $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 280, 28);
+    $score_model = function_exists("upsellio_ai_model_for")
+        ? upsellio_ai_model_for("lead_scoring")
+        : upsellio_anthropic_crm_resolve_model();
+    $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 280, 28, $score_model);
     if ($raw === null) {
         if (function_exists("upsellio_crm_add_timeline_event")) {
             upsellio_crm_add_timeline_event($lead_id, "ai_score", "Klasyfikacja AI: brak odpowiedzi API.");
@@ -814,7 +817,10 @@ function upsellio_crm_inbox_ai_draft_reply_ajax()
         $intent_mini = "Sklasyfikuj ostatnią wiadomość klienta jednym tokenem (EN, snake_case): "
             . "price_question|timing_objection|positive_signal|ready_to_buy|no_interest|other.\n"
             . "Odpowiedz tylko tym jednym tokenem, bez zdań.\n\nWiadomość:\n" . $plain_last;
-        $intent_raw = upsellio_anthropic_crm_send_user_prompt($intent_mini, 64, 14, (string) UPSELLIO_ANTHROPIC_DEFAULT_MODEL);
+        $intent_model = function_exists("upsellio_ai_model_for")
+            ? upsellio_ai_model_for("intent_classify")
+            : upsellio_anthropic_crm_resolve_model();
+        $intent_raw = upsellio_anthropic_crm_send_user_prompt($intent_mini, 64, 14, $intent_model);
         $intent_key = "";
         if ($intent_raw !== null && trim((string) $intent_raw) !== "") {
             $ir = trim((string) $intent_raw);
@@ -850,7 +856,10 @@ function upsellio_crm_inbox_ai_draft_reply_ajax()
         }
     }
 
-    $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 900, 35);
+    $draft_model = function_exists("upsellio_ai_model_for")
+        ? upsellio_ai_model_for("inbox_draft")
+        : upsellio_anthropic_crm_resolve_model();
+    $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 900, 35, $draft_model);
     if ($raw === null) {
         wp_send_json_error(["message" => "api"], 502);
     }
@@ -1019,7 +1028,51 @@ function upsellio_crm_ai_inbox_followup_hourly_run()
             }
         }
 
-        $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 640, 32);
+        $lead_id_fu = 0;
+        if (function_exists("upsellio_crm_data_context_find_leads_for_offer")) {
+            $lead_candidates = upsellio_crm_data_context_find_leads_for_offer($offer_id);
+            if (!empty($lead_candidates)) {
+                $lead_id_fu = (int) $lead_candidates[0];
+            }
+        }
+        if ($lead_id_fu <= 0 && post_type_exists("crm_lead")) {
+            $lq = get_posts([
+                "post_type" => "crm_lead",
+                "post_status" => "any",
+                "posts_per_page" => 1,
+                "fields" => "ids",
+                "no_found_rows" => true,
+                "meta_query" => [
+                    [
+                        "key" => "_ups_lead_converted_offer_id",
+                        "value" => (string) $offer_id,
+                        "compare" => "=",
+                    ],
+                ],
+            ]);
+            if (!empty($lq)) {
+                $lead_id_fu = (int) $lq[0];
+            }
+        }
+        if ($lead_id_fu > 0) {
+            $lead_score_fu = (int) get_post_meta($lead_id_fu, "_ups_lead_score_0_100", true);
+            if ($lead_score_fu <= 0) {
+                $lead_score_fu = (int) get_post_meta($lead_id_fu, "_upsellio_lead_score", true);
+            }
+            $lead_reason_fu = trim((string) get_post_meta($lead_id_fu, "_upsellio_lead_score_reason", true));
+            if ($lead_score_fu > 0) {
+                $heat = $lead_score_fu >= 70 ? "gorący" : ($lead_score_fu >= 40 ? "średni" : "zimny");
+                $prompt .= "\n\nLead score: {$lead_score_fu}/100 ({$heat})";
+                if ($lead_reason_fu !== "") {
+                    $prompt .= " — {$lead_reason_fu}";
+                }
+            }
+        }
+
+        $fu_model = function_exists("upsellio_ai_model_for")
+            ? upsellio_ai_model_for("inbox_followup")
+            : upsellio_anthropic_crm_resolve_model();
+        $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 640, 32, $fu_model);
         if ($raw === null) {
             continue;
         }
