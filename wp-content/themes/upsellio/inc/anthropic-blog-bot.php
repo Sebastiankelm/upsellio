@@ -70,6 +70,19 @@ function upsellio_blog_bot_shift_queue_and_archive(string $keyword): void
     update_option("ups_blog_bot_keywords_used", implode("\n", $used_lines), false);
 }
 
+/**
+ * Limit tokenów wyjścia dla Blog Bota (z ~10% zapasu względem żądania, ograniczony cap API).
+ */
+function upsellio_blog_bot_resolve_max_output_tokens(int $requested = 8192): int
+{
+    $requested = max(512, (int) $requested);
+    $cap = (int) apply_filters("upsellio_anthropic_max_output_cap", 8192);
+    $cap = max(512, min(16384, $cap));
+    $with_tolerance = (int) ceil($requested * 1.10);
+
+    return max(64, min($cap, max($requested, $with_tolerance)));
+}
+
 function upsellio_blog_bot_get_posts_context(int $limit = 12): string
 {
     $posts = get_posts([
@@ -164,6 +177,57 @@ function upsellio_blog_bot_company_prefix(): string
 }
 
 /**
+ * Ścieżka URL bez hosta i bez końcowego slasha — spójna z kluczami z GSC.
+ */
+function upsellio_blog_bot_normalize_local_path(string $url): string
+{
+    $path = (string) (wp_parse_url($url, PHP_URL_PATH) ?? "");
+    $path = "/" . trim(str_replace("\\", "/", $path), "/");
+    if ($path === "/") {
+        return "";
+    }
+
+    return untrailingslashit($path);
+}
+
+/**
+ * Suma kliknięć z importu GSC (upsellio_keyword_metrics_rows) per ścieżka lokalna.
+ *
+ * @return array<string, int>
+ */
+function upsellio_blog_bot_gsc_clicks_by_normalized_path(): array
+{
+    static $memo = null;
+    if ($memo !== null) {
+        return $memo;
+    }
+    $memo = [];
+    $rows = get_option("upsellio_keyword_metrics_rows", []);
+    if (!is_array($rows)) {
+        return $memo;
+    }
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $u = trim((string) ($row["url"] ?? ""));
+        if ($u === "") {
+            continue;
+        }
+        if (strpos($u, "http") !== 0) {
+            $u = home_url("/" . ltrim($u, "/"));
+        }
+        $norm = upsellio_blog_bot_normalize_local_path($u);
+        if ($norm === "") {
+            continue;
+        }
+        $memo[$norm] = ($memo[$norm] ?? 0) + (int) ($row["clicks"] ?? 0);
+    }
+
+    return $memo;
+}
+
+/**
  * Katalog stron i wpisów (URL + tytuł) do promptu — sort wg dopasowania do frazy kolejki (mniej tokenów niż pełna baza).
  *
  * @return array<int, array{id:int, title:string, url:string}>
@@ -184,10 +248,59 @@ function upsellio_blog_bot_catalog_for_keyword(string $keyword, int $limit = 48)
         )
     );
 
+    $excluded_slugs = apply_filters(
+        "upsellio_blog_bot_catalog_excluded_slugs",
+        [
+            "polityka-prywatnosci",
+            "polityka-prywatności",
+            "regulamin",
+            "404",
+            "kontakt",
+            "thank-you",
+            "crm-app",
+            "cookie-policy",
+            "cookies",
+            "privacy-policy",
+            "sample-page",
+            "polityka-cookies",
+            "podziekowanie",
+            "sitemap",
+        ]
+    );
+    $excluded_lower = [];
+    foreach ((array) $excluded_slugs as $ex) {
+        $ex = (string) $ex;
+        if ($ex === "") {
+            continue;
+        }
+        $excluded_lower[] = function_exists("mb_strtolower") ? mb_strtolower($ex, "UTF-8") : strtolower($ex);
+    }
+    $front_id = (int) get_option("page_on_front");
+    $privacy_id = (int) get_option("wp_page_for_privacy_policy");
+    $gsc_clicks_map = upsellio_blog_bot_gsc_clicks_by_normalized_path();
+    $priority_slugs = apply_filters(
+        "upsellio_blog_bot_catalog_priority_slugs",
+        [
+            "page-marketing-google-ads",
+            "page-marketing-meta-ads",
+            "page-tworzenie-stron-internetowych",
+            "page-oferta",
+            "page-o-mnie",
+        ]
+    );
+    $priority_lower = [];
+    foreach ((array) $priority_slugs as $ps) {
+        $ps = (string) $ps;
+        if ($ps === "") {
+            continue;
+        }
+        $priority_lower[] = function_exists("mb_strtolower") ? mb_strtolower($ps, "UTF-8") : strtolower($ps);
+    }
+
     $page_ids = get_posts([
         "post_type" => "page",
         "post_status" => "publish",
-        "posts_per_page" => 100,
+        "posts_per_page" => 120,
         "orderby" => "menu_order title",
         "order" => "ASC",
         "no_found_rows" => true,
@@ -196,7 +309,7 @@ function upsellio_blog_bot_catalog_for_keyword(string $keyword, int $limit = 48)
     $post_ids = get_posts([
         "post_type" => "post",
         "post_status" => "publish",
-        "posts_per_page" => 100,
+        "posts_per_page" => 120,
         "orderby" => "date",
         "order" => "DESC",
         "no_found_rows" => true,
@@ -210,6 +323,19 @@ function upsellio_blog_bot_catalog_for_keyword(string $keyword, int $limit = 48)
         if ($pid <= 0) {
             continue;
         }
+        if ($front_id > 0 && $pid === $front_id) {
+            continue;
+        }
+        if ($privacy_id > 0 && $pid === $privacy_id) {
+            continue;
+        }
+        $slug = (string) get_post_field("post_name", $pid);
+        $slug_cmp = $slug !== "" && function_exists("mb_strtolower")
+            ? mb_strtolower($slug, "UTF-8")
+            : strtolower($slug);
+        if ($slug_cmp !== "" && in_array($slug_cmp, $excluded_lower, true)) {
+            continue;
+        }
         $title = get_the_title($pid);
         if ($title === "") {
             continue;
@@ -219,11 +345,17 @@ function upsellio_blog_bot_catalog_for_keyword(string $keyword, int $limit = 48)
             continue;
         }
         $url = esc_url_raw($url);
+        $post_obj = get_post($pid);
+        $pt = $post_obj instanceof WP_Post ? $post_obj->post_type : "";
+
         $tlow = function_exists("mb_strtolower") ? mb_strtolower($title, "UTF-8") : strtolower($title);
         $path = (string) (wp_parse_url($url, PHP_URL_PATH) ?? "");
         $plow = function_exists("mb_strtolower") ? mb_strtolower($path, "UTF-8") : strtolower($path);
         $hay = $tlow . " " . $plow;
         $score = 0;
+        if ($slug_cmp !== "" && in_array($slug_cmp, $priority_lower, true)) {
+            $score += 15;
+        }
         foreach ($needles as $w) {
             if ($w !== "" && strpos($hay, $w) !== false) {
                 $score += 3;
@@ -232,6 +364,29 @@ function upsellio_blog_bot_catalog_for_keyword(string $keyword, int $limit = 48)
         if ($kw_low !== "" && strpos($hay, $kw_low) !== false) {
             $score += 10;
         }
+        if ($pt === "page") {
+            $score += 2;
+        } elseif ($pt === "post") {
+            $score += 1;
+        }
+        if ($pt === "post" && $post_obj instanceof WP_Post) {
+            $ts = strtotime((string) $post_obj->post_date_gmt);
+            if ($ts !== false) {
+                $days = (time() - $ts) / DAY_IN_SECONDS;
+                if ($days >= 0 && $days < 400) {
+                    $score += 2;
+                } elseif ($days < 800) {
+                    $score += 1;
+                }
+            }
+        }
+        if ($pt === "page" && $post_obj instanceof WP_Post && (int) $post_obj->menu_order > 0) {
+            $score += 1;
+        }
+        $path_norm = upsellio_blog_bot_normalize_local_path($url);
+        $gsc_clicks = $path_norm !== "" ? (int) ($gsc_clicks_map[$path_norm] ?? 0) : 0;
+        $score += min(20, $gsc_clicks * 2);
+
         $candidates[] = [
             "id" => $pid,
             "title" => $title,
@@ -635,20 +790,44 @@ function upsellio_blog_bot_get_converting_keywords(int $top = 8): string
 
 /**
  * @param array<int, array{id:int, title:string, url:string}>|null $catalog
+ * @param string $prompt_mode "normal" | "slim_retry" — drugi przebieg: krótszy kontekst, by zmieścić pełny JSON.
  */
-function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null): string
+function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null, string $prompt_mode = "normal"): string
 {
-    if ($catalog === null) {
-        $catalog = upsellio_blog_bot_catalog_for_keyword($keyword, 48);
+    $slim = $prompt_mode === "slim_retry";
+    if ($slim) {
+        if ($catalog === null) {
+            $catalog = upsellio_blog_bot_catalog_for_keyword($keyword, 14);
+        } else {
+            $catalog = array_slice($catalog, 0, 14);
+        }
+    } elseif ($catalog === null) {
+        $cat_limit = (int) apply_filters("upsellio_blog_bot_catalog_limit", 32);
+        $catalog = upsellio_blog_bot_catalog_for_keyword($keyword, max(12, min(80, $cat_limit)));
     }
     $catalog_block = upsellio_blog_bot_format_catalog_for_prompt($catalog);
 
     $prompt_template = (string) get_option("ups_ai_prompt_blog_post", "");
     $target_length = max(600, (int) get_option("ups_blog_bot_target_length", 1200));
-    $posts_ctx = upsellio_blog_bot_get_posts_context(10);
+    if ($slim) {
+        $target_length = max(500, (int) round($target_length * 0.90));
+    }
+    $posts_ctx = upsellio_blog_bot_get_posts_context($slim ? 6 : 10);
     $services_ctx = upsellio_blog_bot_get_services_context();
     $tone = "partnerski, konkretny, B2B (PL)";
-    $converting_kw = upsellio_blog_bot_get_converting_keywords(8);
+    $converting_kw = upsellio_blog_bot_get_converting_keywords($slim ? 5 : 8);
+
+    $gsc_keyword_context = "";
+    if (function_exists("upsellio_gsc_build_keyword_context")) {
+        $gsc_keyword_context = upsellio_gsc_build_keyword_context($keyword);
+    }
+    if ($slim && $gsc_keyword_context !== "") {
+        if (function_exists("mb_strlen") && mb_strlen($gsc_keyword_context, "UTF-8") > 2600) {
+            $gsc_keyword_context = mb_substr($gsc_keyword_context, 0, 2600, "UTF-8") . "\n[…]\n";
+        } elseif (strlen($gsc_keyword_context) > 2600) {
+            $gsc_keyword_context = substr($gsc_keyword_context, 0, 2600) . "\n[…]\n";
+        }
+    }
 
     if ($prompt_template === "") {
         $prompt_template = "Napisz artykuł blogowy B2B (PL) na temat: {keyword}.\n"
@@ -656,8 +835,22 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null)
             . "Ton: {tone}.\n"
             . "Istniejące wpisy (unikaj duplikowania tematów):\n{existing_posts}\n\n"
             . "Frazy które już przynoszą kliknięcia z Google (nie powielaj tych tematów; możesz je rozwinąć lub powiązać):\n{converting_keywords}\n\n"
+            . "ANALIZA GSC DLA TEJ FRAZY:\n{gsc_keyword_context}\n\n"
+            . "INSTRUKCJE NA PODSTAWIE GSC:\n"
+            . "- Użyj fraz z sekcji „POWIĄZANE FRAZY Z GSC” jako query_cluster w JSON.\n"
+            . "- Jeśli jest wyraźna KANIBALIZACJA na wiele URL — nie dublowaj tematu; w treści wskaż konsolidację lub wybór jednej strony docelowej.\n"
+            . "- Dopasuj ton i strukturę do INTENCJI WYSZUKIWANIA z sekcji GSC.\n"
+            . "- Intencja lokalna: naturalnie wpleć kontekst miejsca (bez sztucznego naduzycia).\n"
+            . "- Intencja transakcyjna: wyraźne korzyści, proces, CTA.\n\n"
             . "Kontekst usług firmy:\n{services_context}\n\n"
             . "KATALOG LINKOWANIA WEWNĘTRZNEGO (tylko te URL — jedna linia = URL | tytuł):\n{internal_url_catalog}\n\n"
+            . "ZASADY LINKOWANIA:\n"
+            . "- Wstaw 3–5 linków wewnętrznych WEWNĄTRZ treści — nie tylko na końcu artykułu.\n"
+            . "- Link w zdaniu, w którym naturalnie pada temat strony docelowej.\n"
+            . "- Anchor: konkretny opis strony docelowej (nie „kliknij tutaj”, nie „więcej”).\n"
+            . "- Strony usługowe linkuj przy omówieniu danej usługi; inne wpisy blogowe — gdy rozwijasz pobieżny wątek.\n"
+            . "- Format: [anchor](PEŁNY_URL) — URL skopiuj 1:1 z katalogu.\n"
+            . "- Nie więcej niż 2 linki do tej samej domeny/strony.\n\n"
             . "WYMAGANIA TECHNICZNE (WordPress, Rank Math SEO, wewnętrzny SEO tool):\n"
             . "- Pole \"content\": wyłącznie HTML (<p>, <ul>/<li>, <h2>, <h3>). Bez Markdown nagłówków (#, ##, ###).\n"
             . "- W pierwszym akapicie naturalnie użyj głównej frazy (primary_query / temat).\n"
@@ -669,10 +862,10 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null)
             . "- primary_query: główna fraza SEO (Rank Math focus keyword).\n"
             . "- query_cluster: 5–12 powiązanych fraz oddzielonych przecinkami.\n"
             . "- user_questions: 3 pytania czytelnika, każde w osobnej linii (\\n).\n"
-            . "- problem i outcome: każde minimum 90 znaków — konkretny błąd mentalny / procesowy i oczekiwany efekt po lekturze.\n"
-            . "- tags: min. 3 krótkie tagi.\n\n"
+            . "- problem i outcome: każde minimum ok. 80 znaków (krócej niż wcześniej — nadal konkret) — błąd mentalny / procesowy i efekt po lekturze.\n"
+            . "- tags: min. 2–3 krótkie tagi.\n\n"
             . "Spis treści (H2/H3) zostanie dodany automatycznie po stronie serwera — nie wstawiaj własnego spisu w treści.\n\n"
-            . "Odpowiedz TYLKO jednym obiektem JSON (bez markdown poza linkami [tekst](url) WEWNĄTRZ pola \"content\", bez ```), ze stringami / tablicą zgodnie z polami: "
+            . "Odpowiedz WYŁĄCZNIE jednym obiektem JSON: pierwszy znak odpowiedzi musi być „{”, ostatni „}”. Nie używaj otoczki markdown (fence), bez komentarzy przed/po JSON. W polu \"content\" dozwolone są linki [tekst](url). Pola: "
             . "title, slug, seo_title, meta_description, primary_query, query_cluster, user_questions, article_type, "
             . "audience, search_intent, problem, outcome, cta_text, tags (tablica stringów), content (HTML + linki markdown [anchor](url) z katalogu).";
     }
@@ -685,6 +878,7 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null)
             "{services_context}",
             "{tone}",
             "{converting_keywords}",
+            "{gsc_keyword_context}",
             "{internal_url_catalog}",
         ],
         [
@@ -694,17 +888,22 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null)
             $services_ctx,
             $tone,
             $converting_kw,
+            $gsc_keyword_context !== "" ? $gsc_keyword_context : __("Brak dodatkowego kontekstu GSC dla tej frazy (importuj dane fraz w Analityce).", "upsellio"),
             $catalog_block,
         ],
         $prompt_template
     );
+
+    if (strpos($prompt_template, "{gsc_keyword_context}") === false && trim($prompt_template) !== "" && $gsc_keyword_context !== "") {
+        $prompt .= "\n\n---\n" . __("ANALIZA GSC DLA TEJ FRAZY:", "upsellio") . "\n" . $gsc_keyword_context;
+    }
 
     if (strpos($prompt_template, "{internal_url_catalog}") === false && trim($prompt_template) !== "") {
         $prompt .= "\n\n---\nINTERNAL_URL_CATALOG — używaj WYŁĄCZNIE tych adresów w linkach [tekst](url) w polu content (2–5 linków), kopiuj URL 1:1:\n"
             . $catalog_block;
     }
 
-    if (function_exists("upsellio_ai_master_context")) {
+    if (!$slim && function_exists("upsellio_ai_master_context")) {
         $master_blog = upsellio_ai_master_context("blog");
         if ($master_blog !== "") {
             $prompt .= "\n\n---\nDane o skuteczności Twojego bloga (priorytety treści — co generuje leady vs martwy ruch):\n" . $master_blog;
@@ -714,6 +913,12 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null)
     $prefix = upsellio_blog_bot_company_prefix();
     if ($prefix !== "") {
         $prompt = $prefix . $prompt;
+    }
+
+    if ($slim) {
+        $prompt .= "\n\n---\nRETRY (kompakt)\n"
+            . "Poprzednia odpowiedź była obcięta lub nieparsowalna. Odpowiedz WYŁĄCZNIE jednym kompletnym obiektem JSON kończącym się na „}”.\n"
+            . "Pole content: krótszy artykuł HTML (orientacyjnie " . (int) round($target_length * 6) . "–" . (int) round($target_length * 10) . " znaków), 2–3 linki markdown z katalogu, 2–3 nagłówki H2/H3 + krótka sekcja FAQ — ale WSZYSTKIE klucze JSON muszą być obecne i poprawne.\n";
     }
 
     return $prompt;
@@ -758,6 +963,45 @@ function upsellio_blog_bot_next_slot_timestamp(): int
     return $next !== false ? $next : $now + DAY_IN_SECONDS;
 }
 
+/**
+ * Miniaturka wpisu: wyszukanie w mediach po słowach z frazy lub obraz z opcji CRM.
+ */
+function upsellio_blog_bot_assign_featured_image(int $post_id, string $keyword): void
+{
+    $post_id = (int) $post_id;
+    if ($post_id <= 0 || (int) get_post_thumbnail_id($post_id) > 0) {
+        return;
+    }
+    $keyword = trim($keyword);
+    $search = "";
+    if ($keyword !== "") {
+        $parts = array_values(array_filter(preg_split("/\s+/u", $keyword) ?: [], static function ($w) {
+            return trim((string) $w) !== "";
+        }));
+        $search = implode(" ", array_slice($parts, 0, 3));
+    }
+    if ($search !== "") {
+        $media = get_posts([
+            "post_type" => "attachment",
+            "post_status" => "inherit",
+            "posts_per_page" => 1,
+            "s" => $search,
+            "post_mime_type" => "image",
+            "orderby" => "date",
+            "order" => "DESC",
+        ]);
+        if (!empty($media[0]) && $media[0] instanceof WP_Post) {
+            set_post_thumbnail($post_id, (int) $media[0]->ID);
+
+            return;
+        }
+    }
+    $default_id = (int) get_option("ups_blog_bot_default_thumbnail_id", 0);
+    if ($default_id > 0 && wp_attachment_is_image($default_id)) {
+        set_post_thumbnail($post_id, $default_id);
+    }
+}
+
 function upsellio_blog_bot_ensure_cron(): void
 {
     upsellio_blog_bot_clear_cron();
@@ -775,6 +1019,11 @@ function upsellio_blog_bot_ensure_cron(): void
 function upsellio_blog_bot_generate_and_save(): void
 {
     upsellio_blog_bot_set_last_error(null);
+
+    if (function_exists("set_time_limit")) {
+        $tl = (int) apply_filters("upsellio_blog_bot_time_limit", 420);
+        @set_time_limit(max(120, min(900, $tl)));
+    }
 
     if ((string) get_option("ups_blog_bot_enabled", "0") !== "1") {
         upsellio_blog_bot_set_last_error([
@@ -816,10 +1065,19 @@ function upsellio_blog_bot_generate_and_save(): void
         $model = "claude-haiku-4-5-20251001";
     }
 
-    $catalog = upsellio_blog_bot_catalog_for_keyword($keyword, 48);
+    $cat_lim = (int) apply_filters("upsellio_blog_bot_catalog_limit", 32);
+    $catalog = upsellio_blog_bot_catalog_for_keyword($keyword, max(12, min(80, $cat_lim)));
     $full_prompt = upsellio_blog_bot_build_prompt($keyword, $catalog);
     $cache_split = upsellio_blog_bot_prompt_cache_split($full_prompt);
-    $raw = upsellio_anthropic_crm_send_user_prompt($full_prompt, 3000, 90, $model, $cache_split);
+    // Pełny wpis w jednym obiekcie JSON — mały limit obcina odpowiedź w połowie i psuje parsowanie.
+    // HTTP: domyślnie 240 s (wcześniej 90 s — częsty cURL 28 przy dużym max_tokens / wolnym API).
+    $stored_to = (int) get_option("ups_blog_bot_http_timeout", 0);
+    $api_timeout = $stored_to > 0
+        ? max(60, min(600, $stored_to))
+        : (int) apply_filters("upsellio_blog_bot_api_timeout", 240);
+    $api_timeout = max(60, min(600, $api_timeout));
+    $max_out = upsellio_blog_bot_resolve_max_output_tokens(8192);
+    $raw = upsellio_anthropic_crm_send_user_prompt($full_prompt, $max_out, $api_timeout, $model, $cache_split);
     if ($raw === null) {
         $api_detail = function_exists("upsellio_anthropic_crm_get_last_send_error")
             ? upsellio_anthropic_crm_get_last_send_error()
@@ -833,11 +1091,36 @@ function upsellio_blog_bot_generate_and_save(): void
     }
 
     $data = upsellio_anthropic_crm_parse_json_object($raw);
+    if (!is_array($data) && apply_filters("upsellio_blog_bot_retry_on_bad_json", true)) {
+        $catalog_slim = array_slice($catalog, 0, 14);
+        $slim_prompt = upsellio_blog_bot_build_prompt($keyword, $catalog_slim, "slim_retry");
+        $raw_retry = upsellio_anthropic_crm_send_user_prompt($slim_prompt, $max_out, $api_timeout, $model, null);
+        if ($raw_retry !== null) {
+            $data = upsellio_anthropic_crm_parse_json_object($raw_retry);
+        }
+    }
     if (!is_array($data)) {
         $snippet = function_exists("mb_substr") ? mb_substr(trim((string) $raw), 0, 400, "UTF-8") : substr(trim((string) $raw), 0, 400);
+        $hint = "";
+        $stop = function_exists("upsellio_anthropic_crm_get_last_stop_reason")
+            ? upsellio_anthropic_crm_get_last_stop_reason()
+            : "";
+        if ($stop === "max_tokens") {
+            $hint = " API zakończyło na limicie wyjścia (stop_reason: max_tokens) — JSON jest obcięty. Wykonano automatyczny retry w trybie kompaktowym; jeśli nadal błąd: zmniejsz „Docelowa liczba słów”, filtr upsellio_blog_bot_catalog_limit lub model (Haiku).";
+        }
+        $stripped_try = function_exists("upsellio_anthropic_crm_strip_json_markdown_fence")
+            ? upsellio_anthropic_crm_strip_json_markdown_fence((string) $raw)
+            : trim((string) $raw);
+        if ($stripped_try !== ""
+            && strpos($stripped_try, "{") !== false
+            && function_exists("upsellio_anthropic_crm_extract_first_json_object")
+            && upsellio_anthropic_crm_extract_first_json_object($stripped_try) === null
+        ) {
+            $hint .= " Typowa przyczyna: obcięta odpowiedź (brak zamykającego „}”) albo niepoprawny JSON w środku pola „content”.";
+        }
         upsellio_blog_bot_set_last_error([
             "code" => "bad_json",
-            "detail" => "Nie udało się wyciągnąć obiektu JSON z odpowiedzi. Początek: " . $snippet,
+            "detail" => "Nie udało się wyciągnąć obiektu JSON z odpowiedzi (w tym po retry kompaktowym)." . $hint . " Początek: " . $snippet,
         ]);
 
         return;
@@ -912,6 +1195,8 @@ function upsellio_blog_bot_generate_and_save(): void
     }
     $post_id = (int) $post_id;
 
+    upsellio_blog_bot_assign_featured_image($post_id, $keyword);
+
     $plain = wp_strip_all_tags((string) $content);
     $word_count = $plain !== ""
         ? count(preg_split("/\s+/u", trim($plain), -1, PREG_SPLIT_NO_EMPTY))
@@ -921,7 +1206,7 @@ function upsellio_blog_bot_generate_and_save(): void
         || stripos((string) $content, "często zadawane") !== false
         || stripos((string) $content, "CZĘSTO ZADAWANE") !== false;
     $target_len = max(400, (int) get_option("ups_blog_bot_target_length", 1200));
-    $min_words = (int) max(400, (int) round($target_len * 0.4));
+    $min_words = (int) max(350, (int) round($target_len * 0.36));
     $quality_notes = [];
     if ($word_count < $min_words) {
         $quality_notes[] = "Krótki: " . (string) $word_count . " słów (min. " . (string) $min_words . ")";
