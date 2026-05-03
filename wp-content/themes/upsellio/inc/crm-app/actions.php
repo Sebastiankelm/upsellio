@@ -882,6 +882,13 @@ function upsellio_crm_app_handle_post_actions()
                 if (isset($_POST["ups_blog_bot_target_length"])) {
                     update_option("ups_blog_bot_target_length", max(400, (int) wp_unslash($_POST["ups_blog_bot_target_length"])), false);
                 }
+                if (isset($_POST["ups_blog_bot_http_timeout"])) {
+                    $htt = (int) wp_unslash($_POST["ups_blog_bot_http_timeout"]);
+                    update_option("ups_blog_bot_http_timeout", $htt <= 0 ? 0 : max(60, min(600, $htt)), false);
+                }
+                if (isset($_POST["ups_blog_bot_default_thumbnail_id"])) {
+                    update_option("ups_blog_bot_default_thumbnail_id", max(0, (int) wp_unslash($_POST["ups_blog_bot_default_thumbnail_id"])), false);
+                }
                 if (isset($_POST["ups_blog_bot_category"])) {
                     update_option("ups_blog_bot_category", max(0, (int) wp_unslash($_POST["ups_blog_bot_category"])), false);
                 }
@@ -1748,3 +1755,161 @@ function upsellio_crm_mailbox_log_clear_ajax()
     wp_send_json_success(["ok" => true]);
 }
 add_action("wp_ajax_upsellio_crm_clear_mailbox_log", "upsellio_crm_mailbox_log_clear_ajax");
+
+function upsellio_suggestions_ajax_gate(): bool
+{
+    if (!upsellio_crm_app_user_can_access()) {
+        wp_send_json_error(["message" => "forbidden"], 403);
+
+        return false;
+    }
+    $nonce = isset($_POST["nonce"]) ? sanitize_text_field(wp_unslash($_POST["nonce"])) : "";
+    if (!wp_verify_nonce($nonce, "upsellio_suggestions_nonce")) {
+        wp_send_json_error(["message" => "bad_nonce"], 403);
+
+        return false;
+    }
+
+    return true;
+}
+
+function upsellio_suggestions_refresh_ajax(): void
+{
+    if (!upsellio_suggestions_ajax_gate()) {
+        return;
+    }
+    $type = isset($_POST["suggestion_type"]) ? sanitize_key(wp_unslash($_POST["suggestion_type"])) : "";
+    if (!in_array($type, ["seo", "blog", "ads", "keywords"], true)) {
+        wp_send_json_error(["message" => "invalid_type"], 400);
+
+        return;
+    }
+    if (!function_exists("upsellio_suggestions_generate")) {
+        wp_send_json_error(["message" => "missing_module"], 500);
+
+        return;
+    }
+    $r = upsellio_suggestions_generate($type);
+    if (!empty($r["ok"])) {
+        wp_send_json_success(["message" => (string) ($r["message"] ?? "OK")]);
+    } else {
+        wp_send_json_error(["message" => (string) ($r["message"] ?? "error")], 400);
+    }
+}
+add_action("wp_ajax_upsellio_suggestions_refresh", "upsellio_suggestions_refresh_ajax");
+
+function upsellio_keywords_clusters_ajax(): void
+{
+    if (!upsellio_suggestions_ajax_gate()) {
+        return;
+    }
+    if (!function_exists("upsellio_suggestions_generate_clusters")) {
+        wp_send_json_error(["message" => "missing_module"], 500);
+
+        return;
+    }
+    $r = upsellio_suggestions_generate_clusters();
+    if (!empty($r["ok"])) {
+        wp_send_json_success(["message" => (string) ($r["message"] ?? "OK")]);
+    } else {
+        wp_send_json_error(["message" => (string) ($r["message"] ?? "error")], 400);
+    }
+}
+add_action("wp_ajax_upsellio_keywords_clusters", "upsellio_keywords_clusters_ajax");
+
+function upsellio_suggestions_queue_keyword_ajax(): void
+{
+    if (!upsellio_suggestions_ajax_gate()) {
+        return;
+    }
+    $kw = isset($_POST["keyword"]) ? sanitize_text_field(wp_unslash($_POST["keyword"])) : "";
+    if ($kw === "") {
+        wp_send_json_error(["message" => "empty"], 400);
+
+        return;
+    }
+    $existing = (string) get_option("ups_blog_bot_keywords_queue", "");
+    $lines = array_values(array_filter(array_map("trim", preg_split("/\r\n|\n|\r/", $existing))));
+    $lines[] = $kw;
+    $lines = array_unique($lines);
+    update_option("ups_blog_bot_keywords_queue", implode("\n", $lines), false);
+    wp_send_json_success([
+        "message" => "queued",
+        "line_count" => count($lines),
+        "keywords_queue" => (string) get_option("ups_blog_bot_keywords_queue", ""),
+    ]);
+}
+add_action("wp_ajax_upsellio_suggestions_queue_keyword", "upsellio_suggestions_queue_keyword_ajax");
+
+function upsellio_suggestions_queue_all_blog_ajax(): void
+{
+    if (!upsellio_suggestions_ajax_gate()) {
+        return;
+    }
+    if (!function_exists("upsellio_suggestions_collect_blog_queue_keywords")) {
+        wp_send_json_error(["message" => "missing_module"], 500);
+
+        return;
+    }
+    $add = upsellio_suggestions_collect_blog_queue_keywords();
+    if ($add === []) {
+        wp_send_json_error(["message" => __("Brak tematów w cache — odśwież zakładkę Blog (Odśwież AI).", "upsellio")], 400);
+
+        return;
+    }
+    $existing = (string) get_option("ups_blog_bot_keywords_queue", "");
+    $lines = array_values(array_filter(array_map("trim", preg_split("/\r\n|\n|\r/", $existing))));
+    foreach ($add as $line) {
+        $lines[] = $line;
+    }
+    $lines = array_values(array_unique($lines));
+    update_option("ups_blog_bot_keywords_queue", implode("\n", $lines), false);
+    wp_send_json_success([
+        "message" => "queued_all",
+        "line_count" => count($lines),
+        "keywords_queue" => (string) get_option("ups_blog_bot_keywords_queue", ""),
+    ]);
+}
+add_action("wp_ajax_upsellio_suggestions_queue_all_blog", "upsellio_suggestions_queue_all_blog_ajax");
+
+function upsellio_blog_keyword_research_ajax(): void
+{
+    if (!upsellio_suggestions_ajax_gate()) {
+        return;
+    }
+    $seed = isset($_POST["seed"]) ? sanitize_text_field(wp_unslash($_POST["seed"])) : "";
+    if (!function_exists("upsellio_blog_keyword_research")) {
+        wp_send_json_error(["message" => "missing_module"], 500);
+
+        return;
+    }
+    $r = upsellio_blog_keyword_research($seed);
+    if (isset($r["error"])) {
+        wp_send_json_error(["message" => (string) $r["error"]], 400);
+
+        return;
+    }
+    wp_send_json_success($r);
+}
+add_action("wp_ajax_upsellio_blog_keyword_research", "upsellio_blog_keyword_research_ajax");
+
+function upsellio_gsc_refresh_analysis_ajax(): void
+{
+    if (!upsellio_suggestions_ajax_gate()) {
+        return;
+    }
+    if (!function_exists("upsellio_gsc_analyze_full")) {
+        wp_send_json_error(["message" => "missing_module"], 500);
+
+        return;
+    }
+    $analysis = upsellio_gsc_analyze_full(true);
+    wp_send_json_success([
+        "clusters" => count($analysis["clusters"] ?? []),
+        "gaps" => count($analysis["gaps"] ?? []),
+        "quick_wins" => count($analysis["quick_wins"] ?? []),
+        "cannibalization" => count($analysis["cannibalization"] ?? []),
+        "built" => (string) ($analysis["built"] ?? ""),
+    ]);
+}
+add_action("wp_ajax_upsellio_gsc_refresh_analysis", "upsellio_gsc_refresh_analysis_ajax");
