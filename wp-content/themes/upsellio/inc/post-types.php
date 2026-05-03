@@ -1117,8 +1117,21 @@ function upsellio_get_marketing_portfolio_seo_payload($post_id)
         return [];
     }
 
-    $title = trim((string) get_post_meta($post_id, "_ups_mport_seo_title", true));
-    $description = trim((string) get_post_meta($post_id, "_ups_mport_seo_description", true));
+    $title = trim((string) get_post_meta($post_id, "rank_math_title", true));
+    if ($title === "") {
+        $title = trim((string) get_post_meta($post_id, "_yoast_wpseo_title", true));
+    }
+    if ($title === "") {
+        $title = trim((string) get_post_meta($post_id, "_ups_mport_seo_title", true));
+    }
+
+    $description = trim((string) get_post_meta($post_id, "rank_math_description", true));
+    if ($description === "") {
+        $description = trim((string) get_post_meta($post_id, "_yoast_wpseo_metadesc", true));
+    }
+    if ($description === "") {
+        $description = trim((string) get_post_meta($post_id, "_ups_mport_seo_description", true));
+    }
     $canonical = trim((string) get_post_meta($post_id, "_ups_mport_seo_canonical", true));
     $fallback_description = (string) get_the_excerpt($post_id);
     if ($description === "") {
@@ -1146,9 +1159,39 @@ function upsellio_marketing_portfolio_document_title($title)
 }
 add_filter("pre_get_document_title", "upsellio_marketing_portfolio_document_title");
 
+function upsellio_portfolio_document_title_parts($parts)
+{
+    if (!is_singular("portfolio")) {
+        return $parts;
+    }
+
+    $post_id = (int) get_queried_object_id();
+    $seo_title = trim((string) get_post_meta($post_id, "rank_math_title", true));
+    if ($seo_title === "") {
+        $seo_title = trim((string) get_post_meta($post_id, "_yoast_wpseo_title", true));
+    }
+    if ($seo_title !== "") {
+        $parts["title"] = $seo_title;
+        unset($parts["tagline"]);
+
+        return $parts;
+    }
+
+    if (function_exists("upsellio_is_seo_plugin_managing_frontend_meta") && upsellio_is_seo_plugin_managing_frontend_meta()) {
+        return $parts;
+    }
+
+    return $parts;
+}
+add_filter("document_title_parts", "upsellio_portfolio_document_title_parts", 12);
+
 function upsellio_print_marketing_portfolio_seo_meta()
 {
     if (!is_singular("marketing_portfolio")) {
+        return;
+    }
+
+    if (function_exists("upsellio_is_seo_plugin_managing_frontend_meta") && upsellio_is_seo_plugin_managing_frontend_meta()) {
         return;
     }
 

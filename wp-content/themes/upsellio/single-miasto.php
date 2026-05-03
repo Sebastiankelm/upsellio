@@ -53,13 +53,40 @@ while (have_posts()) :
     $ctaSeed = abs(crc32($citySlug . "|" . $cityName));
     $city_page_title = "Marketing i strony WWW " . $cityName . " - Google Ads i Meta Ads dla firm | Upsellio";
     $city_page_description = "Kampanie Google Ads, Meta Ads i tworzenie stron internetowych dla firm z " . $cityName . ". Bezplatna diagnoza - zdalnie lub lokalnie.";
-    add_filter("pre_get_document_title", static function ($title) use ($city_page_title) {
+    $saved_desc = trim((string) get_post_meta($postId, "rank_math_description", true));
+    if ($saved_desc === "") {
+        $saved_desc = trim((string) get_post_meta($postId, "_yoast_wpseo_metadesc", true));
+    }
+    if ($saved_desc === "") {
+        $saved_desc = trim((string) get_post_meta($postId, "_upsellio_city_meta_description", true));
+    }
+    if ($saved_desc !== "") {
+        $city_page_description = $saved_desc;
+    }
+
+    $seo_plugin = function_exists("upsellio_is_seo_plugin_managing_frontend_meta") && upsellio_is_seo_plugin_managing_frontend_meta();
+
+    add_filter("pre_get_document_title", static function ($title) use ($city_page_title, $postId, $seo_plugin) {
+        if ($seo_plugin) {
+            return $title;
+        }
+        $rm = trim((string) get_post_meta($postId, "rank_math_title", true));
+        if ($rm !== "") {
+            return $rm;
+        }
+        $yoast = trim((string) get_post_meta($postId, "_yoast_wpseo_title", true));
+        if ($yoast !== "") {
+            return $yoast;
+        }
+
         return $city_page_title !== "" ? $city_page_title : $title;
     });
-    add_action("wp_head", static function () use ($postId, $city_page_description, $cityName, $voivodeship) {
+    add_action("wp_head", static function () use ($postId, $city_page_description, $cityName, $voivodeship, $seo_plugin) {
         $canonical = get_permalink($postId);
-        echo '<meta name="description" content="' . esc_attr($city_page_description) . "\" />\n";
-        echo '<link rel="canonical" href="' . esc_url($canonical) . "\" />\n";
+        if (!$seo_plugin) {
+            echo '<meta name="description" content="' . esc_attr($city_page_description) . "\" />\n";
+            echo '<link rel="canonical" href="' . esc_url($canonical) . "\" />\n";
+        }
         echo '<script type="application/ld+json">' . wp_json_encode([
             "@context" => "https://schema.org",
             "@type" => "LocalBusiness",

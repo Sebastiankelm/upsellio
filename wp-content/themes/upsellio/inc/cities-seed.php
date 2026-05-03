@@ -34,7 +34,23 @@ function upsellio_city_document_title($parts)
         return $parts;
     }
 
-    $city = get_post_meta(get_the_ID(), "_upsellio_city_name", true);
+    $post_id = (int) get_the_ID();
+    $seo_title = trim((string) get_post_meta($post_id, "rank_math_title", true));
+    if ($seo_title === "") {
+        $seo_title = trim((string) get_post_meta($post_id, "_yoast_wpseo_title", true));
+    }
+    if ($seo_title !== "") {
+        $parts["title"] = $seo_title;
+        unset($parts["tagline"]);
+
+        return $parts;
+    }
+
+    if (function_exists("upsellio_is_seo_plugin_managing_frontend_meta") && upsellio_is_seo_plugin_managing_frontend_meta()) {
+        return $parts;
+    }
+
+    $city = (string) get_post_meta($post_id, "_upsellio_city_name", true);
     $parts["title"] = "Marketing i strony WWW " . $city;
     $parts["tagline"] = "Upsellio";
 
@@ -48,16 +64,26 @@ function upsellio_city_meta_tags()
         return;
     }
 
+    if (function_exists("upsellio_is_seo_plugin_managing_frontend_meta") && upsellio_is_seo_plugin_managing_frontend_meta()) {
+        return;
+    }
+
     $postId = get_the_ID();
     $citySlug = get_post_meta($postId, "_upsellio_city_slug", true) ?: get_post_field("post_name", $postId);
     $cityDatasetItem = upsellio_get_city_by_slug($citySlug);
     $city = is_array($cityDatasetItem) && !empty($cityDatasetItem["name"])
         ? $cityDatasetItem["name"]
         : get_post_meta($postId, "_upsellio_city_name", true);
-    $description = get_post_meta($postId, "_upsellio_city_meta_description", true);
+    $description = trim((string) get_post_meta($postId, "rank_math_description", true));
+    if ($description === "") {
+        $description = trim((string) get_post_meta($postId, "_yoast_wpseo_metadesc", true));
+    }
+    if ($description === "") {
+        $description = (string) get_post_meta($postId, "_upsellio_city_meta_description", true);
+    }
     $url = get_permalink($postId);
 
-    if (!$description) {
+    if ($description === "") {
         $description = "Pozyskuj więcej klientów w mieście " . $city . " dzięki kampaniom Meta i Google Ads oraz stronie WWW nastawionej na konwersję.";
     }
 

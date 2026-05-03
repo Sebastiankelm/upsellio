@@ -141,7 +141,23 @@ function upsellio_definition_document_title($parts)
         return $parts;
     }
 
-    $term = get_post_meta(get_the_ID(), "_upsellio_definition_term", true) ?: get_the_title();
+    $post_id = (int) get_the_ID();
+    $seo_title = trim((string) get_post_meta($post_id, "rank_math_title", true));
+    if ($seo_title === "") {
+        $seo_title = trim((string) get_post_meta($post_id, "_yoast_wpseo_title", true));
+    }
+    if ($seo_title !== "") {
+        $parts["title"] = $seo_title;
+        unset($parts["tagline"]);
+
+        return $parts;
+    }
+
+    if (function_exists("upsellio_is_seo_plugin_managing_frontend_meta") && upsellio_is_seo_plugin_managing_frontend_meta()) {
+        return $parts;
+    }
+
+    $term = get_post_meta($post_id, "_upsellio_definition_term", true) ?: get_the_title();
     $parts["title"] = $term . " - definicja SEO i marketingu";
     $parts["tagline"] = "Upsellio";
 
@@ -155,16 +171,26 @@ function upsellio_definition_meta_tags()
         return;
     }
 
+    if (function_exists("upsellio_is_seo_plugin_managing_frontend_meta") && upsellio_is_seo_plugin_managing_frontend_meta()) {
+        return;
+    }
+
     $postId = get_the_ID();
     $term = get_post_meta($postId, "_upsellio_definition_term", true) ?: get_the_title($postId);
-    $description = get_post_meta($postId, "_upsellio_definition_meta_description", true);
+    $description = trim((string) get_post_meta($postId, "rank_math_description", true));
+    if ($description === "") {
+        $description = trim((string) get_post_meta($postId, "_yoast_wpseo_metadesc", true));
+    }
+    if ($description === "") {
+        $description = (string) get_post_meta($postId, "_upsellio_definition_meta_description", true);
+    }
     $url = get_permalink($postId);
     $faq = get_post_meta($postId, "_upsellio_definition_faq", true);
     if (!is_array($faq)) {
         $faq = [];
     }
 
-    if (!$description) {
+    if ($description === "") {
         $description = "Sprawdz definicje terminu " . $term . " oraz praktyczne zastosowanie w SEO, kampaniach reklamowych i optymalizacji konwersji.";
     }
 

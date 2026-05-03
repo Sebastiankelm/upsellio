@@ -11,7 +11,7 @@ if (!defined("ABSPATH")) {
  * Zadania: blog_post | offer_fill | inbox_draft | inbox_followup |
  *          lead_scoring | intent_classify | topic_generator |
  *          keyword_cluster | competitor_analysis | client_plan |
- *          suggestions | suggestions_clusters | blog_keyword_research
+ *          suggestions | suggestions_clusters | blog_keyword_research | cpt_ai_optimize
  */
 function upsellio_ai_model_for(string $task): string
 {
@@ -53,6 +53,7 @@ function upsellio_ai_model_for(string $task): string
         "suggestions" => $haiku,
         "blog_keyword_research" => $haiku,
         "suggestions_clusters" => $haiku,
+        "cpt_ai_optimize" => $sonnet,
     ];
 
     $model = $map[$task] ?? $haiku;

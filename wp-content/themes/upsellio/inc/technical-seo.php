@@ -3,6 +3,15 @@
 if (!defined("ABSPATH")) {
     exit;
 }
+
+/**
+ * Czy Rank Math / Yoast przejmuje title, meta description i canonical (żeby motyw nie duplikował znaczników w head).
+ */
+function upsellio_is_seo_plugin_managing_frontend_meta(): bool
+{
+    return function_exists("rank_math") || defined("WPSEO_VERSION") || defined("RANK_MATH_VERSION");
+}
+
 function upsellio_print_hreflang_tags()
 {
     if (is_admin()) {
