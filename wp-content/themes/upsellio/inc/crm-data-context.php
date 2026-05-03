@@ -170,11 +170,17 @@ function upsellio_crm_data_context_roas_block(string $utm_source, string $utm_ca
  */
 function upsellio_crm_data_context_gsc_aggregate_lines(int $max_lines = 18): string
 {
-    if (!function_exists("upsellio_gsc_analyze_full")) {
-        return "";
+    $agg = [];
+    if (function_exists("upsellio_gsc_analyze_full")) {
+        $analysis = upsellio_gsc_analyze_full();
+        $agg = isset($analysis["aggregated"]) && is_array($analysis["aggregated"]) ? $analysis["aggregated"] : [];
     }
-    $analysis = upsellio_gsc_analyze_full();
-    $agg = isset($analysis["aggregated"]) && is_array($analysis["aggregated"]) ? $analysis["aggregated"] : [];
+    if ($agg === [] && function_exists("upsellio_gsc_aggregate_keywords")) {
+        $raw = get_option("upsellio_keyword_metrics_rows", []);
+        if (is_array($raw) && $raw !== []) {
+            $agg = upsellio_gsc_aggregate_keywords($raw);
+        }
+    }
     if ($agg === []) {
         return "";
     }
