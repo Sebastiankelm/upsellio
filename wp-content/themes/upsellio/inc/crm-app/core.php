@@ -9,25 +9,79 @@ function upsellio_crm_app_user_can_access()
     return is_user_logged_in() && (current_user_can("manage_options") || current_user_can("edit_posts"));
 }
 
-function upsellio_crm_app_ensure_page()
+/**
+ * Czy aktualne żądanie to publiczna aplikacja CRM (osobna strona, nie wp-admin).
+ */
+function upsellio_crm_app_is_crm_app_view(): bool
 {
-    if (!is_admin() || !current_user_can("manage_options")) {
+    if (is_page("crm-app")) {
+        return true;
+    }
+    $stored_id = (int) get_option("upsellio_crm_app_page_id", 0);
+    if ($stored_id > 0 && is_page($stored_id)) {
+        return true;
+    }
+    $q = get_queried_object();
+    if ($q instanceof WP_Post && $q->post_type === "page" && $q->post_name === "crm-app") {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Tworzy stronę „crm-app” przy pierwszym ładowaniu witryny (nie tylko z panelu admina),
+ * żeby adres /crm-app/ działał od razu. Używa pierwszego konta administratora do wp_insert_post.
+ */
+function upsellio_crm_app_ensure_bootstrap_page(): void
+{
+    if (wp_doing_ajax() || wp_installing()) {
         return;
     }
+
     $slug = "crm-app";
     $page = get_page_by_path($slug);
-    if ($page instanceof WP_Post) {
+    if ($page instanceof WP_Post && $page->post_status === "publish") {
+        if ((int) get_option("upsellio_crm_app_page_id", 0) !== (int) $page->ID) {
+            update_option("upsellio_crm_app_page_id", (string) (int) $page->ID, false);
+        }
+
         return;
     }
-    wp_insert_post([
-        "post_type" => "page",
-        "post_status" => "publish",
-        "post_name" => $slug,
-        "post_title" => "CRM App",
-        "post_content" => "",
+
+    $users = get_users([
+        "role" => "administrator",
+        "number" => 1,
+        "fields" => ["ID"],
     ]);
+    $uid = isset($users[0]) ? (int) $users[0]->ID : 0;
+    if ($uid <= 0) {
+        return;
+    }
+
+    $prev = get_current_user_id();
+    wp_set_current_user($uid);
+    $pid = wp_insert_post(
+        [
+            "post_type" => "page",
+            "post_status" => "publish",
+            "post_name" => $slug,
+            "post_title" => "CRM App",
+            "post_content" => "",
+        ],
+        true
+    );
+    wp_set_current_user($prev);
+
+    if (!is_wp_error($pid) && $pid > 0) {
+        update_option("upsellio_crm_app_page_id", (string) (int) $pid, false);
+        if (get_option("upsellio_crm_app_flush_rewrite_v1", "") === "") {
+            flush_rewrite_rules(false);
+            update_option("upsellio_crm_app_flush_rewrite_v1", "1", false);
+        }
+    }
 }
-add_action("admin_init", "upsellio_crm_app_ensure_page");
+add_action("init", "upsellio_crm_app_ensure_bootstrap_page", 2);
 
 function upsellio_crm_app_register_query_var($vars)
 {
@@ -204,6 +258,30 @@ function upsellio_crm_app_sort_tasks_by_priority(array $tasks)
     return $tasks;
 }
 
+/**
+ * Prefetch meta dla list — redukcja N+1 przy wielu get_post_meta w renderze.
+ *
+ * @param array<int, WP_Post|int> $posts
+ */
+function upsellio_crm_app_prime_post_meta_cache(array $posts): void
+{
+    if ($posts === []) {
+        return;
+    }
+    $ids = [];
+    foreach ($posts as $p) {
+        if ($p instanceof WP_Post) {
+            $ids[] = (int) $p->ID;
+        } elseif (is_int($p) || (is_string($p) && ctype_digit($p))) {
+            $ids[] = (int) $p;
+        }
+    }
+    $ids = array_values(array_unique(array_filter($ids)));
+    if ($ids !== []) {
+        update_meta_cache("post", $ids);
+    }
+}
+
 function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $inbox_ctx = null)
 {
     $st = upsellio_crm_app_post_statuses_visible();
@@ -254,16 +332,26 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
                 $empty["tasks"] = upsellio_crm_app_sort_tasks_by_priority(get_posts($ta));
             }
 
+            upsellio_crm_app_prime_post_meta_cache(array_merge(
+                $empty["leads"],
+                $empty["offers"],
+                $empty["clients"],
+                $empty["contracts"],
+                $empty["tasks"]
+            ));
+
             return $empty;
 
         case "leads":
             $empty["leads"] = $qlist("crm_lead", 300);
+            upsellio_crm_app_prime_post_meta_cache($empty["leads"]);
 
             return $empty;
 
         case "account-360":
         case "clients":
             $empty["clients"] = $qlist("crm_client", 300);
+            upsellio_crm_app_prime_post_meta_cache($empty["clients"]);
 
             return $empty;
 
@@ -273,12 +361,14 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
         case "contacts":
             $empty["clients"] = $qlist("crm_client", 300);
             $empty["contacts"] = $qlist("crm_contact", 300);
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["contacts"]));
 
             return $empty;
 
         case "services":
             $empty["clients"] = $qlist("crm_client", 300);
             $empty["services"] = $qlist("crm_service", 300);
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["services"]));
 
             return $empty;
 
@@ -287,6 +377,7 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
             $empty["offers"] = $qlist("crm_offer", 300);
             $empty["followups"] = $qlist("ups_followup_template", 300);
             $empty["offer_layout_templates"] = $qlist("crm_offer_layout", 200, "title", "ASC");
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"]));
 
             return $empty;
 
@@ -302,6 +393,7 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
         case "pipeline":
             $empty["clients"] = $qlist("crm_client", 300);
             $empty["offers"] = $qlist("crm_offer", 300);
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"]));
 
             return $empty;
 
@@ -310,12 +402,14 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
             $empty["offers"] = $qlist("crm_offer", 300);
             $empty["contracts"] = $qlist("crm_contract", 300);
             $empty["contract_layout_templates"] = $qlist("crm_contract_layout", 200, "title", "ASC");
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"], $empty["contracts"]));
 
             return $empty;
 
         case "contract-detail":
             $empty["clients"] = $qlist("crm_client", 300);
             $empty["offers"] = $qlist("crm_offer", 300);
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"]));
 
             return $empty;
 
@@ -330,11 +424,13 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
                 $empty["tasks"] = upsellio_crm_app_sort_tasks_by_priority(get_posts(upsellio_crm_app_get_tasks_query_args(500)));
             }
             $empty["offers"] = $qlist("crm_offer", 300);
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["tasks"], $empty["offers"]));
 
             return $empty;
 
         case "prospecting":
             $empty["prospects"] = $qlist("crm_prospect", 300);
+            upsellio_crm_app_prime_post_meta_cache($empty["prospects"]);
 
             return $empty;
 
@@ -375,6 +471,8 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
                 $empty["offers"] = $qlist("crm_offer", 250);
             }
 
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["inbox_offers"], $empty["offers"]));
+
             return $empty;
 
         case "engine":
@@ -386,13 +484,18 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
                 $ta = upsellio_crm_app_get_tasks_query_args(300);
                 $empty["tasks"] = upsellio_crm_app_sort_tasks_by_priority(get_posts($ta));
             }
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["offers"], $empty["tasks"]));
 
             return $empty;
 
         case "analytics":
             $empty["offers"] = $qlist("crm_offer", 300);
             $empty["contracts"] = $qlist("crm_contract", 300);
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["offers"], $empty["contracts"]));
 
+            return $empty;
+
+        case "suggestions":
             return $empty;
 
         case "deals":
@@ -400,6 +503,7 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
             $empty["offers"] = $qlist("crm_offer", 300);
             $empty["followups"] = $qlist("ups_followup_template", 300);
             $empty["offer_layout_templates"] = $qlist("crm_offer_layout", 200, "title", "ASC");
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"]));
 
             return $empty;
 
@@ -410,6 +514,7 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
                 $ta = upsellio_crm_app_get_tasks_query_args(500);
                 $empty["tasks"] = upsellio_crm_app_sort_tasks_by_priority(get_posts($ta));
             }
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"], $empty["tasks"]));
 
             return $empty;
 
@@ -442,6 +547,8 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
                     ]);
                 }
             }
+
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"], $empty["tasks"]));
 
             return $empty;
 
