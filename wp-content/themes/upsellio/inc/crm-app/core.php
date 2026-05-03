@@ -350,6 +350,7 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
 
         case "account-360":
         case "clients":
+        case "research":
             $empty["clients"] = $qlist("crm_client", 300);
             upsellio_crm_app_prime_post_meta_cache($empty["clients"]);
 
