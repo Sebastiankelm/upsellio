@@ -4,6 +4,29 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
+/**
+ * Przekierowanie na frontend /crm-app/ PRZED załadowaniem admin-header.php.
+ * Callback add_submenu_page uruchamiany jest już po nagłówkach — wp_safe_redirect()
+ * wtedy nie działa i daje pusty ekran.
+ */
+function upsellio_crm_app_admin_redirect_to_frontend_early(): void
+{
+    if (!is_admin() || wp_doing_ajax()) {
+        return;
+    }
+    if (!isset($_GET["page"]) || (string) wp_unslash($_GET["page"]) !== "upsellio-crm-app-entry") {
+        return;
+    }
+    if (!current_user_can("edit_posts")) {
+        return;
+    }
+
+    $target = home_url("/crm-app/");
+    wp_safe_redirect($target);
+    exit;
+}
+add_action("admin_init", "upsellio_crm_app_admin_redirect_to_frontend_early", 0);
+
 function upsellio_crm_app_admin_entry_menu()
 {
     if (function_exists("upsellio_admin_hub_slug")) {
@@ -30,11 +53,13 @@ function upsellio_crm_app_admin_entry_menu()
 }
 add_action("admin_menu", "upsellio_crm_app_admin_entry_menu", 9);
 
-function upsellio_crm_app_admin_entry_render()
+function upsellio_crm_app_admin_entry_render(): void
 {
-    $target = home_url("/crm-app/");
-    wp_safe_redirect($target);
-    exit;
+    $target = esc_url(home_url("/crm-app/"));
+    echo '<div class="wrap"><p>';
+    esc_html_e("Jeśli nie nastąpiło przekierowanie, otwórz CRM:", "upsellio");
+    echo ' <a href="' . $target . '">' . esc_html($target) . "</a></p>";
+    echo "<script>window.location.replace(" . wp_json_encode(home_url("/crm-app/")) . ");</script>";
 }
 
 function upsellio_crm_app_hide_legacy_admin_menus()
