@@ -108,6 +108,9 @@ function upsellio_suggestions_company_context(): string
 
 function upsellio_suggestions_default_model(): string
 {
+    if (function_exists("upsellio_ai_model_for")) {
+        return upsellio_ai_model_for("suggestions");
+    }
     $m = trim((string) get_option("ups_blog_bot_model", ""));
     if ($m === "") {
         $m = trim((string) get_option("ups_anthropic_model", ""));
@@ -715,7 +718,9 @@ function upsellio_suggestions_generate_clusters(): array
         . '"gaps":[""],'
         . '"priority_order":[""]}';
 
-    $model = upsellio_suggestions_default_model();
+    $model = function_exists("upsellio_ai_model_for")
+        ? upsellio_ai_model_for("suggestions_clusters")
+        : upsellio_suggestions_default_model();
     $in_tok = upsellio_suggestions_estimate_tokens($prompt);
     $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 2400, 90, $model);
     if ($raw === null) {
@@ -843,7 +848,9 @@ function upsellio_blog_keyword_research(string $seed): array
         return ["error" => "Brak klucza API."];
     }
 
-    $model = upsellio_suggestions_default_model();
+    $model = function_exists("upsellio_ai_model_for")
+        ? upsellio_ai_model_for("blog_keyword_research")
+        : upsellio_suggestions_default_model();
     $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 900, 45, $model);
     if ($raw === null) {
         return ["error" => "Brak odpowiedzi AI."];
