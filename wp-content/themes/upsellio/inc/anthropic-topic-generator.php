@@ -420,7 +420,9 @@ function upsellio_topicgen_run(int $count = 10, bool $structured = false): array
     $count = max(3, min(30, $count));
     $prompt = upsellio_topicgen_build_prompt($count, $structured);
 
-    $model = trim((string) get_option("ups_blog_bot_model", ""));
+    $model = function_exists("upsellio_ai_model_for")
+        ? upsellio_ai_model_for("topic_generator")
+        : trim((string) get_option("ups_blog_bot_model", ""));
     if ($model === "") {
         $model = "claude-haiku-4-5-20251001";
     }
