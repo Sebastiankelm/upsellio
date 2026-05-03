@@ -3125,3 +3125,396 @@ function upsellio_render_site_analytics_page()
     <?php
 }
 
+/**
+ * Parsuje odpowiedź googleAds:searchStream (NDJSON lub pojedynczy JSON).
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function upsellio_google_ads_parse_search_stream_body(string $body_raw): array
+{
+    $body_raw = trim($body_raw);
+    if ($body_raw === "") {
+        return [];
+    }
+
+    $single = json_decode($body_raw, true);
+    if (is_array($single) && isset($single["results"]) && is_array($single["results"])) {
+        return $single["results"];
+    }
+
+    $rows = [];
+    $lines = preg_split("/\R/", $body_raw);
+    if (!is_array($lines)) {
+        return [];
+    }
+
+    foreach ($lines as $line) {
+        $line = trim((string) $line);
+        if ($line === "") {
+            continue;
+        }
+        $decoded = json_decode($line, true);
+        if (!is_array($decoded)) {
+            continue;
+        }
+        if (isset($decoded["results"]) && is_array($decoded["results"])) {
+            foreach ($decoded["results"] as $r) {
+                if (is_array($r)) {
+                    $rows[] = $r;
+                }
+            }
+        } else {
+            $rows[] = $decoded;
+        }
+    }
+
+    return $rows;
+}
+
+/**
+ * Wykonuje GAQL przez searchStream.
+ *
+ * @return array<int, array<string, mixed>>|\WP_Error
+ */
+function upsellio_google_ads_gaql_search_stream(string $query)
+{
+    if (!function_exists("upsellio_google_ads_api_ready") || !upsellio_google_ads_api_ready()) {
+        return new WP_Error("not_ready", __("Skonfiguruj Google Ads API (Developer token + Customer ID).", "upsellio"));
+    }
+
+    $cfg = upsellio_google_ads_get_settings();
+    $customer_id = $cfg["customer_id"];
+    $creds = upsellio_get_gsc_credentials();
+    $token = upsellio_gsc_get_access_token($creds);
+    if (is_wp_error($token)) {
+        return $token;
+    }
+
+    $url = upsellio_google_ads_rest_base_url() . "/customers/{$customer_id}/googleAds:searchStream";
+
+    $response = wp_remote_post($url, [
+        "timeout" => 45,
+        "headers" => array_merge(
+            upsellio_google_ads_request_headers((string) $token),
+            ["Content-Type" => "application/json"]
+        ),
+        "body" => wp_json_encode(["query" => $query]),
+    ]);
+
+    if (is_wp_error($response)) {
+        return $response;
+    }
+
+    $code = (int) wp_remote_retrieve_response_code($response);
+    $body_raw = (string) wp_remote_retrieve_body($response);
+
+    if ($code >= 400) {
+        $body = json_decode($body_raw, true);
+        $msg = upsellio_gsc_extract_error_message(is_array($body) ? $body : [], "GAQL HTTP {$code}");
+
+        return new WP_Error("gaql_error", $msg);
+    }
+
+    return upsellio_google_ads_parse_search_stream_body($body_raw);
+}
+
+/**
+ * Kampanie z metrykami (agregat za okres dat).
+ *
+ * @return array<int, array<string, mixed>>|\WP_Error
+ */
+function upsellio_google_ads_fetch_campaigns(string $date_range = "LAST_30_DAYS")
+{
+    $query = "SELECT
+      campaign.id,
+      campaign.name,
+      campaign.status,
+      campaign.advertising_channel_type,
+      segments.date,
+      metrics.cost_micros,
+      metrics.clicks,
+      metrics.impressions,
+      metrics.conversions,
+      metrics.ctr,
+      metrics.average_cpc
+    FROM campaign
+    WHERE campaign.status = 'ENABLED'
+      AND segments.date DURING {$date_range}";
+
+    $rows = upsellio_google_ads_gaql_search_stream($query);
+    if (is_wp_error($rows)) {
+        return $rows;
+    }
+
+    $agg = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $c = (array) ($row["campaign"] ?? []);
+        $metrics = (array) ($row["metrics"] ?? []);
+        $id = (string) ($c["id"] ?? "");
+        if ($id === "") {
+            continue;
+        }
+        if (!isset($agg[$id])) {
+            $agg[$id] = [
+                "id" => $id,
+                "name" => (string) ($c["name"] ?? ""),
+                "type" => (string) ($c["advertisingChannelType"] ?? ""),
+                "cost_micros" => 0,
+                "clicks" => 0,
+                "impressions" => 0,
+                "conversions" => 0.0,
+                "ctr_weighted_num" => 0.0,
+                "ctr_weighted_den" => 0,
+                "cpc_micros_weighted_num" => 0,
+                "cpc_micros_weighted_den" => 0,
+            ];
+        }
+
+        $agg[$id]["cost_micros"] += (int) ($metrics["costMicros"] ?? 0);
+        $agg[$id]["clicks"] += (int) ($metrics["clicks"] ?? 0);
+        $agg[$id]["impressions"] += (int) ($metrics["impressions"] ?? 0);
+        $agg[$id]["conversions"] += (float) ($metrics["conversions"] ?? 0);
+
+        $imp_slice = (int) ($metrics["impressions"] ?? 0);
+        if ($imp_slice > 0) {
+            $agg[$id]["ctr_weighted_num"] += (float) ($metrics["ctr"] ?? 0) * $imp_slice;
+            $agg[$id]["ctr_weighted_den"] += $imp_slice;
+        }
+        $clk_slice = (int) ($metrics["clicks"] ?? 0);
+        if ($clk_slice > 0) {
+            $avg_cpc_micros = (int) ($metrics["averageCpc"] ?? 0);
+            $agg[$id]["cpc_micros_weighted_num"] += $avg_cpc_micros * $clk_slice;
+            $agg[$id]["cpc_micros_weighted_den"] += $clk_slice;
+        }
+    }
+
+    $campaigns = [];
+    foreach ($agg as $a) {
+        $cost_pln = round((int) $a["cost_micros"] / 1000000, 2);
+        $avg_ctr = $a["ctr_weighted_den"] > 0 ? ($a["ctr_weighted_num"] / $a["ctr_weighted_den"]) : 0.0;
+        $avg_cpc_micros = $a["cpc_micros_weighted_den"] > 0
+            ? (int) round($a["cpc_micros_weighted_num"] / $a["cpc_micros_weighted_den"])
+            : 0;
+        $avg_cpc_pln = round($avg_cpc_micros / 1000000, 2);
+        $conv_total = (float) $a["conversions"];
+        $cpa_pln = $conv_total > 0.0001 ? round($cost_pln / $conv_total, 2) : 0.0;
+
+        $campaigns[] = [
+            "id" => $a["id"],
+            "name" => $a["name"],
+            "type" => $a["type"],
+            "cost_pln" => $cost_pln,
+            "clicks" => (int) $a["clicks"],
+            "impressions" => (int) $a["impressions"],
+            "conversions" => (float) $a["conversions"],
+            "ctr" => round((float) $avg_ctr * 100, 2),
+            "avg_cpc_pln" => $avg_cpc_pln,
+            "cpa_pln" => $cpa_pln,
+        ];
+    }
+
+    usort(
+        $campaigns,
+        static function ($x, $y) {
+            return ($y["cost_pln"] ?? 0) <=> ($x["cost_pln"] ?? 0);
+        }
+    );
+
+    return array_slice($campaigns, 0, 80);
+}
+
+/**
+ * Auction insights per domena (keyword_view — wymaga dostępu do metryk auction w API).
+ *
+ * @return array<int, array<string, mixed>>|\WP_Error
+ */
+function upsellio_google_ads_fetch_auction_insights(string $campaign_id = "")
+{
+    $campaign_filter = "";
+    if ($campaign_id !== "") {
+        $cid = preg_replace("/\D+/", "", $campaign_id);
+        if ($cid !== "") {
+            $campaign_filter = " AND campaign.id = {$cid}";
+        }
+    }
+
+    $query = "SELECT
+      campaign.id,
+      campaign.status,
+      segments.auction_insight_domain,
+      metrics.auction_insight_search_impression_share,
+      metrics.auction_insight_search_overlap_rate,
+      metrics.auction_insight_search_position_above_rate,
+      metrics.auction_insight_search_top_impression_percentage,
+      metrics.auction_insight_search_absolute_top_impression_percentage
+    FROM keyword_view
+    WHERE segments.date DURING LAST_30_DAYS
+      AND campaign.status = 'ENABLED'
+      {$campaign_filter}
+    LIMIT 200";
+
+    $rows = upsellio_google_ads_gaql_search_stream($query);
+    if (is_wp_error($rows)) {
+        return $rows;
+    }
+
+    $domains = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $seg = isset($row["segments"]) && is_array($row["segments"]) ? $row["segments"] : [];
+        $domain = (string) ($seg["auctionInsightDomain"] ?? "");
+
+        if ($domain === "") {
+            continue;
+        }
+
+        $metrics = (array) ($row["metrics"] ?? []);
+        $imp_share = (float) ($metrics["auctionInsightSearchImpressionShare"] ?? 0);
+        $overlap = (float) ($metrics["auctionInsightSearchOverlapRate"] ?? 0);
+        $above = (float) ($metrics["auctionInsightSearchPositionAboveRate"] ?? 0);
+        $top = (float) ($metrics["auctionInsightSearchTopImpressionPercentage"] ?? 0);
+        $abs_top = (float) ($metrics["auctionInsightSearchAbsoluteTopImpressionPercentage"] ?? 0);
+
+        if (!isset($domains[$domain])) {
+            $domains[$domain] = [
+                "domain" => $domain,
+                "impression_share_sum" => 0.0,
+                "overlap_sum" => 0.0,
+                "above_sum" => 0.0,
+                "top_sum" => 0.0,
+                "abs_top_sum" => 0.0,
+                "n" => 0,
+            ];
+        }
+        $domains[$domain]["impression_share_sum"] += $imp_share;
+        $domains[$domain]["overlap_sum"] += $overlap;
+        $domains[$domain]["above_sum"] += $above;
+        $domains[$domain]["top_sum"] += $top;
+        $domains[$domain]["abs_top_sum"] += $abs_top;
+        $domains[$domain]["n"]++;
+    }
+
+    $competitors = [];
+    foreach ($domains as $d) {
+        $n = max(1, (int) $d["n"]);
+        $competitors[] = [
+            "domain" => (string) $d["domain"],
+            "impression_share" => round(($d["impression_share_sum"] / $n) * 100, 1),
+            "overlap_rate" => round(($d["overlap_sum"] / $n) * 100, 1),
+            "position_above_rate" => round(($d["above_sum"] / $n) * 100, 1),
+            "top_share" => round(($d["top_sum"] / $n) * 100, 1),
+            "abs_top_share" => round(($d["abs_top_sum"] / $n) * 100, 1),
+        ];
+    }
+
+    usort(
+        $competitors,
+        static function ($a, $b) {
+            return ($b["impression_share"] ?? 0) <=> ($a["impression_share"] ?? 0);
+        }
+    );
+
+    return array_slice($competitors, 0, 40);
+}
+
+function upsellio_google_ads_sync_campaigns(): void
+{
+    $campaigns = upsellio_google_ads_fetch_campaigns("LAST_30_DAYS");
+
+    if (is_wp_error($campaigns)) {
+        update_option("ups_ads_campaigns_sync_error", $campaigns->get_error_message(), false);
+
+        return;
+    }
+
+    update_option("ups_ads_campaigns_data", $campaigns, false);
+    update_option("ups_ads_campaigns_synced", current_time("mysql"), false);
+    delete_option("ups_ads_campaigns_sync_error");
+
+    if (!function_exists("upsellio_sales_engine_get_campaign_costs") || !function_exists("upsellio_sales_engine_save_campaign_costs")) {
+        return;
+    }
+
+    $existing_costs = upsellio_sales_engine_get_campaign_costs();
+    if (!is_array($existing_costs)) {
+        $existing_costs = [];
+    }
+
+    $updated = false;
+
+    foreach ($campaigns as $camp) {
+        $cost_pln = (float) ($camp["cost_pln"] ?? 0);
+        if ($cost_pln <= 0) {
+            continue;
+        }
+
+        $target_key = null;
+        $camp_name = strtolower(trim((string) ($camp["name"] ?? "")));
+
+        foreach ($existing_costs as $ek => $ev) {
+            $parts = array_map("trim", explode("|", str_replace(" | ", "|", (string) $ek), 2));
+            $cmp = isset($parts[1]) ? strtolower(trim((string) $parts[1])) : "";
+            if ($cmp !== "" && $cmp === $camp_name) {
+                $target_key = $ek;
+                break;
+            }
+        }
+
+        if ($target_key !== null) {
+            $existing_amount = (float) $existing_costs[$target_key];
+            if ($existing_amount > 0 && abs($cost_pln - $existing_amount) / $existing_amount < 0.05) {
+                continue;
+            }
+            $existing_costs[$target_key] = $cost_pln;
+            $updated = true;
+        } else {
+            $new_key = "google | " . trim((string) ($camp["name"] ?? ""));
+            $existing_costs[$new_key] = $cost_pln;
+            $updated = true;
+        }
+    }
+
+    if ($updated) {
+        upsellio_sales_engine_save_campaign_costs($existing_costs);
+    }
+}
+
+add_action("upsellio_google_ads_daily_sync", "upsellio_google_ads_sync_campaigns");
+
+add_action(
+    "init",
+    static function () {
+        if (!wp_next_scheduled("upsellio_google_ads_daily_sync")) {
+            wp_schedule_event(time() + HOUR_IN_SECONDS, "daily", "upsellio_google_ads_daily_sync");
+        }
+    },
+    20
+);
+
+function upsellio_ajax_ads_sync_campaigns(): void
+{
+    check_ajax_referer("ups_crm_app_action", "nonce");
+    if (!current_user_can("manage_options")) {
+        wp_send_json_error("forbidden");
+    }
+
+    upsellio_google_ads_sync_campaigns();
+
+    $error = (string) get_option("ups_ads_campaigns_sync_error", "");
+    if ($error !== "") {
+        wp_send_json_error($error);
+    }
+
+    $data = get_option("ups_ads_campaigns_data", []);
+    wp_send_json_success([
+        "count" => is_array($data) ? count($data) : 0,
+        "synced" => (string) get_option("ups_ads_campaigns_synced", ""),
+    ]);
+}
+add_action("wp_ajax_upsellio_ads_sync_campaigns", "upsellio_ajax_ads_sync_campaigns");
+
