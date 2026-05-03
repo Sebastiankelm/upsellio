@@ -329,7 +329,7 @@ function upsellio_blog_tool_ai_chat($ai_settings, $messages, $temperature = null
     $cache_split = function_exists("upsellio_blog_bot_prompt_cache_split")
         ? upsellio_blog_bot_prompt_cache_split($full_prompt)
         : null;
-    $raw = upsellio_anthropic_crm_send_user_prompt($full_prompt, max(800, min(4096, $max_tokens_value)), 90, $model_override, $cache_split);
+    $raw = upsellio_anthropic_crm_send_user_prompt($full_prompt, max(800, min(8192, $max_tokens_value)), 90, $model_override, $cache_split);
     if ($raw === null || trim($raw) === "") {
         $detail = function_exists("upsellio_anthropic_crm_get_last_send_error") ? trim(upsellio_anthropic_crm_get_last_send_error()) : "";
         $msg = "Brak odpowiedzi z Claude (CRM). Sprawdź klucz API Anthropic, model i limity.";
