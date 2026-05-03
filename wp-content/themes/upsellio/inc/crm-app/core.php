@@ -41,7 +41,23 @@ function upsellio_crm_app_ensure_bootstrap_page(): void
 
     $slug = "crm-app";
     $page = get_page_by_path($slug);
-    if ($page instanceof WP_Post && $page->post_status === "publish") {
+    // Po restore kopii strona „crm-app” często jest szkicem / private — wtedy WordPress zwraca 404.
+    if ($page instanceof WP_Post && $page->post_name === $slug) {
+        if ($page->post_status !== "publish") {
+            $pub = wp_update_post(
+                [
+                    "ID" => (int) $page->ID,
+                    "post_status" => "publish",
+                ],
+                true
+            );
+            if (!is_wp_error($pub)) {
+                update_option("upsellio_crm_app_page_id", (string) (int) $page->ID, false);
+                flush_rewrite_rules(false);
+            }
+
+            return;
+        }
         if ((int) get_option("upsellio_crm_app_page_id", 0) !== (int) $page->ID) {
             update_option("upsellio_crm_app_page_id", (string) (int) $page->ID, false);
         }
