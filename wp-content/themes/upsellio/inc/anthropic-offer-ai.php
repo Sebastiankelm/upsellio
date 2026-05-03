@@ -353,6 +353,10 @@ function upsellio_offer_ai_fill_ajax(): void
     }
 
     $master_ctx = function_exists("upsellio_ai_master_context") ? upsellio_ai_master_context("offer") : "";
+    $data_ctx = "";
+    if ($offer_id > 0 && function_exists("upsellio_crm_data_context_for_offer")) {
+        $data_ctx = upsellio_crm_data_context_for_offer($offer_id);
+    }
 
     $task = "Na podstawie danych klienta przygotuj wypełnienie formularza oferty B2B (CRM budowniczek). "
         . "Odpowiedz WYŁĄCZNIE jednym obiektem JSON (bez markdown, bez komentarzy). "
@@ -389,6 +393,9 @@ function upsellio_offer_ai_fill_ajax(): void
 
     if ($master_ctx !== "") {
         $task .= "\n\n---\nKontekst agregatowy (GA4, klienci, typowe zakresy wygranych):\n" . $master_ctx;
+    }
+    if ($data_ctx !== "") {
+        $task .= "\n\n---\nKontekst danych marketingowych (UTM deala, ROAS, GSC):\n" . $data_ctx;
     }
 
     $prompt = ($context !== "" ? $context . "\n\n--- Zadanie ---\n\n" : "") . $task;
