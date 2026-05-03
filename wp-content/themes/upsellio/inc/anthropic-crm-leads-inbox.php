@@ -252,6 +252,7 @@ function upsellio_anthropic_crm_get_last_send_error(): string
 function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $timeout = 28, $model_override = null, $cache_split = null)
 {
     $GLOBALS["upsellio_anthropic_crm_last_send_error"] = "";
+    $GLOBALS["upsellio_anthropic_crm_last_stop_reason"] = "";
     $api_key = upsellio_anthropic_crm_api_key();
     if ($api_key === "") {
         $GLOBALS["upsellio_anthropic_crm_last_send_error"] = "Brak klucza API (UPSELLIO_ANTHROPIC_API_KEY / ups_anthropic_api_key).";
@@ -320,6 +321,15 @@ function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $ti
         ]
         : $prompt;
 
+    $timeout = (int) apply_filters(
+        "upsellio_anthropic_http_timeout",
+        max(5, min(600, (int) $timeout)),
+        [
+            "max_tokens" => $max_tokens,
+            "model" => $model,
+        ]
+    );
+
     $response = wp_remote_post(
         "https://api.anthropic.com/v1/messages",
         [
@@ -327,7 +337,8 @@ function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $ti
             "headers" => $headers,
             "body" => wp_json_encode([
                 "model" => $model,
-                "max_tokens" => max(64, min(4096, (int) $max_tokens)),
+                // Limit wyjścia: domyślnie 8192; filtr upsellio_anthropic_max_output_cap (np. 9216) gdy model API to obsługuje.
+                "max_tokens" => max(64, min((int) apply_filters("upsellio_anthropic_max_output_cap", 8192), (int) $max_tokens)),
                 "messages" => [
                     ["role" => "user", "content" => $user_content],
                 ],
@@ -363,6 +374,7 @@ function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $ti
 
         return null;
     }
+    $GLOBALS["upsellio_anthropic_crm_last_stop_reason"] = isset($raw["stop_reason"]) ? (string) $raw["stop_reason"] : "";
     $text = upsellio_anthropic_crm_extract_text_from_response_body($raw);
     if ($text === "") {
         $stop = isset($raw["stop_reason"]) ? (string) $raw["stop_reason"] : "";
@@ -374,6 +386,13 @@ function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $ti
     }
 
     return $text;
+}
+
+function upsellio_anthropic_crm_get_last_stop_reason(): string
+{
+    return isset($GLOBALS["upsellio_anthropic_crm_last_stop_reason"])
+        ? (string) $GLOBALS["upsellio_anthropic_crm_last_stop_reason"]
+        : "";
 }
 
 /**
@@ -388,13 +407,16 @@ function upsellio_anthropic_crm_strip_json_markdown_fence(string $text): string
     if (strncmp($text, "\xEF\xBB\xBF", 3) === 0) {
         $text = substr($text, 3);
     }
-    // Początek: ``` lub ```json
-    if (preg_match("/^```[a-zA-Z0-9_-]*\s*/", $text)) {
-        $text = preg_replace("/^```[a-zA-Z0-9_-]*\s*/", "", $text);
+    // Wielokrotne lub zagnieżdżone ``` / ```json na początku (model ignoruje „bez fence”).
+    $guard = 0;
+    while ($guard < 8 && preg_match('/^\s*```/', $text)) {
+        $text = preg_replace('/^\s*```[ \t]*[a-zA-Z0-9_-]*[ \t]*(?:\r\n|\n|\r)?/', "", $text, 1);
+        $text = ltrim($text);
+        $guard++;
     }
-    // Koniec: ```
+    // Koniec: ostatni blok ```
     if (strpos($text, "```") !== false) {
-        $text = preg_replace("/\s*```\s*$/", "", $text);
+        $text = preg_replace('/\s*```\s*$/', "", $text);
         $text = rtrim($text);
     }
 
@@ -464,7 +486,11 @@ function upsellio_anthropic_crm_parse_json_object($text)
         if ($payload === "") {
             return null;
         }
-        $j = json_decode($payload, true);
+        $flags = JSON_BIGINT_AS_STRING;
+        if (defined("JSON_INVALID_UTF8_IGNORE")) {
+            $flags |= JSON_INVALID_UTF8_IGNORE;
+        }
+        $j = json_decode($payload, true, 512, $flags);
         if (json_last_error() === JSON_ERROR_NONE && is_array($j)) {
             return $j;
         }
@@ -494,9 +520,9 @@ function upsellio_anthropic_crm_parse_json_object($text)
     }
 
     if (preg_match("/\{[\s\S]*\}/", $stripped, $m)) {
-        $j = json_decode($m[0], true);
-        if (is_array($j)) {
-            return $j;
+        $decoded = $try_decode($m[0]);
+        if (is_array($decoded)) {
+            return $decoded;
         }
     }
 
@@ -817,6 +843,13 @@ function upsellio_crm_inbox_ai_draft_reply_ajax()
         "behavior_section" => $behavior_section,
     ]);
 
+    if (function_exists("upsellio_crm_data_context_for_offer")) {
+        $data_ctx_draft = upsellio_crm_data_context_for_offer($offer_id);
+        if ($data_ctx_draft !== "") {
+            $prompt .= "\n\n---\nKontekst danych marketingowych (UTM deala, ROAS, GSC):\n" . $data_ctx_draft;
+        }
+    }
+
     $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 900, 35);
     if ($raw === null) {
         wp_send_json_error(["message" => "api"], 502);
@@ -978,6 +1011,13 @@ function upsellio_crm_ai_inbox_followup_hourly_run()
             "channel_context" => $channel_context,
             "behavior_section" => $behavior_section_fu,
         ]);
+
+        if (function_exists("upsellio_crm_data_context_for_offer")) {
+            $data_ctx_fu = upsellio_crm_data_context_for_offer($offer_id);
+            if ($data_ctx_fu !== "") {
+                $prompt .= "\n\n---\nKontekst danych marketingowych (UTM deala, ROAS, GSC):\n" . $data_ctx_fu;
+            }
+        }
 
         $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 640, 32);
         if ($raw === null) {
