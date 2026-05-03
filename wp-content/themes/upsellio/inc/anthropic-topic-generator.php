@@ -26,6 +26,14 @@ function upsellio_topicgen_resolve_lead_post_type(): string
  */
 function upsellio_topicgen_get_gsc_opportunities(int $limit = 15): array
 {
+    if (function_exists("upsellio_gsc_analyze_full")) {
+        $analysis = upsellio_gsc_analyze_full();
+        $qw = isset($analysis["quick_wins"]) && is_array($analysis["quick_wins"]) ? $analysis["quick_wins"] : [];
+        if ($qw !== []) {
+            return array_slice($qw, 0, $limit);
+        }
+    }
+
     $rows = get_option("upsellio_keyword_metrics_rows", []);
     if (!is_array($rows) || empty($rows)) {
         return [];
@@ -253,8 +261,13 @@ function upsellio_topicgen_get_existing_posts(int $limit = 20): array
     return $titles;
 }
 
-function upsellio_topicgen_build_prompt(int $count): string
+function upsellio_topicgen_build_prompt(int $count, bool $structured = false): string
 {
+    $gsc_full = [];
+    if (function_exists("upsellio_gsc_analyze_full")) {
+        $gsc_full = upsellio_gsc_analyze_full();
+    }
+
     $gsc_opp = upsellio_topicgen_get_gsc_opportunities(15);
     $gsc_conv = upsellio_topicgen_get_gsc_converting(10);
     $ga4_channels = upsellio_topicgen_get_ga4_top_channels(5);
@@ -276,21 +289,32 @@ function upsellio_topicgen_build_prompt(int $count): string
     }
 
     $priority_ctx = "";
-    if (!empty($gsc_opp)) {
-        $priority_ctx .= "PRIORYTET 1 (SEO quick wins): Frazy GSC pozycje 5–20 — priorytetyzuj tematy, które mogą awansować do TOP5.\n";
+    if (!empty($gsc_full["gaps"])) {
+        $priority_ctx .= "PRIORYTET 1 (luki treściowe): Frazy już widoczne w SERP na homepage / URL parametryczny — brak dedykowanego artykułu; najwyższy priorytet.\n";
+    }
+    if (!empty($gsc_opp) || !empty($gsc_full["quick_wins"])) {
+        $priority_ctx .= "PRIORYTET 2 (quick wins GSC): Frazy poz. 5–50 — treścią można podbić pozycje.\n";
     }
     if (!empty($lead_insights["messages"]) || !empty($lead_insights["services"])) {
-        $priority_ctx .= "PRIORYTET 2 (sprzedaż): Pytania i usługi z formularzy leadowych — to realny popyt.\n";
+        $priority_ctx .= "PRIORYTET 3 (sprzedaż): Pytania i usługi z formularzy leadowych — realny popyt.\n";
     }
     if (!empty($gsc_conv)) {
-        $priority_ctx .= "PRIORYTET 3 (rozbudowa): Frazy z kliknięciami — tematy satelitarne lub pogłębiające istniejący ruch.\n";
+        $priority_ctx .= "PRIORYTET 4 (rozbudowa): Frazy z kliknięciami — tematy satelitarne lub pogłębiające ruch.\n";
     }
     if (!empty($won_services)) {
-        $priority_ctx .= "PRIORYTET 4 (konwersja): Obszary z wygranych ofert — content sprzedażowy pod te usługi.\n";
+        $priority_ctx .= "PRIORYTET 5 (konwersja): Obszary z wygranych ofert — content sprzedażowy pod te usługi.\n";
     }
     if ($priority_ctx !== "") {
         $sections[] = "HIERARCHIA ŹRÓDEŁ (wybieraj tematy zgodnie z kolejnością — wyższy priorytet ważniejszy przy konflikcie danych):\n"
             . trim($priority_ctx);
+    }
+
+    if (function_exists("upsellio_gsc_build_prompt_block")) {
+        $gsc_full_block = upsellio_gsc_build_prompt_block("topicgen");
+        $nodata = __("Brak danych GSC do analizy.", "upsellio");
+        if ($gsc_full_block !== "" && $gsc_full_block !== $nodata) {
+            $sections[] = "PEŁNA ANALIZA GSC — PODSTAWA DO WYBORU TEMATÓW:\n" . $gsc_full_block;
+        }
     }
 
     if (function_exists("upsellio_ai_master_context")) {
@@ -303,16 +327,6 @@ function upsellio_topicgen_build_prompt(int $count): string
     $sections[] = "ZADANIE:\nWygeneruj dokładnie {$count} tematów wpisów blogowych w języku polskim. "
         . "Tematy mają wspierać SEO, odpowiadać na realne pytania potencjalnych klientów B2B i być powiązane z usługami firmy. "
         . "Każdy temat to gotowy tytuł artykułu — konkretny, z główną frazą kluczową, bez clickbaitu.";
-
-    if (!empty($gsc_opp)) {
-        $lines = [];
-        foreach ($gsc_opp as $r) {
-            $lines[] = "  - \"{$r['keyword']}\" (poz. {$r['position']}, {$r['impressions']} wyświetleń, {$r['clicks']} kliknięć)";
-        }
-        $sections[] = "FRAZY Z GOOGLE SEARCH CONSOLE — pozycje 5-20, największy potencjał wzrostu:\n"
-            . "Te frazy już mają widoczność ale niskie CTR. Napisz artykuł który awansuje je do top 5.\n"
-            . implode("\n", $lines);
-    }
 
     if (!empty($gsc_conv)) {
         $lines = [];
@@ -366,58 +380,95 @@ function upsellio_topicgen_build_prompt(int $count): string
             }, array_slice($existing, 0, 15)));
     }
 
-    $sections[] = "ZASADY:\n"
-        . "1. Stosuj hierarchię PRIORYTET 1→4 z sekcji powyżej (gdy brakuje GSC, schodź niżej — nie wymyślaj priorytetu 1 z niczego).\n"
-        . "2. Odpowiadaj na konkretne pytania z formularzy leadowych\n"
-        . "3. Każdy temat = gotowy tytuł artykułu z główną frazą\n"
-        . "4. Mix: artykuły poradnikowe + porównawcze + case study\n"
-        . "5. Język: polski, B2B, konkretny\n"
-        . "6. NIE powtarzaj istniejących wpisów\n\n"
-        . "Odpowiedz WYŁĄCZNIE jednym obiektem JSON (bez markdown, bez komentarzy):\n"
-        . '{"topics":["Tytuł 1","Tytuł 2","Tytuł 3",...]}';
+    $rules = "ZASADY:\n"
+        . "1. LUKI mają NAJWYŻSZY PRIORYTET — frazy z sekcji „LUKI TREŚCIOWE” (rank homepage/parametryczny bez artykułu).\n"
+        . "2. QUICK WINS — frazy poz. 5–50 z wyświetleniami; artykuł może je pchnąć wyżej.\n"
+        . "3. NIE twórz tematu wyłącznie pod frazy z KANIBALIZACJI — tam konsoliduj istniejące URL.\n"
+        . "4. NIE traktuj NISKI CTR jako pretekstu do nowego artykułu — tam najpierw meta/title.\n"
+        . "5. Każdy temat powinien być powiązany z klastrem / frazą z analizy GSC (jeśli dane są w sekcji PEŁNA ANALIZA).\n"
+        . "6. Stosuj hierarchię PRIORYTET z sekcji powyżej.\n"
+        . "7. Odpowiadaj na konkretne pytania z leadów tam gdzie to możliwe.\n"
+        . "8. Każdy temat = gotowy tytuł z główną frazą.\n"
+        . "9. Mix orientacyjny: luki ~50%, quick wins ~30%, nowe tematy z leadów/usług ~20%.\n"
+        . "10. Język: polski, B2B.\n"
+        . "11. NIE duplikuj istniejących wpisów.\n\n";
+
+    if ($structured) {
+        $sections[] = $rules
+            . "Dla każdego tematu podaj: primary_query, gsc_position (liczba lub null), gsc_impressions (liczba lub null), "
+            . "gap_type (luka|quick_win|nowy), opportunity (high|medium|low), rationale (jedno zdanie).\n"
+            . "Odpowiedz WYŁĄCZNIE jednym obiektem JSON (bez markdown):\n"
+            . '{"topics":[{"title":"","primary_query":"","gsc_position":null,"gsc_impressions":null,"gap_type":"","opportunity":"","rationale":""},...]}';
+    } else {
+        $sections[] = $rules
+            . "Odpowiedz WYŁĄCZNIE jednym obiektem JSON (bez markdown, bez komentarzy):\n"
+            . '{"topics":["Tytuł 1","Tytuł 2","Tytuł 3",...]}';
+    }
 
     return implode("\n\n---\n\n", $sections);
 }
 
 /**
- * @return array{ok: bool, message?: string, topics?: array<int, string>, count?: int, sources?: array<int, string>, raw?: string}
+ * @return array{ok: bool, message?: string, topics?: array<int, string>, structured_topics?: array<int, array<string, mixed>>, count?: int, sources?: array<int, string>, raw?: string}
  */
-function upsellio_topicgen_run(int $count = 10): array
+function upsellio_topicgen_run(int $count = 10, bool $structured = false): array
 {
     if (!function_exists("upsellio_anthropic_crm_api_key") || upsellio_anthropic_crm_api_key() === "") {
         return ["ok" => false, "message" => "Brak klucza API Anthropic. Ustaw w CRM → Ustawienia → Ogólne."];
     }
 
     $count = max(3, min(30, $count));
-    $prompt = upsellio_topicgen_build_prompt($count);
+    $prompt = upsellio_topicgen_build_prompt($count, $structured);
 
     $model = trim((string) get_option("ups_blog_bot_model", ""));
     if ($model === "") {
         $model = "claude-haiku-4-5-20251001";
     }
 
-    $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 1200, 45, $model);
+    $max_out = $structured ? 4000 : 1200;
+    $raw = upsellio_anthropic_crm_send_user_prompt($prompt, $max_out, 45, $model);
     if ($raw === null) {
         return ["ok" => false, "message" => "Brak odpowiedzi z API. Sprawdź klucz API i limity."];
     }
 
-    $data = null;
-    $raw = trim((string) $raw);
-    if (preg_match("/\{[\s\S]*\}/", $raw, $m)) {
-        $data = json_decode($m[0], true);
+    $data = function_exists("upsellio_anthropic_crm_parse_json_object")
+        ? upsellio_anthropic_crm_parse_json_object($raw)
+        : null;
+    if (!is_array($data)) {
+        $raw_trim = trim((string) $raw);
+        if (preg_match("/\{[\s\S]*\}/", $raw_trim, $m)) {
+            $data = json_decode($m[0], true);
+        }
     }
 
     if (!is_array($data) || empty($data["topics"]) || !is_array($data["topics"])) {
-        $preview = function_exists("mb_substr") ? mb_substr($raw, 0, 500, "UTF-8") : substr($raw, 0, 500);
+        $preview = function_exists("mb_substr") ? mb_substr((string) $raw, 0, 500, "UTF-8") : substr((string) $raw, 0, 500);
 
         return ["ok" => false, "message" => "Niepoprawna odpowiedź JSON. Spróbuj ponownie.", "raw" => $preview];
     }
 
-    $topics = array_values(array_filter(array_map(static function ($t) {
-        return sanitize_text_field((string) $t);
-    }, $data["topics"])));
+    $topics = [];
+    $structured_topics = [];
+    foreach ($data["topics"] as $t) {
+        if (is_array($t)) {
+            $structured_topics[] = $t;
+            $line = trim((string) ($t["primary_query"] ?? ""));
+            if ($line === "") {
+                $line = trim((string) ($t["title"] ?? ""));
+            }
+            if ($line !== "") {
+                $topics[] = sanitize_text_field($line);
+            }
+        } else {
+            $topics[] = sanitize_text_field((string) $t);
+        }
+    }
 
-    if (empty($topics)) {
+    $topics = array_values(array_filter($topics, static function ($x) {
+        return $x !== "";
+    }));
+
+    if ($topics === []) {
         return ["ok" => false, "message" => "AI zwróciło pustą listę tematów."];
     }
 
@@ -437,8 +488,13 @@ function upsellio_topicgen_run(int $count = 10): array
     update_option("ups_topicgen_last_count", count($topics), false);
 
     $sources_used = [];
-    if (!empty(upsellio_topicgen_get_gsc_opportunities(1))) {
-        $sources_used[] = "GSC (pozycje 5-20)";
+    if (function_exists("upsellio_gsc_analyze_full")) {
+        $an = upsellio_gsc_analyze_full();
+        if (($an["status"] ?? "") === "ok" || !empty($an["aggregated"])) {
+            $sources_used[] = "GSC (analiza pełna)";
+        }
+    } elseif (!empty(upsellio_topicgen_get_gsc_opportunities(1))) {
+        $sources_used[] = "GSC (quick wins)";
     }
     if (!empty(upsellio_topicgen_get_gsc_converting(1))) {
         $sources_used[] = "GSC (kliknięcia)";
@@ -455,7 +511,7 @@ function upsellio_topicgen_run(int $count = 10): array
     }
     update_option("ups_topicgen_sources_used", implode(", ", $sources_used), false);
 
-    return [
+    $out = [
         "ok" => true,
         "topics" => $topics,
         "count" => count($topics),
@@ -465,6 +521,11 @@ function upsellio_topicgen_run(int $count = 10): array
         "keywords_queue" => $queue_text,
         "queue_line_count" => count($merged),
     ];
+    if ($structured && $structured_topics !== []) {
+        $out["structured_topics"] = $structured_topics;
+    }
+
+    return $out;
 }
 
 function upsellio_topicgen_ajax(): void
@@ -482,7 +543,9 @@ function upsellio_topicgen_ajax(): void
 
     update_option("ups_topicgen_mode", $mode, false);
 
-    $result = upsellio_topicgen_run($count);
+    $structured = isset($_POST["structured"]) && (string) wp_unslash($_POST["structured"]) === "1";
+
+    $result = upsellio_topicgen_run($count, $structured);
     if ($result["ok"]) {
         wp_send_json_success($result);
     } else {
@@ -504,9 +567,22 @@ function upsellio_topicgen_preview_ajax(): void
     $lead_insights = upsellio_topicgen_get_crm_lead_insights(30);
     $won_services = upsellio_topicgen_get_crm_won_services(20);
 
+    $gsc_counts = [
+        "quick_wins" => 0,
+        "gaps" => 0,
+        "clusters" => 0,
+    ];
+    if (function_exists("upsellio_gsc_analyze_full")) {
+        $ga = upsellio_gsc_analyze_full();
+        $gsc_counts["quick_wins"] = count($ga["quick_wins"] ?? []);
+        $gsc_counts["gaps"] = count($ga["gaps"] ?? []);
+        $gsc_counts["clusters"] = count($ga["clusters"] ?? []);
+    }
+
     wp_send_json_success([
         "gsc_opportunities" => $gsc_opp,
         "gsc_converting" => $gsc_conv,
+        "gsc_counts" => $gsc_counts,
         "ga4_channels" => $ga4_channels,
         "lead_services" => $lead_insights["services"],
         "lead_messages" => array_slice($lead_insights["messages"], 0, 5),
@@ -563,6 +639,10 @@ function upsellio_topicgen_render_panel(): void
 				<option value="append">Dopisz do istniejącej kolejki</option>
 				<option value="replace">Zastąp całą kolejkę</option>
 			</select>
+		</label>
+		<label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:1px;cursor:pointer">
+			<input type="checkbox" id="ups-tg-structured" value="1" />
+			Rozszerzony JSON (GSC + pola na temat)
 		</label>
 		<button type="button" class="btn" id="ups-tg-run" style="margin-bottom:1px">✨ Generuj tematy</button>
 		<button type="button" class="btn alt" id="ups-tg-preview" style="margin-bottom:1px">👁 Podgląd danych</button>
@@ -621,11 +701,13 @@ function upsellio_topicgen_render_panel(): void
 			previewBox.style.display = 'none';
 			setStatus('Analizuję dane z GSC, GA4 i CRM, następnie wywołuję Claude API…', 'info');
 
+			const structured = document.getElementById('ups-tg-structured') && document.getElementById('ups-tg-structured').checked;
 			const body = new FormData();
 			body.append('action', 'upsellio_topicgen_run');
 			body.append('nonce', nonce);
 			body.append('count', String(count));
 			body.append('mode', mode);
+			if (structured) body.append('structured', '1');
 
 			fetch(ajaxUrl, {method:'POST', body})
 				.then(r => r.json())
@@ -636,7 +718,21 @@ function upsellio_topicgen_render_panel(): void
 						const d = data.data;
 						setStatus('✓ ' + d.message, 'ok');
 						resultMeta.textContent = '— źródła: ' + (d.sources && d.sources.length ? d.sources.join(', ') : 'Claude API');
-						topicsList.innerHTML = d.topics.map((t,i) => `<li style="display:flex;align-items:baseline;gap:8px;padding:8px 12px;background:var(--surface,#fff);border:1px solid var(--border,#e7e7e1);border-radius:10px;font-size:13px"><span style="font-size:11px;font-weight:800;color:var(--text-3,#7c7c74);min-width:20px">${i+1}.</span><span>${escH(t)}</span></li>`).join('');
+						topicsList.innerHTML = d.topics.map((t,i) => {
+							let extra = '';
+							const o = d.structured_topics && d.structured_topics[i] ? d.structured_topics[i] : null;
+							const headline = o && o.title ? String(o.title) : t;
+							if (o) {
+								const pq = o.primary_query ? escH(o.primary_query) : '';
+								const gp = o.gsc_position != null ? escH(String(o.gsc_position)) : '—';
+								const gi = o.gsc_impressions != null ? escH(String(o.gsc_impressions)) : '—';
+								const gt = o.gap_type ? escH(String(o.gap_type)) : '';
+								const opp = o.opportunity ? escH(String(o.opportunity)) : '';
+								const meta = [gt ? 'typ: '+gt : '', opp ? opp : ''].filter(Boolean).join(' · ');
+								extra = `<div style="font-size:11px;color:var(--text-3,#7c7c74);margin-top:4px">${pq ? 'fraz: '+pq+' · ' : ''}GSC poz. ${gp} · wyśw. ${gi}${meta ? ' · '+meta : ''}</div><div style="font-size:11px;margin-top:2px">${o.rationale ? escH(o.rationale) : ''}</div>`;
+							}
+							return `<li style="display:flex;align-items:baseline;gap:8px;padding:8px 12px;background:var(--surface,#fff);border:1px solid var(--border,#e7e7e1);border-radius:10px;font-size:13px;flex-direction:column;align-items:stretch"><div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:11px;font-weight:800;color:var(--text-3,#7c7c74);min-width:20px">${i+1}.</span><span>${escH(headline)}</span></div>${extra}</li>`;
+						}).join('');
 						resultsEl.style.display = 'block';
 						const q = typeof d.keywords_queue === 'string' ? d.keywords_queue : '';
 						const ta = document.getElementById('ups-blog-bot-keywords-queue') || document.querySelector('textarea[name="ups_blog_bot_keywords_queue"]');
@@ -678,9 +774,12 @@ function upsellio_topicgen_render_panel(): void
 					const d = data.data;
 					let html = '';
 
-					html += previewDataSection('GSC — frazy w pozycjach 5-20 (potencjał SEO)', d.gsc_opportunities, items =>
-						items.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:.5px solid var(--border,#e7e7e1);font-size:12px"><span style="font-weight:600">${escH(r.keyword)}</span><span style="color:var(--text-3,#7c7c74)">poz. ${r.position} · ${r.impressions} wyświetleń · ${r.clicks} kliknięć</span></div>`).join('')
+					html += previewDataSection('GSC — quick wins (poz. 5–50, agregacja + cache analizy)', d.gsc_opportunities, items =>
+						items.map(r => `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:.5px solid var(--border,#e7e7e1);font-size:12px"><span style="font-weight:600">${escH(r.keyword)}</span><span style="color:var(--text-3,#7c7c74)">poz. ${r.position} · ${r.impressions} wyśw. · score ${r.opportunity_score != null ? r.opportunity_score : '—'}</span></div>`).join('')
 					);
+					if (d.gsc_counts) {
+						html += `<div style="font-size:11px;color:var(--text-3,#7c7c74);margin:-4px 0 10px">Pełna analiza PHP: quick wins ${d.gsc_counts.quick_wins || 0}, luki ${d.gsc_counts.gaps || 0}, klastry ${d.gsc_counts.clusters || 0}</div>`;
+					}
 
 					html += previewDataSection('GSC — frazy z największym ruchem', d.gsc_converting, items =>
 						items.map(r => `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:.5px solid var(--border,#e7e7e1)"><span style="font-weight:600">${escH(r.keyword)}</span><span style="color:var(--text-3,#7c7c74)">${r.clicks} kliknięć</span></div>`).join('')
