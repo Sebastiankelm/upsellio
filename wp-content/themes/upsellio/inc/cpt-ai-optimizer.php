@@ -19,6 +19,11 @@ function upsellio_cpt_ai_get_config(string $post_type): ?array
                 "city_name" => "_upsellio_city_name",
                 "city_slug" => "_upsellio_city_slug",
                 "meta_description" => "_upsellio_city_meta_description",
+                "local_challenge" => "_upsellio_city_local_challenge",
+                "local_advantage" => "_upsellio_city_local_advantage",
+                "market_angle" => "_upsellio_city_market_angle",
+                "service_focus" => "_upsellio_city_service_focus",
+                "seasonality_angle" => "_upsellio_city_seasonality_angle",
             ],
             "read_content" => true,
             "json_keys" => [
@@ -28,6 +33,12 @@ function upsellio_cpt_ai_get_config(string $post_type): ?array
                 "seo_title",
                 "primary_query",
                 "query_cluster",
+                "local_challenge",
+                "local_advantage",
+                "market_angle",
+                "service_focus",
+                "seasonality_angle",
+                "faq",
             ],
             "apply" => "upsellio_cpt_ai_apply_miasto",
             "prompt_system" => <<<PROMPT
@@ -42,13 +53,20 @@ Zoptymalizuj podstronę lokalną dla miasta: {city_name}.
 Usługi: Google Ads, Meta Ads, strony internetowe B2B.
 Kontekst firmy: {company_ctx}
 
+Dotychczasowe pola kontekstowe (zaktualizuj jeśli trzeba):
+Wyzwanie lokalne: {local_challenge}
+Atut rynku: {local_advantage}
+Kąt rynku (branża): {market_angle}
+Fokus usług: {service_focus}
+Sezonowość: {seasonality_angle}
+
 Bieżąca treść (popraw i rozbuduj):
 {post_content}
 
 KATALOG LINKÓW WEWNĘTRZNYCH (używaj tylko tych URL):
 {catalog}
 
-Zwróć JSON:
+Zwróć JSON (uzupełnij też pola używane przez szablon single-miasto — puste meta = słabsza strona):
 {
   "post_title": "Marketing {city_name} — Google Ads, Meta Ads, strony B2B",
   "post_content": "<HTML artykułu min. 600 słów, H2/H3, fraza kluczowa w pierwszym zdaniu, 2-4 linki wewnętrzne [anchor](url), 1 link zewnętrzny>",
@@ -56,7 +74,13 @@ Zwróć JSON:
   "seo_title": "<45-60 znaków z nazwą miasta>",
   "meta_description": "<140-160 znaków z frazą kluczową i nazwą miasta>",
   "primary_query": "<fraza np. 'Google Ads {city_name}'>",
-  "query_cluster": "<8 powiązanych fraz, przecinkami>"
+  "query_cluster": "<8 powiązanych fraz, przecinkami>",
+  "local_challenge": "<1 zdanie — główna bolączka firm szukających marketingu w tym mieście>",
+  "local_advantage": "<1 zdanie — lokalny atut tego rynku>",
+  "market_angle": "<3-5 słów — dominująca branża np. 'producenci i firmy B2B'>",
+  "service_focus": "<3-5 słów — usługa którą szukają np. 'kampanie Google Ads i strony B2B'>",
+  "seasonality_angle": "<1 zdanie — sezonowość popytu>",
+  "faq": [{"q": "Pytanie?", "a": "Odpowiedź."}, {"q": "Pytanie 2?", "a": "Odpowiedź 2."}]
 }
 PROMPT,
         ],
@@ -66,6 +90,8 @@ PROMPT,
             "read_meta" => [
                 "term" => "_upsellio_definition_term",
                 "category" => "_upsellio_definition_category",
+                "main_keyword" => "_upsellio_definition_main_keyword",
+                "difficulty" => "_upsellio_definition_difficulty",
             ],
             "read_content" => true,
             "json_keys" => [
@@ -75,6 +101,10 @@ PROMPT,
                 "seo_title",
                 "primary_query",
                 "query_cluster",
+                "main_keyword",
+                "difficulty",
+                "faq",
+                "service_links",
             ],
             "apply" => "upsellio_cpt_ai_apply_definicja",
             "prompt_system" => <<<PROMPT
@@ -87,6 +117,8 @@ PROMPT,
             "prompt_user" => <<<PROMPT
 Zoptymalizuj wpis słownikowy dla pojęcia: {term}
 Kategoria: {category}
+Fraza główna (SEO): {main_keyword}
+Poziom trudności (latwy|sredni|trudny): {difficulty}
 Kontekst firmy: {company_ctx}
 
 Bieżąca treść:
@@ -95,7 +127,7 @@ Bieżąca treść:
 KATALOG LINKÓW WEWNĘTRZNYCH (tylko te URL):
 {catalog}
 
-Zwróć JSON:
+Zwróć JSON (single-definicja.php czyta też main_keyword, difficulty, faq, service_links — uzupełnij):
 {
   "post_title": "<nazwa pojęcia — zwięzła>",
   "post_content": "<HTML 400-700 słów: definicja, jak stosować w praktyce B2B, przykład, FAQ min 2 pytania, 2-3 linki wewnętrzne [anchor](url)>",
@@ -103,7 +135,11 @@ Zwróć JSON:
   "seo_title": "<45-60 znaków: pojęcie + kontekst B2B>",
   "meta_description": "<140-160 znaków z pojęciem>",
   "primary_query": "<fraza kluczowa np. 'co to jest {term}'>",
-  "query_cluster": "<6 powiązanych fraz, przecinkami>"
+  "query_cluster": "<6 powiązanych fraz, przecinkami>",
+  "main_keyword": "<dokładna fraza kluczowa np. 'co to jest ROAS'>",
+  "difficulty": "<latwy|sredni|trudny>",
+  "faq": [{"q": "Pytanie?", "a": "Odpowiedź."}, {"q": "Pytanie 2?", "a": "Odpowiedź 2."}],
+  "service_links": ["/#uslugi", "/#kontakt", "/miasta/"]
 }
 PROMPT,
         ],
@@ -453,7 +489,7 @@ function upsellio_cpt_ai_apply(int $post_id, array $data): void
         $update["post_title"] = sanitize_text_field((string) $data["post_title"]);
     }
     if (!empty($data["post_content"])) {
-        $content = wp_kses_post((string) $data["post_content"]);
+        $content = (string) $data["post_content"];
         if (function_exists("upsellio_blog_bot_markdown_links_to_html")) {
             $catalog = function_exists("upsellio_blog_bot_catalog_for_keyword")
                 ? upsellio_blog_bot_catalog_for_keyword(get_the_title($post_id), 24)
@@ -463,7 +499,7 @@ function upsellio_cpt_ai_apply(int $post_id, array $data): void
                 : [];
             $content = upsellio_blog_bot_markdown_links_to_html($content, $allowed);
         }
-        $update["post_content"] = $content;
+        $update["post_content"] = wp_kses_post($content);
     }
     if (!empty($data["post_excerpt"])) {
         $update["post_excerpt"] = sanitize_textarea_field((string) $data["post_excerpt"]);
@@ -494,6 +530,74 @@ function upsellio_cpt_ai_apply(int $post_id, array $data): void
     }
 }
 
+function upsellio_cpt_ai_normalize_qa_faq_rows($faq): array
+{
+    if (!is_array($faq)) {
+        return [];
+    }
+    $out = [];
+    foreach ($faq as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $q = trim((string) ($row["q"] ?? $row["question"] ?? ""));
+        $a = trim((string) ($row["a"] ?? $row["answer"] ?? ""));
+        if ($q !== "" && $a !== "") {
+            $out[] = ["q" => $q, "a" => $a];
+        }
+    }
+
+    return $out;
+}
+
+/**
+ * Szablon single-definicja oczekuje tablicy ścieżek względnych (np. "/#uslugi"); akceptuj też obiekty z "url".
+ *
+ * @param mixed $raw
+ * @return array<int, string>
+ */
+function upsellio_cpt_ai_normalize_definition_service_links($raw): array
+{
+    if (!is_array($raw)) {
+        return [];
+    }
+    $home = trailingslashit(home_url("/"));
+    $out = [];
+    foreach ($raw as $item) {
+        if (is_string($item)) {
+            $path = trim($item);
+            if ($path !== "" && strncmp($path, "/", 1) === 0) {
+                $out[] = sanitize_text_field($path);
+            }
+            continue;
+        }
+        if (!is_array($item)) {
+            continue;
+        }
+        $u = trim((string) ($item["url"] ?? ""));
+        if ($u === "") {
+            continue;
+        }
+        if (strncmp($u, "/", 1) === 0) {
+            $out[] = sanitize_text_field($u);
+
+            continue;
+        }
+        $parsed = wp_parse_url($u);
+        $host = isset($parsed["host"]) ? strtolower((string) $parsed["host"]) : "";
+        $home_host = strtolower((string) (wp_parse_url($home, PHP_URL_HOST) ?? ""));
+        $path = isset($parsed["path"]) ? (string) $parsed["path"] : "";
+        $query = isset($parsed["query"]) && $parsed["query"] !== "" ? "?" . $parsed["query"] : "";
+        $frag = isset($parsed["fragment"]) && $parsed["fragment"] !== "" ? "#" . $parsed["fragment"] : "";
+        if ($host !== "" && $home_host !== "" && $host === $home_host && $path !== "") {
+            $rel = $path . $query . $frag;
+            $out[] = sanitize_text_field($rel !== "" ? $rel : "/");
+        }
+    }
+
+    return array_values(array_unique($out));
+}
+
 function upsellio_cpt_ai_apply_miasto(int $post_id, array $data): void
 {
     if (!empty($data["meta_description"])) {
@@ -502,6 +606,25 @@ function upsellio_cpt_ai_apply_miasto(int $post_id, array $data): void
             "_upsellio_city_meta_description",
             sanitize_textarea_field((string) $data["meta_description"])
         );
+    }
+
+    $simple_map = [
+        "_upsellio_city_local_challenge" => "local_challenge",
+        "_upsellio_city_local_advantage" => "local_advantage",
+        "_upsellio_city_market_angle" => "market_angle",
+        "_upsellio_city_service_focus" => "service_focus",
+        "_upsellio_city_seasonality_angle" => "seasonality_angle",
+    ];
+    foreach ($simple_map as $meta_key => $json_key) {
+        $val = trim((string) ($data[$json_key] ?? ""));
+        if ($val !== "") {
+            update_post_meta($post_id, $meta_key, sanitize_text_field($val));
+        }
+    }
+
+    $faq_rows = upsellio_cpt_ai_normalize_qa_faq_rows($data["faq"] ?? null);
+    if (!empty($faq_rows)) {
+        update_post_meta($post_id, "_upsellio_city_faq", $faq_rows);
     }
 }
 
@@ -513,6 +636,26 @@ function upsellio_cpt_ai_apply_definicja(int $post_id, array $data): void
             "_upsellio_definition_meta_description",
             sanitize_textarea_field((string) $data["meta_description"])
         );
+    }
+
+    $mk = trim((string) ($data["main_keyword"] ?? ""));
+    if ($mk !== "") {
+        update_post_meta($post_id, "_upsellio_definition_main_keyword", sanitize_text_field($mk));
+    }
+
+    $diff = isset($data["difficulty"]) ? sanitize_key((string) $data["difficulty"]) : "";
+    if ($diff !== "" && in_array($diff, ["latwy", "sredni", "trudny"], true)) {
+        update_post_meta($post_id, "_upsellio_definition_difficulty", $diff);
+    }
+
+    $faq_rows = upsellio_cpt_ai_normalize_qa_faq_rows($data["faq"] ?? null);
+    if (!empty($faq_rows)) {
+        update_post_meta($post_id, "_upsellio_definition_faq", $faq_rows);
+    }
+
+    $links = upsellio_cpt_ai_normalize_definition_service_links($data["service_links"] ?? null);
+    if (!empty($links)) {
+        update_post_meta($post_id, "_upsellio_definition_service_links", $links);
     }
 }
 
