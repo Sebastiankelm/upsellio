@@ -311,8 +311,14 @@ function upsellio_blog_tool_ai_chat($ai_settings, $messages, $temperature = null
         return new WP_Error("upsellio_ai_crm_no_key", "Brak klucza Anthropic (CRM). Ustaw UPSELLIO_ANTHROPIC_API_KEY lub ups_anthropic_api_key.");
     }
 
-    $model = trim((string) get_option("ups_blog_bot_model", ""));
-    $model_override = $model !== "" ? $model : null;
+    if (function_exists("upsellio_ai_model_for")) {
+        $model_override = $task_name === "topics"
+            ? upsellio_ai_model_for("topic_generator")
+            : upsellio_ai_model_for("blog_post");
+    } else {
+        $model = trim((string) get_option("ups_blog_bot_model", ""));
+        $model_override = $model !== "" ? $model : null;
+    }
     $parts = [];
     foreach ((array) $messages as $message) {
         $role = strtoupper(sanitize_key((string) ($message["role"] ?? "user")));
