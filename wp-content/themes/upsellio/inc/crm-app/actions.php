@@ -853,6 +853,24 @@ function upsellio_crm_app_handle_post_actions()
                 if (isset($_POST["ups_ai_blog_seo_campaign_default"])) {
                     update_option("ups_ai_blog_seo_campaign_default", upsellio_crm_app_sanitize_large_text_option($_POST["ups_ai_blog_seo_campaign_default"]), false);
                 }
+                foreach ([
+                    "ups_ai_cpt_prompt_miasto",
+                    "ups_ai_cpt_system_miasto",
+                    "ups_ai_cpt_prompt_definicja",
+                    "ups_ai_cpt_system_definicja",
+                    "ups_ai_cpt_prompt_portfolio",
+                    "ups_ai_cpt_system_portfolio",
+                    "ups_ai_cpt_prompt_marketing_portfolio",
+                    "ups_ai_cpt_system_marketing_portfolio",
+                ] as $cpt_prompt_key) {
+                    if (isset($_POST[$cpt_prompt_key])) {
+                        update_option(
+                            $cpt_prompt_key,
+                            upsellio_crm_app_sanitize_large_text_option($_POST[$cpt_prompt_key]),
+                            false
+                        );
+                    }
+                }
                 if (isset($_POST["ups_ai_blog_seo_temperature"])) {
                     update_option(
                         "ups_ai_blog_seo_temperature",

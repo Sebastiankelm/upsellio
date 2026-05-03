@@ -5178,6 +5178,96 @@ function upsellio_crm_app_template_redirect()
                     <?php endif; ?>
 
                     <p class="muted" style="grid-column:1/-1;margin:8px 0 0;font-size:12px">Klucz API i model inbound: <a href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "general"], home_url("/crm-app/"))); ?>">Ustawienia → Ogólne</a>. Filtry: <code>upsellio_anthropic_crm_prompt_*</code>.</p>
+
+                    <!-- CPT AI — prompty dla Miast, Definicji, Portfolio -->
+                    <hr style="grid-column:1/-1;margin:16px 0 8px;border:none;border-top:1px solid var(--border)" />
+                    <h3 style="grid-column:1/-1;margin:0 0 4px;font-size:14px;font-weight:700">
+                      Prompty CPT — Optymalizuj AI (Miasta / Definicje / Portfolio)
+                    </h3>
+                    <p class="muted" style="grid-column:1/-1;margin:0 0 12px;font-size:12px;line-height:1.5">
+                      Używane przez przycisk „✨ Optymalizuj AI” w edytorach wpisów CPT.
+                      Puste pole = domyślny prompt z kodu. Zmienne: <code>{city_name}</code>, <code>{term}</code>,
+                      <code>{post_content}</code>, <code>{company_ctx}</code>, <code>{catalog}</code>.
+                    </p>
+
+                    <label style="grid-column:1/-1;font-weight:700;margin-top:4px">
+                      Prompt — Miasto (<code>ups_ai_cpt_prompt_miasto</code>)
+                    </label>
+                    <p class="muted" style="grid-column:1/-1;margin:-4px 0 4px;font-size:12px">
+                      Prompt użytkownika. Zmienne: <code>{city_name}</code>, <code>{post_content}</code>,
+                      <code>{company_ctx}</code>, <code>{catalog}</code>, <code>{local_challenge}</code>,
+                      <code>{local_advantage}</code>, <code>{market_angle}</code>, <code>{service_focus}</code>,
+                      <code>{seasonality_angle}</code>
+                    </p>
+                    <textarea name="ups_ai_cpt_prompt_miasto" rows="8"
+                      style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit"
+                    ><?php echo esc_textarea((string) get_option("ups_ai_cpt_prompt_miasto", "")); ?></textarea>
+
+                    <label style="grid-column:1/-1;font-weight:700;margin-top:8px">
+                      Prompt systemowy — Miasto (<code>ups_ai_cpt_system_miasto</code>)
+                    </label>
+                    <textarea name="ups_ai_cpt_system_miasto" rows="4"
+                      style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit"
+                    ><?php echo esc_textarea((string) get_option("ups_ai_cpt_system_miasto", "")); ?></textarea>
+
+                    <label style="grid-column:1/-1;font-weight:700;margin-top:12px">
+                      Prompt — Definicja (<code>ups_ai_cpt_prompt_definicja</code>)
+                    </label>
+                    <p class="muted" style="grid-column:1/-1;margin:-4px 0 4px;font-size:12px">
+                      Zmienne: <code>{term}</code>, <code>{category}</code>, <code>{main_keyword}</code>, <code>{difficulty}</code>,
+                      <code>{post_content}</code>, <code>{company_ctx}</code>, <code>{catalog}</code>
+                    </p>
+                    <textarea name="ups_ai_cpt_prompt_definicja" rows="8"
+                      style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit"
+                    ><?php echo esc_textarea((string) get_option("ups_ai_cpt_prompt_definicja", "")); ?></textarea>
+
+                    <label style="grid-column:1/-1;font-weight:700;margin-top:8px">
+                      Prompt systemowy — Definicja (<code>ups_ai_cpt_system_definicja</code>)
+                    </label>
+                    <textarea name="ups_ai_cpt_system_definicja" rows="4"
+                      style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit"
+                    ><?php echo esc_textarea((string) get_option("ups_ai_cpt_system_definicja", "")); ?></textarea>
+
+                    <label style="grid-column:1/-1;font-weight:700;margin-top:12px">
+                      Prompt — Portfolio (<code>ups_ai_cpt_prompt_portfolio</code>)
+                    </label>
+                    <p class="muted" style="grid-column:1/-1;margin:-4px 0 4px;font-size:12px">
+                      Zmienne: <code>{type}</code>, <code>{problem}</code>, <code>{scope}</code>,
+                      <code>{result}</code>, <code>{metrics}</code>, <code>{technologies}</code>,
+                      <code>{client_quote}</code>, <code>{post_content}</code>, <code>{company_ctx}</code>,
+                      <code>{catalog}</code>
+                    </p>
+                    <textarea name="ups_ai_cpt_prompt_portfolio" rows="10"
+                      style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit"
+                    ><?php echo esc_textarea((string) get_option("ups_ai_cpt_prompt_portfolio", "")); ?></textarea>
+
+                    <label style="grid-column:1/-1;font-weight:700;margin-top:8px">
+                      Prompt systemowy — Portfolio (<code>ups_ai_cpt_system_portfolio</code>)
+                    </label>
+                    <textarea name="ups_ai_cpt_system_portfolio" rows="4"
+                      style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit"
+                    ><?php echo esc_textarea((string) get_option("ups_ai_cpt_system_portfolio", "")); ?></textarea>
+
+                    <label style="grid-column:1/-1;font-weight:700;margin-top:12px">
+                      Prompt — Portfolio marketingowe (<code>ups_ai_cpt_prompt_marketing_portfolio</code>)
+                    </label>
+                    <p class="muted" style="grid-column:1/-1;margin:-4px 0 4px;font-size:12px">
+                      Zmienne: <code>{type}</code>, <code>{sector}</code>, <code>{problem}</code>,
+                      <code>{solution}</code>, <code>{result}</code>, <code>{kpis}</code>,
+                      <code>{tags}</code>, <code>{post_content}</code>, <code>{company_ctx}</code>,
+                      <code>{catalog}</code>
+                    </p>
+                    <textarea name="ups_ai_cpt_prompt_marketing_portfolio" rows="10"
+                      style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit"
+                    ><?php echo esc_textarea((string) get_option("ups_ai_cpt_prompt_marketing_portfolio", "")); ?></textarea>
+
+                    <label style="grid-column:1/-1;font-weight:700;margin-top:8px">
+                      Prompt systemowy — Portfolio marketingowe (<code>ups_ai_cpt_system_marketing_portfolio</code>)
+                    </label>
+                    <textarea name="ups_ai_cpt_system_marketing_portfolio" rows="4"
+                      style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit"
+                    ><?php echo esc_textarea((string) get_option("ups_ai_cpt_system_marketing_portfolio", "")); ?></textarea>
+
                     <button class="btn" type="submit" style="grid-column:1/-1;margin-top:6px">Zapisz ustawienia AI / Blog</button>
                   </form>
                 </section>
