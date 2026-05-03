@@ -6,8 +6,7 @@ if (!defined("ABSPATH")) {
 
 function upsellio_crm_app_template_redirect()
 {
-    $is_crm_page = is_page("crm-app");
-    if (!$is_crm_page) {
+    if (!upsellio_crm_app_is_crm_app_view()) {
         return;
     }
     if (!upsellio_crm_app_user_can_access()) {
@@ -16,7 +15,7 @@ function upsellio_crm_app_template_redirect()
     upsellio_crm_app_handle_post_actions();
 
     $view = isset($_GET["view"]) ? sanitize_key((string) wp_unslash($_GET["view"])) : "dashboard";
-    if (!in_array($view, ["dashboard", "leads", "account-360", "clients", "client-edit", "contacts", "offers", "deals", "template-studio", "services", "pipeline", "contracts", "contract-detail", "followups", "tasks", "calendar", "prospecting", "inbox", "alerts", "analytics", "engine", "settings", "contact-queue", "search"], true)) {
+    if (!in_array($view, ["dashboard", "leads", "account-360", "clients", "client-edit", "contacts", "offers", "deals", "template-studio", "services", "pipeline", "contracts", "contract-detail", "followups", "tasks", "calendar", "prospecting", "inbox", "alerts", "analytics", "suggestions", "engine", "settings", "contact-queue", "search"], true)) {
         $view = "dashboard";
     }
     $template_studio_tab = isset($_GET["tab"]) ? sanitize_key((string) wp_unslash($_GET["tab"])) : "offer";
@@ -46,6 +45,10 @@ function upsellio_crm_app_template_redirect()
     $analytics_tab = isset($_GET["analytics_tab"]) ? sanitize_key((string) wp_unslash($_GET["analytics_tab"])) : "sales";
     if (!in_array($analytics_tab, ["sales", "leads", "sources", "offers", "site", "followups"], true)) {
         $analytics_tab = "sales";
+    }
+    $suggestions_tab = isset($_GET["suggestions_tab"]) ? sanitize_key((string) wp_unslash($_GET["suggestions_tab"])) : "seo";
+    if (!in_array($suggestions_tab, ["seo", "blog", "ads", "keywords"], true)) {
+        $suggestions_tab = "seo";
     }
     $dash_period = isset($_GET["dash_period"]) ? sanitize_key((string) wp_unslash($_GET["dash_period"])) : "30d";
     if (!in_array($dash_period, ["today", "7d", "30d", "month", "quarter"], true)) {
@@ -564,6 +567,7 @@ function upsellio_crm_app_template_redirect()
           "inbox" => "Inbox",
           "alerts" => "Alerty",
           "analytics" => "Analityka",
+          "suggestions" => "Sugestie AI",
           "engine" => "Silnik sprzedaży",
           "settings" => "Ustawienia",
           "contact-queue" => "Do kontaktu",
@@ -587,6 +591,15 @@ function upsellio_crm_app_template_redirect()
           $crm_topbar_title = isset($crm_settings_tab_labels[$settings_tab])
               ? "Ustawienia · " . $crm_settings_tab_labels[$settings_tab]
               : "Ustawienia";
+      }
+      if ($view === "suggestions") {
+          $crm_suggestions_tab_labels = [
+              "seo" => "SEO",
+              "blog" => "Blog",
+              "ads" => "Google Ads",
+              "keywords" => __("Słowa kluczowe", "upsellio"),
+          ];
+          $crm_topbar_title = "Sugestie AI · " . ($crm_suggestions_tab_labels[$suggestions_tab] ?? "");
       }
       $crm_search_q = isset($_GET["crm_q"]) ? sanitize_text_field(wp_unslash($_GET["crm_q"])) : "";
       $crm_search_q = trim((string) $crm_search_q);
@@ -632,6 +645,7 @@ function upsellio_crm_app_template_redirect()
             <a class="side-link <?php echo $view === "offers" || $view === "deals" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "offers"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Oferty", "upsellio"); ?></a>
             <a class="side-link <?php echo $view === "tasks" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "tasks"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Zadania", "upsellio"); ?></a>
             <a class="side-link <?php echo $view === "analytics" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "analytics"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Analityka", "upsellio"); ?></a>
+            <a class="side-link <?php echo $view === "suggestions" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "suggestions", "suggestions_tab" => "seo"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Sugestie AI", "upsellio"); ?></a>
             <a class="side-link <?php echo $view === "settings" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "general"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Ustawienia", "upsellio"); ?></a>
           </nav>
         </aside>
@@ -4303,6 +4317,13 @@ function upsellio_crm_app_template_redirect()
               </section>
               <?php endif; ?>
             <?php endif; ?>
+            <?php if ($view === "suggestions") : ?>
+              <?php
+              if (function_exists("upsellio_crm_render_suggestions_page")) {
+                  upsellio_crm_render_suggestions_page($suggestions_tab);
+              }
+              ?>
+            <?php endif; ?>
             <?php if ($view === "settings") : ?>
               <section class="card">
                 <h2>Zakładki ustawień</h2>
@@ -4380,6 +4401,8 @@ function upsellio_crm_app_template_redirect()
 
               <?php if ($settings_tab === "ai") : ?>
                 <?php
+                $ups_blog_seed_prefill = isset($_GET["seed"]) ? sanitize_text_field(wp_unslash((string) $_GET["seed"])) : "";
+                $ups_blog_focus_scroll = isset($_GET["blog_focus"]) && (string) wp_unslash($_GET["blog_focus"]) === "1";
                 $ups_ai_company_val = trim((string) get_option("ups_ai_company_context", ""));
                 if ($ups_ai_company_val === "") {
                     $ups_ai_company_val = trim((string) get_option("ups_anthropic_company_context", ""));
@@ -4449,7 +4472,7 @@ function upsellio_crm_app_template_redirect()
                     <p class="muted" style="grid-column:1/-1;margin:-6px 0 4px;font-size:12px"><code>upsellio_anthropic_crm_build_offer_description_prompt()</code> — <code>{offer_title}</code>, <code>{client_name}</code>, <code>{offer_context}</code></p>
                     <textarea name="ups_anthropic_prompt_offer_description" rows="8" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:ui-monospace,Menlo,Consolas,monospace"><?php echo esc_textarea((string) get_option("ups_anthropic_prompt_offer_description", "")); ?></textarea>
 
-                    <h3 style="grid-column:1/-1;margin:18px 0 6px;font-size:16px;font-family:var(--font-display),Syne,sans-serif">Blog Bot (WP-Cron → draft)</h3>
+                    <h3 id="ups-blog-bot-panel" style="grid-column:1/-1;margin:18px 0 6px;font-size:16px;font-family:var(--font-display),Syne,sans-serif">Blog Bot (WP-Cron → draft)</h3>
                     <p class="muted" style="grid-column:1/-1;margin:-4px 0 8px;font-size:12px;line-height:1.5">Harmonogram: pierwsze uruchomienie w okolicy <strong>poniedziałku 07:00</strong> (strefa witryny), potem wg interwału. Fraza jest zdejmowana z kolejki dopiero po udanym zapisie szkicu (błąd API nie kasuje tematu).</p>
                     <label style="grid-column:1/-1"><input type="checkbox" name="ups_blog_bot_enabled" value="1" <?php checked((string) get_option("ups_blog_bot_enabled", "0"), "1"); ?> /> Włącz Blog Bota</label>
                     <label>Model (osobny od CRM)</label>
@@ -4468,6 +4491,12 @@ function upsellio_crm_app_template_redirect()
                     <input type="number" min="1" name="ups_blog_bot_post_author" value="<?php echo esc_attr((string) max(1, (int) get_option("ups_blog_bot_post_author", max(1, (int) get_current_user_id())))); ?>" />
                     <label>Docelowa liczba słów</label>
                     <input type="number" min="400" step="50" name="ups_blog_bot_target_length" value="<?php echo esc_attr((string) max(400, (int) get_option("ups_blog_bot_target_length", 1200))); ?>" />
+                    <label>Timeout HTTP (API Anthropic, sekundy)</label>
+                    <input type="number" min="0" max="600" step="30" name="ups_blog_bot_http_timeout" value="<?php echo esc_attr((string) max(0, (int) get_option("ups_blog_bot_http_timeout", 0))); ?>" placeholder="0 = 240 s" />
+                    <p class="muted" style="grid-column:1/-1;margin:-8px 0 4px;font-size:11px;line-height:1.45">Wpisz <strong>0</strong>, aby użyć domyślnych <strong>240 s</strong> (wcześniejsze stałe 90 s kończyły się <code>cURL error 28</code> przy długiej odpowiedzi JSON). Na wolnym hostingu ustaw np. 300–420. Górny limit techniczny: 600.</p>
+                    <label>Domyślna miniatura draftu (ID załącznika)</label>
+                    <input type="number" min="0" name="ups_blog_bot_default_thumbnail_id" value="<?php echo esc_attr((string) max(0, (int) get_option("ups_blog_bot_default_thumbnail_id", 0))); ?>" placeholder="0 = brak" />
+                    <p class="muted" style="grid-column:1/-1;margin:-8px 0 4px;font-size:11px;line-height:1.45">Opcjonalnie: ID obrazka z biblioteki mediów — używany, gdy Blog Bot nie znajdzie pasującego obrazu po frazie z kolejki.</p>
                     <label>Kategoria draftów</label>
                     <select name="ups_blog_bot_category">
                       <option value="0" <?php selected($ups_blog_cat_id, 0); ?>>— bez kategorii —</option>
@@ -4513,7 +4542,28 @@ function upsellio_crm_app_template_redirect()
                     <button class="btn" type="submit" style="grid-column:1/-1;margin-top:6px">Zapisz ustawienia AI / Blog</button>
                   </form>
                 </section>
+                <?php if ($ups_blog_seed_prefill !== "" || $ups_blog_focus_scroll) : ?>
+                  <script>
+                  document.addEventListener("DOMContentLoaded", function(){
+                    var ta = document.getElementById("ups-blog-bot-keywords-queue");
+                    <?php if ($ups_blog_seed_prefill !== "") : ?>
+                    var pre = <?php echo wp_json_encode($ups_blog_seed_prefill); ?>;
+                    if (ta && pre) {
+                      ta.value = pre + (ta.value.trim() !== "" ? "\n" + ta.value : "");
+                      ta.focus();
+                    }
+                    <?php endif; ?>
+                    var anchor = document.getElementById("ups-blog-bot-panel");
+                    if (anchor && (window.location.hash === "#ups-blog-bot-panel" || <?php echo $ups_blog_focus_scroll ? "true" : "false"; ?>)) {
+                      anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                  });
+                  </script>
+                <?php endif; ?>
                 <?php
+                if (function_exists("upsellio_crm_render_blog_keyword_research_panel")) {
+                    upsellio_crm_render_blog_keyword_research_panel();
+                }
                 if (function_exists("upsellio_topicgen_render_panel")) {
                     upsellio_topicgen_render_panel();
                 }
