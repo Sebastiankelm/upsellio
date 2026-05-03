@@ -1196,6 +1196,7 @@ require_once get_template_directory() . "/inc/analytics-internal-exclude.php";
 require_once get_template_directory() . "/inc/seo-automation.php";
 require_once get_template_directory() . "/inc/data-schema.php";
 require_once get_template_directory() . "/inc/site-analytics.php";
+require_once get_template_directory() . "/inc/gsc-keyword-analysis.php";
 require_once get_template_directory() . "/inc/google-oauth-managed.php";
 require_once get_template_directory() . "/inc/breadcrumbs.php";
 require_once get_template_directory() . "/inc/advanced-tests.php";
@@ -1215,7 +1216,12 @@ require_once get_template_directory() . "/inc/anthropic-blog-bot.php";
 require_once get_template_directory() . "/inc/anthropic-topic-generator.php";
 require_once get_template_directory() . "/inc/anthropic-ai-tests.php";
 require_once get_template_directory() . "/inc/sales-engine.php";
+require_once get_template_directory() . "/inc/crm-data-context.php";
 require_once get_template_directory() . "/inc/automation-suite.php";
+$suggestions_php = get_template_directory() . "/inc/suggestions.php";
+if (is_readable($suggestions_php)) {
+    require_once $suggestions_php;
+}
 require_once get_template_directory() . "/inc/crm-app.php";
 require_once get_template_directory() . "/inc/contracts.php";
 
