@@ -18,6 +18,15 @@ if (have_posts()) :
         $hero_image = $featured_image ?: $fallback_image;
         $hero_image_srcset = $featured_image_id ? wp_get_attachment_image_srcset($featured_image_id, "full") : "";
         $hero_image_sizes = $featured_image_id ? "(max-width: 760px) 100vw, (max-width: 1200px) 92vw, 1200px" : "";
+        $hero_img_meta = $featured_image_id ? wp_get_attachment_metadata($featured_image_id) : [];
+        $hero_w = (int) ($hero_img_meta["width"] ?? 1200);
+        $hero_h = (int) ($hero_img_meta["height"] ?? 630);
+        if ($hero_w <= 0) {
+            $hero_w = 1200;
+        }
+        if ($hero_h <= 0) {
+            $hero_h = 630;
+        }
 
         $raw_post_content = (string) get_post_field("post_content", $post_id);
         $content_without_inline_toc = (string) preg_replace(
@@ -213,7 +222,15 @@ if (have_posts()) :
             <div class="sp-wrap">
               <div class="sp-cover-img">
                 <?php if ($hero_image) : ?>
-                  <img src="<?php echo esc_url($hero_image); ?>" alt="<?php echo esc_attr(get_the_title($post_id)); ?>" <?php if ($hero_image_srcset !== "") : ?>srcset="<?php echo esc_attr($hero_image_srcset); ?>" sizes="<?php echo esc_attr($hero_image_sizes); ?>"<?php endif; ?> />
+                  <img
+                    src="<?php echo esc_url($hero_image); ?>"
+                    alt="<?php echo esc_attr(get_the_title($post_id)); ?>"
+                    width="<?php echo (int) $hero_w; ?>"
+                    height="<?php echo (int) $hero_h; ?>"
+                    fetchpriority="high"
+                    decoding="async"
+                    <?php if ($hero_image_srcset !== "") : ?>srcset="<?php echo esc_attr($hero_image_srcset); ?>" sizes="<?php echo esc_attr($hero_image_sizes); ?>"<?php endif; ?>
+                  />
                 <?php else : ?>
                   <div class="sp-thumb-stripes"></div>
                   <div class="sp-thumb-label">[ artwork — okładka artykułu ]</div>
