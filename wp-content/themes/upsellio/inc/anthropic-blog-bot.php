@@ -143,18 +143,35 @@ function upsellio_blog_bot_get_services_context(): string
     $parts = [];
     foreach ($slugs as $slug) {
         $page = upsellio_blog_bot_get_page_stub_by_slug($slug);
-        if ($page instanceof WP_Post) {
-            $text = wp_strip_all_tags((string) $page->post_content);
-            if (function_exists("mb_substr")) {
-                $text = mb_substr($text, 0, 600, "UTF-8");
-            } else {
-                $text = substr($text, 0, 600);
-            }
-            $parts[] = get_the_title((int) $page->ID) . ":\n" . $text;
+        if (!($page instanceof WP_Post)) {
+            continue;
         }
+
+        $text = wp_strip_all_tags((string) $page->post_content);
+        $limit = (int) apply_filters("upsellio_blog_bot_services_ctx_chars", 160);
+        $limit = max(80, min(400, $limit));
+        if (function_exists("mb_substr")) {
+            $text = mb_substr($text, 0, $limit, "UTF-8");
+        } else {
+            $text = substr($text, 0, $limit);
+        }
+
+        $parts[] = "- " . get_the_title((int) $page->ID) . ": " . $text;
     }
 
-    return implode("\n\n", $parts);
+    return implode("\n", $parts);
+}
+
+/**
+ * Reguły JSON/HTML dla pola content — dopinane do promptu (domyślny szablon + szablony niestandardowe bez tych linii).
+ */
+function upsellio_blog_bot_prompt_json_html_rules(): string
+{
+    return "- Cudzysłowy w atrybutach HTML w polu \"content\" zastąp encją &quot; "
+        . "(np. <a href=&quot;url&quot;>). Pole \"content\" jest wewnątrz JSON — "
+        . "zwykłe cudzysłowy w HTML psują parsowanie.\n"
+        . "- Nie używaj surowego HTML z cudzysłowami w atrybutach wewnątrz JSON — preferuj linki [anchor](url); "
+        . "konwerter po stronie serwera zamieni je na HTML.\n";
 }
 
 function upsellio_blog_bot_company_prefix(): string
@@ -591,6 +608,21 @@ function upsellio_blog_bot_mb_len(string $s): int
     return function_exists("mb_strlen") ? (int) mb_strlen($s, "UTF-8") : strlen($s);
 }
 
+/**
+ * Wyszukiwanie podłańcucha bez rozróżniania wielkości liter (UTF-8).
+ */
+function upsellio_blog_bot_str_contains_ci(string $haystack, string $needle): bool
+{
+    if ($needle === "") {
+        return true;
+    }
+    if (function_exists("mb_stripos")) {
+        return mb_stripos($haystack, $needle, 0, "UTF-8") !== false;
+    }
+
+    return stripos($haystack, $needle) !== false;
+}
+
 function upsellio_blog_bot_mb_cut(string $s, int $max): string
 {
     if (upsellio_blog_bot_mb_len($s) <= $max) {
@@ -634,14 +666,32 @@ function upsellio_blog_bot_clamp_seo_title(string $seo_title, string $fallback_t
 }
 
 /**
+ * Zapewnia dosłowną obecność frazy focus (Rank Math — exact match w opisie).
+ */
+function upsellio_blog_bot_meta_ensure_primary_query(string $meta, string $primary_query): string
+{
+    $primary_query = trim($primary_query);
+    if ($primary_query === "" || $meta === "") {
+        return $meta;
+    }
+    if (upsellio_blog_bot_str_contains_ci($meta, $primary_query)) {
+        return $meta;
+    }
+    $prefix = $primary_query . " — ";
+
+    return $prefix . $meta;
+}
+
+/**
  * SEO Tool: meta description 140–160 znaków.
  */
 function upsellio_blog_bot_clamp_meta_description(string $meta, string $title, string $primary_query): string
 {
     $meta = trim($meta);
+    $pq = trim($primary_query);
     if ($meta === "") {
-        if ($primary_query !== "") {
-            $base = "Praktyczny poradnik: " . $primary_query . ". Konkretne kroki i przykłady dla firm B2B.";
+        if ($pq !== "") {
+            $base = "Praktyczny poradnik: " . $pq . ". Konkretne kroki i przykłady dla firm B2B.";
             $meta = upsellio_blog_bot_mb_len($base) <= 160
                 ? $base
                 : upsellio_blog_bot_mb_cut($base, 157) . "...";
@@ -649,14 +699,20 @@ function upsellio_blog_bot_clamp_meta_description(string $meta, string $title, s
             $meta = "Poradnik B2B — konkretne metody, przykłady wdrożeń i checklista dla marketerów i właścicieli firm.";
         }
     }
+    $meta = upsellio_blog_bot_meta_ensure_primary_query($meta, $pq);
     $len = upsellio_blog_bot_mb_len($meta);
     if ($len >= 140 && $len <= 160) {
         return $meta;
     }
     if ($len > 160) {
-        return upsellio_blog_bot_mb_cut($meta, 160);
+        $meta = upsellio_blog_bot_mb_cut($meta, 160);
+        if ($pq !== "" && !upsellio_blog_bot_str_contains_ci($meta, $pq)) {
+            $meta = upsellio_blog_bot_mb_cut($pq . " — " . upsellio_blog_bot_mb_cut(wp_strip_all_tags($title), 120), 160);
+        }
+
+        return $meta;
     }
-    $tail = $primary_query !== ""
+    $tail = $pq !== ""
         ? " Sprawdź jak wdrożyć i jakich błędów unikać — praktyczny przewodnik dla firm B2B."
         : " Konkretne metody i przykłady wdrożeń dla marketerów i właścicieli firm B2B.";
     while (upsellio_blog_bot_mb_len($meta) < 140) {
@@ -665,8 +721,122 @@ function upsellio_blog_bot_clamp_meta_description(string $meta, string $title, s
             break;
         }
     }
+    $meta = upsellio_blog_bot_mb_cut($meta, 160);
+    if ($pq !== "" && !upsellio_blog_bot_str_contains_ci($meta, $pq)) {
+        $meta = upsellio_blog_bot_mb_cut($pq . ". " . $meta, 160);
+    }
 
-    return upsellio_blog_bot_mb_cut($meta, 160);
+    return $meta;
+}
+
+/**
+ * Post-processing treści — naprawia typowe błędy SEO (Rank Math) zanim treść trafi do WP.
+ * Wywołaj po markdown_links_to_html / ensure_sbt_shortcodes, przed wp_kses_post.
+ *
+ * @param string $primary_query Fraza focus (primary_query lub kolejka).
+ */
+function upsellio_blog_bot_fix_seo_issues(string $content, string $primary_query, string $keyword): string
+{
+    (void) $keyword;
+    if ($content === "" || trim($primary_query) === "") {
+        return $content;
+    }
+
+    $primary_query = trim($primary_query);
+    $kw_lower = function_exists("mb_strtolower")
+        ? mb_strtolower($primary_query, "UTF-8")
+        : strtolower($primary_query);
+    $kw_words = preg_split("/\s+/u", $kw_lower, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    $kw_prefix = implode(" ", array_slice($kw_words, 0, 2));
+    if (upsellio_blog_bot_mb_len($kw_prefix) <= 3) {
+        $kw_prefix = $kw_lower;
+    }
+
+    // 1. Pierwszy akapit — jeśli brak prefiksu frazy, wstrzyknij zdanie otwierające.
+    if (preg_match("/<p[^>]*>(.*?)<\/p>/is", $content, $first_p_match)) {
+        $first_p_text = function_exists("mb_strtolower")
+            ? mb_strtolower(wp_strip_all_tags($first_p_match[1]), "UTF-8")
+            : strtolower(wp_strip_all_tags($first_p_match[1]));
+        if (upsellio_blog_bot_mb_len($kw_prefix) > 3 && !upsellio_blog_bot_str_contains_ci($first_p_text, $kw_prefix)) {
+            $inject = ucfirst($primary_query)
+                . " to temat który warto dobrze rozumieć, jeśli prowadzisz firmę B2B. ";
+            $content = (string) preg_replace("/<p([^>]*)>/i", "<p$1>" . $inject, $content, 1);
+        }
+    }
+
+    // 2. Co najmniej jeden nagłówek H2/H3 z fragmentem frazy — inaczej dopisz do pierwszego H2/H3.
+    preg_match_all("/<h[23][^>]*>.*?<\/h[23]>/is", $content, $heading_blocks);
+    $kw_in_heading = false;
+    if (!empty($heading_blocks[0])) {
+        foreach ($heading_blocks[0] as $block) {
+            $ht = function_exists("mb_strtolower")
+                ? mb_strtolower(wp_strip_all_tags($block), "UTF-8")
+                : strtolower(wp_strip_all_tags($block));
+            if (upsellio_blog_bot_str_contains_ci($ht, $kw_prefix)) {
+                $kw_in_heading = true;
+                break;
+            }
+        }
+    }
+    if (!$kw_in_heading) {
+        $pq = $primary_query;
+        $content = (string) preg_replace_callback(
+            '/<h([23])(\b[^>]*)>(.*?)<\/h\1>/is',
+            static function (array $m) use ($pq): string {
+                $plain = trim(wp_strip_all_tags($m[3]));
+
+                return "<h" . $m[1] . $m[2] . ">" . esc_html($plain . " — " . $pq) . "</h" . $m[1] . ">";
+            },
+            $content,
+            1
+        );
+    }
+
+    // 3. Link zewnętrzny (authority), jeśli brak jakiegokolwiek linku poza domeną.
+    if (!upsellio_blog_bot_content_has_external_http_link($content)) {
+        $external_url = "https://think.withgoogle.com/";
+        $external_text = "Think with Google";
+        $external_link = " (<a href=\"" . esc_url($external_url) . "\" rel=\"noopener noreferrer\" target=\"_blank\">"
+            . esc_html($external_text) . "</a>)";
+        $count = 0;
+        $content = (string) preg_replace_callback(
+            "/<\/p>/i",
+            static function (array $m) use (&$count, $external_link): string {
+                $count++;
+
+                return $count === 2 ? $external_link . "</p>" : $m[0];
+            },
+            $content
+        );
+    }
+
+    return $content;
+}
+
+/**
+ * Czy w treści jest link http(s) na inny host niż bieżąca witryna.
+ */
+function upsellio_blog_bot_content_has_external_http_link(string $content): bool
+{
+    $home = (string) (wp_parse_url(home_url(), PHP_URL_HOST) ?? "");
+    if (!preg_match_all('/<a\s[^>]*href\s*=\s*["\']([^"\']+)["\']/i', $content, $m)) {
+        return false;
+    }
+    foreach ($m[1] as $url) {
+        $url = trim((string) $url);
+        if ($url === "" || preg_match("#^(mailto:|tel:|#)#i", $url)) {
+            continue;
+        }
+        if (!preg_match("#^https?://#i", $url)) {
+            continue;
+        }
+        $host = (string) (wp_parse_url($url, PHP_URL_HOST) ?? "");
+        if ($host !== "" && strcasecmp($host, $home) !== 0) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -830,44 +1000,62 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null,
     }
 
     if ($prompt_template === "") {
-        $prompt_template = "Napisz artykuł blogowy B2B (PL) na temat: {keyword}.\n"
-            . "Długość: ok. {target_length} słów.\n"
-            . "Ton: {tone}.\n"
+        $json_rules = upsellio_blog_bot_prompt_json_html_rules();
+        $prompt_template = "Napisz artykuł blogowy B2B (PL) na temat: {keyword}\n\n"
+            . "Długość: ok. {target_length} słów. Ton: {tone}.\n\n"
+            . "BEZWZGLĘDNE WYMAGANIA SEO (niespełnienie = błąd):\n"
+            . "1. Pierwsze zdanie pierwszego akapitu MUSI zawierać dosłownie frazę „{keyword}” lub jej bezpośrednią odmianę gramatyczną. Nie zaczynaj od pytania — zacznij od frazy.\n"
+            . "2. META DESCRIPTION musi zawierać dosłownie „{keyword}” i mieć 140–160 znaków.\n"
+            . "3. Fraza „{keyword}” lub jej odmiana musi pojawić się minimum 3× w treści (H2/H3 + akapity). Gęstość: 0,5–2%.\n"
+            . "4. Przynajmniej jeden H2 lub H3 musi zawierać fragment frazy „{keyword}”.\n"
+            . "5. Wstaw 1–2 linki zewnętrzne do wiarygodnych źródeł (think.withgoogle.com, semrush.com, searchengineland.com lub inne branżowe). Format: [anchor](https://url).\n\n"
             . "Istniejące wpisy (unikaj duplikowania tematów):\n{existing_posts}\n\n"
-            . "Frazy które już przynoszą kliknięcia z Google (nie powielaj tych tematów; możesz je rozwinąć lub powiązać):\n{converting_keywords}\n\n"
+            . "Frazy które już przynoszą kliknięcia:\n{converting_keywords}\n\n"
             . "ANALIZA GSC DLA TEJ FRAZY:\n{gsc_keyword_context}\n\n"
             . "INSTRUKCJE NA PODSTAWIE GSC:\n"
             . "- Użyj fraz z sekcji „POWIĄZANE FRAZY Z GSC” jako query_cluster w JSON.\n"
-            . "- Jeśli jest wyraźna KANIBALIZACJA na wiele URL — nie dublowaj tematu; w treści wskaż konsolidację lub wybór jednej strony docelowej.\n"
-            . "- Dopasuj ton i strukturę do INTENCJI WYSZUKIWANIA z sekcji GSC.\n"
-            . "- Intencja lokalna: naturalnie wpleć kontekst miejsca (bez sztucznego naduzycia).\n"
-            . "- Intencja transakcyjna: wyraźne korzyści, proces, CTA.\n\n"
+            . "- Dopasuj ton do INTENCJI WYSZUKIWANIA.\n"
+            . "- Intencja lokalna: wpleć kontekst miejsca naturalnie.\n"
+            . "- Intencja transakcyjna: wyraźne korzyści, CTA.\n\n"
+            . "Kontekst usług firmy:\n{services_context}\n\n"
+            . "KATALOG LINKOWANIA WEWNĘTRZNEGO (tylko te URL):\n{internal_url_catalog}\n\n"
+            . "ZASADY LINKOWANIA:\n"
+            . "- 3–5 linków wewnętrznych WEWNĄTRZ treści.\n"
+            . "- 1–2 linki zewnętrzne do authority sources (think.withgoogle.com, semrush.com itp.).\n"
+            . "- Format linków: [anchor text](PEŁNY_URL).\n\n"
+            . "STRUKTURA ARTYKUŁU:\n"
+            . "- H1: tytuł (nie wstawiaj — WordPress doda automatycznie)\n"
+            . "- Pierwszy akapit: fraza kluczowa + problem czytelnika\n"
+            . "- H2 (min. 3): pytania lub twierdzenia, przynajmniej jedno z frazą kluczową\n"
+            . "- H3: podsekcje gdzie potrzeba\n"
+            . "- FAQ: <h2>Najczęstsze pytania</h2> + min. 3× <h3>Pytanie?</h3> + <p>Odpowiedź</p>\n"
+            . "- Ostatni akapit: konkretny krok który czytelnik zrobi dziś\n\n"
+            . "WYMAGANIA TECHNICZNE:\n"
+            . "- content: wyłącznie HTML (<p>, <ul>/<li>, <h2>, <h3>). Zero Markdown nagłówków.\n"
+            . "- seo_title: 45–60 znaków z frazą na początku.\n"
+            . "- meta_description: 140–160 znaków, MUSI zawierać „{keyword}”.\n"
+            . "- primary_query: dokładna fraza SEO = „{keyword}”.\n"
+            . "- query_cluster: 8–12 fraz powiązanych przez przecinek.\n"
+            . "- tags: min. 3 tagi.\n"
+            . $json_rules
+            . "\n\n"
+            . "Spis treści (H2/H3) zostanie dodany automatycznie po stronie serwera — nie wstawiaj własnego spisu w treści.\n\n"
+            . "KRYTERIA (stosuj zawsze): Pisz dla decydenta B2B; JSON parsowalny (bez fence markdown); jeden spójny ton.\n\n"
+            . "Odpowiedz WYŁĄCZNIE jednym obiektem JSON (pierwszy znak {, ostatni }):\n"
+            . "title, slug, seo_title, meta_description, primary_query, query_cluster,\n"
+            . "user_questions, article_type, audience, search_intent, problem, outcome,\n"
+            . "cta_text, tags (tablica), content (HTML + linki markdown).\n\n"
+            . "---\n"
+            . "DANE DLA TEGO ARTYKUŁU:\n"
+            . "Główna fraza / temat: {keyword}\n"
+            . "Długość docelowa: ok. {target_length} słów.\n"
+            . "Ton: {tone}.\n\n"
+            . "Istniejące wpisy (unikaj duplikowania tematów):\n{existing_posts}\n\n"
+            . "Frazy które już przynoszą kliknięcia z Google:\n{converting_keywords}\n\n"
+            . "ANALIZA GSC DLA TEJ FRAZY:\n{gsc_keyword_context}\n\n"
             . "Kontekst usług firmy:\n{services_context}\n\n"
             . "KATALOG LINKOWANIA WEWNĘTRZNEGO (tylko te URL — jedna linia = URL | tytuł):\n{internal_url_catalog}\n\n"
-            . "ZASADY LINKOWANIA:\n"
-            . "- Wstaw 3–5 linków wewnętrznych WEWNĄTRZ treści — nie tylko na końcu artykułu.\n"
-            . "- Link w zdaniu, w którym naturalnie pada temat strony docelowej.\n"
-            . "- Anchor: konkretny opis strony docelowej (nie „kliknij tutaj”, nie „więcej”).\n"
-            . "- Strony usługowe linkuj przy omówieniu danej usługi; inne wpisy blogowe — gdy rozwijasz pobieżny wątek.\n"
-            . "- Format: [anchor](PEŁNY_URL) — URL skopiuj 1:1 z katalogu.\n"
-            . "- Nie więcej niż 2 linki do tej samej domeny/strony.\n\n"
-            . "WYMAGANIA TECHNICZNE (WordPress, Rank Math SEO, wewnętrzny SEO tool):\n"
-            . "- Pole \"content\": wyłącznie HTML (<p>, <ul>/<li>, <h2>, <h3>). Bez Markdown nagłówków (#, ##, ###).\n"
-            . "- W pierwszym akapicie naturalnie użyj głównej frazy (primary_query / temat).\n"
-            . "- W treści umieść 2–5 linków wewnętrznych w formacie Markdown [krótki anchor](PEŁNY_URL) — URL MUSI być identyczny z jednej linii katalogu powyżej (skopiuj 1:1). Wstaw linki w miejscach merytorycznych (nie na końcu w jednym bloku).\n"
-            . "- Sekcja FAQ: <h2>FAQ</h2> + co najmniej jedno <h3> z pytaniem.\n"
-            . "- article_type: zwykle \"seo_article\".\n"
-            . "- meta_description: 140–160 znaków, z frazą związaną z {keyword} (dobry snippet pod Rank Math).\n"
-            . "- seo_title: 45–60 znaków MAX (CMS dodaje nazwę witryny; może być zbliżony do title).\n"
-            . "- primary_query: główna fraza SEO (Rank Math focus keyword).\n"
-            . "- query_cluster: 5–12 powiązanych fraz oddzielonych przecinkami.\n"
-            . "- user_questions: 3 pytania czytelnika, każde w osobnej linii (\\n).\n"
-            . "- problem i outcome: każde minimum ok. 80 znaków (krócej niż wcześniej — nadal konkret) — błąd mentalny / procesowy i efekt po lekturze.\n"
-            . "- tags: min. 2–3 krótkie tagi.\n\n"
-            . "Spis treści (H2/H3) zostanie dodany automatycznie po stronie serwera — nie wstawiaj własnego spisu w treści.\n\n"
-            . "Odpowiedz WYŁĄCZNIE jednym obiektem JSON: pierwszy znak odpowiedzi musi być „{”, ostatni „}”. Nie używaj otoczki markdown (fence), bez komentarzy przed/po JSON. W polu \"content\" dozwolone są linki [tekst](url). Pola: "
-            . "title, slug, seo_title, meta_description, primary_query, query_cluster, user_questions, article_type, "
-            . "audience, search_intent, problem, outcome, cta_text, tags (tablica stringów), content (HTML + linki markdown [anchor](url) z katalogu).";
+            . "Na podstawie powyższych danych wygeneruj kompletny obiekt JSON.";
     }
 
     $prompt = str_replace(
@@ -893,6 +1081,10 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null,
         ],
         $prompt_template
     );
+
+    if (stripos($prompt, "cudzysłowy w atrybutach HTML") === false) {
+        $prompt .= "\n\n" . __("WYMAGANIA JSON — pole content:", "upsellio") . "\n" . upsellio_blog_bot_prompt_json_html_rules();
+    }
 
     if (strpos($prompt_template, "{gsc_keyword_context}") === false && trim($prompt_template) !== "" && $gsc_keyword_context !== "") {
         $prompt .= "\n\n---\n" . __("ANALIZA GSC DLA TEJ FRAZY:", "upsellio") . "\n" . $gsc_keyword_context;
@@ -925,27 +1117,76 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null,
 }
 
 /**
+ * Dzieli prompt na blok cache’owany (długie, powtarzalne instrukcje) i dynamiczny (fraza, wpisy, GSC, katalog).
+ * Wymaga ≥ upsellio_anthropic_crm_cache_min_chars znaków przed separatorem — inaczej API nie włączy prompt caching.
+ *
  * @return array{cached: string, dynamic: string}|null
  */
 function upsellio_blog_bot_prompt_cache_split(string $full_prompt): ?array
 {
-    $prefix = upsellio_blog_bot_company_prefix();
-    if ($prefix === "") {
-        return null;
-    }
-    if (strpos($full_prompt, $prefix) !== 0) {
-        return null;
-    }
-    $plen = function_exists("mb_strlen") ? (int) mb_strlen($prefix, "UTF-8") : strlen($prefix);
-    $dynamic = function_exists("mb_substr")
-        ? mb_substr($full_prompt, $plen, null, "UTF-8")
-        : substr($full_prompt, $plen);
-    $dynamic = trim((string) $dynamic);
-    if ($dynamic === "") {
+    $full_prompt = (string) $full_prompt;
+    if ($full_prompt === "") {
         return null;
     }
 
-    return ["cached" => $prefix, "dynamic" => $dynamic];
+    $min_cached = (int) apply_filters(
+        "upsellio_blog_bot_cache_split_min_chars",
+        (int) apply_filters("upsellio_anthropic_crm_cache_min_chars", 4000)
+    );
+    $min_cached = max(1024, $min_cached);
+
+    $markers = (array) apply_filters(
+        "upsellio_blog_bot_prompt_cache_markers",
+        [
+            "\n---\nDANE DLA TEGO ARTYKUŁU:",
+            "\n---\nDANE DLA TEGO ARTYKUŁU:\n",
+            "DANE DLA TEGO ARTYKUŁU:",
+            "Istniejące wpisy",
+            "existing_posts",
+            "Frazy które już",
+        ]
+    );
+
+    $split_pos = false;
+    foreach ($markers as $m) {
+        $m = (string) $m;
+        if ($m === "") {
+            continue;
+        }
+        $pos = function_exists("mb_strpos")
+            ? mb_strpos($full_prompt, $m, 0, "UTF-8")
+            : strpos($full_prompt, $m);
+        if ($pos !== false && $pos >= $min_cached && ($split_pos === false || $pos > (int) $split_pos)) {
+            $split_pos = (int) $pos;
+        }
+    }
+
+    if ($split_pos === false) {
+        return null;
+    }
+
+    $cached = function_exists("mb_substr")
+        ? mb_substr($full_prompt, 0, $split_pos, "UTF-8")
+        : substr($full_prompt, 0, $split_pos);
+    $dynamic = function_exists("mb_substr")
+        ? mb_substr($full_prompt, $split_pos, null, "UTF-8")
+        : substr($full_prompt, $split_pos);
+
+    if (trim((string) $dynamic) === "") {
+        return null;
+    }
+
+    $cache_len = function_exists("mb_strlen")
+        ? (int) mb_strlen((string) $cached, "UTF-8")
+        : (int) strlen((string) $cached);
+    if ($cache_len < $min_cached) {
+        return null;
+    }
+
+    return [
+        "cached" => (string) $cached,
+        "dynamic" => (string) $dynamic,
+    ];
 }
 
 function upsellio_blog_bot_clear_cron(): void
@@ -991,7 +1232,14 @@ function upsellio_blog_bot_assign_featured_image(int $post_id, string $keyword):
             "order" => "DESC",
         ]);
         if (!empty($media[0]) && $media[0] instanceof WP_Post) {
-            set_post_thumbnail($post_id, (int) $media[0]->ID);
+            $img_id = (int) $media[0]->ID;
+            set_post_thumbnail($post_id, $img_id);
+            if ($keyword !== "") {
+                $existing_alt = (string) get_post_meta($img_id, "_wp_attachment_image_alt", true);
+                if ($existing_alt === "") {
+                    update_post_meta($img_id, "_wp_attachment_image_alt", sanitize_text_field($keyword));
+                }
+            }
 
             return;
         }
@@ -999,6 +1247,12 @@ function upsellio_blog_bot_assign_featured_image(int $post_id, string $keyword):
     $default_id = (int) get_option("ups_blog_bot_default_thumbnail_id", 0);
     if ($default_id > 0 && wp_attachment_is_image($default_id)) {
         set_post_thumbnail($post_id, $default_id);
+        if ($keyword !== "") {
+            $existing_alt = (string) get_post_meta($default_id, "_wp_attachment_image_alt", true);
+            if ($existing_alt === "") {
+                update_post_meta($default_id, "_wp_attachment_image_alt", sanitize_text_field($keyword));
+            }
+        }
     }
 }
 
@@ -1021,7 +1275,7 @@ function upsellio_blog_bot_generate_and_save(): void
     upsellio_blog_bot_set_last_error(null);
 
     if (function_exists("set_time_limit")) {
-        $tl = (int) apply_filters("upsellio_blog_bot_time_limit", 420);
+        $tl = (int) apply_filters("upsellio_blog_bot_time_limit", 300);
         @set_time_limit(max(120, min(900, $tl)));
     }
 
@@ -1060,9 +1314,13 @@ function upsellio_blog_bot_generate_and_save(): void
         return;
     }
 
-    $model = trim((string) get_option("ups_blog_bot_model", ""));
-    if ($model === "") {
-        $model = "claude-haiku-4-5-20251001";
+    if (function_exists("upsellio_ai_model_for")) {
+        $model = upsellio_ai_model_for("blog_post");
+    } else {
+        $model = trim((string) get_option("ups_blog_bot_model", ""));
+        if ($model === "") {
+            $model = "claude-haiku-4-5-20251001";
+        }
     }
 
     $cat_lim = (int) apply_filters("upsellio_blog_bot_catalog_limit", 32);
@@ -1072,9 +1330,16 @@ function upsellio_blog_bot_generate_and_save(): void
     // Pełny wpis w jednym obiekcie JSON — mały limit obcina odpowiedź w połowie i psuje parsowanie.
     // HTTP: domyślnie 240 s (wcześniej 90 s — częsty cURL 28 przy dużym max_tokens / wolnym API).
     $stored_to = (int) get_option("ups_blog_bot_http_timeout", 0);
+    $php_limit = (int) ini_get("max_execution_time");
+    if ($php_limit <= 0) {
+        $safe_timeout = 180;
+    } else {
+        $safe_timeout = $php_limit > 30 ? min($php_limit - 20, 180) : 120;
+    }
+    $safe_timeout = max(60, min(300, $safe_timeout));
     $api_timeout = $stored_to > 0
         ? max(60, min(600, $stored_to))
-        : (int) apply_filters("upsellio_blog_bot_api_timeout", 240);
+        : (int) apply_filters("upsellio_blog_bot_api_timeout", $safe_timeout);
     $api_timeout = max(60, min(600, $api_timeout));
     $max_out = upsellio_blog_bot_resolve_max_output_tokens(8192);
     $raw = upsellio_anthropic_crm_send_user_prompt($full_prompt, $max_out, $api_timeout, $model, $cache_split);
@@ -1149,6 +1414,11 @@ function upsellio_blog_bot_generate_and_save(): void
     // Spis treści jest budowany w single.php (.sp-toc) — nie wstrzykuj ups-article-toc do treści (uniknięcie podwójnego TOC).
     // $content_raw = upsellio_blog_bot_prepend_toc_block($content_raw);
     $content_raw = upsellio_blog_bot_ensure_sbt_shortcodes($content_raw, $article_type);
+    $pq_seo = trim((string) ($data["primary_query"] ?? ""));
+    if ($pq_seo === "") {
+        $pq_seo = $keyword;
+    }
+    $content_raw = upsellio_blog_bot_fix_seo_issues($content_raw, $pq_seo, $keyword);
     $content = wp_kses_post($content_raw);
 
     $slug = sanitize_title((string) ($data["slug"] ?? ""));
