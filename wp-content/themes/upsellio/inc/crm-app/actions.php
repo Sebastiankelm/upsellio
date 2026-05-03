@@ -811,6 +811,12 @@ function upsellio_crm_app_handle_post_actions()
                     update_option("ups_ai_company_context", $ctx, false);
                     update_option("ups_anthropic_company_context", $ctx, false);
                 }
+                if (isset($_POST["ups_ai_model_haiku"])) {
+                    update_option("ups_ai_model_haiku", sanitize_text_field(wp_unslash($_POST["ups_ai_model_haiku"])), false);
+                }
+                if (isset($_POST["ups_ai_model_sonnet"])) {
+                    update_option("ups_ai_model_sonnet", sanitize_text_field(wp_unslash($_POST["ups_ai_model_sonnet"])), false);
+                }
                 foreach ([
                     "ups_ai_context_scoring",
                     "ups_ai_context_draft",
