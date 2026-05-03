@@ -734,10 +734,10 @@ function upsellio_blog_bot_clamp_meta_description(string $meta, string $title, s
  * Wywołaj po markdown_links_to_html / ensure_sbt_shortcodes, przed wp_kses_post.
  *
  * @param string $primary_query Fraza focus (primary_query lub kolejka).
+ * @param string $keyword Fraza z kolejki (na przyszłe rozszerzenia; obecnie nieużywana w treści).
  */
 function upsellio_blog_bot_fix_seo_issues(string $content, string $primary_query, string $keyword): string
 {
-    (void) $keyword;
     if ($content === "" || trim($primary_query) === "") {
         return $content;
     }
