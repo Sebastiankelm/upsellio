@@ -379,3 +379,282 @@ function upsellio_render_breadcrumb_schema($items)
         "itemListElement" => $list_items,
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
 }
+
+/**
+ * JSON-LD BlogPosting / Article dla pojedynczego wpisu (E-E-A-T: autor, daty, wydawca).
+ *
+ * @return array<string, mixed>
+ */
+function upsellio_get_blogposting_schema_payload(int $post_id): array
+{
+    $post = get_post($post_id);
+    if (!$post instanceof WP_Post || $post->post_type !== "post" || $post->post_status !== "publish") {
+        return [];
+    }
+
+    $desc = trim((string) get_post_meta($post_id, "_upsellio_meta_description", true));
+    if ($desc === "") {
+        $raw_ex = trim((string) $post->post_excerpt);
+        $desc = $raw_ex !== ""
+            ? wp_strip_all_tags($raw_ex)
+            : wp_trim_words(wp_strip_all_tags((string) $post->post_content), 55, "…");
+    }
+
+    $keywords = trim((string) get_post_meta($post_id, "_upsellio_query_cluster", true));
+    if ($keywords === "") {
+        $tags = get_the_tags($post_id);
+        if (is_array($tags) && $tags !== []) {
+            $keywords = implode(", ", array_map(static function ($t) {
+                return $t instanceof WP_Term ? $t->name : "";
+            }, $tags));
+        }
+    }
+
+    $img = get_the_post_thumbnail_url($post_id, "large");
+    $author_id = (int) $post->post_author;
+    $author_name = get_the_author_meta("display_name", $author_id);
+    if ($author_name === "") {
+        $author_name = __("Autor", "upsellio");
+    }
+
+    $org = function_exists("upsellio_get_organization_schema_payload") ? upsellio_get_organization_schema_payload() : [];
+    $publisher = [
+        "@type" => "Organization",
+        "@id" => home_url("/#organization"),
+        "name" => (string) ($org["name"] ?? get_bloginfo("name")),
+        "url" => (string) ($org["url"] ?? home_url("/")),
+    ];
+    if (!empty($org["logo"])) {
+        $publisher["logo"] = [
+            "@type" => "ImageObject",
+            "url" => (string) $org["logo"],
+        ];
+    }
+
+    $permalink = get_permalink($post_id);
+    if (!is_string($permalink) || $permalink === "") {
+        return [];
+    }
+
+    $published = get_post_time("c", true, $post_id);
+    $modified = get_post_modified_time("c", true, $post_id);
+    if (!is_string($published) || $published === "") {
+        $published = gmdate("c", (int) strtotime((string) $post->post_date_gmt));
+    }
+    if (!is_string($modified) || $modified === "") {
+        $modified = $published;
+    }
+
+    $payload = [
+        "@context" => "https://schema.org",
+        "@type" => "BlogPosting",
+        "headline" => get_the_title($post_id),
+        "description" => $desc,
+        "datePublished" => $published,
+        "dateModified" => $modified,
+        "author" => [
+            "@type" => "Person",
+            "name" => $author_name,
+            "url" => get_author_posts_url($author_id),
+        ],
+        "publisher" => $publisher,
+        "mainEntityOfPage" => [
+            "@type" => "WebPage",
+            "@id" => $permalink . "#webpage",
+        ],
+        "url" => $permalink,
+    ];
+
+    if ($keywords !== "") {
+        $payload["keywords"] = $keywords;
+    }
+
+    if (is_string($img) && $img !== "") {
+        $payload["image"] = [$img];
+    } else {
+        $fallback_img = trim((string) get_post_meta($post_id, "_upsellio_featured_image_url", true));
+        if ($fallback_img !== "") {
+            $payload["image"] = [esc_url_raw($fallback_img)];
+        }
+    }
+
+    return array_filter($payload, static function ($v) {
+        return $v !== "" && $v !== [] && $v !== null;
+    });
+}
+
+/**
+ * FAQ z treści wpisu (sekcja po nagłówku FAQ / Często zadawane).
+ *
+ * @return list<array{question:string, answer:string}>
+ */
+function upsellio_extract_faq_from_content(string $content): array
+{
+    $content = trim($content);
+    if ($content === "") {
+        return [];
+    }
+    if (!preg_match('/<h[23][^>]*>(?:[^<]*(?:FAQ|Często zadawane|często zadawane)[^<]*)<\/h[23]>/iu', $content)) {
+        return [];
+    }
+    $parts = preg_split('/<h[23][^>]*>(?:[^<]*(?:FAQ|Często zadawane|często zadawane)[^<]*)<\/h[23]>/iu', $content);
+    if (!isset($parts[1]) || !is_string($parts[1])) {
+        return [];
+    }
+    $faq_section = $parts[1];
+    if (preg_match('/<h2[^>]*>/i', $faq_section, $m, PREG_OFFSET_CAPTURE)) {
+        $faq_section = substr($faq_section, 0, (int) $m[0][1]);
+    }
+    $items = [];
+    preg_match_all(
+        '/<h3[^>]*>(.*?)<\/h3>\s*(?:<p[^>]*>(.*?)<\/p>|<div[^>]*>(.*?)<\/div>)/is',
+        $faq_section,
+        $matches,
+        PREG_SET_ORDER
+    );
+    foreach ($matches as $match) {
+        $question = trim(wp_strip_all_tags((string) ($match[1] ?? "")));
+        $answer = trim(wp_strip_all_tags((string) (($match[2] ?? "") !== "" ? $match[2] : ($match[3] ?? ""))));
+        if ($question !== "" && $answer !== "") {
+            $items[] = ["question" => $question, "answer" => $answer];
+            if (count($items) >= 10) {
+                break;
+            }
+        }
+    }
+
+    return $items;
+}
+
+/**
+ * BlogPosting + FAQPage + BreadcrumbList dla pojedynczego wpisu.
+ */
+function upsellio_print_blog_post_schema(): void
+{
+    if (is_admin()) {
+        return;
+    }
+    if (!apply_filters("upsellio_output_blogposting_jsonld", true)) {
+        return;
+    }
+    if (!is_singular("post")) {
+        return;
+    }
+
+    $post_id = (int) get_queried_object_id();
+    if ($post_id <= 0) {
+        return;
+    }
+
+    $payload = upsellio_get_blogposting_schema_payload($post_id);
+    if ($payload === []) {
+        return;
+    }
+
+    $content_raw = (string) get_post_field("post_content", $post_id);
+    $faq_items = upsellio_extract_faq_from_content($content_raw);
+    if ($faq_items !== []) {
+        $entities = [];
+        foreach ($faq_items as $item) {
+            $entities[] = [
+                "@type" => "Question",
+                "name" => (string) ($item["question"] ?? ""),
+                "acceptedAnswer" => [
+                    "@type" => "Answer",
+                    "text" => (string) ($item["answer"] ?? ""),
+                ],
+            ];
+        }
+        echo '<script type="application/ld+json">' . wp_json_encode([
+            "@context" => "https://schema.org",
+            "@type" => "FAQPage",
+            "mainEntity" => $entities,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+    }
+
+    echo '<script type="application/ld+json">' . wp_json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+
+    $title = get_the_title($post_id);
+    $url = get_permalink($post_id);
+    if (!is_string($url) || $url === "") {
+        return;
+    }
+    $blog_archive = get_post_type_archive_link("post");
+    $blog_archive = is_string($blog_archive) ? $blog_archive : home_url("/");
+    $crumbs = [
+        ["name" => __("Strona główna", "upsellio"), "url" => home_url("/")],
+        ["name" => __("Blog", "upsellio"), "url" => $blog_archive],
+    ];
+    $categories = get_the_category($post_id);
+    if (is_array($categories) && isset($categories[0]) && $categories[0] instanceof WP_Term) {
+        $cat = $categories[0];
+        $link = get_category_link((int) $cat->term_id);
+        if (!is_wp_error($link) && is_string($link) && $link !== "") {
+            $crumbs[] = ["name" => (string) $cat->name, "url" => $link];
+        }
+    }
+    $crumbs[] = ["name" => $title, "url" => $url];
+    upsellio_render_breadcrumb_schema($crumbs);
+}
+
+add_action("wp_head", "upsellio_print_blog_post_schema", 9);
+
+/**
+ * BreadcrumbList na stronie szablonu Blog (archiwum bloga jako strona).
+ */
+function upsellio_print_blog_page_breadcrumb_schema(): void
+{
+    if (is_admin() || !is_page()) {
+        return;
+    }
+    $tid = (int) get_queried_object_id();
+    if ($tid <= 0) {
+        return;
+    }
+    $tpl = get_page_template_slug($tid);
+    if ($tpl !== "page-blog.php") {
+        return;
+    }
+    $permalink = get_permalink($tid);
+    if (!is_string($permalink) || $permalink === "") {
+        return;
+    }
+    upsellio_render_breadcrumb_schema([
+        ["name" => __("Strona główna", "upsellio"), "url" => home_url("/")],
+        ["name" => __("Blog", "upsellio"), "url" => $permalink],
+    ]);
+}
+
+add_action("wp_head", "upsellio_print_blog_page_breadcrumb_schema", 9);
+
+/**
+ * Canonical gdy Rank Math / Yoast nie dodają znacznika.
+ */
+function upsellio_canonical_fallback(): void
+{
+    if (is_admin()) {
+        return;
+    }
+    if (defined("WPSEO_VERSION") || defined("RANK_MATH_VERSION")) {
+        return;
+    }
+
+    $canonical = "";
+    if (is_singular()) {
+        $canonical = (string) get_permalink();
+    } elseif (is_category() || is_tag() || is_tax()) {
+        $term_link = get_term_link(get_queried_object());
+        $canonical = !is_wp_error($term_link) ? (string) $term_link : "";
+    } elseif (is_home() && !is_front_page()) {
+        $canonical = (string) get_post_type_archive_link("post");
+    } elseif (is_front_page()) {
+        $canonical = home_url("/");
+    }
+
+    $canonical = trim($canonical);
+    if ($canonical !== "") {
+        echo '<link rel="canonical" href="' . esc_url($canonical) . "\" />\n";
+    }
+}
+
+add_action("wp_head", "upsellio_canonical_fallback", 1);
