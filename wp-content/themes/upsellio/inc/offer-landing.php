@@ -9,6 +9,43 @@ function upsellio_get_site_gtm_container_id()
     return (string) apply_filters("upsellio_site_gtm_container_id", "GTM-KM9J5XC2");
 }
 
+/**
+ * Pole timeline z meta może być stringiem lub tablicą (np. błędny zapis z JSON) — unikamy wyświetlania „Array”.
+ */
+function upsellio_offer_normalize_timeline_display($raw): string
+{
+    if (is_array($raw)) {
+        if ($raw === []) {
+            return "";
+        }
+        $first = array_key_exists(0, $raw) ? $raw[0] : reset($raw);
+        if (is_array($first)) {
+            return upsellio_offer_normalize_timeline_display($first);
+        }
+
+        return trim((string) $first);
+    }
+
+    return trim((string) $raw);
+}
+
+/**
+ * Etykiety z AI / JSON: encje HTML oraz literalne sekwencje \uXXXX w tekście.
+ */
+function upsellio_offer_normalize_ai_display_text($text): string
+{
+    $text = (string) $text;
+    if ($text === "") {
+        return "";
+    }
+    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, "UTF-8");
+    $out = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', static function ($m) {
+        return mb_convert_encoding(pack("H*", $m[1]), "UTF-8", "UTF-16BE");
+    }, $text);
+
+    return is_string($out) ? $out : $text;
+}
+
 function upsellio_register_offer_layout_post_types()
 {
     register_post_type("crm_offer_layout", [
@@ -251,7 +288,7 @@ function upsellio_offer_render_public_landing($offer)
     }
     $client_name = $client_id > 0 ? (string) get_the_title($client_id) : "Klient";
     $price = (string) get_post_meta($offer_id, "_ups_offer_price", true);
-    $timeline = (string) get_post_meta($offer_id, "_ups_offer_timeline", true);
+    $timeline = upsellio_offer_normalize_timeline_display(get_post_meta($offer_id, "_ups_offer_timeline", true));
     $cta_text = (string) get_post_meta($offer_id, "_ups_offer_cta_text", true);
     if ($cta_text === "") {
         $cta_text = "Akceptuję ofertę";
@@ -287,6 +324,17 @@ function upsellio_offer_render_public_landing($offer)
     $services = json_decode((string) ($payload["services_json"] ?? "[]"), true);
     if (!is_array($services)) {
         $services = [];
+    }
+    foreach ($services as $si => $svc_row) {
+        if (!is_array($svc_row)) {
+            continue;
+        }
+        if (isset($svc_row["label"])) {
+            $services[$si]["label"] = upsellio_offer_normalize_ai_display_text((string) $svc_row["label"]);
+        }
+        if (isset($svc_row["price_hint"])) {
+            $services[$si]["price_hint"] = upsellio_offer_normalize_ai_display_text((string) $svc_row["price_hint"]);
+        }
     }
     $show_proof = !empty($payload["show_proof"]);
     $ajax_url = admin_url("admin-ajax.php");
