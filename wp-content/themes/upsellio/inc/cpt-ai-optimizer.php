@@ -11,44 +11,17 @@ if (!defined("ABSPATH")) {
  */
 function upsellio_cpt_ai_get_config(string $post_type): ?array
 {
-    $configs = [
+    $defaults = [
 
         "miasto" => [
-            "label" => "Miasto",
-            "read_meta" => [
-                "city_name" => "_upsellio_city_name",
-                "city_slug" => "_upsellio_city_slug",
-                "meta_description" => "_upsellio_city_meta_description",
-                "local_challenge" => "_upsellio_city_local_challenge",
-                "local_advantage" => "_upsellio_city_local_advantage",
-                "market_angle" => "_upsellio_city_market_angle",
-                "service_focus" => "_upsellio_city_service_focus",
-                "seasonality_angle" => "_upsellio_city_seasonality_angle",
-            ],
-            "read_content" => true,
-            "json_keys" => [
-                "post_content",
-                "post_excerpt",
-                "meta_description",
-                "seo_title",
-                "primary_query",
-                "query_cluster",
-                "local_challenge",
-                "local_advantage",
-                "market_angle",
-                "service_focus",
-                "seasonality_angle",
-                "faq",
-            ],
-            "apply" => "upsellio_cpt_ai_apply_miasto",
-            "prompt_system" => <<<PROMPT
+            "system" => <<<'DFLT'
 Jesteś asystentem SEO Sebastiana Kelma — konsultanta marketingu B2B.
 Tworzysz i optymalizujesz podstrony lokalne (miasto + usługa).
 Zasady: lokalna intencja wyszukiwania, konkretne korzyści dla firm B2B z tego miasta,
 naturalne wplecenie nazwy miasta i usługi, schema LocalBusiness wspierana przez treść.
 Zwracaj WYŁĄCZNIE jeden obiekt JSON bez markdown.
-PROMPT,
-            "prompt_user" => <<<PROMPT
+DFLT,
+            "user" => <<<'DFLT'
 Zoptymalizuj podstronę lokalną dla miasta: {city_name}.
 Usługi: Google Ads, Meta Ads, strony internetowe B2B.
 Kontekst firmy: {company_ctx}
@@ -82,39 +55,18 @@ Zwróć JSON (uzupełnij też pola używane przez szablon single-miasto — pust
   "seasonality_angle": "<1 zdanie — sezonowość popytu>",
   "faq": [{"q": "Pytanie?", "a": "Odpowiedź."}, {"q": "Pytanie 2?", "a": "Odpowiedź 2."}]
 }
-PROMPT,
+DFLT,
         ],
 
         "definicja" => [
-            "label" => "Definicja",
-            "read_meta" => [
-                "term" => "_upsellio_definition_term",
-                "category" => "_upsellio_definition_category",
-                "main_keyword" => "_upsellio_definition_main_keyword",
-                "difficulty" => "_upsellio_definition_difficulty",
-            ],
-            "read_content" => true,
-            "json_keys" => [
-                "post_content",
-                "post_excerpt",
-                "meta_description",
-                "seo_title",
-                "primary_query",
-                "query_cluster",
-                "main_keyword",
-                "difficulty",
-                "faq",
-                "service_links",
-            ],
-            "apply" => "upsellio_cpt_ai_apply_definicja",
-            "prompt_system" => <<<PROMPT
+            "system" => <<<'DFLT'
 Jesteś asystentem SEO Sebastiana Kelma — konsultanta marketingu B2B.
 Tworzysz definicje pojęć marketingowych dla słownika B2B.
 Zasady: pojęcie w pierwszym zdaniu dosłownie, praktyczna definicja z perspektywy właściciela firmy B2B,
 schema DefinedTerm wspierana przez treść, linki do powiązanych definicji.
 Zwracaj WYŁĄCZNIE jeden obiekt JSON bez markdown.
-PROMPT,
-            "prompt_user" => <<<PROMPT
+DFLT,
+            "user" => <<<'DFLT'
 Zoptymalizuj wpis słownikowy dla pojęcia: {term}
 Kategoria: {category}
 Fraza główna (SEO): {main_keyword}
@@ -141,50 +93,17 @@ Zwróć JSON (single-definicja.php czyta też main_keyword, difficulty, faq, ser
   "faq": [{"q": "Pytanie?", "a": "Odpowiedź."}, {"q": "Pytanie 2?", "a": "Odpowiedź 2."}],
   "service_links": ["/#uslugi", "/#kontakt", "/miasta/"]
 }
-PROMPT,
+DFLT,
         ],
 
         "portfolio" => [
-            "label" => "Portfolio",
-            "read_meta" => [
-                "type" => "_ups_port_type",
-                "meta" => "_ups_port_meta",
-                "problem" => "_ups_port_problem",
-                "scope" => "_ups_port_scope",
-                "result" => "_ups_port_result",
-                "metrics" => "_ups_port_metrics",
-                "technologies" => "_ups_port_technologies",
-                "client_quote" => "_ups_port_client_quote",
-                "badge" => "_ups_port_badge",
-                "cta" => "_ups_port_cta",
-            ],
-            "read_content" => true,
-            "json_keys" => [
-                "post_content",
-                "post_excerpt",
-                "type",
-                "meta_project",
-                "badge",
-                "cta",
-                "problem",
-                "scope",
-                "result",
-                "metrics",
-                "client_quote",
-                "seo_title",
-                "meta_description",
-                "primary_query",
-                "query_cluster",
-                "tags",
-            ],
-            "apply" => "upsellio_cpt_ai_apply_portfolio",
-            "prompt_system" => <<<PROMPT
+            "system" => <<<'DFLT'
 Jesteś asystentem SEO i copywriterem Sebastiana Kelma — konsultanta marketingu B2B.
 Tworzysz case studies realizacji stron internetowych. Skupiasz się na efektach biznesowych,
 nie technologiach. Piszesz z perspektywy klienta: problem → działanie → wynik.
 Zwracaj WYŁĄCZNIE jeden obiekt JSON bez markdown.
-PROMPT,
-            "prompt_user" => <<<PROMPT
+DFLT,
+            "user" => <<<'DFLT'
 Uzupełnij i zoptymalizuj case study strony internetowej.
 Kontekst firmy: {company_ctx}
 
@@ -215,7 +134,7 @@ Zwróć JSON (WYPEŁNIJ WSZYSTKIE POLA — puste = błąd). Mapowanie: type→_u
   "problem": "<2-3 zdania — problem biznesowy klienta>",
   "scope": "<2-4 zdania — co zrobiono>",
   "result": "<2-3 zdania — konkretny wynik>",
-  "metrics": "<jedna metryka per linia np. +42% zapytań\\n-31% CPL>",
+  "metrics": "<jedna metryka per linia np. +42% zapytań\n-31% CPL>",
   "client_quote": "<cytat jeśli dostępny, inaczej pusty string>",
   "seo_title": "<45-60 znaków>",
   "meta_description": "<140-160 znaków z frazą kluczową>",
@@ -223,52 +142,17 @@ Zwróć JSON (WYPEŁNIJ WSZYSTKIE POLA — puste = błąd). Mapowanie: type→_u
   "query_cluster": "<8 fraz, przecinkami>",
   "tags": ["tag1","tag2","tag3"]
 }
-PROMPT,
+DFLT,
         ],
 
         "marketing_portfolio" => [
-            "label" => "Case study marketingowe",
-            "read_meta" => [
-                "type" => "_ups_mport_type",
-                "meta" => "_ups_mport_meta",
-                "sector" => "_ups_mport_sector",
-                "problem" => "_ups_mport_problem",
-                "solution" => "_ups_mport_solution",
-                "result" => "_ups_mport_result",
-                "kpis" => "_ups_mport_kpis",
-                "tags" => "_ups_mport_tags",
-                "badge" => "_ups_mport_badge",
-                "cta" => "_ups_mport_cta",
-                "seo_title" => "_ups_mport_seo_title",
-                "seo_description" => "_ups_mport_seo_description",
-            ],
-            "read_content" => true,
-            "json_keys" => [
-                "post_content",
-                "post_excerpt",
-                "type",
-                "meta_project",
-                "sector",
-                "badge",
-                "cta",
-                "problem",
-                "solution",
-                "result",
-                "kpis",
-                "tags",
-                "seo_title",
-                "seo_description",
-                "primary_query",
-                "query_cluster",
-            ],
-            "apply" => "upsellio_cpt_ai_apply_marketing_portfolio",
-            "prompt_system" => <<<PROMPT
+            "system" => <<<'DFLT'
 Jesteś asystentem SEO i copywriterem Sebastiana Kelma — konsultanta Google Ads i Meta Ads B2B.
 Tworzysz case studies kampanii reklamowych. Skupiasz się na mierzalnych wynikach: CPL, ROAS, konwersje.
 Styl: bezpośredni, partnerski, zero korporacyjnego języka. Liczby są ważniejsze niż słowa.
 Zwracaj WYŁĄCZNIE jeden obiekt JSON bez markdown.
-PROMPT,
-            "prompt_user" => <<<PROMPT
+DFLT,
+            "user" => <<<'DFLT'
 Uzupełnij i zoptymalizuj case study kampanii marketingowej.
 Kontekst firmy: {company_ctx}
 
@@ -307,11 +191,159 @@ Zwróć JSON (WYPEŁNIJ WSZYSTKIE POLA — puste = błąd). Mapowanie: type→_u
   "primary_query": "<fraza SEO np. 'Meta Ads B2B case study'>",
   "query_cluster": "<8 fraz, przecinkami>"
 }
-PROMPT,
+DFLT,
         ],
     ];
 
-    return $configs[$post_type] ?? null;
+    if (!isset($defaults[$post_type])) {
+        return null;
+    }
+
+    $system = trim((string) get_option("ups_ai_cpt_system_{$post_type}", ""));
+    if ($system === "") {
+        $system = $defaults[$post_type]["system"];
+    }
+
+    $user = trim((string) get_option("ups_ai_cpt_prompt_{$post_type}", ""));
+    if ($user === "") {
+        $user = $defaults[$post_type]["user"];
+    }
+
+    $struct = [
+        "miasto" => [
+            "label" => "Miasto",
+            "read_meta" => [
+                "city_name" => "_upsellio_city_name",
+                "city_slug" => "_upsellio_city_slug",
+                "meta_description" => "_upsellio_city_meta_description",
+                "local_challenge" => "_upsellio_city_local_challenge",
+                "local_advantage" => "_upsellio_city_local_advantage",
+                "market_angle" => "_upsellio_city_market_angle",
+                "service_focus" => "_upsellio_city_service_focus",
+                "seasonality_angle" => "_upsellio_city_seasonality_angle",
+            ],
+            "read_content" => true,
+            "json_keys" => [
+                "post_content",
+                "post_excerpt",
+                "meta_description",
+                "seo_title",
+                "primary_query",
+                "query_cluster",
+                "local_challenge",
+                "local_advantage",
+                "market_angle",
+                "service_focus",
+                "seasonality_angle",
+                "faq",
+            ],
+            "apply" => "upsellio_cpt_ai_apply_miasto",
+        ],
+        "definicja" => [
+            "label" => "Definicja",
+            "read_meta" => [
+                "term" => "_upsellio_definition_term",
+                "category" => "_upsellio_definition_category",
+                "main_keyword" => "_upsellio_definition_main_keyword",
+                "difficulty" => "_upsellio_definition_difficulty",
+            ],
+            "read_content" => true,
+            "json_keys" => [
+                "post_content",
+                "post_excerpt",
+                "meta_description",
+                "seo_title",
+                "primary_query",
+                "query_cluster",
+                "main_keyword",
+                "difficulty",
+                "faq",
+                "service_links",
+            ],
+            "apply" => "upsellio_cpt_ai_apply_definicja",
+        ],
+        "portfolio" => [
+            "label" => "Portfolio",
+            "read_meta" => [
+                "type" => "_ups_port_type",
+                "meta" => "_ups_port_meta",
+                "problem" => "_ups_port_problem",
+                "scope" => "_ups_port_scope",
+                "result" => "_ups_port_result",
+                "metrics" => "_ups_port_metrics",
+                "technologies" => "_ups_port_technologies",
+                "client_quote" => "_ups_port_client_quote",
+                "badge" => "_ups_port_badge",
+                "cta" => "_ups_port_cta",
+            ],
+            "read_content" => true,
+            "json_keys" => [
+                "post_content",
+                "post_excerpt",
+                "type",
+                "meta_project",
+                "badge",
+                "cta",
+                "problem",
+                "scope",
+                "result",
+                "metrics",
+                "client_quote",
+                "seo_title",
+                "meta_description",
+                "primary_query",
+                "query_cluster",
+                "tags",
+            ],
+            "apply" => "upsellio_cpt_ai_apply_portfolio",
+        ],
+        "marketing_portfolio" => [
+            "label" => "Case study marketingowe",
+            "read_meta" => [
+                "type" => "_ups_mport_type",
+                "meta" => "_ups_mport_meta",
+                "sector" => "_ups_mport_sector",
+                "problem" => "_ups_mport_problem",
+                "solution" => "_ups_mport_solution",
+                "result" => "_ups_mport_result",
+                "kpis" => "_ups_mport_kpis",
+                "tags" => "_ups_mport_tags",
+                "badge" => "_ups_mport_badge",
+                "cta" => "_ups_mport_cta",
+                "seo_title" => "_ups_mport_seo_title",
+                "seo_description" => "_ups_mport_seo_description",
+            ],
+            "read_content" => true,
+            "json_keys" => [
+                "post_content",
+                "post_excerpt",
+                "type",
+                "meta_project",
+                "sector",
+                "badge",
+                "cta",
+                "problem",
+                "solution",
+                "result",
+                "kpis",
+                "tags",
+                "seo_title",
+                "seo_description",
+                "primary_query",
+                "query_cluster",
+            ],
+            "apply" => "upsellio_cpt_ai_apply_marketing_portfolio",
+        ],
+    ];
+
+    if (!isset($struct[$post_type])) {
+        return null;
+    }
+
+    return array_merge($struct[$post_type], [
+        "prompt_system" => $system,
+        "prompt_user" => $user,
+    ]);
 }
 
 /**
