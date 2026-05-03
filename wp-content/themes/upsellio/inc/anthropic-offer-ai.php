@@ -400,7 +400,11 @@ function upsellio_offer_ai_fill_ajax(): void
 
     $prompt = ($context !== "" ? $context . "\n\n--- Zadanie ---\n\n" : "") . $task;
 
-    $model = defined("UPSELLIO_ANTHROPIC_DEFAULT_MODEL") ? (string) UPSELLIO_ANTHROPIC_DEFAULT_MODEL : "claude-haiku-4-5-20251001";
+    $model = function_exists("upsellio_ai_model_for")
+        ? upsellio_ai_model_for("offer_fill")
+        : (defined("UPSELLIO_ANTHROPIC_DEFAULT_MODEL")
+            ? (string) UPSELLIO_ANTHROPIC_DEFAULT_MODEL
+            : "claude-haiku-4-5-20251001");
     $raw = function_exists("upsellio_anthropic_crm_send_user_prompt")
         ? upsellio_anthropic_crm_send_user_prompt($prompt, 4096, 42, $model)
         : null;
