@@ -508,25 +508,38 @@ function upsellio_blog_bot_canonical_internal_url(string $url): string
 }
 
 /**
- * [anchor](https://...) → <a> tylko dla URL z allowlisty (ta sama domena co witryna).
+ * [anchor](https://...) → <a> — wewnętrzne tylko z allowlisty; zewnętrzne (inny host) z rel="noopener".
  */
 function upsellio_blog_bot_markdown_links_to_html(string $html, array $allowed_map): string
 {
-    if ($allowed_map === []) {
-        return $html;
-    }
+    $home_host = (string) (wp_parse_url(home_url(), PHP_URL_HOST) ?? "");
 
     return (string) preg_replace_callback(
         '/\[([^\]]{1,220})\]\(\s*(https?:\/\/[^\s\)]+)\s*\)/u',
-        static function (array $m) use ($allowed_map): string {
+        static function (array $m) use ($allowed_map, $home_host): string {
             $anchor = (string) $m[1];
             $raw = trim((string) $m[2]);
-            if (!upsellio_blog_bot_url_is_allowed($raw, $allowed_map)) {
-                return $anchor;
-            }
-            $href = esc_url(upsellio_blog_bot_canonical_internal_url($raw));
 
-            return '<a href="' . $href . '">' . esc_html($anchor) . "</a>";
+            if (upsellio_blog_bot_url_is_allowed($raw, $allowed_map)) {
+                $href = esc_url(upsellio_blog_bot_canonical_internal_url($raw));
+
+                return '<a href="' . $href . '">' . esc_html($anchor) . "</a>";
+            }
+
+            $link_host = (string) (wp_parse_url($raw, PHP_URL_HOST) ?? "");
+            if ($link_host !== "" && strcasecmp($link_host, $home_host) !== 0) {
+                return '<a href="' . esc_url($raw) . '" target="_blank" rel="noopener noreferrer">'
+                    . esc_html($anchor) . "</a>";
+            }
+
+            /* Brak katalogu: linki na tym samym hoście nadal → <a> (uniknięcie utraty wewn. linków). */
+            if ($allowed_map === [] && $link_host !== "" && strcasecmp($link_host, $home_host) === 0) {
+                $href = esc_url(upsellio_blog_bot_canonical_internal_url($raw));
+
+                return '<a href="' . $href . '">' . esc_html($anchor) . "</a>";
+            }
+
+            return $anchor;
         },
         $html
     );
@@ -646,20 +659,33 @@ function upsellio_blog_bot_clamp_seo_title(string $seo_title, string $fallback_t
     if ($seo_title === "") {
         $seo_title = trim($fallback_title);
     }
+
     $len = upsellio_blog_bot_mb_len($seo_title);
+
+    // Idealny zakres
     if ($len >= 45 && $len <= 60) {
         return $seo_title;
     }
+
+    // Za długi — spróbuj skrócić zachowując primary_query na początku
     if ($len > 60) {
+        // Jeśli primary_query mieści się w 60 znakach — użyj go jako seo_title
+        $pq_len = upsellio_blog_bot_mb_len($primary_query);
+        if ($primary_query !== "" && $pq_len <= 60 && $pq_len >= 20) {
+            return $primary_query;
+        }
+        // Skróć do 60
         return upsellio_blog_bot_mb_cut($seo_title, 60);
     }
+
+    // Za krótki — dopełnij
     $suffix = " — poradnik B2B";
     $candidate = $seo_title . $suffix;
     if (upsellio_blog_bot_mb_len($candidate) < 45 && $primary_query !== "") {
         $candidate = $seo_title . " — " . upsellio_blog_bot_mb_cut($primary_query, 48);
     }
     if (upsellio_blog_bot_mb_len($candidate) < 45) {
-        $candidate = $candidate . " — checklista i metryki";
+        $candidate .= " — checklista i metryki";
     }
 
     return upsellio_blog_bot_mb_cut($candidate, 60);
@@ -843,8 +869,9 @@ function upsellio_blog_bot_content_has_external_http_link(string $content): bool
  * Zapis metadanych zgodnych z SEO Blog Tool po utworzeniu draftu przez Blog Bota.
  *
  * @param array<string, mixed> $data
+ * @param string $rankmath_kw Fraza focus dla Rank Math (np. oczyszczona z kolejki); puste = jak primary_query z AI.
  */
-function upsellio_blog_bot_save_sbt_meta(int $post_id, array $data, string $title, string $meta_description, string $queue_keyword): void
+function upsellio_blog_bot_save_sbt_meta(int $post_id, array $data, string $title, string $meta_description, string $queue_keyword, string $rankmath_kw = ""): void
 {
     if (!function_exists("upsellio_save_seo_meta_for_post")) {
         return;
@@ -889,7 +916,9 @@ function upsellio_blog_bot_save_sbt_meta(int $post_id, array $data, string $titl
             . "Jak sprawdzić, czy wybrane działania przynoszą mierzalny efekt?";
     }
 
-    upsellio_save_seo_meta_for_post($post_id, $seo_title, $seo_desc, $primary_query, $query_cluster, $user_questions, $article_type);
+    $focus_kw_for_rankmath = trim($rankmath_kw) !== "" ? trim($rankmath_kw) : $primary_query;
+
+    upsellio_save_seo_meta_for_post($post_id, $seo_title, $seo_desc, $focus_kw_for_rankmath, $query_cluster, $user_questions, $article_type);
     update_post_meta($post_id, "_upsellio_meta_description", $seo_desc);
 
     if ($seo_title !== "") {
@@ -1279,6 +1308,18 @@ function upsellio_blog_bot_generate_and_save(): void
         @set_time_limit(max(120, min(900, $tl)));
     }
 
+    $lock_key = "ups_blog_bot_running";
+    if (get_transient($lock_key)) {
+        upsellio_blog_bot_set_last_error([
+            "code" => "already_running",
+            "detail" => "Blog Bot jest już uruchomiony. Poczekaj na zakończenie poprzedniego wywołania.",
+        ]);
+
+        return;
+    }
+    set_transient($lock_key, 1, 5 * MINUTE_IN_SECONDS);
+
+    try {
     if ((string) get_option("ups_blog_bot_enabled", "0") !== "1") {
         upsellio_blog_bot_set_last_error([
             "code" => "disabled",
@@ -1296,6 +1337,13 @@ function upsellio_blog_bot_generate_and_save(): void
         return;
     }
 
+    $queue_debug = upsellio_blog_bot_keywords_queue_lines();
+    update_option("ups_blog_bot_debug_queue_at_run", [
+        "time" => current_time("mysql"),
+        "count" => count($queue_debug),
+        "first" => $queue_debug[0] ?? "(pusta)",
+    ], false);
+
     $keyword = upsellio_blog_bot_peek_keyword();
     if ($keyword === "") {
         $notify = (string) get_option("ups_blog_bot_notify_email", "");
@@ -1310,6 +1358,11 @@ function upsellio_blog_bot_generate_and_save(): void
             "code" => "empty_queue",
             "detail" => "Brak tematu na początku kolejki ups_blog_bot_keywords_queue.",
         ]);
+        update_option("ups_blog_bot_last_run_result", [
+            "time" => current_time("mysql"),
+            "result" => "empty_queue",
+            "note" => "Kolejka była pusta przy uruchomieniu crona.",
+        ], false);
 
         return;
     }
@@ -1414,16 +1467,36 @@ function upsellio_blog_bot_generate_and_save(): void
     // Spis treści jest budowany w single.php (.sp-toc) — nie wstrzykuj ups-article-toc do treści (uniknięcie podwójnego TOC).
     // $content_raw = upsellio_blog_bot_prepend_toc_block($content_raw);
     $content_raw = upsellio_blog_bot_ensure_sbt_shortcodes($content_raw, $article_type);
+    /* primary_query z AI — treść / fix_seo_issues; Rank Math focus — fraza z kolejki (poniżej). */
     $pq_seo = trim((string) ($data["primary_query"] ?? ""));
     if ($pq_seo === "") {
         $pq_seo = $keyword;
     }
+
+    $pq_rankmath = preg_replace(
+        '/\s*—\s*\d+\s+\w+\s*(które|który|którą|co|jak|dla|na|w|i)?\s*\w*$/ui',
+        "",
+        $keyword
+    );
+    $pq_rankmath = trim((string) $pq_rankmath);
+    if ($pq_rankmath === "") {
+        $pq_rankmath = $pq_seo;
+    }
+
     $content_raw = upsellio_blog_bot_fix_seo_issues($content_raw, $pq_seo, $keyword);
     $content = wp_kses_post($content_raw);
 
     $slug = sanitize_title((string) ($data["slug"] ?? ""));
-    if ($slug === "" && $title !== "") {
-        $slug = sanitize_title($title);
+    if ($slug === "") {
+        // Preferuj primary_query jako slug — krótszy i zawiera frazę kluczową (sanitize_title usuwa polskie znaki)
+        $pq_for_slug = trim((string) ($data["primary_query"] ?? ""));
+        $slug = sanitize_title($pq_for_slug !== "" ? $pq_for_slug : $title);
+    }
+    // Ogranicz do 70 znaków (ASCII slug — strlen OK)
+    if (strlen($slug) > 70) {
+        $head = substr($slug, 0, 70);
+        $last_sep = strrpos($head, "-");
+        $slug = $last_sep !== false && $last_sep > 0 ? substr($slug, 0, $last_sep) : substr($slug, 0, 70);
     }
 
     $meta = sanitize_text_field((string) ($data["meta_description"] ?? ""));
@@ -1501,7 +1574,7 @@ function upsellio_blog_bot_generate_and_save(): void
         wp_set_post_tags($post_id, $tags, false);
     }
 
-    upsellio_blog_bot_save_sbt_meta($post_id, $data, $title, $meta, $keyword);
+    upsellio_blog_bot_save_sbt_meta($post_id, $data, $title, $meta, $keyword, $pq_rankmath);
 
     $related_ids = [];
     foreach ($catalog as $row) {
@@ -1524,6 +1597,11 @@ function upsellio_blog_bot_generate_and_save(): void
     update_option("ups_blog_bot_last_run", current_time("mysql"), false);
     update_option("ups_blog_bot_last_draft_id", $post_id, false);
     upsellio_blog_bot_set_last_error(null);
+    update_option("ups_blog_bot_last_run_result", [
+        "time" => current_time("mysql"),
+        "result" => "success",
+        "note" => "Draft #" . (string) $post_id . " — " . $title,
+    ], false);
 
     $notify = (string) get_option("ups_blog_bot_notify_email", "");
     if (is_email($notify)) {
@@ -1534,6 +1612,9 @@ function upsellio_blog_bot_generate_and_save(): void
             "Blog Bot: nowy draft — " . $title,
             "Wygenerowano draft dla frazy: {$keyword}\n\nEdycja: {$edit_url}\nPodgląd: {$preview}"
         );
+    }
+    } finally {
+        delete_transient($lock_key);
     }
 }
 
