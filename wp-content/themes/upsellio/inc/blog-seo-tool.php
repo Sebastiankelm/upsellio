@@ -132,6 +132,30 @@ function upsellio_prepare_toc_content($raw_content)
     $wrapped_html = '<?xml encoding="UTF-8"><!DOCTYPE html><html><body>' . $raw_content . "</body></html>";
     $doc->loadHTML($wrapped_html);
     $xpath = new DOMXPath($doc);
+
+    /* LibXML może zniekształcić drzewo formularza przy saveHTML — wyjmij karty kontaktu i przywróć po TOC. */
+    $contact_fragments = [];
+    $contact_nodes = $xpath->query("//div[contains(concat(' ', normalize-space(@class), ' '), ' ups-inline-contact ')]");
+    $contact_node_list = [];
+    if ($contact_nodes instanceof DOMNodeList) {
+        for ($i = 0, $n = (int) $contact_nodes->length; $i < $n; $i++) {
+            $elt = $contact_nodes->item($i);
+            if ($elt instanceof DOMElement) {
+                $contact_node_list[] = $elt;
+            }
+        }
+    }
+    $contact_count = count($contact_node_list);
+    for ($ci = $contact_count - 1; $ci >= 0; $ci--) {
+        $node = $contact_node_list[$ci];
+        if (!$node->parentNode) {
+            continue;
+        }
+        $contact_fragments[$ci] = $doc->saveHTML($node);
+        $comment = $doc->createComment(' ups-inline-contact-ph-' . $ci . ' ');
+        $node->parentNode->replaceChild($comment, $node);
+    }
+
     $headings = $xpath->query("//h2 | //h3");
 
     $seen_ids = [];
@@ -173,6 +197,18 @@ function upsellio_prepare_toc_content($raw_content)
         foreach ($body_nodes->childNodes as $child_node) {
             $content .= $doc->saveHTML($child_node);
         }
+    }
+
+    if ($contact_count > 0 && $contact_fragments !== []) {
+        $content = (string) preg_replace_callback(
+            '/<!--\s*ups-inline-contact-ph-(\d+)\s*-->/',
+            static function (array $m) use ($contact_fragments) {
+                $idx = (int) ($m[1] ?? -1);
+
+                return $contact_fragments[$idx] ?? $m[0];
+            },
+            $content
+        );
     }
 
     libxml_clear_errors();
