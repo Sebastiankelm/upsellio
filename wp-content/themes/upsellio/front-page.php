@@ -154,46 +154,46 @@ get_header();
   <section class="hr-hero">
     <div class="hr-wrap hr-hero-grid">
       <div class="hr-hero-copy">
-        <div class="hr-eyebrow">Marketing B2B · Google Ads · Meta Ads · WWW</div>
-        <h1 class="hr-h1">Reklamy klikają,<br />ale <em>nie sprzedają?</em></h1>
-        <p class="hr-lead">Pomagam firmom i e-commerce poukładać Google Ads, Meta Ads i stronę w jeden system, który generuje wartościowe zapytania — nie tylko ruch i raporty.</p>
-        <div class="hr-actions">
+        <div class="hr-eyebrow" data-animate="fade-up">Marketing B2B · Google Ads · Meta Ads · WWW</div>
+        <h1 class="hr-h1" data-animate="fade-up" data-delay="1">Reklamy klikają,<br />ale <em>nie sprzedają?</em></h1>
+        <p class="hr-lead" data-animate="fade-up" data-delay="2">Pomagam firmom i e-commerce poukładać Google Ads, Meta Ads i stronę w jeden system, który generuje wartościowe zapytania — nie tylko ruch i raporty.</p>
+        <div class="hr-actions" data-animate="fade-up" data-delay="3">
           <a class="hr-btn hr-btn-primary" href="#kontakt">Sprawdź, co blokuje sprzedaż →</a>
           <a class="hr-btn hr-btn-ghost" href="#wyniki">Zobacz wyniki klientów</a>
         </div>
-        <ul class="hr-micro">
+        <ul class="hr-micro" data-animate="fade-up" data-delay="3">
           <li><span class="hr-check">✓</span>Bezpłatna diagnoza, bez zobowiązań</li>
           <li><span class="hr-check">✓</span>Bez pośredników — rozmawiasz ze mną</li>
           <li><span class="hr-check">✓</span>Strategia oparta na sprzedaży, nie domysłach</li>
         </ul>
       </div>
-      <aside class="hr-hero-side">
+      <aside class="hr-hero-side" data-animate="scale" data-delay="2">
         <div class="hr-hero-photo" aria-hidden="true">
           <?php echo $hero_photo !== "" ? $hero_photo : '<div class="hr-photo-stripes"></div><div class="hr-photo-label">[ portrait — Sebastian Kelm ]</div>'; ?>
         </div>
-        <div class="hr-hero-stat hr-hero-stat-tl"><b>10+</b><span>lat sprzedaży B2B</span></div>
+        <div class="hr-hero-stat hr-hero-stat-tl"><b><span data-count-to="10" data-count-final="10+">0</span></b><span>lat sprzedaży B2B</span></div>
         <div class="hr-hero-stat hr-hero-stat-br"><b>3×</b><span>wyższa marża e-com</span></div>
       </aside>
     </div>
-    <div class="hr-wrap hr-proof" id="wyniki">
-      <div class="hr-proof-cell"><b>1 mln zł</b><span>miesięcznej sprzedaży B2B w kanale tradycyjnym</span></div>
-      <div class="hr-proof-cell"><b>500 tys. zł</b><span>miesięcznie w nowym kanale e-commerce</span></div>
-      <div class="hr-proof-cell"><b>15 osób</b><span>w prowadzonym zespole sprzedaży</span></div>
+    <div class="hr-wrap hr-proof" id="wyniki" data-animate="fade-up">
+      <div class="hr-proof-cell"><b><span data-count-to="1000000" data-count-final="1 mln zł">0</span></b><span>miesięcznej sprzedaży B2B w kanale tradycyjnym</span></div>
+      <div class="hr-proof-cell"><b><span data-count-to="500000" data-count-final="500 tys. zł">0</span></b><span>miesięcznie w nowym kanale e-commerce</span></div>
+      <div class="hr-proof-cell"><b><span data-count-to="15" data-count-final="15 osób">0</span></b><span>w prowadzonym zespole sprzedaży</span></div>
     </div>
   </section>
 
   <section class="hr-section">
     <div class="hr-wrap">
-      <header class="hr-sec-head">
+      <header class="hr-sec-head" data-animate="fade-up">
         <div class="hr-eyebrow">Usługi</div>
         <h2 class="hr-h2">Nie sprzedaję „kampanii”. Buduję system, który dowozi zapytania.</h2>
         <p class="hr-lead">Największy problem firm nie leży w pojedynczej reklamie. Najczęściej brakuje spójności: oferta → komunikat → ruch → landing → formularz → sprzedaż.</p>
       </header>
       <div class="hr-divider"></div>
       <div class="hr-cards">
-        <article class="hr-card"><div class="hr-card-num">01</div><h3 class="hr-h3">Google Ads nastawione na sprzedaż</h3><p class="hr-card-body">Search i Performance Max pod zapytania z realną intencją zakupową.</p><ul class="hr-list"><li>analiza intencji i słów</li><li>struktura kampanii pod CPL</li><li>landing pages pod konwersję</li><li>optymalizacja jakości leadów</li></ul><?php if ($google_ads_url !== "") : ?><a class="hr-card-link" href="<?php echo esc_url($google_ads_url); ?>">Zobacz szczegóły →</a><?php endif; ?></article>
-        <article class="hr-card"><div class="hr-card-num">02</div><h3 class="hr-h3">Meta Ads, które budują popyt</h3><p class="hr-card-body">Lejki na Facebooku i Instagramie: od pierwszego kontaktu po remarketing.</p><ul class="hr-list"><li>kreacje ToF / MoF / BoF</li><li>testy komunikatów i ofert</li><li>remarketing do zaangażowanych</li><li>kampanie sprzedażowe i leadowe</li></ul><?php if ($meta_ads_url !== "") : ?><a class="hr-card-link" href="<?php echo esc_url($meta_ads_url); ?>">Zobacz szczegóły →</a><?php endif; ?></article>
-        <article class="hr-card"><div class="hr-card-num">03</div><h3 class="hr-h3">Strony, które zamieniają ruch w leady</h3><p class="hr-card-body">Strony firmowe i landing pages jako narzędzia sprzedażowe — nie wizytówki.</p><ul class="hr-list"><li>copywriting pod decyzję klienta</li><li>sekcje zaufania i obiekcji</li><li>SEO-ready struktura</li><li>CTA i formularze pod leady</li></ul><?php if ($websites_url !== "") : ?><a class="hr-card-link" href="<?php echo esc_url($websites_url); ?>">Zobacz szczegóły →</a><?php endif; ?></article>
+        <article class="hr-card" data-animate="fade-up"><div class="hr-card-num">01</div><h3 class="hr-h3">Google Ads nastawione na sprzedaż</h3><p class="hr-card-body">Search i Performance Max pod zapytania z realną intencją zakupową.</p><ul class="hr-list"><li>analiza intencji i słów</li><li>struktura kampanii pod CPL</li><li>landing pages pod konwersję</li><li>optymalizacja jakości leadów</li></ul><?php if ($google_ads_url !== "") : ?><a class="hr-card-link" href="<?php echo esc_url($google_ads_url); ?>">Zobacz szczegóły →</a><?php endif; ?></article>
+        <article class="hr-card" data-animate="fade-up" data-delay="1"><div class="hr-card-num">02</div><h3 class="hr-h3">Meta Ads, które budują popyt</h3><p class="hr-card-body">Lejki na Facebooku i Instagramie: od pierwszego kontaktu po remarketing.</p><ul class="hr-list"><li>kreacje ToF / MoF / BoF</li><li>testy komunikatów i ofert</li><li>remarketing do zaangażowanych</li><li>kampanie sprzedażowe i leadowe</li></ul><?php if ($meta_ads_url !== "") : ?><a class="hr-card-link" href="<?php echo esc_url($meta_ads_url); ?>">Zobacz szczegóły →</a><?php endif; ?></article>
+        <article class="hr-card" data-animate="fade-up" data-delay="2"><div class="hr-card-num">03</div><h3 class="hr-h3">Strony, które zamieniają ruch w leady</h3><p class="hr-card-body">Strony firmowe i landing pages jako narzędzia sprzedażowe — nie wizytówki.</p><ul class="hr-list"><li>copywriting pod decyzję klienta</li><li>sekcje zaufania i obiekcji</li><li>SEO-ready struktura</li><li>CTA i formularze pod leady</li></ul><?php if ($websites_url !== "") : ?><a class="hr-card-link" href="<?php echo esc_url($websites_url); ?>">Zobacz szczegóły →</a><?php endif; ?></article>
       </div>
     </div>
   </section>

@@ -98,7 +98,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
 <?php endif; ?>
 <a class="skip-link" href="#main-content">Przejdź do treści</a>
-<header class="nav">
+<header class="nav site-nav">
   <div class="nav-topbar" aria-label="Szybki kontakt">
     <div class="wrap nav-topbar-inner">
       <a href="<?php echo esc_url("tel:" . $contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
