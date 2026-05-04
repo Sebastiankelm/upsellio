@@ -1850,10 +1850,14 @@ function upsellio_assets()
     $home_script_path = get_template_directory() . "/assets/js/upsellio-home.js";
     $home_script_uri = get_template_directory_uri() . "/assets/js/upsellio-home.js";
     $home_script_version = file_exists($home_script_path) ? (string) filemtime($home_script_path) : "1.0.0";
+    $ui_script_path = get_template_directory() . "/assets/js/upsellio-ui.js";
+    $ui_script_uri = get_template_directory_uri() . "/assets/js/upsellio-ui.js";
+    $ui_script_version = file_exists($ui_script_path) ? (string) filemtime($ui_script_path) : "1.0.0";
 
     $is_home_template_request = is_front_page() || (function_exists("upsellio_is_homepage_request") && upsellio_is_homepage_request());
     if ($is_home_template_request) {
         wp_enqueue_style("upsellio-main", $style_uri, [], $style_version);
+        wp_enqueue_script("upsellio-ui", $ui_script_uri, [], $ui_script_version, true);
         wp_enqueue_script("upsellio-home", $home_script_uri, [], $home_script_version, true);
         add_action(
             "wp_footer",
@@ -1894,6 +1898,7 @@ function upsellio_assets()
 
     wp_enqueue_style("upsellio-main", $style_uri, [], $style_version);
     wp_enqueue_style("upsellio-landing", $landing_style_uri, ["upsellio-main"], $landing_style_version);
+    wp_enqueue_script("upsellio-ui", $ui_script_uri, [], $ui_script_version, true);
     wp_enqueue_script("upsellio-main", $script_uri, [], $script_version, true);
     wp_localize_script(
         "upsellio-main",
