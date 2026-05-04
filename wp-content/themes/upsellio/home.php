@@ -16,22 +16,6 @@ $search_term = isset($_GET["s"]) ? sanitize_text_field(wp_unslash($_GET["s"])) :
 $blog_index_url = upsellio_get_blog_index_url();
 $categories = get_categories(["hide_empty" => true]);
 $tags = get_tags(["hide_empty" => true]);
-$blog_content_categories = [
-    ["name" => "Meta Ads", "slug" => "meta-ads", "desc" => "Kampanie Meta Ads, strategie, lejki, kreacje i remarketing dla firm.", "keywords" => "Meta Ads dla firm, Facebook Ads B2B, lejek Meta Ads, remarketing Facebook"],
-    ["name" => "Google Ads", "slug" => "google-ads", "desc" => "Kampanie Search, Performance Max, słowa kluczowe, struktura i optymalizacja.", "keywords" => "Google Ads dla firm, kampanie Search, słowa kluczowe z intencją zakupową"],
-    ["name" => "Konwersja i strony WWW", "slug" => "konwersja-strony", "desc" => "Landing pages, optymalizacja konwersji, copywriting, CTA i UX pod sprzedaż.", "keywords" => "konwersja strony internetowej, landing page firma, CTA na stronie"],
-    ["name" => "Pozyskiwanie klientów", "slug" => "pozyskiwanie-klientow", "desc" => "Lejki sprzedażowe, CPL, jakość zapytań i system marketingowy.", "keywords" => "pozyskiwanie klientów B2B, koszt pozyskania leada, CPL optymalizacja"],
-    ["name" => "Analityka i mierzenie", "slug" => "analityka", "desc" => "GA4, śledzenie konwersji, Tag Manager, atrybucja i raportowanie.", "keywords" => "śledzenie konwersji Google Ads, GA4 konfiguracja, atrybucja kampanii"],
-];
-$blog_content_plan = [
-    "Miesiąc 1 — Meta Ads i lejek" => ["Dlaczego reklamy Meta Ads nie sprzedają — 7 błędów, które blokują wynik", "Lejek Meta Ads od podstaw — ToF, MoF, BoF i remarketing w jednej kampanii", "Remarketing Meta Ads — jak odzyskać osoby, które nie zostawiły kontaktu", "Jak mierzyć jakość leadów z Facebook Ads — i dlaczego CPL to za mało"],
-    "Miesiąc 2 — Google Ads i intencja zakupowa" => ["Google Ads dla firm B2B — od czego zacząć, żeby nie przepalić budżetu", "Słowa kluczowe z intencją zakupową — jak je dobierać do kampanii Search", "Search Ads vs Performance Max — który typ kampanii wybrać dla swojej firmy", "Audyt kampanii Google Ads — 12 rzeczy, które warto sprawdzić co miesiąc"],
-    "Miesiąc 3 — Strony i konwersja" => ["Landing page pod Google Ads — co musi zawierać, żeby konwertować", "Dlaczego strona firmowa nie generuje zapytań — 6 przyczyn i jak je naprawić", "CTA na stronie internetowej — jak pisać wezwania do działania, które klikają", "Copywriting dla firm B2B — jak pisać treści strony, które przekonują"],
-    "Miesiąc 4 — Lead generation i sprzedaż" => ["System pozyskiwania klientów online — czym różni się od kampanii ad hoc", "CPL — co to jest, jak liczyć i jak go obniżać bez cięcia budżetu", "Jak odróżnić dobry lead od złego — i dlaczego to ważniejsze niż liczba kontaktów", "Meta Ads czy Google Ads — co wybrać dla firmy B2B i dlaczego to zależy"],
-    "Miesiąc 5 — Analityka i mierzenie" => ["Śledzenie konwersji Google Ads — jak skonfigurować i co naprawdę mierzyć", "Piksel Meta — co to jest, jak działa i dlaczego bez niego kampanie są mniej skuteczne", "Google Analytics 4 dla firm B2B — co warto śledzić i jakie raporty są ważne", "ROAS vs CPL — która metryka jest ważniejsza i kiedy patrzeć na którą"],
-    "Miesiąc 6 — Strategie i planowanie" => ["Jak zbudować plan marketingowy dla małej firmy", "Budżet reklamowy dla firm B2B — ile wydawać i jak to wyliczyć", "Dlaczego marketing nie działa — 5 systemowych przyczyn", "Core Web Vitals 2025 — jak szybkość ładowania wpływa na SEO i konwersję"],
-];
-
 add_filter("pre_get_document_title", static function ($title) {
     return is_home() || is_page_template("page-blog.php")
         ? "Blog o marketingu B2B | Meta Ads, Google Ads, strony | Upsellio"
@@ -417,31 +401,6 @@ get_header();
   .ups-blog-btn-secondary:hover {
     border-color: var(--teal);
     color: var(--teal);
-  }
-  .ups-blog-side {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-  }
-  .ups-blog-panel {
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    background: var(--surface);
-    padding: 24px;
-    box-shadow: var(--shadow-sm);
-  }
-  .ups-blog-panel-title {
-    margin-top: 10px;
-    font-family: var(--font-display);
-    font-size: 30px;
-    line-height: 1.1;
-    letter-spacing: -1px;
-  }
-  .ups-blog-panel-text {
-    margin-top: 14px;
-    font-size: 15px;
-    line-height: 1.75;
-    color: var(--text-2);
   }
   .ups-blog-tags {
     margin-top: 14px;
@@ -850,70 +809,6 @@ get_header();
     color: var(--text-2);
     line-height: 1.78;
   }
-  .ups-blog-plan-list {
-    margin: 14px 0 0;
-    padding: 0;
-    list-style: none;
-    display: grid;
-    gap: 8px;
-  }
-  .ups-blog-plan-list li {
-    position: relative;
-    padding-left: 24px;
-    color: var(--text-2);
-    font-size: 14px;
-    line-height: 1.6;
-  }
-  .ups-blog-plan-list li::before {
-    content: "✓";
-    position: absolute;
-    left: 0;
-    color: var(--teal);
-    font-weight: 900;
-  }
-  .ups-blog-category-strategy {
-    border-top: 1px solid var(--border);
-    background: var(--surface);
-    padding: 64px 0;
-  }
-  .ups-blog-category-strategy-grid,
-  .ups-blog-plan-grid {
-    margin-top: 28px;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-  .ups-blog-category-strategy-card,
-  .ups-blog-plan-card {
-    border: 1px solid var(--border);
-    border-radius: 22px;
-    background: var(--bg-soft);
-    padding: 22px;
-    box-shadow: var(--shadow-sm);
-  }
-  .ups-blog-category-strategy-card strong,
-  .ups-blog-plan-card strong {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--text);
-    font-size: 17px;
-  }
-  .ups-blog-category-strategy-card p {
-    color: var(--text-2);
-    font-size: 14px;
-    line-height: 1.7;
-  }
-  .ups-blog-category-strategy-card small {
-    display: block;
-    margin-top: 10px;
-    color: var(--text-3);
-    line-height: 1.55;
-  }
-  .ups-blog-content-plan {
-    border-top: 1px solid var(--border);
-    background: var(--bg);
-    padding: 64px 0;
-  }
   @media (max-width: 1050px) {
     .ups-blog-categories {
       position: static;
@@ -934,22 +829,6 @@ get_header();
       padding: 24px;
     }
   }
-  @media (min-width: 761px) {
-    .ups-blog-category-strategy-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .ups-blog-plan-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-  @media (min-width: 1051px) {
-    .ups-blog-category-strategy-grid {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
-    .ups-blog-plan-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
   /* Mobile-first UX correction layer */
   .ups-blog-title { font-size:clamp(34px,10vw,40px); line-height:1.09; letter-spacing:-1px; }
   .ups-blog-hero .wrap { padding-top:48px !important; padding-bottom:56px !important; }
@@ -957,15 +836,15 @@ get_header();
   .ups-blog-seo-copy { margin-top:16px; gap:10px; }
   .ups-blog-seo-copy p { line-height:1.72; }
   .ups-blog-categories { position:static; padding:12px 0 16px; }
-  .ups-blog-featured-wrap,.ups-blog-topics,.ups-blog-category-strategy,.ups-blog-content-plan,.ups-blog-cta { padding:48px 0; }
+  .ups-blog-featured-wrap,.ups-blog-topics,.ups-blog-cta { padding:48px 0; }
   .ups-blog-list-wrap { padding:48px 0 56px; }
   .ups-blog-list-title,.ups-blog-topics-title,.ups-blog-cta-title { font-size:clamp(28px,8vw,34px); line-height:1.12; letter-spacing:-.8px; }
-  .ups-blog-card,.ups-blog-panel,.ups-blog-category-strategy-card,.ups-blog-plan-card,.ups-blog-cta-shell { border-radius:20px; padding:20px; }
+  .ups-blog-card,.ups-blog-cta-shell { border-radius:20px; padding:20px; }
   .ups-blog-featured-title { font-size:clamp(24px,7vw,30px); line-height:1.12; }
   @media (min-width: 761px) {
     .ups-blog-title { font-size:clamp(44px,6vw,58px); line-height:1.04; }
     .ups-blog-hero .wrap { padding-top:70px !important; padding-bottom:76px !important; }
-    .ups-blog-featured-wrap,.ups-blog-topics,.ups-blog-category-strategy,.ups-blog-content-plan,.ups-blog-cta { padding:72px 0; }
+    .ups-blog-featured-wrap,.ups-blog-topics,.ups-blog-cta { padding:72px 0; }
     .ups-blog-list-wrap { padding:64px 0 72px; }
     .ups-blog-list-title,.ups-blog-topics-title,.ups-blog-cta-title { font-size:clamp(34px,4vw,46px); }
   }
@@ -1183,48 +1062,6 @@ get_header();
       </div>
     </div>
   </section>
-
-  <?php if (current_user_can("manage_options")) : ?>
-  <section class="ups-blog-category-strategy">
-    <div class="wrap">
-      <div class="ups-blog-topics-head">
-        <div class="eyebrow" style="margin-bottom: 0;">Strategia kategorii</div>
-        <h2 class="ups-blog-topics-title">Tematy, które porządkują blog i budują kontekst SEO dla całego serwisu.</h2>
-      </div>
-      <div class="ups-blog-category-strategy-grid">
-        <?php foreach ($blog_content_categories as $content_category) : ?>
-          <article class="ups-blog-category-strategy-card">
-            <strong><?php echo esc_html((string) $content_category["name"]); ?></strong>
-            <p><?php echo esc_html((string) $content_category["desc"]); ?></p>
-            <small><?php echo esc_html((string) $content_category["keywords"]); ?></small>
-          </article>
-        <?php endforeach; ?>
-      </div>
-    </div>
-  </section>
-
-  <section class="ups-blog-content-plan">
-    <div class="wrap">
-      <div class="ups-blog-topics-head">
-        <div class="eyebrow" style="margin-bottom: 0;">Plan treści</div>
-        <h2 class="ups-blog-topics-title">24 tematy artykułów na 6 miesięcy regularnej, eksperckiej komunikacji.</h2>
-        <p class="ups-blog-panel-text">Plan równoważy frazy z intencją wyszukiwania, pytania klientów przed współpracą i wpisy wspierające strony usług: Meta Ads, Google Ads, tworzenie stron i pełną ofertę.</p>
-      </div>
-      <div class="ups-blog-plan-grid">
-        <?php foreach ($blog_content_plan as $month_title => $month_topics) : ?>
-          <article class="ups-blog-plan-card">
-            <strong><?php echo esc_html((string) $month_title); ?></strong>
-            <ul class="ups-blog-plan-list">
-              <?php foreach ($month_topics as $topic_title) : ?>
-                <li><?php echo esc_html((string) $topic_title); ?></li>
-              <?php endforeach; ?>
-            </ul>
-          </article>
-        <?php endforeach; ?>
-      </div>
-    </div>
-  </section>
-  <?php endif; ?>
 
   <section class="ups-blog-cta">
     <div class="wrap">
