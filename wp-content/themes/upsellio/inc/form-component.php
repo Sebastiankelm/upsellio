@@ -98,7 +98,7 @@ function upsellio_render_lead_form(array $args = [])
     ob_start();
     ?>
     <form
-        class="ups-form ups-form--<?php echo esc_attr($variant); ?><?php echo $css_class !== "" ? " " . esc_attr($css_class) : ""; ?>"
+        class="ups-form ups-form--<?php echo esc_attr($variant); ?><?php echo $variant === "compact" ? " hr-contact-form" : ""; ?><?php echo $css_class !== "" ? " " . esc_attr($css_class) : ""; ?>"
         method="post"
         action="<?php echo esc_url(admin_url("admin-post.php")); ?>"
         novalidate
@@ -124,12 +124,22 @@ function upsellio_render_lead_form(array $args = [])
         <?php endif; ?>
 
         <?php if ($heading !== "") : ?>
+            <?php if ($variant === "compact") : ?>
+            <div class="hr-contact-head">
+                <div class="hr-eyebrow"><?php esc_html_e("Kontakt", "upsellio"); ?></div>
+                <h2 class="hr-contact-title"><?php echo esc_html($heading); ?></h2>
+                <?php if ($subheading !== "") : ?>
+                    <p class="hr-contact-lead"><?php echo esc_html($subheading); ?></p>
+                <?php endif; ?>
+            </div>
+            <?php else : ?>
             <div class="ups-form__head">
                 <strong class="ups-form__title"><?php echo esc_html($heading); ?></strong>
                 <?php if ($subheading !== "") : ?>
                     <p class="ups-form__sub"><?php echo esc_html($subheading); ?></p>
                 <?php endif; ?>
             </div>
+            <?php endif; ?>
         <?php endif; ?>
 
         <?php if ($status === "success") : ?>
@@ -159,39 +169,43 @@ function upsellio_render_lead_form(array $args = [])
             <?php if ($hidden_service !== "") : ?>
                 <input type="hidden" name="lead_service" value="<?php echo esc_attr($hidden_service); ?>" />
             <?php endif; ?>
-            <div class="ups-form__row-2">
-                <div>
-                    <label class="ups-form__label" for="ups-f-name-<?php echo esc_attr($origin); ?>">
+            <div class="hr-contact-grid">
+                <div class="hr-contact-field">
+                    <label for="ups-f-name-<?php echo esc_attr($origin); ?>">
                         Imię <span aria-hidden="true">*</span>
                     </label>
-                    <input class="ups-form__input" id="ups-f-name-<?php echo esc_attr($origin); ?>"
+                    <input id="ups-f-name-<?php echo esc_attr($origin); ?>"
                            type="text" name="lead_name" placeholder="Sebastian"
                            autocomplete="given-name" required />
                 </div>
-                <div>
-                    <label class="ups-form__label" for="ups-f-email-<?php echo esc_attr($origin); ?>">
+                <div class="hr-contact-field">
+                    <label for="ups-f-email-<?php echo esc_attr($origin); ?>">
                         E-mail <span aria-hidden="true">*</span>
                     </label>
-                    <input class="ups-form__input" id="ups-f-email-<?php echo esc_attr($origin); ?>"
+                    <input id="ups-f-email-<?php echo esc_attr($origin); ?>"
                            type="email" name="lead_email" placeholder="kontakt@firma.pl"
                            autocomplete="email" required />
                 </div>
+                <div class="hr-contact-field full">
+                    <label for="ups-f-phone-<?php echo esc_attr($origin); ?>">Telefon (opcjonalnie)</label>
+                    <input id="ups-f-phone-<?php echo esc_attr($origin); ?>"
+                           type="tel" name="lead_phone" placeholder="+48..."
+                           autocomplete="tel" />
+                </div>
+                <div class="hr-contact-field full">
+                    <label for="ups-f-msg-<?php echo esc_attr($origin); ?>">
+                        Wiadomość <span aria-hidden="true">*</span>
+                    </label>
+                    <textarea id="ups-f-msg-<?php echo esc_attr($origin); ?>"
+                              name="lead_message" rows="4" required><?php echo esc_textarea($preset_msg); ?></textarea>
+                </div>
+                <div class="hr-contact-field full">
+                    <label class="hr-contact-consent">
+                        <input type="checkbox" name="lead_consent" value="1" required />
+                        <span>Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</span>
+                    </label>
+                </div>
             </div>
-            <label class="ups-form__label" for="ups-f-phone-<?php echo esc_attr($origin); ?>">
-                Telefon (opcjonalnie)
-            </label>
-            <input class="ups-form__input" id="ups-f-phone-<?php echo esc_attr($origin); ?>"
-                   type="tel" name="lead_phone" placeholder="+48..."
-                   autocomplete="tel" />
-            <label class="ups-form__label" for="ups-f-msg-<?php echo esc_attr($origin); ?>">
-                Wiadomość <span aria-hidden="true">*</span>
-            </label>
-            <textarea class="ups-form__textarea" id="ups-f-msg-<?php echo esc_attr($origin); ?>"
-                      name="lead_message" rows="4" required><?php echo esc_textarea($preset_msg); ?></textarea>
-            <label class="ups-form__consent">
-                <input type="checkbox" name="lead_consent" value="1" required />
-                <span>Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</span>
-            </label>
 
         <?php else : ?>
             <div class="ups-form__row-2">
@@ -282,7 +296,11 @@ function upsellio_render_lead_form(array $args = [])
             </label>
         <?php endif; ?>
 
-        <button type="submit" class="ups-form__submit" <?php echo $submit_button_id !== "" ? ' id="' . esc_attr($submit_button_id) . '"' : ""; ?>>
+        <button
+            type="submit"
+            class="<?php echo $variant === "compact" ? "btn btn-primary hr-contact-submit" : "ups-form__submit"; ?>"
+            <?php echo $submit_button_id !== "" ? ' id="' . esc_attr($submit_button_id) . '"' : ""; ?>
+        >
             <?php echo esc_html($submit_label); ?>
         </button>
         <?php if ($fineprint !== "") : ?>
@@ -321,6 +339,6 @@ function upsellio_contact_form_shortcode($atts)
         "redirect_url" => get_permalink(get_the_ID()) ?: home_url("/"),
     ]);
 
-    return '<div class="ups-inline-contact" id="kontakt-wpis">' . $form_html . "</div>";
+    return '<div class="hr-contact-shell ups-inline-contact" id="kontakt-wpis">' . $form_html . "</div>";
 }
 add_shortcode("upsellio_contact_form", "upsellio_contact_form_shortcode");
