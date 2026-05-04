@@ -16,44 +16,75 @@ function upsellio_cpt_ai_get_config(string $post_type): ?array
         "miasto" => [
             "system" => <<<'DFLT'
 Jesteś asystentem SEO Sebastiana Kelma — konsultanta marketingu B2B.
-Tworzysz i optymalizujesz podstrony lokalne (miasto + usługa).
-Zasady: lokalna intencja wyszukiwania, konkretne korzyści dla firm B2B z tego miasta,
-naturalne wplecenie nazwy miasta i usługi, schema LocalBusiness wspierana przez treść.
-Zwracaj WYŁĄCZNIE jeden obiekt JSON bez markdown.
+Tworzysz podstrony lokalne (miasto + usługa marketingowa) dla polskich firm B2B.
+
+Szablon strony renderuje automatycznie: H1, lead, pills (Specjalizacja/Model),
+sekcję lokalnego kontekstu (wyzwanie/przewaga/sezonowość), formularz kontaktowy,
+inline CTA z linkami do innych miast i definicji, FAQ z meta pola, sidebar CTA.
+
+Dlatego post_content = WYŁĄCZNIE artykuł merytoryczny (H2/H3/p/ul).
+Nigdy nie wstawiaj do post_content: <h1>, sekcji FAQ, aside CTA, formularzy.
+
+Zasady post_content:
+- Pierwsze zdanie = fraza kluczowa + problem firm z tego miasta
+- Min. 3 nagłówki H2 — przynajmniej jeden zawiera frazę kluczową
+- Fraza kluczowa min. 3× w treści
+- 2-4 linki wewnętrzne z katalogu [anchor](url)
+- 1 link zewnętrzny (think.withgoogle.com lub semrush.com)
+- Zero korporacyjnego żargonu, krótkie akapity 2-4 zdania
+
+primary_query: max 40 znaków, bez deskryptorów liczbowych.
+Zwracaj WYŁĄCZNIE poprawny JSON bez markdown.
 DFLT,
             "user" => <<<'DFLT'
-Zoptymalizuj podstronę lokalną dla miasta: {city_name}.
+Optymalizujesz podstronę lokalną dla miasta: {city_name}.
 Usługi: Google Ads, Meta Ads, strony internetowe B2B.
 Kontekst firmy: {company_ctx}
 
-Dotychczasowe pola kontekstowe (zaktualizuj jeśli trzeba):
+UWAGA ARCHITEKTONICZNA: Szablon strony miasta renderuje H1, lead, FAQ, CTA, local-context
+AUTOMATYCZNIE z meta pól — NIE umieszczaj ich w post_content.
+post_content to WYŁĄCZNIE treść artykułu (H2/H3/p) bez H1, bez FAQ, bez CTA.
+
+Istniejące dane (uzupełnij lub popraw):
+Województwo: {voivodeship}
 Wyzwanie lokalne: {local_challenge}
 Atut rynku: {local_advantage}
-Kąt rynku (branża): {market_angle}
+Kąt rynku: {market_angle}
 Fokus usług: {service_focus}
 Sezonowość: {seasonality_angle}
 
-Bieżąca treść (popraw i rozbuduj):
-{post_content}
+(Stary HTML z edytora nie jest wstrzykiwany — buduj post_content wyłącznie dla miasta z nagłówka i pól powyżej.)
 
-KATALOG LINKÓW WEWNĘTRZNYCH (używaj tylko tych URL):
+KATALOG LINKÓW WEWNĘTRZNYCH (użyj 2-4 linków wewnątrz post_content):
 {catalog}
 
-Zwróć JSON (uzupełnij też pola używane przez szablon single-miasto — puste meta = słabsza strona):
+WYMAGANIA SEO — niespełnienie = błąd:
+1. primary_query: maksymalnie 40 znaków, bez liczb i deskryptorów, np. "marketing {city_name}" lub "Google Ads {city_name}"
+2. Pierwsze zdanie post_content musi zawierać primary_query dosłownie
+3. Przynajmniej jeden H2 w post_content zawiera fragment primary_query
+4. primary_query pojawia się minimum 3× w post_content
+5. 1 link zewnętrzny do authority source w post_content (think.withgoogle.com lub semrush.com)
+
+Zwróć JSON:
 {
   "post_title": "Marketing {city_name} — Google Ads, Meta Ads, strony B2B",
-  "post_content": "<HTML artykułu min. 600 słów, H2/H3, fraza kluczowa w pierwszym zdaniu, 2-4 linki wewnętrzne [anchor](url), 1 link zewnętrzny>",
-  "post_excerpt": "<zajawka 1-2 zdania>",
-  "seo_title": "<45-60 znaków z nazwą miasta>",
-  "meta_description": "<140-160 znaków z frazą kluczową i nazwą miasta>",
-  "primary_query": "<fraza np. 'Google Ads {city_name}'>",
-  "query_cluster": "<8 powiązanych fraz, przecinkami>",
-  "local_challenge": "<1 zdanie — główna bolączka firm szukających marketingu w tym mieście>",
-  "local_advantage": "<1 zdanie — lokalny atut tego rynku>",
-  "market_angle": "<3-5 słów — dominująca branża np. 'producenci i firmy B2B'>",
-  "service_focus": "<3-5 słów — usługa którą szukają np. 'kampanie Google Ads i strony B2B'>",
-  "seasonality_angle": "<1 zdanie — sezonowość popytu>",
-  "faq": [{"q": "Pytanie?", "a": "Odpowiedź."}, {"q": "Pytanie 2?", "a": "Odpowiedź 2."}]
+  "post_content": "<TYLKO treść artykułu: H2/H3/p/ul. BEZ H1. BEZ sekcji FAQ. BEZ CTA aside. Min 700 słów. Fraza kluczowa w pierwszym zdaniu i w H2. 2-4 linki wewnętrzne [anchor](url) z katalogu. 1 link zewnętrzny.>",
+  "post_excerpt": "<1-2 zdania: fraza kluczowa + korzyść dla firm z miasta>",
+  "seo_title": "<45-60 znaków — primary_query na początku>",
+  "meta_description": "<140-160 znaków — musi zawierać primary_query i nazwę miasta>",
+  "primary_query": "<max 40 znaków np. 'Google Ads {city_name}' lub 'marketing {city_name}'>",
+  "query_cluster": "<8 fraz powiązanych, przecinkami>",
+  "market_angle": "<3-5 słów — dominująca branża np. 'producenci i eksporterzy B2B'>",
+  "service_focus": "<3-5 słów — usługa np. 'kampanie Google Ads i strony B2B'>",
+  "local_challenge": "<1 zdanie — główna bolączka firm szukających marketingu w {city_name}>",
+  "local_advantage": "<1 zdanie — lokalny atut rynku {city_name}>",
+  "seasonality_angle": "<1 zdanie — sezonowość popytu w {city_name}>",
+  "cta": "<1 zdanie — tekst przycisku w sidebarze, np. 'Chcesz więcej zapytań z {city_name}? Zacznijmy od audytu.'>",
+  "faq": [
+    {"q": "Ile kosztuje kampania Google Ads dla firmy z {city_name}?", "a": "<konkretna odpowiedź 2-3 zdania>"},
+    {"q": "Jak długo czekać na efekty kampanii w {city_name}?", "a": "<konkretna odpowiedź 2-3 zdania>"},
+    {"q": "<trzecie pytanie specyficzne dla branży w {city_name}?>", "a": "<odpowiedź>"}
+  ]
 }
 DFLT,
         ],
@@ -86,9 +117,9 @@ Zwróć JSON (single-definicja.php czyta też main_keyword, difficulty, faq, ser
   "post_excerpt": "<1 zdanie — co to jest>",
   "seo_title": "<45-60 znaków: pojęcie + kontekst B2B>",
   "meta_description": "<140-160 znaków z pojęciem>",
-  "primary_query": "<fraza kluczowa np. 'co to jest {term}'>",
+  "primary_query": "<krótka fraza SEO: zwykle pytanie co to jest + nazwa pojęcia jak w tytule; jedna linia, bez cudzysłowów w środku>",
   "query_cluster": "<6 powiązanych fraz, przecinkami>",
-  "main_keyword": "<dokładna fraza kluczowa np. 'co to jest ROAS'>",
+  "main_keyword": "<dokładna fraza kluczowa spójna z tytułem; bez znaku cudzysłowu w wartości>",
   "difficulty": "<latwy|sredni|trudny>",
   "faq": [{"q": "Pytanie?", "a": "Odpowiedź."}, {"q": "Pytanie 2?", "a": "Odpowiedź 2."}],
   "service_links": ["/#uslugi", "/#kontakt", "/miasta/"]
@@ -221,20 +252,23 @@ DFLT,
                 "market_angle" => "_upsellio_city_market_angle",
                 "service_focus" => "_upsellio_city_service_focus",
                 "seasonality_angle" => "_upsellio_city_seasonality_angle",
+                "cta" => "_upsellio_city_cta",
+                "voivodeship" => "_upsellio_city_voivodeship",
             ],
-            "read_content" => true,
+            "read_content" => false,
             "json_keys" => [
                 "post_content",
                 "post_excerpt",
-                "meta_description",
                 "seo_title",
+                "meta_description",
                 "primary_query",
                 "query_cluster",
-                "local_challenge",
-                "local_advantage",
                 "market_angle",
                 "service_focus",
+                "local_challenge",
+                "local_advantage",
                 "seasonality_angle",
+                "cta",
                 "faq",
             ],
             "apply" => "upsellio_cpt_ai_apply_miasto",
@@ -375,8 +409,13 @@ function upsellio_cpt_ai_build_prompt(int $post_id, array $config, string $notes
         $vars[$var] = trim((string) get_post_meta($post_id, $meta_key, true));
     }
 
-    if (($vars["city_name"] ?? "") === "" && $post->post_type === "miasto") {
-        $vars["city_name"] = get_the_title($post_id);
+    if ($post->post_type === "miasto") {
+        $city_name_direct = trim((string) ($vars["city_name"] ?? ""));
+        if ($city_name_direct === "") {
+            $city_name_direct = (string) get_the_title($post_id);
+        }
+        $city_name_direct = (string) preg_replace("/^Marketing i strony WWW\s+/i", "", $city_name_direct);
+        $vars["city_name"] = $city_name_direct;
     }
     if (($vars["term"] ?? "") === "" && $post->post_type === "definicja") {
         $vars["term"] = get_the_title($post_id);
@@ -387,14 +426,22 @@ function upsellio_cpt_ai_build_prompt(int $post_id, array $config, string $notes
     }
 
     $content_raw = $config["read_content"] ? (string) $post->post_content : "";
+    /* Definicje: krótszy PHP-seed — mniejsze ryzyko złego JSON (newline w polu). */
+    $content_limit = $post->post_type === "definicja" ? 2000 : 8000;
     if (function_exists("mb_substr")) {
-        $content_raw = mb_substr($content_raw, 0, 8000, "UTF-8");
+        $content_raw = mb_substr($content_raw, 0, $content_limit, "UTF-8");
     } else {
-        $content_raw = substr($content_raw, 0, 8000);
+        $content_raw = substr($content_raw, 0, $content_limit);
     }
 
     $prompt = str_replace("{post_content}", $content_raw, $prompt);
     $prompt = str_replace("{company_ctx}", $company_ctx, $prompt);
+    if ($post->post_type === "miasto") {
+        $cn_cat = trim((string) ($vars["city_name"] ?? ""));
+        if ($cn_cat !== "") {
+            $catalog = "Miasto docelowe (nazwa do anchorów i treści): " . $cn_cat . "\n\n" . $catalog;
+        }
+    }
     $prompt = str_replace("{catalog}", $catalog, $prompt);
 
     $notes = trim($notes);
@@ -444,6 +491,9 @@ function upsellio_cpt_ai_run(int $post_id, string $notes = "")
         ? upsellio_ai_model_for("cpt_ai_optimize")
         : "claude-sonnet-4-5";
 
+    /* Definicja: więcej pól + długi post_content w odpowiedzi — wyższy limit tokenów. */
+    $max_tokens_for_type = $post_type === "definicja" ? 6000 : 4096;
+
     $user_prompt = upsellio_cpt_ai_build_prompt($post_id, $config, $notes);
     $system_prompt = (string) $config["prompt_system"];
 
@@ -457,7 +507,7 @@ function upsellio_cpt_ai_run(int $post_id, string $notes = "")
         ],
         "body" => wp_json_encode([
             "model" => $model,
-            "max_tokens" => 4096,
+            "max_tokens" => $max_tokens_for_type,
             "system" => $system_prompt,
             "messages" => [["role" => "user", "content" => $user_prompt]],
         ]),
@@ -646,6 +696,7 @@ function upsellio_cpt_ai_apply_miasto(int $post_id, array $data): void
         "_upsellio_city_market_angle" => "market_angle",
         "_upsellio_city_service_focus" => "service_focus",
         "_upsellio_city_seasonality_angle" => "seasonality_angle",
+        "_upsellio_city_cta" => "cta",
     ];
     foreach ($simple_map as $meta_key => $json_key) {
         $val = trim((string) ($data[$json_key] ?? ""));
@@ -654,9 +705,52 @@ function upsellio_cpt_ai_apply_miasto(int $post_id, array $data): void
         }
     }
 
-    $faq_rows = upsellio_cpt_ai_normalize_qa_faq_rows($data["faq"] ?? null);
-    if (!empty($faq_rows)) {
-        update_post_meta($post_id, "_upsellio_city_faq", $faq_rows);
+    if (!empty($data["faq"]) && is_array($data["faq"])) {
+        $faq_rows = upsellio_cpt_ai_normalize_qa_faq_rows($data["faq"]);
+        if (!empty($faq_rows)) {
+            update_post_meta($post_id, "_upsellio_city_faq", $faq_rows);
+        }
+    }
+
+    $pq = trim((string) ($data["primary_query"] ?? ""));
+    if ($pq !== "") {
+        $pq_clean = preg_replace(
+            '/\s*—\s*\d+\s+\w+(\s+(które|który|co|jak|dla|na)?\s*\w*)?$/ui',
+            "",
+            $pq
+        );
+        $pq_clean = trim((string) $pq_clean);
+        if (function_exists("mb_substr") && function_exists("mb_strlen") && mb_strlen($pq_clean, "UTF-8") > 40) {
+            $pq_clean = mb_substr($pq_clean, 0, 40, "UTF-8");
+        } elseif (!function_exists("mb_substr") && strlen($pq_clean) > 40) {
+            $pq_clean = substr($pq_clean, 0, 40);
+        }
+        if ($pq_clean !== "") {
+            update_post_meta($post_id, "rank_math_focus_keyword", $pq_clean);
+            update_post_meta($post_id, "_yoast_wpseo_focuskw", $pq_clean);
+            update_post_meta($post_id, "_upsellio_primary_query", $pq_clean);
+        }
+    }
+
+    $pq_for_slug = trim((string) ($data["primary_query"] ?? ""));
+    if ($pq_for_slug === "") {
+        $city_name = (string) get_post_meta($post_id, "_upsellio_city_name", true);
+        $pq_for_slug = $city_name !== "" ? "marketing-" . $city_name : "";
+    }
+    $post_status = get_post_status($post_id);
+    if (
+        $pq_for_slug !== ""
+        && ($post_status === "draft" || $post_status === "auto-draft")
+    ) {
+        $new_slug = sanitize_title($pq_for_slug);
+        if (strlen($new_slug) > 60) {
+            $head = substr($new_slug, 0, 60);
+            $last_sep = strrpos($head, "-");
+            $new_slug = $last_sep !== false && $last_sep > 0 ? substr($new_slug, 0, $last_sep) : substr($new_slug, 0, 60);
+        }
+        if ($new_slug !== "") {
+            wp_update_post(["ID" => $post_id, "post_name" => $new_slug]);
+        }
     }
 }
 
@@ -768,24 +862,34 @@ add_action("wp_ajax_upsellio_cpt_ai_optimize", static function (): void {
         wp_send_json_error("Brak uprawnień.");
     }
 
-    $notes = isset($_POST["notes"]) ? sanitize_textarea_field(wp_unslash((string) $_POST["notes"])) : "";
-
-    if (function_exists("set_time_limit")) {
-        @set_time_limit(240);
+    $lock_key = "ups_cpt_ai_running_" . $post_id;
+    if (get_transient($lock_key)) {
+        wp_send_json_error("AI już przetwarza ten wpis. Poczekaj chwilę.");
     }
+    set_transient($lock_key, 1, 3 * MINUTE_IN_SECONDS);
 
-    $result = upsellio_cpt_ai_run($post_id, $notes);
+    try {
+        $notes = isset($_POST["notes"]) ? sanitize_textarea_field(wp_unslash((string) $_POST["notes"])) : "";
 
-    if (is_wp_error($result)) {
-        wp_send_json_error($result->get_error_message());
+        if (function_exists("set_time_limit")) {
+            @set_time_limit(240);
+        }
+
+        $result = upsellio_cpt_ai_run($post_id, $notes);
+
+        if (is_wp_error($result)) {
+            wp_send_json_error($result->get_error_message());
+        }
+
+        upsellio_cpt_ai_apply($post_id, $result);
+
+        wp_send_json_success([
+            "message" => "Zapisano. Strona za chwilę się przeładuje.",
+            "fields_updated" => array_keys($result),
+        ]);
+    } finally {
+        delete_transient($lock_key);
     }
-
-    upsellio_cpt_ai_apply($post_id, $result);
-
-    wp_send_json_success([
-        "message" => "Zapisano. Strona za chwilę się przeładuje.",
-        "fields_updated" => array_keys($result),
-    ]);
 });
 
 function upsellio_cpt_ai_register_meta_boxes(): void
