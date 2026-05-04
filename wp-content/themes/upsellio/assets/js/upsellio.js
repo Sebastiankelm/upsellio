@@ -85,8 +85,8 @@
   function initScrollUI() {
     let rafId = null;
     function run() {
-      const isPastThreshold = window.scrollY > 24;
-      if (nav) nav.classList.toggle("is-compact", isPastThreshold);
+      const isPastThreshold = window.scrollY > 12;
+      if (nav) nav.classList.toggle("is-scrolled", isPastThreshold);
       if (topBtn) topBtn.classList.toggle("visible", window.scrollY > 450);
       rafId = null;
     }
