@@ -5055,6 +5055,10 @@ function upsellio_crm_app_template_redirect()
                 $ups_blog_cat_id = (int) get_option("ups_blog_bot_category", 0);
                 $ups_blog_cats = get_categories(["hide_empty" => false, "orderby" => "name"]);
                 $ups_blog_last_run = (string) get_option("ups_blog_bot_last_run", "");
+                $ups_blog_last_result = get_option("ups_blog_bot_last_run_result", []);
+                if (!is_array($ups_blog_last_result)) {
+                    $ups_blog_last_result = [];
+                }
                 $ups_blog_last_draft = (int) get_option("ups_blog_bot_last_draft_id", 0);
                 $ups_blog_sched = (string) get_option("ups_blog_bot_schedule", "weekly");
                 $ups_seo_temp_raw = get_option("ups_ai_blog_seo_temperature", null);
@@ -5168,6 +5172,17 @@ function upsellio_crm_app_template_redirect()
 
                     <label style="grid-column:1/-1">Ostatnie uruchomienie</label>
                     <input type="text" readonly style="grid-column:1/-1;max-width:420px" value="<?php echo esc_attr($ups_blog_last_run !== "" ? $ups_blog_last_run : "—"); ?>" />
+                    <?php if (!empty($ups_blog_last_result)) : ?>
+                      <p style="grid-column:1/-1;color:var(--text-3);font-size:12px;margin:4px 0 0;line-height:1.45">
+                        Ostatni wynik: <?php echo esc_html((string) ($ups_blog_last_result["result"] ?? "")); ?>
+                        <?php if (($ups_blog_last_result["note"] ?? "") !== "") : ?>
+                          — <?php echo esc_html((string) $ups_blog_last_result["note"]); ?>
+                        <?php endif; ?>
+                        <?php if (($ups_blog_last_result["time"] ?? "") !== "") : ?>
+                          <span class="muted"> (<?php echo esc_html((string) $ups_blog_last_result["time"]); ?>)</span>
+                        <?php endif; ?>
+                      </p>
+                    <?php endif; ?>
                     <?php
                     $ups_blog_edit = $ups_blog_last_draft > 0 ? get_edit_post_link($ups_blog_last_draft, "raw") : "";
                     ?>
@@ -5186,18 +5201,17 @@ function upsellio_crm_app_template_redirect()
                     </h3>
                     <p class="muted" style="grid-column:1/-1;margin:0 0 12px;font-size:12px;line-height:1.5">
                       Używane przez przycisk „✨ Optymalizuj AI” w edytorach wpisów CPT.
-                      Puste pole = domyślny prompt z kodu. Zmienne: <code>{city_name}</code>, <code>{term}</code>,
-                      <code>{post_content}</code>, <code>{company_ctx}</code>, <code>{catalog}</code>.
+                      Puste pole = domyślny prompt z kodu. Dostępność zmiennych zależy od typu wpisu (patrz opis przy każdym polu).
                     </p>
 
                     <label style="grid-column:1/-1;font-weight:700;margin-top:4px">
                       Prompt — Miasto (<code>ups_ai_cpt_prompt_miasto</code>)
                     </label>
                     <p class="muted" style="grid-column:1/-1;margin:-4px 0 4px;font-size:12px">
-                      Prompt użytkownika. Zmienne: <code>{city_name}</code>, <code>{post_content}</code>,
+                      Prompt użytkownika — zmienne: <code>{city_name}</code>, <code>{voivodeship}</code>, <code>{post_content}</code>,
                       <code>{company_ctx}</code>, <code>{catalog}</code>, <code>{local_challenge}</code>,
                       <code>{local_advantage}</code>, <code>{market_angle}</code>, <code>{service_focus}</code>,
-                      <code>{seasonality_angle}</code>
+                      <code>{seasonality_angle}</code>. Dla miasta <code>{post_content}</code> jest puste (stary HTML nie jest wstrzykiwany).
                     </p>
                     <textarea name="ups_ai_cpt_prompt_miasto" rows="8"
                       style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:inherit"
