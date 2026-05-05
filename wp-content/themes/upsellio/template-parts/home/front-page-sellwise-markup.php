@@ -5,32 +5,6 @@ if (!defined("ABSPATH")) {
 ?>
 <link rel="stylesheet" href="<?php echo esc_url(get_template_directory_uri() . "/assets/css/front-page-sellwise.css?ver=2026050512"); ?>" />
 
-<div class="trust-strip">
-  <div class="wrap trust-strip-inner">
-    <span class="trust-strip-label">Certyfikaty i partnerstwa</span>
-    <span class="trust-badge">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-      Google Partner
-    </span>
-    <span class="trust-badge">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-      Meta Business Partner
-    </span>
-    <span class="trust-badge">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-      GA4 Certified
-    </span>
-    <span class="trust-badge">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      Odpowiedź w 24h
-    </span>
-    <span class="trust-badge">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-      Bezpłatna diagnoza
-    </span>
-  </div>
-</div>
-
 <section class="hero" id="start">
   <div class="wrap hero-wrap">
     <div class="hero-copy">

@@ -408,6 +408,7 @@
 .inbox-bulk-cb {
   margin: 0 6px 0 2px;
   align-self: center;
+  flex-shrink: 0;
 }
 
 /* ── THREAD CARD ── */
@@ -416,6 +417,32 @@
   display: flex;
   align-items: stretch;
   gap: 0;
+}
+
+.crm-inbox-thread-row.is-loading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.crm-inbox-thread-row.is-loading::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border: 2px solid rgba(13, 148, 136, 0.25);
+  border-top-color: #0d9488;
+  border-radius: 50%;
+  animation: upsInboxSpin 0.75s linear infinite;
+  z-index: 3;
+}
+
+@keyframes upsInboxSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .inbox-drag-handle {
@@ -1706,7 +1733,7 @@ textarea#inbox-compose-body:focus {
   gap: 4px;
 }
 
-@media (max-width: 1024px) {
+@media (min-width: 861px) and (max-width: 1024px) {
   .crm-inbox-shell {
     grid-template-columns: 56px 230px minmax(0, 1fr) 180px;
   }

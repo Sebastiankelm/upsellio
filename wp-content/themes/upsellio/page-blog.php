@@ -398,7 +398,9 @@ get_header();
         ?>
         <article class="bl-feat" data-animate="fade-up">
           <a class="bl-feat-thumb" href="<?php echo esc_url(get_permalink($featured_id)); ?>">
-            <?php if ($featured_img) : ?>
+            <?php if (has_post_thumbnail($featured_id)) : ?>
+              <?php echo get_the_post_thumbnail($featured_id, "large", ["loading" => "lazy", "decoding" => "async"]); ?>
+            <?php elseif ($featured_img) : ?>
               <img src="<?php echo esc_url($featured_img); ?>" alt="<?php echo esc_attr(get_the_title($featured_id)); ?>" loading="lazy" decoding="async" />
             <?php else : ?>
               <div class="bl-thumb-stripes"></div>
@@ -442,7 +444,9 @@ get_header();
           ?>
           <article class="bl-card" data-animate="fade-up"<?php echo $post_index > 0 ? ' data-delay="' . (int) min(4, $post_index) . '"' : ""; ?>>
             <div class="bl-thumb">
-              <?php if ($post_item_img) : ?>
+              <?php if (has_post_thumbnail($post_item_id)) : ?>
+                <?php echo get_the_post_thumbnail($post_item_id, "medium_large", ["loading" => "lazy", "decoding" => "async"]); ?>
+              <?php elseif ($post_item_img) : ?>
                 <img src="<?php echo esc_url($post_item_img); ?>" alt="<?php echo esc_attr(get_the_title($post_item_id)); ?>" loading="lazy" decoding="async" />
               <?php else : ?>
                 <div class="bl-thumb-stripes"></div>

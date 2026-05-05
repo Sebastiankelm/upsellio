@@ -120,15 +120,6 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <?php endif; ?>
 <a class="skip-link" href="#main-content">Przejdź do treści</a>
 <header class="nav site-nav">
-  <div class="nav-topbar" aria-label="Szybki kontakt">
-    <div class="wrap nav-topbar-inner">
-      <span class="nav-topbar-pos">Marketing B2B, który zamienia kliki w sprzedaż</span>
-      <span class="nav-topbar-proof">10 lat sprzedaży B2B · 1,5 mln PLN/mc generowane przez moje lejki</span>
-      <a class="nav-topbar-phone" href="<?php echo esc_url("tel:" . $contact_phone_href); ?>" data-cta="topbar-phone" data-cta-section="topbar">
-        <?php echo esc_html($contact_phone); ?> · zadzwoń, 15 min bez prezentacji
-      </a>
-    </div>
-  </div>
   <div class="wrap nav-inner">
     <a href="<?php echo esc_url(home_url("/")); ?>" class="brand" aria-label="Upsellio — strona główna">
       <?php if ($brand_logo_url !== "") : ?>

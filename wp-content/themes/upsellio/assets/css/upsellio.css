@@ -527,7 +527,10 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
-  transition: padding var(--anim-base) var(--ease-soft);
+  transition:
+    height var(--anim-base) var(--ease-soft),
+    padding var(--anim-base) var(--ease-soft);
+  will-change: height;
 }
 
 .nav.is-scrolled .nav-inner {
@@ -570,6 +573,8 @@ select {
   max-width: min(72vw, 420px);
   object-fit: contain;
   background: transparent;
+  transition: height var(--anim-base) var(--ease-soft);
+  will-change: height;
 }
 
 .nav-links {
