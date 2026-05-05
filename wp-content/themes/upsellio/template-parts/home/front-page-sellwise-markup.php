@@ -3,8 +3,9 @@ if (!defined("ABSPATH")) {
     exit;
 }
 ?>
-<link rel="stylesheet" href="<?php echo esc_url(get_template_directory_uri() . "/assets/css/front-page-sellwise.css?ver=2026050512"); ?>" />
+<link rel="stylesheet" href="<?php echo esc_url(get_template_directory_uri() . "/assets/css/front-page-sellwise.css?ver=2026050521"); ?>" />
 
+<div class="sw-sellwise" id="sw-sellwise">
 <section class="hero" id="start">
   <div class="wrap hero-wrap">
     <div class="hero-copy">
@@ -75,16 +76,16 @@ if (!defined("ABSPATH")) {
             <div class="hero-kpi-block">
               <span>Konwersja strony</span>
               <b>2,3%</b>
-              <i data-hero-kpi-progress style="width:62%"></i>
+              <i data-hero-kpi-progress class="sw-hero-kpi-bar sw-hero-kpi-bar--62"></i>
             </div>
             <div class="hero-kpi-block">
               <span>Budżet bez efektu</span>
               <b>-18%</b>
-              <i data-hero-kpi-progress style="width:48%"></i>
+              <i data-hero-kpi-progress class="sw-hero-kpi-bar sw-hero-kpi-bar--48"></i>
             </div>
           </div>
-          <div class="hero-spark-grid" data-hero-spark aria-hidden="true">
-            <span style="height:32%"></span><span style="height:58%"></span><span style="height:44%"></span><span style="height:76%"></span><span style="height:61%"></span><span style="height:86%"></span>
+          <div class="hero-spark-grid sw-hero-spark" data-hero-spark aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span><span></span>
           </div>
         </div>
         <div class="hero-system-pipe" aria-label="Lejek: ruch, strona, lead, rozmowa, sprzedaż">
@@ -119,7 +120,7 @@ if (!defined("ABSPATH")) {
       <span class="section-num-digit">02</span>
       <span class="section-num-line"></span>
     </div>
-    <h2 class="h2" style="margin-bottom:12px;">Liczby z mojej drogi — nie z prezentacji agencji</h2>
+    <h2 class="h2 sw-logos-title">Liczby z mojej drogi — nie z prezentacji agencji</h2>
     <div class="logos-grid">
       <?php foreach ([
           ["10", "lat sprzedaży B2B jako handlowiec i dyrektor sprzedaży"],
@@ -130,7 +131,7 @@ if (!defined("ABSPATH")) {
         <div class="logo-card"><strong><?php echo esc_html($credibility[0]); ?></strong><br><?php echo esc_html($credibility[1]); ?></div>
       <?php endforeach; ?>
     </div>
-    <p class="body" style="color:var(--text-muted-strong);margin-top:14px;">Te liczby to lata pracy nad realnymi cyklami sprzedaży B2B, zanim zacząłem budować lejki dla innych.</p>
+    <p class="body sw-logos-note">Te liczby to lata pracy nad realnymi cyklami sprzedaży B2B, zanim zacząłem budować lejki dla innych.</p>
   </div>
 </section>
 
@@ -139,11 +140,11 @@ if (!defined("ABSPATH")) {
     <div class="section-num reveal">
       <span class="section-num-digit">01</span>
       <span class="section-num-line"></span>
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-soft);">Dlaczego kampanie nie działają</span>
+      <span class="sw-kicker">Dlaczego kampanie nie działają</span>
     </div>
-    <div style="max-width:820px">
+    <div class="sw-prose sw-prose--820">
       <h2 class="h2 reveal d1">Masz ruch, ale brakuje zapytań. Wiesz, gdzie jest problem?</h2>
-      <p class="body reveal d2" style="margin-top:16px">Reklama to tylko jeden element. Bez odpowiedniej strony docelowej, klarownej oferty i systemu prowadzącego do decyzji, nawet dobra kampania przecieka.</p>
+      <p class="body sw-mt-16 reveal d2">Reklama to tylko jeden element. Bez odpowiedniej strony docelowej, klarownej oferty i systemu prowadzącego do decyzji, nawet dobra kampania przecieka.</p>
     </div>
 
     <div class="cs-table-wrap reveal d2">
@@ -192,11 +193,11 @@ if (!defined("ABSPATH")) {
     <div class="section-num reveal">
       <span class="section-num-digit">02</span>
       <span class="section-num-line"></span>
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-soft);">Główna oferta</span>
+      <span class="sw-kicker">Główna oferta</span>
     </div>
-    <div style="max-width:820px">
+    <div class="sw-prose sw-prose--820">
       <h2 class="h2 reveal d1">Trzy filary pozyskiwania leadów B2B dla Twojej firmy</h2>
-      <p class="body reveal d2" style="margin-top:16px">Najpierw porządkuję to, co ma największy wpływ na wynik: źródła ruchu, stronę i konwersję. Dopiero potem dokładam optymalizacje i automatyzacje.</p>
+      <p class="body sw-mt-16 reveal d2">Najpierw porządkuję to, co ma największy wpływ na wynik: źródła ruchu, stronę i konwersję. Dopiero potem dokładam optymalizacje i automatyzacje.</p>
     </div>
 
     <?php
@@ -240,9 +241,9 @@ if (!defined("ABSPATH")) {
           <span class="service-card-copy">
             <h3 class="h3"><?php echo esc_html($sc["title"]); ?></h3>
             <p class="body"><?php echo esc_html($sc["text"]); ?></p>
-            <span style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">
+            <span class="sw-pill-row">
               <?php foreach ($sc["kpis"] as $kpi) : ?>
-                <span style="font-size:11px;font-weight:700;padding:3px 10px;background:var(--brand-soft);color:var(--brand-dark);border-radius:var(--r-pill);"><?php echo esc_html($kpi); ?></span>
+                <span class="sw-pill"><?php echo esc_html($kpi); ?></span>
               <?php endforeach; ?>
             </span>
             <span class="service-card-cta">Dowiedz się więcej →</span>
@@ -250,24 +251,24 @@ if (!defined("ABSPATH")) {
         </a>
       <?php endforeach; ?>
     </div>
-    <p class="body reveal d3" style="margin-top:22px;font-weight:700;color:var(--teal-dark)">Ruch → Konwersja → Lead → Sprzedaż — jeden spójny system, nie osobne kampanie</p>
+    <p class="body sw-system-tagline reveal d3">Ruch → Konwersja → Lead → Sprzedaż — jeden spójny system, nie osobne kampanie</p>
   </div>
 </section>
 
-<section class="section section-border" id="pakiet-flagship" style="background:var(--section-dark);color:#fff;">
+<section class="section section-border sw-flagship" id="pakiet-flagship">
   <div class="wrap">
     <div class="section-num reveal">
       <span class="section-num-digit">06</span>
       <span class="section-num-line"></span>
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#94a3b8;">Pakiet kompletny</span>
+      <span class="sw-kicker sw-kicker--on-dark">Pakiet kompletny</span>
     </div>
-    <div style="max-width:920px">
-      <h2 class="h2 reveal d1" style="color:#fff;">System Sprzedażowy B2B — reklama, strona, lejek, follow-up. Jedna osoba, jeden system, mierzona sprzedaż.</h2>
-      <p class="body reveal d2" style="margin-top:16px;color:rgba(255,255,255,.78);">Dla firm, które nie chcą żonglować trzema dostawcami. Buduję pełny lejek od kliknięcia do umowy i raportuję wynik per kampania, per landing, per query.</p>
+    <div class="sw-prose sw-prose--920">
+      <h2 class="h2 sw-flagship__title reveal d1">System Sprzedażowy B2B — reklama, strona, lejek, follow-up. Jedna osoba, jeden system, mierzona sprzedaż.</h2>
+      <p class="body sw-flagship__lead sw-mt-16 reveal d2">Dla firm, które nie chcą żonglować trzema dostawcami. Buduję pełny lejek od kliknięcia do umowy i raportuję wynik per kampania, per landing, per query.</p>
     </div>
-    <div class="qualifier-grid reveal d2" style="margin-top:26px;">
-      <div class="qualifier-card good" style="background:var(--section-dark-2);border-color:rgba(255,255,255,.16);">
-        <div class="qualifier-label" style="color:#fff;">Co dostajesz</div>
+    <div class="qualifier-grid sw-flagship__grid reveal d2">
+      <div class="qualifier-card good sw-flagship-card">
+        <div class="qualifier-label sw-flagship-card__label">Co dostajesz</div>
         <div class="qualifier-item"><span class="qualifier-icon">✓</span><span>Audyt startowy w 5 dni</span></div>
         <div class="qualifier-item"><span class="qualifier-icon">✓</span><span>Pierwsze leady w 2-4 tygodnie</span></div>
         <div class="qualifier-item"><span class="qualifier-icon">✓</span><span>Landing pisany pod cykl B2B</span></div>
@@ -275,14 +276,14 @@ if (!defined("ABSPATH")) {
         <div class="qualifier-item"><span class="qualifier-icon">✓</span><span>Cotygodniowy raport sprzedażowy</span></div>
         <div class="qualifier-item"><span class="qualifier-icon">✓</span><span>Telefon bezpośrednio do mnie</span></div>
       </div>
-      <div class="qualifier-card" style="background:var(--section-dark-2);border-color:rgba(255,255,255,.16);color:#fff;">
-        <div class="qualifier-label" style="color:#fff;">Widełki współpracy</div>
-        <p style="margin:0;color:rgba(255,255,255,.82);line-height:1.7;">Pakiet od 6 000 zł / mc przy budżecie reklamowym min. 5 000 zł / mc po stronie klienta. Strona lub przebudowa landing page od 8 000 zł one-time. Minimum współpracy: 3 miesiące.</p>
-        <p style="margin-top:12px;color:#fcd34d;font-weight:700;">To nie jest oferta dla każdej firmy. Jeśli jesteś przed progiem, polecę tańsze i sensowne rozwiązanie.</p>
+      <div class="qualifier-card sw-flagship-card sw-flagship-card--plain">
+        <div class="qualifier-label sw-flagship-card__label">Widełki współpracy</div>
+        <p class="sw-flagship-card__text">Pakiet od 6 000 zł / mc przy budżecie reklamowym min. 5 000 zł / mc po stronie klienta. Strona lub przebudowa landing page od 8 000 zł one-time. Minimum współpracy: 3 miesiące.</p>
+        <p class="sw-flagship-card__warn">To nie jest oferta dla każdej firmy. Jeśli jesteś przed progiem, polecę tańsze i sensowne rozwiązanie.</p>
       </div>
     </div>
     <div class="section-cta-row reveal d3">
-      <a href="#kontakt" class="btn btn-primary btn-sm" style="background:linear-gradient(135deg,var(--accent),#ea580c);">Sprawdź, czy pasuję do Twojego biznesu →</a>
+      <a href="#kontakt" class="btn btn-primary btn-sm sw-btn-cta-warm">Sprawdź, czy pasuję do Twojego biznesu →</a>
     </div>
   </div>
 </section>
@@ -292,11 +293,11 @@ if (!defined("ABSPATH")) {
     <div class="section-num reveal">
       <span class="section-num-digit">03</span>
       <span class="section-num-line"></span>
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-soft);">Dlaczego Upsellio, nie agencja</span>
+      <span class="sw-kicker">Dlaczego Upsellio, nie agencja</span>
     </div>
-    <div style="max-width:820px">
+    <div class="sw-prose sw-prose--820">
       <h2 class="h2 reveal d1">Typowa agencja raportuje kliknięcia. Ja raportuje sprzedaż.</h2>
-      <p class="body reveal d2" style="margin-top:16px">Nie ustawiam kampanii w oderwaniu od procesu handlowego. Patrzę na cały lejek: od kliknięcia, przez stronę, po jakość rozmów z klientem.</p>
+      <p class="body sw-mt-16 reveal d2">Nie ustawiam kampanii w oderwaniu od procesu handlowego. Patrzę na cały lejek: od kliknięcia, przez stronę, po jakość rozmów z klientem.</p>
     </div>
 
     <div class="compare-table-wrap reveal d2">
@@ -354,9 +355,9 @@ if (!defined("ABSPATH")) {
     <div class="section-num reveal">
       <span class="section-num-digit">07</span>
       <span class="section-num-line"></span>
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-soft);">Liczby, nie historie sukcesu</span>
+      <span class="sw-kicker">Liczby, nie historie sukcesu</span>
     </div>
-    <div style="max-width:820px">
+    <div class="sw-prose sw-prose--820">
       <h2 class="h2 reveal d1">Trzy realne wdrożenia. Branże, liczby, decyzje.</h2>
     </div>
     <div class="service-grid section-grid-gap-lg reveal d2">
@@ -388,14 +389,14 @@ if (!defined("ABSPATH")) {
     <div class="section-num reveal">
       <span class="section-num-digit">04</span>
       <span class="section-num-line"></span>
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-soft);">Pracowałem po obu stronach stołu</span>
+      <span class="sw-kicker">Pracowałem po obu stronach stołu</span>
     </div>
     <div class="about-expert">
       <div class="about-expert-copy">
         <h2 class="h2 reveal d1">Większość ludzi w marketingu nigdy nie sprzedawała. Ja sprzedaję od 10 lat i dlatego moje lejki działają.</h2>
-        <p class="body reveal d2" style="margin-top:18px">Zacząłem jako handlowiec B2B. Po 2 latach robiłem 1 mln zł sprzedaży miesięcznie, po 4 latach regularnie 1,5 mln zł. Wiem, co dzieje się w kalendarzu handlowca, kiedy połowa leadów to "zbieram informacje".</p>
-        <p class="body reveal d2" style="margin-top:14px">Potem zbudowałem sklep B2B, który po 2 latach doszedł do 500 tys. zł miesięcznie i marży 4x wyższej niż dział handlowy. Po 7 latach zostałem dyrektorem sprzedaży i prowadziłem zespół 15 osób.</p>
-        <p class="body reveal d3" style="margin-top:14px">Dlatego projektuję kampanie pod matematykę P&amp;L i jakość rozmów, nie pod CTR. Strony i lejki piszę sam, bez podwykonawców.</p>
+        <p class="body sw-mt-18 reveal d2">Zacząłem jako handlowiec B2B. Po 2 latach robiłem 1 mln zł sprzedaży miesięcznie, po 4 latach regularnie 1,5 mln zł. Wiem, co dzieje się w kalendarzu handlowca, kiedy połowa leadów to "zbieram informacje".</p>
+        <p class="body sw-mt-14 reveal d2">Potem zbudowałem sklep B2B, który po 2 latach doszedł do 500 tys. zł miesięcznie i marży 4x wyższej niż dział handlowy. Po 7 latach zostałem dyrektorem sprzedaży i prowadziłem zespół 15 osób.</p>
+        <p class="body sw-mt-14 reveal d3">Dlatego projektuję kampanie pod matematykę P&amp;L i jakość rozmów, nie pod CTR. Strony i lejki piszę sam, bez podwykonawców.</p>
         <div class="tool-badges reveal d3" aria-label="Narzędzia używane w pracy">
           <span>Google Ads</span>
           <span>Meta Ads</span>
@@ -433,14 +434,14 @@ if (!defined("ABSPATH")) {
     <div class="section-num reveal">
       <span class="section-num-digit">06</span>
       <span class="section-num-line"></span>
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-soft);">Jak działam</span>
+      <span class="sw-kicker">Jak działam</span>
     </div>
     <div class="lead-section-grid">
       <div>
         <h2 class="h2 reveal d1">Najpierw diagnoza. Potem działanie.</h2>
-        <p class="body reveal d2" style="margin-top:16px">Zanim cokolwiek uruchomię, sprawdzam, gdzie naprawdę traci Twój marketing. Nie zakładam, że problem jest w reklamach — może być na stronie, w ofercie albo w formularzu kontaktowym.</p>
+        <p class="body sw-mt-16 reveal d2">Zanim cokolwiek uruchomię, sprawdzam, gdzie naprawdę traci Twój marketing. Nie zakładam, że problem jest w reklamach — może być na stronie, w ofercie albo w formularzu kontaktowym.</p>
 
-        <div class="timeline-numbered reveal d2" style="margin-top:32px;">
+        <div class="timeline-numbered sw-timeline-stack reveal d2">
           <?php
           $steps = [
               [
@@ -489,16 +490,16 @@ if (!defined("ABSPATH")) {
           <?php endforeach; ?>
         </div>
 
-        <div class="section-cta-row reveal d3" style="margin-top:8px;">
+        <div class="section-cta-row sw-cta-nudge reveal d3">
           <a href="#kontakt" class="btn btn-primary btn-sm">Umów bezpłatną rozmowę →</a>
         </div>
       </div>
 
       <div class="sticky-cta-aside reveal d2">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:28px;box-shadow:var(--shadow);">
-          <div style="font-size:11px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:var(--brand);margin-bottom:10px;">Bezpłatna diagnoza</div>
-          <h3 style="font-family:var(--font-display);font-size:22px;line-height:1.1;letter-spacing:-.5px;margin:0 0 10px;">Sprawdź, gdzie uciekają Twoje zapytania</h3>
-          <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin:0 0 18px;">Opisz sytuację w 2 zdaniach. Wrócę z konkretnym kierunkiem działania.</p>
+        <div class="sw-side-card">
+          <div class="sw-side-card__eyebrow">Bezpłatna diagnoza</div>
+          <h3 class="sw-side-card__title">Sprawdź, gdzie uciekają Twoje zapytania</h3>
+          <p class="sw-side-card__text">Opisz sytuację w 2 zdaniach. Wrócę z konkretnym kierunkiem działania.</p>
           <?php
           if (function_exists("upsellio_render_lead_form")) {
               echo upsellio_render_lead_form([
@@ -512,12 +513,12 @@ if (!defined("ABSPATH")) {
               ]);
           }
           ?>
-          <p style="font-size:12px;color:var(--text-soft);margin-top:10px;text-align:center;">Bez spamu · Odpowiadam osobiście</p>
+          <p class="sw-side-card__fine">Bez spamu · Odpowiadam osobiście</p>
         </div>
 
-        <blockquote style="margin:14px 0 0;padding:18px 20px;background:var(--surface-soft);border:1px solid var(--border);border-radius:var(--r-lg);">
-          <p style="font-size:14px;font-style:italic;color:var(--text-muted);margin:0 0 10px;">"Po pierwszej rozmowie wiedzieliśmy dokładnie, co poprawić najpierw i gdzie uciekały zapytania."</p>
-          <footer style="font-size:12px;font-weight:700;color:var(--text-soft);">— Marek T., właściciel firmy B2B</footer>
+        <blockquote class="sw-pull-quote">
+          <p class="sw-pull-quote__text">"Po pierwszej rozmowie wiedzieliśmy dokładnie, co poprawić najpierw i gdzie uciekały zapytania."</p>
+          <footer class="sw-pull-quote__by">— Marek T., właściciel firmy B2B</footer>
         </blockquote>
       </div>
     </div>
@@ -529,11 +530,11 @@ if (!defined("ABSPATH")) {
     <div class="section-num reveal">
       <span class="section-num-digit">07</span>
       <span class="section-num-line"></span>
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-soft);">Dla kogo</span>
+      <span class="sw-kicker">Dla kogo</span>
     </div>
-    <div style="max-width:760px">
+    <div class="sw-prose sw-prose--760">
       <h2 class="h2 reveal d1">Z kim pracuję najlepiej — i kto skorzysta najmniej</h2>
-      <p class="body reveal d2" style="margin-top:14px">Wolę powiedzieć wprost, żeby obie strony nie traciły czasu.</p>
+      <p class="body sw-mt-14 reveal d2">Wolę powiedzieć wprost, żeby obie strony nie traciły czasu.</p>
     </div>
 
     <div class="qualifier-grid reveal d2">
@@ -601,7 +602,7 @@ if (!defined("ABSPATH")) {
 
       <div class="lead-magnet-form-wrap">
         <div class="lead-magnet-form-card">
-          <p style="color:rgba(255,255,255,.7);font-size:13px;margin:0 0 14px;">Wpisz e-mail → dostaniesz PDF</p>
+          <p class="sw-lead-magnet-hint">Wpisz e-mail → dostaniesz PDF</p>
           <?php
           if (function_exists("upsellio_render_lead_form")) {
               echo upsellio_render_lead_form([
@@ -629,9 +630,9 @@ if (!defined("ABSPATH")) {
     <div class="section-num reveal">
       <span class="section-num-digit">08</span>
       <span class="section-num-line"></span>
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-soft);">FAQ</span>
+      <span class="sw-kicker">FAQ</span>
     </div>
-    <div style="max-width:720px">
+    <div class="sw-prose sw-prose--720">
       <h2 class="h2 reveal d1">Najczęściej zadawane pytania o kampanie Google Ads i Meta Ads B2B</h2>
     </div>
 
@@ -675,13 +676,13 @@ if (!defined("ABSPATH")) {
     <div class="section-num reveal">
       <span class="section-num-digit">09</span>
       <span class="section-num-line"></span>
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text-soft);">Kontakt</span>
+      <span class="sw-kicker">Kontakt</span>
     </div>
-    <div style="max-width:720px;margin:0 auto 36px;">
+    <div class="sw-prose sw-prose--720 sw-prose--center sw-prose--mb-lg">
       <h2 class="h2 reveal d1">Umów bezpłatną diagnozę marketingu</h2>
-      <p class="body reveal d2" style="margin-top:12px;">Opowiesz o firmie, kampaniach i obecnych wynikach. Wrócę z konkretną rekomendacją: co poprawić najpierw, żeby zwiększyć liczbę wartościowych zapytań.</p>
+      <p class="body sw-mt-12 reveal d2">Opowiesz o firmie, kampaniach i obecnych wynikach. Wrócę z konkretną rekomendacją: co poprawić najpierw, żeby zwiększyć liczbę wartościowych zapytań.</p>
     </div>
-    <div class="contact-strategy-form contact-extended-layout" style="max-width:980px;margin:0 auto;">
+    <div class="contact-strategy-form contact-extended-layout sw-contact-grid">
       <div class="contact-extended-benefits">
         <h3 class="h3">Co dostaniesz po wysłaniu formularza?</h3>
         <ul>
@@ -696,7 +697,7 @@ if (!defined("ABSPATH")) {
           <a href="<?php echo esc_url(function_exists("upsellio_get_contact_page_url") ? upsellio_get_contact_page_url() : home_url("/kontakt/")); ?>">📅 Umów termin</a>
           <a href="<?php echo esc_url($linkedin_url); ?>" target="_blank" rel="noopener noreferrer">💼 LinkedIn</a>
         </div>
-        <p style="font-size:13px;color:var(--text-soft);margin-top:14px;">Pracuję z firmami B2B, produkcyjnymi, IT i e-commerce. Minimalny budżet reklamowy: 2 000 zł/mies. na platformę.</p>
+        <p class="sw-contact-aside-note">Pracuję z firmami B2B, produkcyjnymi, IT i e-commerce. Minimalny budżet reklamowy: 2 000 zł/mies. na platformę.</p>
       </div>
       <?php
       if (function_exists("upsellio_render_lead_form")) {
@@ -721,6 +722,8 @@ if (!defined("ABSPATH")) {
     </div>
   </div>
 </section>
+
+</div>
 
 <script type="application/ld+json">
 <?php echo wp_json_encode([
