@@ -5,7 +5,8 @@ if (!defined("ABSPATH")) {
 }
 
 /**
- * Zalogowany użytkownik z uprawnieniami redakcyjnymi — nie liczymy go w GA4/GTM ani jako leadów WWW.
+ * Zalogowany użytkownik z uprawnieniami redakcyjnymi — pomijamy go w tagach analitycznych (GA4/GTM).
+ * Nie wpływa na zapis leadów w CRM (formularze zapisują zgłoszenia także dla redakcji).
  * Filtr: upsellio_is_internal_tracking_user (bool).
  */
 function upsellio_is_internal_tracking_user()

@@ -54,6 +54,18 @@ function upsellio_ai_model_for(string $task): string
         "blog_keyword_research" => $haiku,
         "suggestions_clusters" => $haiku,
         "cpt_ai_optimize" => $sonnet,
+        "pre_call_brief" => $sonnet,
+        "weekly_brief" => $sonnet,
+        "anomaly_explainer" => $sonnet,
+        "page_perf_simple" => $haiku,
+        "page_perf_deep" => $sonnet,
+        "icp_refiner" => $sonnet,
+        "form_ab_suggestor" => $sonnet,
+        "contract_followup" => $sonnet,
+        "sales_playbook" => $sonnet,
+        "ads_spend_reviewer" => $sonnet,
+        "ad_copy_generator" => $sonnet,
+        "cold_outreach" => $sonnet,
     ];
 
     $model = $map[$task] ?? $haiku;

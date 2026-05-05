@@ -1196,6 +1196,7 @@ require_once get_template_directory() . "/inc/analytics-internal-exclude.php";
 require_once get_template_directory() . "/inc/seo-automation.php";
 require_once get_template_directory() . "/inc/data-schema.php";
 require_once get_template_directory() . "/inc/site-analytics.php";
+require_once get_template_directory() . "/inc/server-side-tracking.php";
 require_once get_template_directory() . "/inc/gsc-keyword-analysis.php";
 require_once get_template_directory() . "/inc/google-oauth-managed.php";
 require_once get_template_directory() . "/inc/breadcrumbs.php";
@@ -1206,8 +1207,22 @@ require_once get_template_directory() . "/inc/lead-magnet-seed.php";
 require_once get_template_directory() . "/inc/theme-config.php";
 require_once get_template_directory() . "/inc/offers.php";
 require_once get_template_directory() . "/inc/inbox.php";
+require_once get_template_directory() . "/inc/inbox-templates.php";
 require_once get_template_directory() . "/inc/followups.php";
 require_once get_template_directory() . "/inc/ai-model-router.php";
+require_once get_template_directory() . "/inc/ai-cost-tracker.php";
+require_once get_template_directory() . "/inc/ai-cost-dashboard.php";
+require_once get_template_directory() . "/inc/ai-pre-call-brief.php";
+require_once get_template_directory() . "/inc/ai-weekly-brief.php";
+require_once get_template_directory() . "/inc/ai-anomaly-explainer.php";
+require_once get_template_directory() . "/inc/ai-page-performance.php";
+require_once get_template_directory() . "/inc/ai-icp-refiner.php";
+require_once get_template_directory() . "/inc/ai-form-ab-suggestor.php";
+require_once get_template_directory() . "/inc/ai-contract-followup.php";
+require_once get_template_directory() . "/inc/ai-sales-playbook.php";
+require_once get_template_directory() . "/inc/ai-ads-spend-reviewer.php";
+require_once get_template_directory() . "/inc/ai-ad-copy-generator.php";
+require_once get_template_directory() . "/inc/ai-cold-outreach.php";
 require_once get_template_directory() . "/inc/anthropic-crm-leads-inbox.php";
 require_once get_template_directory() . "/inc/keyword-research.php";
 require_once get_template_directory() . "/inc/anthropic-offer-ai.php";
@@ -1871,6 +1886,9 @@ function upsellio_assets()
                       "contactNonce" => wp_create_nonce("upsellio_contact_click"),
                       "skipAnalytics" => function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user(),
                   ], JSON_UNESCAPED_SLASHES); ?>;
+                  window.upsellioAds = window.upsellioAds || <?php echo wp_json_encode([
+                      "conversionLabel" => defined("UPSELLIO_GOOGLE_ADS_CONVERSION_LABEL") ? (string) UPSELLIO_GOOGLE_ADS_CONVERSION_LABEL : "",
+                  ], JSON_UNESCAPED_SLASHES); ?>;
                   (function () {
                     function loadUpsellioMain() {
                       if (window.__upsellioMainLoaded) return;
@@ -1909,6 +1927,13 @@ function upsellio_assets()
             "blogIndexUrl" => upsellio_get_blog_index_url(),
             "contactNonce" => wp_create_nonce("upsellio_contact_click"),
             "skipAnalytics" => function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user(),
+        ]
+    );
+    wp_localize_script(
+        "upsellio-main",
+        "upsellioAds",
+        [
+            "conversionLabel" => defined("UPSELLIO_GOOGLE_ADS_CONVERSION_LABEL") ? (string) UPSELLIO_GOOGLE_ADS_CONVERSION_LABEL : "",
         ]
     );
 }

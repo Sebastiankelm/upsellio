@@ -1017,7 +1017,14 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null,
     $converting_kw = upsellio_blog_bot_get_converting_keywords($slim ? 5 : 8);
 
     $gsc_keyword_context = "";
-    if (function_exists("upsellio_gsc_build_keyword_context")) {
+    $gsc_cache = get_option("ups_gsc_analysis_cache", []);
+    if (
+        is_array($gsc_cache)
+        && !empty($gsc_cache["quick_wins"])
+        && function_exists("upsellio_gsc_build_prompt_block")
+    ) {
+        $gsc_keyword_context = (string) upsellio_gsc_build_prompt_block($gsc_cache);
+    } elseif (function_exists("upsellio_gsc_build_keyword_context")) {
         $gsc_keyword_context = upsellio_gsc_build_keyword_context($keyword);
     }
     if ($slim && $gsc_keyword_context !== "") {
