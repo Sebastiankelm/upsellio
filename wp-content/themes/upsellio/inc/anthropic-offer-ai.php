@@ -87,7 +87,7 @@ function upsellio_offer_ai_behavior_context(int $offer_id): string
     $action_rec = trim((string) get_post_meta($offer_id, "_ups_offer_action_recommendation", true));
 
     if ($views === 0 && $last_seen === "" && $pricing_sec <= 0 && $cta_clicks === 0 && $commit === "") {
-        return "";
+        return "BEHAVIOR DATA: brak — oferta nie była jeszcze otwierana lub tracking nie jest aktywny. NIE ZAKŁADAJ engagementu.";
     }
 
     $lines = [];

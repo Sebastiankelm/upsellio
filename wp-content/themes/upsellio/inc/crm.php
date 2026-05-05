@@ -16,6 +16,75 @@ function upsellio_crm_get_default_statuses()
     ];
 }
 
+function upsellio_extract_search_query_from_referrer(string $referrer): string
+{
+    if ($referrer === "") {
+        return "";
+    }
+    $host = (string) wp_parse_url($referrer, PHP_URL_HOST);
+    if ($host === "" || !preg_match("/(google|bing|yahoo|duckduckgo|yandex)\./i", $host)) {
+        return "";
+    }
+    $query = (string) wp_parse_url($referrer, PHP_URL_QUERY);
+    if ($query === "") {
+        return "";
+    }
+    parse_str($query, $params);
+    $value = isset($params["q"]) ? (string) $params["q"] : (isset($params["p"]) ? (string) $params["p"] : "");
+    return function_exists("mb_substr")
+        ? mb_substr(trim($value), 0, 200)
+        : substr(trim($value), 0, 200);
+}
+
+function upsellio_crm_attribute_lead_to_gsc_keyword(int $lead_id, string $landing_url, string $referrer): void
+{
+    $rows = get_option("upsellio_keyword_metrics_rows", []);
+    if (!is_array($rows) || $landing_url === "") {
+        return;
+    }
+    $landing_path = (string) wp_parse_url($landing_url, PHP_URL_PATH);
+    if ($landing_path === "") {
+        return;
+    }
+
+    $matched = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $row_path = (string) wp_parse_url((string) ($row["page"] ?? ""), PHP_URL_PATH);
+        if ($row_path !== $landing_path) {
+            continue;
+        }
+        $matched[] = $row;
+    }
+    if (empty($matched)) {
+        return;
+    }
+
+    usort($matched, static function ($a, $b) {
+        return (int) ($b["clicks"] ?? 0) <=> (int) ($a["clicks"] ?? 0);
+    });
+
+    $top3 = array_slice($matched, 0, 3);
+    $candidates = array_map(static function ($row) {
+        return [
+            "query" => (string) ($row["query"] ?? ""),
+            "clicks" => (int) ($row["clicks"] ?? 0),
+            "position" => (float) ($row["position"] ?? 0),
+        ];
+    }, $top3);
+
+    update_post_meta($lead_id, "_upsellio_lead_gsc_top_queries", $candidates);
+    if (!empty($candidates[0]["query"])) {
+        update_post_meta($lead_id, "_upsellio_lead_gsc_likely_query", (string) $candidates[0]["query"]);
+    }
+    $referrerQuery = upsellio_extract_search_query_from_referrer($referrer);
+    if ($referrerQuery !== "") {
+        update_post_meta($lead_id, "_upsellio_lead_gsc_query", $referrerQuery);
+    }
+}
+
 function upsellio_crm_get_default_owner_id()
 {
     $adminUsers = get_users([
@@ -33,7 +102,7 @@ function upsellio_crm_get_default_owner_id()
 
 /**
  * Zgłoszenia z formularza idą przez admin-post bez zalogowanego użytkownika (ID 0).
- * WordPress wymaga przy tworzeniu wpisów CPT uprawnień — tymczasowo ustawiamy właściciela leada.
+ * WordPress wymaga przy tworzeniu wpisów CPT uprawnień — tymczasowo ustawiamy właściciela.
  *
  * @template T
  * @param callable(): T $callback
@@ -193,8 +262,19 @@ function upsellio_crm_create_lead($payload)
     $utmSource = sanitize_text_field($payload["utm_source"] ?? "");
     $utmMedium = sanitize_text_field($payload["utm_medium"] ?? "");
     $utmCampaign = sanitize_text_field($payload["utm_campaign"] ?? "");
+    $utmTerm = sanitize_text_field($payload["utm_term"] ?? "");
+    $utmContent = sanitize_text_field($payload["utm_content"] ?? "");
+    $gclid = sanitize_text_field($payload["gclid"] ?? "");
+    $fbclid = sanitize_text_field($payload["fbclid"] ?? "");
+    $msclkid = sanitize_text_field($payload["msclkid"] ?? "");
+    $eventId = sanitize_text_field($payload["event_id"] ?? "");
+    $gscQuery = sanitize_text_field($payload["gsc_query"] ?? "");
+    $quizProblem = sanitize_text_field($payload["quiz_problem"] ?? "");
+    $quizIndustry = sanitize_text_field($payload["quiz_industry"] ?? "");
+    $quizBudget = sanitize_text_field($payload["quiz_budget"] ?? "");
     $landingUrl = esc_url_raw($payload["landing_url"] ?? "");
     $referrer = esc_url_raw($payload["referrer"] ?? "");
+    $monthlySales = sanitize_text_field($payload["monthly_sales"] ?? "");
     $ownerId = isset($payload["owner_id"]) ? (int) $payload["owner_id"] : 0;
     if ($ownerId <= 0) {
         $ownerId = upsellio_crm_get_default_owner_id();
@@ -215,198 +295,206 @@ function upsellio_crm_create_lead($payload)
         $utmSource,
         $utmMedium,
         $utmCampaign,
+        $utmTerm,
+        $utmContent,
+        $gclid,
+        $fbclid,
+        $msclkid,
+        $eventId,
+        $gscQuery,
+        $quizProblem,
+        $quizIndustry,
+        $quizBudget,
         $landingUrl,
         $referrer,
+        $monthlySales,
         $ownerId
     ) {
-        $title = $name !== "" ? $name : ($email !== "" ? $email : "Nowy lead");
-        $leadId = wp_insert_post([
-            "post_type" => "lead",
-            "post_status" => "publish",
-            "post_title" => $title,
-            "post_content" => $message,
-            "post_author" => $ownerId,
-        ], true);
+    $title = $name !== "" ? $name : ($email !== "" ? $email : "Nowy lead");
+    $leadId = wp_insert_post([
+        "post_type" => "lead",
+        "post_status" => "publish",
+        "post_title" => $title,
+        "post_content" => $message,
+        "post_author" => $ownerId,
+    ], true);
 
-        if (is_wp_error($leadId)) {
-            return 0;
+    if (is_wp_error($leadId)) {
+        return 0;
+    }
+
+    update_post_meta($leadId, "_upsellio_lead_email", $email);
+    update_post_meta($leadId, "_upsellio_lead_company", $company);
+    update_post_meta($leadId, "_upsellio_lead_phone", $phone);
+    update_post_meta($leadId, "_upsellio_lead_service", $service);
+    update_post_meta($leadId, "_upsellio_lead_budget", $budget);
+    update_post_meta($leadId, "_upsellio_lead_goal", $goal);
+    update_post_meta($leadId, "_upsellio_lead_monthly_sales", $monthlySales);
+    update_post_meta($leadId, "_upsellio_lead_score", $score);
+    update_post_meta($leadId, "_upsellio_lead_form_origin", $formOrigin);
+    update_post_meta($leadId, "_upsellio_lead_utm_source", $utmSource);
+    update_post_meta($leadId, "_upsellio_lead_utm_medium", $utmMedium);
+    update_post_meta($leadId, "_upsellio_lead_utm_campaign", $utmCampaign);
+    update_post_meta($leadId, "_upsellio_lead_utm_term", $utmTerm);
+    update_post_meta($leadId, "_upsellio_lead_utm_content", $utmContent);
+    update_post_meta($leadId, "_upsellio_lead_gclid", $gclid);
+    update_post_meta($leadId, "_upsellio_lead_fbclid", $fbclid);
+    update_post_meta($leadId, "_upsellio_lead_msclkid", $msclkid);
+    update_post_meta($leadId, "_upsellio_lead_event_id", $eventId);
+    update_post_meta($leadId, "_upsellio_lead_gsc_query", $gscQuery);
+    update_post_meta($leadId, "_upsellio_lead_quiz_problem", $quizProblem);
+    update_post_meta($leadId, "_upsellio_lead_quiz_industry", $quizIndustry);
+    update_post_meta($leadId, "_upsellio_lead_quiz_budget", $quizBudget);
+    update_post_meta($leadId, "_upsellio_lead_landing_url", $landingUrl);
+    update_post_meta($leadId, "_upsellio_lead_referrer", $referrer);
+    if (function_exists("upsellio_crm_attribute_lead_to_gsc_keyword")) {
+        upsellio_crm_attribute_lead_to_gsc_keyword((int) $leadId, (string) $landingUrl, (string) $referrer);
+    }
+
+    $statusTermId = upsellio_crm_get_term_id_by_slug("lead_status", "new");
+    if ($statusTermId > 0) {
+        wp_set_object_terms($leadId, [$statusTermId], "lead_status", false);
+    }
+
+    $sourceTermId = upsellio_crm_get_term_id_by_slug("lead_source", $source);
+    if ($sourceTermId <= 0) {
+        $sourceTerm = wp_insert_term($formOrigin, "lead_source", ["slug" => $source]);
+        if (!is_wp_error($sourceTerm) && isset($sourceTerm["term_id"])) {
+            $sourceTermId = (int) $sourceTerm["term_id"];
         }
+    }
+    if ($sourceTermId > 0) {
+        wp_set_object_terms($leadId, [$sourceTermId], "lead_source", false);
+    }
 
-        update_post_meta($leadId, "_upsellio_lead_email", $email);
-        update_post_meta($leadId, "_upsellio_lead_company", $company);
-        update_post_meta($leadId, "_upsellio_lead_phone", $phone);
-        update_post_meta($leadId, "_upsellio_lead_service", $service);
-        update_post_meta($leadId, "_upsellio_lead_budget", $budget);
-        update_post_meta($leadId, "_upsellio_lead_goal", $goal);
-        update_post_meta($leadId, "_upsellio_lead_score", $score);
-        update_post_meta($leadId, "_upsellio_lead_form_origin", $formOrigin);
-        update_post_meta($leadId, "_upsellio_lead_utm_source", $utmSource);
-        update_post_meta($leadId, "_upsellio_lead_utm_medium", $utmMedium);
-        update_post_meta($leadId, "_upsellio_lead_utm_campaign", $utmCampaign);
-        update_post_meta($leadId, "_upsellio_lead_landing_url", $landingUrl);
-        update_post_meta($leadId, "_upsellio_lead_referrer", $referrer);
+    upsellio_crm_add_timeline_event($leadId, "created", "Lead został utworzony.");
+    upsellio_crm_create_followup_tasks_for_owner($leadId, $ownerId);
 
-        $statusTermId = upsellio_crm_get_term_id_by_slug("lead_status", "new");
-        if ($statusTermId > 0) {
-            wp_set_object_terms($leadId, [$statusTermId], "lead_status", false);
-        }
+    upsellio_crm_sync_wp_lead_to_crm_lead_module((int) $leadId);
 
-        $sourceTermId = upsellio_crm_get_term_id_by_slug("lead_source", $source);
-        if ($sourceTermId <= 0) {
-            $sourceTerm = wp_insert_term($formOrigin, "lead_source", ["slug" => $source]);
-            if (!is_wp_error($sourceTerm) && isset($sourceTerm["term_id"])) {
-                $sourceTermId = (int) $sourceTerm["term_id"];
-            }
-        }
-        if ($sourceTermId > 0) {
-            wp_set_object_terms($leadId, [$sourceTermId], "lead_source", false);
-        }
+    do_action("upsellio_crm_contact_lead_created", (int) $leadId);
 
-        upsellio_crm_add_timeline_event($leadId, "created", "Lead został utworzony.");
-        upsellio_crm_create_followup_tasks_for_owner($leadId, $ownerId);
-
-        do_action("upsellio_crm_contact_lead_created", (int) $leadId);
-
-        return (int) $leadId;
+    return (int) $leadId;
     });
 }
 
 /**
- * Duplikuje lead z formularza WWW (CPT `lead`) do modułu CRM (`crm_lead`),
- * żeby wpisywały się na listę Leadów w /crm-app/.
+ * Moduł CRM (CPT crm_lead) — inbox / Leady / scoring. Formularze WWW zapisują legacy CPT `lead`;
+ * ta funkcja tworzy lustrzany wpis crm_lead, żeby zgłoszenia były widoczne w aplikacji CRM.
+ *
+ * @return int ID crm_lead lub 0
  */
-function upsellio_crm_mirror_legacy_lead_to_crm_lead($legacy_lead_id)
+function upsellio_crm_sync_wp_lead_to_crm_lead_module($wp_lead_id)
 {
-    $legacy_lead_id = (int) $legacy_lead_id;
-    if ($legacy_lead_id <= 0 || !post_type_exists("crm_lead")) {
-        return;
+    $wp_lead_id = (int) $wp_lead_id;
+    if ($wp_lead_id <= 0 || get_post_type($wp_lead_id) !== "lead") {
+        return 0;
+    }
+    if (!post_type_exists("crm_lead")) {
+        return 0;
     }
 
-    $post = get_post($legacy_lead_id);
-    if (!($post instanceof WP_Post) || $post->post_type !== "lead") {
-        return;
+    $existing = (int) get_post_meta($wp_lead_id, "_upsellio_synced_crm_lead_id", true);
+    if ($existing > 0 && get_post_type($existing) === "crm_lead") {
+        return $existing;
     }
 
-    $dup = get_posts([
-        "post_type" => "crm_lead",
-        "post_status" => "any",
-        "posts_per_page" => 1,
-        "fields" => "ids",
-        "no_found_rows" => true,
-        "meta_query" => [
-            [
-                "key" => "_ups_wp_legacy_lead_id",
-                "value" => (string) $legacy_lead_id,
-                "compare" => "=",
-            ],
-        ],
-    ]);
-    if (!empty($dup)) {
-        return;
+    $post = get_post($wp_lead_id);
+    if (!($post instanceof WP_Post)) {
+        return 0;
     }
 
-    $owner_id = (int) $post->post_author;
-    if ($owner_id <= 0) {
-        $owner_id = upsellio_crm_get_default_owner_id();
-    }
+    $email = (string) get_post_meta($wp_lead_id, "_upsellio_lead_email", true);
+    $phone = (string) get_post_meta($wp_lead_id, "_upsellio_lead_phone", true);
+    $company = (string) get_post_meta($wp_lead_id, "_upsellio_lead_company", true);
+    $service = (string) get_post_meta($wp_lead_id, "_upsellio_lead_service", true);
+    $goal = (string) get_post_meta($wp_lead_id, "_upsellio_lead_goal", true);
+    $budget_raw = (string) get_post_meta($wp_lead_id, "_upsellio_lead_budget", true);
+    $origin = (string) get_post_meta($wp_lead_id, "_upsellio_lead_form_origin", true);
 
-    $email = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_email", true);
-    $phone = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_phone", true);
-    $company = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_company", true);
-    $service = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_service", true);
-    $budget = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_budget", true);
-    $goal = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_goal", true);
-    $form_origin = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_form_origin", true);
-    $utm_source = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_utm_source", true);
-    $utm_medium = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_utm_medium", true);
-    $utm_campaign = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_utm_campaign", true);
-    $landing = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_landing_url", true);
-    $referrer = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_referrer", true);
-
-    $title = $post->post_title !== "" ? $post->post_title : ($email !== "" ? $email : "Lead WWW");
     $need = (string) $post->post_content;
-
     $notes_parts = [];
     if ($company !== "") {
         $notes_parts[] = "Firma: " . $company;
     }
     if ($service !== "") {
-        $notes_parts[] = "Usługa / temat: " . $service;
-    }
-    if ($budget !== "") {
-        $notes_parts[] = "Budżet (z formularza): " . $budget;
+        $notes_parts[] = "Obszar / usługa: " . $service;
     }
     if ($goal !== "") {
         $notes_parts[] = "Cel: " . $goal;
     }
-    if ($landing !== "") {
-        $notes_parts[] = "Landing: " . $landing;
-    }
-    if ($referrer !== "") {
-        $notes_parts[] = "Referrer: " . $referrer;
-    }
-    $notes_parts[] = "Legacy lead ID (WP): #" . $legacy_lead_id;
     $notes = implode("\n", $notes_parts);
 
-    $crm_id = upsellio_crm_run_as_user($owner_id, static function () use (
-        $legacy_lead_id,
-        $owner_id,
-        $title,
+    $budget_float = 0.0;
+    if ($budget_raw !== "" && is_numeric($budget_raw)) {
+        $budget_float = (float) $budget_raw;
+    }
+
+    $sync_author = (int) $post->post_author;
+    if ($sync_author <= 0) {
+        $sync_author = upsellio_crm_get_default_owner_id();
+    }
+
+    return (int) upsellio_crm_run_as_user($sync_author, static function () use (
+        $wp_lead_id,
+        $post,
         $email,
         $phone,
-        $form_origin,
+        $origin,
         $need,
         $notes,
-        $utm_source,
-        $utm_medium,
-        $utm_campaign,
-        $budget
+        $budget_float,
+        $sync_author
     ) {
-        $new_id = wp_insert_post([
+        $crm_id = (int) wp_insert_post([
             "post_type" => "crm_lead",
             "post_status" => "publish",
-            "post_title" => sanitize_text_field($title),
-            "post_content" => "",
-            "post_author" => $owner_id,
+            "post_title" => $post->post_title,
+            "post_author" => $sync_author,
         ], true);
 
-        if (is_wp_error($new_id) || (int) $new_id <= 0) {
+        if (is_wp_error($crm_id) || $crm_id <= 0) {
             return 0;
         }
 
-        $new_id = (int) $new_id;
+        update_post_meta($crm_id, "_ups_lead_email", sanitize_email($email));
+        update_post_meta($crm_id, "_ups_lead_phone", sanitize_text_field($phone));
+        update_post_meta(
+            $crm_id,
+            "_ups_lead_source",
+            $origin !== "" ? sanitize_text_field($origin) : "web-form"
+        );
+        update_post_meta($crm_id, "_ups_lead_type", "inbound");
+        update_post_meta($crm_id, "_ups_lead_qualification_status", "new");
+        update_post_meta($crm_id, "_ups_lead_need", sanitize_textarea_field($need));
+        update_post_meta($crm_id, "_ups_lead_budget", $budget_float);
+        update_post_meta($crm_id, "_ups_lead_notes", sanitize_textarea_field($notes));
+        update_post_meta(
+            $crm_id,
+            "_ups_lead_utm_source",
+            sanitize_text_field((string) get_post_meta($wp_lead_id, "_upsellio_lead_utm_source", true))
+        );
+        update_post_meta(
+            $crm_id,
+            "_ups_lead_utm_medium",
+            sanitize_text_field((string) get_post_meta($wp_lead_id, "_upsellio_lead_utm_medium", true))
+        );
+        update_post_meta(
+            $crm_id,
+            "_ups_lead_utm_campaign",
+            sanitize_text_field((string) get_post_meta($wp_lead_id, "_upsellio_lead_utm_campaign", true))
+        );
 
-        update_post_meta($new_id, "_ups_wp_legacy_lead_id", $legacy_lead_id);
-        update_post_meta($legacy_lead_id, "_upsellio_crm_lead_id", $new_id);
-
-        update_post_meta($new_id, "_ups_lead_email", sanitize_email($email));
-        update_post_meta($new_id, "_ups_lead_phone", sanitize_text_field($phone));
-        $source_label = $form_origin !== "" ? $form_origin : "formularz-www";
-        update_post_meta($new_id, "_ups_lead_source", sanitize_text_field($source_label));
-        update_post_meta($new_id, "_ups_lead_type", "inbound");
-        update_post_meta($new_id, "_ups_lead_qualification_status", "new");
-        update_post_meta($new_id, "_ups_lead_need", sanitize_textarea_field($need));
-        update_post_meta($new_id, "_ups_lead_notes", sanitize_textarea_field($notes));
-        update_post_meta($new_id, "_ups_lead_utm_source", sanitize_text_field($utm_source));
-        update_post_meta($new_id, "_ups_lead_utm_medium", sanitize_text_field($utm_medium));
-        update_post_meta($new_id, "_ups_lead_utm_campaign", sanitize_text_field($utm_campaign));
-
-        $budget_num = is_numeric($budget) ? (float) $budget : 0.0;
-        update_post_meta($new_id, "_ups_lead_budget", $budget_num);
+        update_post_meta($wp_lead_id, "_upsellio_synced_crm_lead_id", $crm_id);
+        update_post_meta($crm_id, "_upsellio_wp_lead_id", $wp_lead_id);
 
         if (function_exists("upsellio_sales_engine_refresh_lead_hybrid_scores")) {
-            upsellio_sales_engine_refresh_lead_hybrid_scores($new_id);
+            upsellio_sales_engine_refresh_lead_hybrid_scores($crm_id);
         }
 
-        return $new_id;
+        return $crm_id;
     });
-
-    if ($crm_id <= 0) {
-        return;
-    }
 }
-
-add_action("upsellio_crm_contact_lead_created", "upsellio_crm_mirror_legacy_lead_to_crm_lead", 20, 1);
 
 function upsellio_crm_get_open_tasks_for_lead($lead_id)
 {
@@ -547,20 +635,60 @@ function upsellio_crm_send_emails($lead_id, $name, $email, $message)
     $adminEmail = sanitize_email((string) get_option("admin_email"));
     $backupEmail = upsellio_crm_get_backup_recipient();
     $recipient = is_email($adminEmail) ? $adminEmail : $backupEmail;
-    $subject = "Nowy lead w CRM Upsellio";
-    $body = "Lead ID: {$lead_id}\nImię/Firma: {$name}\nE-mail: {$email}\n\nWiadomość:\n{$message}";
-    $adminSent = is_email($recipient) ? wp_mail($recipient, $subject, $body) : false;
+    $score = (int) get_post_meta($lead_id, "_upsellio_lead_score", true);
+    $score_reason = (string) get_post_meta($lead_id, "_upsellio_lead_score_reason", true);
+    $company = (string) get_post_meta($lead_id, "_upsellio_lead_company", true);
+    $service = (string) get_post_meta($lead_id, "_upsellio_lead_service", true);
+    $utm_source = (string) get_post_meta($lead_id, "_upsellio_lead_utm_source", true);
+    $gclid = get_post_meta($lead_id, "_upsellio_lead_gclid", true) ? "✓" : "";
+    $quiz_industry = (string) get_post_meta($lead_id, "_upsellio_lead_quiz_industry", true);
+    $quiz_problem = (string) get_post_meta($lead_id, "_upsellio_lead_quiz_problem", true);
+    $quiz_budget = (string) get_post_meta($lead_id, "_upsellio_lead_quiz_budget", true);
+    $edit_url = admin_url("post.php?post=" . (int) $lead_id . "&action=edit");
+    $subject = "🎯 Lead: {$name}" . ($company !== "" ? " ({$company})" : "") . " · score {$score}";
+    $body = "<p><strong>" . esc_html($name) . "</strong>" . ($company !== "" ? " · " . esc_html($company) : "") . "<br><span style='font-size:13px;color:#64748b;'>" . esc_html($email) . "</span></p>
+<div style='background:#f0fdfa;border-left:4px solid #0d9488;padding:14px 16px;margin:14px 0;'><strong>AI Score: {$score}/100</strong><p style='margin:6px 0 0;font-size:13px;'>" . esc_html($score_reason) . "</p></div>
+<p><strong>Zgłoszenie:</strong></p><blockquote style='border-left:3px solid #e5e7eb;padding:8px 12px;color:#475569;font-style:italic;'>" . nl2br(esc_html($message)) . "</blockquote>
+<p><strong>Kontekst:</strong></p><table style='font-size:13px;border-collapse:collapse;'>
+<tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Usługa:</td><td>" . esc_html($service ?: "—") . "</td></tr>
+<tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Quiz:</td><td>" . esc_html($quiz_problem) . " · " . esc_html($quiz_industry) . " · " . esc_html($quiz_budget) . "</td></tr>
+<tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Źródło:</td><td>" . esc_html($utm_source ?: "organic") . " " . esc_html($gclid) . "</td></tr>
+</table>
+<p><a href='" . esc_url($edit_url) . "' class='ups-cta'>Otwórz lead w CRM →</a></p>";
+    $adminSent = is_email($recipient) && function_exists("upsellio_send_crm_mail")
+        ? upsellio_send_crm_mail($recipient, $subject, $body, [
+            "type" => "transactional",
+            "preheader" => "AI score {$score}. " . wp_trim_words($message, 10),
+            "allow_internal" => true,
+        ])
+        : false;
     if (!$adminSent && is_email($backupEmail) && strtolower($backupEmail) !== strtolower((string) $recipient)) {
-        $adminSent = wp_mail($backupEmail, $subject, $body);
+        $adminSent = function_exists("upsellio_send_crm_mail")
+            ? upsellio_send_crm_mail($backupEmail, $subject, $body, ["type" => "transactional", "allow_internal" => true])
+            : false;
     }
     if (!$adminSent) {
         upsellio_crm_add_timeline_event((int) $lead_id, "mail_error", "Nie udało się wysłać powiadomienia e-mail do administratora.");
     }
 
     if (is_email($email)) {
-        $autoresponderSubject = "Dziękuję za kontakt - Upsellio";
-        $autoresponderBody = "Cześć {$name},\n\nDziękuję za wiadomość. Wrócę do Ciebie możliwie szybko z konkretną odpowiedzią.\n\nPozdrawiam,\nSebastian / Upsellio";
-        if (!wp_mail($email, $autoresponderSubject, $autoresponderBody)) {
+        $first_name_parts = preg_split('/\s+/', trim((string) $name));
+        $first_name = $first_name_parts[0] ?? "Cześć";
+        $autoresponderSubject = "Mam Twoje zgłoszenie — odezwę się jutro do 14:00";
+        $autoresponderBody = "<p>Cześć " . esc_html($first_name) . ",</p>
+<p><strong>Mam Twoje zgłoszenie.</strong> Jutro do 14:00 dostaniesz ode mnie konkretną odpowiedź — nie szablon, tylko wstępną diagnozę.</p>
+<p><strong>Co zrobię w tych ~24h:</strong></p>
+<ul style='margin:0 0 14px 20px;padding:0;'><li>Rzut oka na stronę i kampanie</li><li>Szybki benchmark Search Console i CPL</li><li>2-3 największe blokery lejka</li></ul>
+<p>Jeśli masz pilny temat — <a href='tel:+48575522595'>+48 575 522 595</a>.</p>
+<p>Do jutra,<br><strong>Sebastian Kelm</strong></p>";
+        $sent_lead = function_exists("upsellio_send_crm_mail")
+            ? upsellio_send_crm_mail($email, $autoresponderSubject, $autoresponderBody, [
+                "type" => "transactional",
+                "preheader" => "Konkretna odpowiedź w ciągu 24h. Nie auto-reply.",
+                "reply_to" => (string) get_option("ups_followup_from_email", get_bloginfo("admin_email")),
+            ])
+            : false;
+        if (!$sent_lead) {
             upsellio_crm_add_timeline_event((int) $lead_id, "mail_error", "Nie udało się wysłać autorespondera do leada.");
         }
     }
@@ -637,13 +765,26 @@ function upsellio_crm_handle_lead_submission()
         "service" => isset($_POST["lead_service"]) ? sanitize_text_field(wp_unslash($_POST["lead_service"])) : "",
         "budget" => isset($_POST["lead_budget"]) ? sanitize_text_field(wp_unslash($_POST["lead_budget"])) : "",
         "goal" => isset($_POST["lead_goal"]) ? sanitize_text_field(wp_unslash($_POST["lead_goal"])) : "",
+        "monthly_sales" => isset($_POST["lead_monthly_sales"]) ? sanitize_text_field(wp_unslash($_POST["lead_monthly_sales"])) : "",
         "form_origin" => isset($_POST["lead_form_origin"]) ? sanitize_text_field(wp_unslash($_POST["lead_form_origin"])) : "contact-form",
         "source" => isset($_POST["lead_source"]) ? sanitize_text_field(wp_unslash($_POST["lead_source"])) : "",
         "utm_source" => isset($_POST["utm_source"]) ? sanitize_text_field(wp_unslash($_POST["utm_source"])) : "",
         "utm_medium" => isset($_POST["utm_medium"]) ? sanitize_text_field(wp_unslash($_POST["utm_medium"])) : "",
         "utm_campaign" => isset($_POST["utm_campaign"]) ? sanitize_text_field(wp_unslash($_POST["utm_campaign"])) : "",
+        "utm_term" => isset($_POST["utm_term"]) ? sanitize_text_field(wp_unslash($_POST["utm_term"])) : "",
+        "utm_content" => isset($_POST["utm_content"]) ? sanitize_text_field(wp_unslash($_POST["utm_content"])) : "",
+        "gclid" => isset($_POST["gclid"]) ? sanitize_text_field(wp_unslash($_POST["gclid"])) : "",
+        "fbclid" => isset($_POST["fbclid"]) ? sanitize_text_field(wp_unslash($_POST["fbclid"])) : "",
+        "msclkid" => isset($_POST["msclkid"]) ? sanitize_text_field(wp_unslash($_POST["msclkid"])) : "",
+        "event_id" => isset($_POST["lead_event_id"]) ? sanitize_text_field(wp_unslash($_POST["lead_event_id"])) : "",
         "landing_url" => isset($_POST["landing_url"]) ? esc_url_raw(wp_unslash($_POST["landing_url"])) : "",
         "referrer" => isset($_POST["referrer"]) ? esc_url_raw(wp_unslash($_POST["referrer"])) : "",
+        "gsc_query" => upsellio_extract_search_query_from_referrer(
+            isset($_POST["referrer"]) ? esc_url_raw(wp_unslash($_POST["referrer"])) : ""
+        ),
+        "quiz_problem" => isset($_POST["lead_quiz_problem"]) ? sanitize_text_field(wp_unslash($_POST["lead_quiz_problem"])) : "",
+        "quiz_industry" => isset($_POST["lead_quiz_industry"]) ? sanitize_text_field(wp_unslash($_POST["lead_quiz_industry"])) : "",
+        "quiz_budget" => isset($_POST["lead_quiz_budget"]) ? sanitize_text_field(wp_unslash($_POST["lead_quiz_budget"])) : "",
     ];
 
     $leadId = upsellio_crm_create_lead($payload);
@@ -652,15 +793,22 @@ function upsellio_crm_handle_lead_submission()
     }
 
     if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
-        update_post_meta($leadId, "_upsellio_lead_internal_tester", "1");
-        $crmLinked = (int) get_post_meta($leadId, "_upsellio_crm_lead_id", true);
-        if ($crmLinked > 0) {
-            update_post_meta($crmLinked, "_ups_lead_internal_tester", "1");
+        update_post_meta((int) $leadId, "_upsellio_lead_internal_tester", "1");
+        $crm_synced = (int) get_post_meta((int) $leadId, "_upsellio_synced_crm_lead_id", true);
+        if ($crm_synced > 0) {
+            update_post_meta($crm_synced, "_upsellio_lead_internal_tester", "1");
         }
     }
 
     upsellio_crm_send_emails($leadId, $name, $email, $message);
     upsellio_crm_schedule_followup($leadId);
+    if (function_exists("upsellio_server_send_lead_conversion")) {
+        if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
+            // Skip server-side conversion for internal test submissions.
+        } else {
+            upsellio_server_send_lead_conversion((int) $leadId, $payload);
+        }
+    }
 
     upsellio_crm_redirect_lead_form_success($redirectUrl);
 }
@@ -684,10 +832,24 @@ function upsellio_crm_followup_reminder($lead_id)
         return;
     }
 
-    $adminEmail = get_option("admin_email");
-    $subject = "Przypomnienie: lead bez kontaktu >24h";
-    $body = "Lead #{$lead_id} nadal ma status NOWY i nie ma oznaczonego pierwszego kontaktu.";
-    wp_mail($adminEmail, $subject, $body);
+    $adminEmail = (string) get_option("admin_email");
+    $lead_title = get_the_title($lead_id);
+    $lead_email = (string) get_post_meta($lead_id, "_upsellio_lead_email", true);
+    $score = (int) get_post_meta($lead_id, "_upsellio_lead_score", true);
+    $company = (string) get_post_meta($lead_id, "_upsellio_lead_company", true);
+    $urgency = $score >= 70 ? "🔥 HOT" : ($score >= 50 ? "☀️ WARM" : "🌑 COLD");
+    $subject = "{$urgency} · 24h cisza: {$lead_title}";
+    $body = "<p><strong>{$urgency} · " . esc_html($lead_title) . "</strong>" . ($company !== "" ? " (" . esc_html($company) . ")" : "") . "</p>
+<p style='font-size:13px;color:#64748b;'>Score: {$score}/100 · Cisza: 24h</p>
+<p>Lead nadal ma status NOWY i nie ma oznaczonego pierwszego kontaktu.</p>
+<p><a href='" . esc_url(admin_url("post.php?post=" . $lead_id . "&action=edit")) . "' class='ups-cta'>Otwórz lead</a> &nbsp; <a href='mailto:" . esc_attr($lead_email) . "' style='color:#64748b'>Mailto: " . esc_html($lead_email) . "</a></p>";
+    if (function_exists("upsellio_send_crm_mail")) {
+        upsellio_send_crm_mail($adminEmail, $subject, $body, [
+            "type" => "transactional",
+            "preheader" => "Lead z score {$score} czeka 24h.",
+            "allow_internal" => true,
+        ]);
+    }
     upsellio_crm_add_timeline_event($lead_id, "reminder", "Wysłano przypomnienie follow-up >24h.");
 }
 add_action("upsellio_crm_followup_reminder", "upsellio_crm_followup_reminder");
@@ -736,13 +898,22 @@ function upsellio_crm_render_lead_meta_box($post)
     $service = get_post_meta($post->ID, "_upsellio_lead_service", true);
     $budget = get_post_meta($post->ID, "_upsellio_lead_budget", true);
     $goal = get_post_meta($post->ID, "_upsellio_lead_goal", true);
+    $monthlySales = get_post_meta($post->ID, "_upsellio_lead_monthly_sales", true);
     $score = get_post_meta($post->ID, "_upsellio_lead_score", true);
+    $closeValue = get_post_meta($post->ID, "_upsellio_lead_close_value", true);
     $notes = get_post_meta($post->ID, "_upsellio_lead_notes", true);
     $utmSource = get_post_meta($post->ID, "_upsellio_lead_utm_source", true);
     $utmMedium = get_post_meta($post->ID, "_upsellio_lead_utm_medium", true);
     $utmCampaign = get_post_meta($post->ID, "_upsellio_lead_utm_campaign", true);
+    $utmTerm = get_post_meta($post->ID, "_upsellio_lead_utm_term", true);
+    $utmContent = get_post_meta($post->ID, "_upsellio_lead_utm_content", true);
+    $gclid = get_post_meta($post->ID, "_upsellio_lead_gclid", true);
+    $fbclid = get_post_meta($post->ID, "_upsellio_lead_fbclid", true);
+    $msclkid = get_post_meta($post->ID, "_upsellio_lead_msclkid", true);
+    $eventId = get_post_meta($post->ID, "_upsellio_lead_event_id", true);
     $landingUrl = get_post_meta($post->ID, "_upsellio_lead_landing_url", true);
     $referrer = get_post_meta($post->ID, "_upsellio_lead_referrer", true);
+    $gscTop = get_post_meta($post->ID, "_upsellio_lead_gsc_top_queries", true);
     $firstContactAt = get_post_meta($post->ID, "_upsellio_first_contact_at", true);
     $ownerId = (int) get_post_field("post_author", $post->ID);
     $timeline = get_post_meta($post->ID, "_upsellio_lead_timeline", true);
@@ -776,8 +947,18 @@ function upsellio_crm_render_lead_meta_box($post)
       </label>
     </p>
     <p>
+      <label><strong>Miesięczna sprzedaż</strong><br />
+        <input type="text" name="upsellio_lead_monthly_sales" value="<?php echo esc_attr((string) $monthlySales); ?>" class="widefat" />
+      </label>
+    </p>
+    <p>
       <label><strong>Score</strong><br />
         <input type="number" min="0" max="100" name="upsellio_lead_score" value="<?php echo esc_attr((string) $score); ?>" class="small-text" />
+      </label>
+    </p>
+    <p>
+      <label><strong>Wartosc zamkniecia (PLN)</strong><br />
+        <input type="number" min="0" step="0.01" name="upsellio_lead_close_value" value="<?php echo esc_attr((string) $closeValue); ?>" class="small-text" />
       </label>
     </p>
     <p>
@@ -809,8 +990,28 @@ function upsellio_crm_render_lead_meta_box($post)
     <hr />
     <p><strong>Atrybucja</strong></p>
     <p>UTM source: <?php echo esc_html((string) $utmSource); ?> | medium: <?php echo esc_html((string) $utmMedium); ?> | campaign: <?php echo esc_html((string) $utmCampaign); ?></p>
+    <p>UTM term: <?php echo esc_html((string) $utmTerm); ?> | content: <?php echo esc_html((string) $utmContent); ?></p>
+    <p>gclid: <?php echo esc_html((string) $gclid); ?> | fbclid: <?php echo esc_html((string) $fbclid); ?> | msclkid: <?php echo esc_html((string) $msclkid); ?></p>
+    <p>event_id: <?php echo esc_html((string) $eventId); ?></p>
     <p>Landing: <?php echo esc_html((string) $landingUrl); ?></p>
     <p>Referrer: <?php echo esc_html((string) $referrer); ?></p>
+    <?php if (is_array($gscTop) && !empty($gscTop)) : ?>
+      <p><strong>GSC — możliwe zapytanie wejściowe:</strong></p>
+      <ul>
+        <?php foreach ($gscTop as $candidate) : ?>
+          <li>
+            <?php
+            printf(
+                "%s - %d klikniec, pozycja %.1f",
+                esc_html((string) ($candidate["query"] ?? "")),
+                (int) ($candidate["clicks"] ?? 0),
+                (float) ($candidate["position"] ?? 0)
+            );
+            ?>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
     <hr />
     <p><strong>Timeline</strong></p>
     <?php if (empty($timeline)) : ?>
@@ -842,7 +1043,9 @@ function upsellio_crm_save_lead_meta($post_id)
     update_post_meta($post_id, "_upsellio_lead_service", sanitize_text_field(wp_unslash($_POST["upsellio_lead_service"] ?? "")));
     update_post_meta($post_id, "_upsellio_lead_budget", sanitize_text_field(wp_unslash($_POST["upsellio_lead_budget"] ?? "")));
     update_post_meta($post_id, "_upsellio_lead_goal", sanitize_text_field(wp_unslash($_POST["upsellio_lead_goal"] ?? "")));
+    update_post_meta($post_id, "_upsellio_lead_monthly_sales", sanitize_text_field(wp_unslash($_POST["upsellio_lead_monthly_sales"] ?? "")));
     update_post_meta($post_id, "_upsellio_lead_score", (int) ($_POST["upsellio_lead_score"] ?? 0));
+    update_post_meta($post_id, "_upsellio_lead_close_value", (float) ($_POST["upsellio_lead_close_value"] ?? 0));
     update_post_meta($post_id, "_upsellio_lead_notes", sanitize_textarea_field(wp_unslash($_POST["upsellio_lead_notes"] ?? "")));
     $ownerId = isset($_POST["upsellio_lead_owner_id"]) ? (int) $_POST["upsellio_lead_owner_id"] : 0;
     if ($ownerId > 0) {
@@ -870,6 +1073,33 @@ function upsellio_crm_save_lead_meta($post_id)
     }
 }
 add_action("save_post_lead", "upsellio_crm_save_lead_meta");
+
+add_action("set_object_terms", function ($object_id, $terms, $tt_ids, $taxonomy) {
+    if ($taxonomy !== "lead_status") {
+        return;
+    }
+    if (get_post_type((int) $object_id) !== "lead") {
+        return;
+    }
+
+    $hasWon = false;
+    foreach ((array) $terms as $termValue) {
+        $term = is_numeric($termValue)
+            ? get_term((int) $termValue, "lead_status")
+            : get_term_by("slug", (string) $termValue, "lead_status");
+        if ($term && !is_wp_error($term) && ((string) $term->slug) === "won") {
+            $hasWon = true;
+            break;
+        }
+    }
+
+    if ($hasWon && function_exists("upsellio_send_offline_conversion")) {
+        upsellio_send_offline_conversion((int) $object_id);
+    }
+    if ($hasWon && function_exists("upsellio_server_send_closed_won_conversion")) {
+        upsellio_server_send_closed_won_conversion((int) $object_id);
+    }
+}, 10, 4);
 
 function upsellio_crm_admin_columns($columns)
 {
@@ -1489,3 +1719,17 @@ function upsellio_crm_track_contact_click()
 }
 add_action("wp_ajax_upsellio_track_contact_click", "upsellio_crm_track_contact_click");
 add_action("wp_ajax_nopriv_upsellio_track_contact_click", "upsellio_crm_track_contact_click");
+
+function upsellio_crm_touch_last_changed(): void
+{
+    update_option("upsellio_crm_last_changed", wp_date("c"), false);
+}
+add_action("save_post_lead", "upsellio_crm_touch_last_changed", 20);
+add_action("set_object_terms", static function ($object_id, $terms, $tt_ids, $taxonomy) {
+    if (get_post_type((int) $object_id) !== "lead") {
+        return;
+    }
+    if (in_array((string) $taxonomy, ["lead_status", "lead_source"], true)) {
+        upsellio_crm_touch_last_changed();
+    }
+}, 20, 4);

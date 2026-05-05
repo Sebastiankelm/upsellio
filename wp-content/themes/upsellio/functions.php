@@ -1196,6 +1196,7 @@ require_once get_template_directory() . "/inc/analytics-internal-exclude.php";
 require_once get_template_directory() . "/inc/seo-automation.php";
 require_once get_template_directory() . "/inc/data-schema.php";
 require_once get_template_directory() . "/inc/site-analytics.php";
+require_once get_template_directory() . "/inc/server-side-tracking.php";
 require_once get_template_directory() . "/inc/gsc-keyword-analysis.php";
 require_once get_template_directory() . "/inc/google-oauth-managed.php";
 require_once get_template_directory() . "/inc/breadcrumbs.php";
@@ -1205,9 +1206,27 @@ require_once get_template_directory() . "/inc/marketing-portfolio-seed.php";
 require_once get_template_directory() . "/inc/lead-magnet-seed.php";
 require_once get_template_directory() . "/inc/theme-config.php";
 require_once get_template_directory() . "/inc/offers.php";
+require_once get_template_directory() . "/inc/qa-library.php";
 require_once get_template_directory() . "/inc/inbox.php";
+require_once get_template_directory() . "/inc/inbox-templates.php";
 require_once get_template_directory() . "/inc/followups.php";
+require_once get_template_directory() . "/inc/crm-email-template.php";
+require_once get_template_directory() . "/inc/crm-unsub.php";
+require_once get_template_directory() . "/inc/crm-mailer.php";
 require_once get_template_directory() . "/inc/ai-model-router.php";
+require_once get_template_directory() . "/inc/ai-cost-tracker.php";
+require_once get_template_directory() . "/inc/ai-cost-dashboard.php";
+require_once get_template_directory() . "/inc/ai-pre-call-brief.php";
+require_once get_template_directory() . "/inc/ai-weekly-brief.php";
+require_once get_template_directory() . "/inc/ai-anomaly-explainer.php";
+require_once get_template_directory() . "/inc/ai-page-performance.php";
+require_once get_template_directory() . "/inc/ai-icp-refiner.php";
+require_once get_template_directory() . "/inc/ai-form-ab-suggestor.php";
+require_once get_template_directory() . "/inc/ai-contract-followup.php";
+require_once get_template_directory() . "/inc/ai-sales-playbook.php";
+require_once get_template_directory() . "/inc/ai-ads-spend-reviewer.php";
+require_once get_template_directory() . "/inc/ai-ad-copy-generator.php";
+require_once get_template_directory() . "/inc/ai-cold-outreach.php";
 require_once get_template_directory() . "/inc/anthropic-crm-leads-inbox.php";
 require_once get_template_directory() . "/inc/keyword-research.php";
 require_once get_template_directory() . "/inc/anthropic-offer-ai.php";
@@ -1226,6 +1245,7 @@ if (is_readable($suggestions_php)) {
     require_once $suggestions_php;
 }
 require_once get_template_directory() . "/inc/crm-app.php";
+require_once get_template_directory() . "/inc/crm-app/defaults.php";
 require_once get_template_directory() . "/inc/contracts.php";
 
 function upsellio_setup()
@@ -1862,17 +1882,42 @@ function upsellio_assets()
         wp_enqueue_style("upsellio-main", $style_uri, ["upsellio-fonts"], $style_version);
         wp_enqueue_script("upsellio-ui", $ui_script_uri, [], $ui_script_version, true);
         wp_enqueue_script("upsellio-home", $home_script_uri, [], $home_script_version, true);
-        wp_enqueue_script("upsellio-main", $script_uri, ["upsellio-ui", "upsellio-home"], $script_version, true);
-        wp_localize_script(
-            "upsellio-main",
-            "upsellioData",
-            [
-                "ajaxUrl" => admin_url("admin-ajax.php"),
-                "blogNonce" => wp_create_nonce("upsellio_blog_filter"),
-                "blogIndexUrl" => upsellio_get_blog_index_url(),
-                "contactNonce" => wp_create_nonce("upsellio_contact_click"),
-                "skipAnalytics" => function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user(),
-            ]
+        add_action(
+            "wp_footer",
+            function () use ($script_uri, $script_version) {
+                ?>
+                <script>
+                  window.upsellioData = window.upsellioData || <?php echo wp_json_encode([
+                      "ajaxUrl" => admin_url("admin-ajax.php"),
+                      "blogNonce" => wp_create_nonce("upsellio_blog_filter"),
+                      "blogIndexUrl" => upsellio_get_blog_index_url(),
+                      "contactNonce" => wp_create_nonce("upsellio_contact_click"),
+                      "skipAnalytics" => function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user(),
+                  ], JSON_UNESCAPED_SLASHES); ?>;
+                  window.upsellioAds = window.upsellioAds || <?php echo wp_json_encode([
+                      "conversionLabel" => defined("UPSELLIO_GOOGLE_ADS_CONVERSION_LABEL") ? (string) UPSELLIO_GOOGLE_ADS_CONVERSION_LABEL : "",
+                  ], JSON_UNESCAPED_SLASHES); ?>;
+                  (function () {
+                    function loadUpsellioMain() {
+                      if (window.__upsellioMainLoaded) return;
+                      window.__upsellioMainLoaded = true;
+                      var script = document.createElement("script");
+                      script.src = <?php echo wp_json_encode($script_uri . "?ver=" . rawurlencode($script_version)); ?>;
+                      script.async = true;
+                      document.body.appendChild(script);
+                    }
+                    window.addEventListener("load", function () {
+                      if ("requestIdleCallback" in window) {
+                        window.requestIdleCallback(loadUpsellioMain, { timeout: 1200 });
+                        return;
+                      }
+                      window.setTimeout(loadUpsellioMain, 1);
+                    }, { once: true });
+                  })();
+                </script>
+                <?php
+            },
+            20
         );
         return;
     }
@@ -1890,6 +1935,13 @@ function upsellio_assets()
             "blogIndexUrl" => upsellio_get_blog_index_url(),
             "contactNonce" => wp_create_nonce("upsellio_contact_click"),
             "skipAnalytics" => function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user(),
+        ]
+    );
+    wp_localize_script(
+        "upsellio-main",
+        "upsellioAds",
+        [
+            "conversionLabel" => defined("UPSELLIO_GOOGLE_ADS_CONVERSION_LABEL") ? (string) UPSELLIO_GOOGLE_ADS_CONVERSION_LABEL : "",
         ]
     );
 }

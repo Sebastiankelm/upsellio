@@ -296,6 +296,32 @@
   line-height: 1.45;
 }
 
+.crm-inbox-group-toggle {
+  margin-top: 8px;
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.crm-inbox-group-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  text-decoration: none;
+  color: var(--text-3);
+  background: #fff;
+  border-right: 1px solid var(--border);
+}
+
+.crm-inbox-group-btn:last-child {
+  border-right: 0;
+}
+
+.crm-inbox-group-btn.is-active {
+  background: var(--text);
+  color: #fff;
+}
+
 /* Filtry — pill tabs */
 .crm-inbox-filters {
   display: flex;
@@ -358,12 +384,65 @@
   overscroll-behavior: contain;
 }
 
+.crm-inbox-bulk-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #eefaf7;
+  border-bottom: 1px solid #cfe8e2;
+  padding: 8px 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.crm-inbox-bulk-bar select {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.inbox-bulk-cb {
+  margin: 0 6px 0 2px;
+  align-self: center;
+  flex-shrink: 0;
+}
+
 /* ── THREAD CARD ── */
 .crm-inbox-thread-row {
   position: relative;
   display: flex;
   align-items: stretch;
   gap: 0;
+}
+
+.crm-inbox-thread-row.is-loading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.crm-inbox-thread-row.is-loading::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border: 2px solid rgba(13, 148, 136, 0.25);
+  border-top-color: #0d9488;
+  border-radius: 50%;
+  animation: upsInboxSpin 0.75s linear infinite;
+  z-index: 3;
+}
+
+@keyframes upsInboxSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .inbox-drag-handle {
@@ -473,6 +552,23 @@
   margin-bottom: 5px;
 }
 
+.crm-inbox-pin-btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text-3);
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 5px;
+  cursor: pointer;
+}
+
+.crm-inbox-pin-btn.is-active {
+  color: #b45309;
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
 .crm-inbox-thread-snippet {
   font-size: 11.5px;
   color: var(--text-2);
@@ -482,6 +578,22 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin: 0;
+}
+
+.crm-inbox-thread-snippet mark {
+  background: #fde68a;
+  color: #111827;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.crm-inbox-client-group-head {
+  padding: 6px 8px;
+  margin: 2px 0 6px;
+  font-size: 11px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .4px;
 }
 
 .crm-inbox-unread-dot {
@@ -1440,5 +1552,200 @@ textarea#inbox-compose-body:focus {
 
   .crm-inbox-shell.has-active-thread .crm-inbox-side.is-open {
     right: 0;
+  }
+}
+
+.crm-inbox-ai-signals {
+  grid-column: 2 / -1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: #f7faf9;
+  overflow-x: auto;
+}
+
+.crm-inbox-ai-pill {
+  border: 1px solid #d7ece7;
+  background: #fff;
+  color: var(--text);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.crm-inbox-ai-pill--link {
+  text-decoration: none;
+}
+
+.crm-inbox-thread-subject {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-inbox-badge--hot {
+  background: #e7fff8;
+  color: #0f766e;
+}
+
+.crm-inbox-badge--price {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.crm-inbox-thread-quick-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+  opacity: 0;
+  transition: opacity .16s ease;
+}
+
+.crm-inbox-thread-row:hover .crm-inbox-thread-quick-actions {
+  opacity: 1;
+}
+
+.crm-inbox-quick-open {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.crm-inbox-quick-reply {
+  display: none;
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px;
+  margin: 6px 0 8px 26px;
+}
+
+.crm-inbox-quick-reply.is-open {
+  display: block;
+}
+
+.crm-inbox-quick-reply-body {
+  width: 100%;
+  min-height: 72px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.crm-inbox-quick-reply-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.crm-inbox-quick-template-select {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+  font-size: 12px;
+}
+
+.crm-inbox-side-section {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+
+.crm-inbox-side-section > summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  list-style: none;
+}
+
+.crm-inbox-side-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.crm-inbox-side-section-body {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+  display: grid;
+  gap: 6px;
+}
+
+.crm-inbox-side-action-row {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.crm-inbox-side-rich {
+  max-height: 260px;
+  overflow: auto;
+}
+
+.crm-inbox-shortcuts-help {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 20, 16, 0.45);
+  z-index: 1200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.crm-inbox-shortcuts-help.is-open {
+  display: flex;
+}
+
+.crm-inbox-shortcuts-card {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 14px;
+}
+
+.crm-inbox-shortcuts-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.crm-inbox-shortcuts-card ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+@media (min-width: 861px) and (max-width: 1024px) {
+  .crm-inbox-shell {
+    grid-template-columns: 56px 230px minmax(0, 1fr) 180px;
+  }
+  .crm-inbox-side {
+    position: static;
+    width: auto;
+    height: auto;
+    box-shadow: none;
+    border-left: 1px solid var(--border);
+    padding: 8px;
+  }
+  .crm-inbox-side-toggle {
+    display: none;
   }
 }

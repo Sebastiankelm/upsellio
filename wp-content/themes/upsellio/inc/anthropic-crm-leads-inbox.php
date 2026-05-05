@@ -383,6 +383,14 @@ function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $ti
 
         return null;
     }
+    if (isset($raw["usage"]) && is_array($raw["usage"]) && function_exists("upsellio_ai_record_usage")) {
+        $task_label = $GLOBALS["upsellio_ai_current_task"] ?? "unknown";
+        upsellio_ai_record_usage(
+            (string) ($raw["model"] ?? $model),
+            $raw["usage"],
+            (string) $task_label
+        );
+    }
     $GLOBALS["upsellio_anthropic_crm_last_stop_reason"] = isset($raw["stop_reason"]) ? (string) $raw["stop_reason"] : "";
     $text = upsellio_anthropic_crm_extract_text_from_response_body($raw);
     if ($text === "") {
@@ -626,84 +634,116 @@ function upsellio_crm_run_ai_wp_lead_classification($lead_id)
     }
 
     $allowed_status = ["new", "contacted", "qualified", "proposal"];
-    $status_list = implode(", ", $allowed_status);
+    $lead_blob = [
+        "email" => (string) get_post_meta($lead_id, "_upsellio_lead_email", true),
+        "phone" => (string) get_post_meta($lead_id, "_upsellio_lead_phone", true),
+        "company" => (string) get_post_meta($lead_id, "_upsellio_lead_company", true),
+        "service" => (string) get_post_meta($lead_id, "_upsellio_lead_service", true),
+        "budget" => (string) get_post_meta($lead_id, "_upsellio_lead_budget", true),
+        "message" => (string) get_post_field("post_content", $lead_id),
+        "quiz_problem" => (string) get_post_meta($lead_id, "_upsellio_lead_quiz_problem", true),
+        "quiz_industry" => (string) get_post_meta($lead_id, "_upsellio_lead_quiz_industry", true),
+        "quiz_budget" => (string) get_post_meta($lead_id, "_upsellio_lead_quiz_budget", true),
+        "utm_source" => (string) get_post_meta($lead_id, "_upsellio_lead_utm_source", true),
+        "utm_medium" => (string) get_post_meta($lead_id, "_upsellio_lead_utm_medium", true),
+        "utm_campaign" => (string) get_post_meta($lead_id, "_upsellio_lead_utm_campaign", true),
+        "utm_term" => (string) get_post_meta($lead_id, "_upsellio_lead_utm_term", true),
+        "gclid" => get_post_meta($lead_id, "_upsellio_lead_gclid", true) ? "tak" : "nie",
+        "fbclid" => get_post_meta($lead_id, "_upsellio_lead_fbclid", true) ? "tak" : "nie",
+        "gsc_likely_query" => (string) get_post_meta($lead_id, "_upsellio_lead_gsc_likely_query", true),
+        "form_origin" => (string) get_post_meta($lead_id, "_upsellio_lead_form_origin", true),
+        "form_variant" => (string) get_post_meta($lead_id, "_upsellio_lead_form_variant", true),
+        "landing_url" => (string) get_post_meta($lead_id, "_upsellio_lead_landing_url", true),
+    ];
 
-    $name = (string) $post->post_title;
-    $email = (string) get_post_meta($lead_id, "_upsellio_lead_email", true);
-    $phone = (string) get_post_meta($lead_id, "_upsellio_lead_phone", true);
-    $company = (string) get_post_meta($lead_id, "_upsellio_lead_company", true);
-    $service = (string) get_post_meta($lead_id, "_upsellio_lead_service", true);
-    $budget = (string) get_post_meta($lead_id, "_upsellio_lead_budget", true);
-    $goal = (string) get_post_meta($lead_id, "_upsellio_lead_goal", true);
-    $message = (string) $post->post_content;
-    $origin = (string) get_post_meta($lead_id, "_upsellio_lead_form_origin", true);
-
-    $blob = "Tytul: {$name}\nEmail: {$email}\nTel: {$phone}\nFirma: {$company}\nUsluga: {$service}\nBudzet: {$budget}\nCel: {$goal}\nZrodlo formularza: {$origin}\n\nWiadomosc:\n{$message}";
-
-    $utm_src = sanitize_text_field((string) get_post_meta($lead_id, "_upsellio_lead_utm_source", true));
-    $utm_cmp = sanitize_text_field((string) get_post_meta($lead_id, "_upsellio_lead_utm_campaign", true));
-    if (function_exists("upsellio_automation_format_ga4_channel_for_ai")) {
-        $ch_line = upsellio_automation_format_ga4_channel_for_ai($utm_src, $utm_cmp);
-        if ($ch_line !== "") {
-            $blob .= "\n\nDane kanału marketingowego:\n" . $ch_line;
-        }
-    }
-
-    if (post_type_exists("crm_offer")) {
-        $won_ids = get_posts([
-            "post_type" => "crm_offer",
-            "post_status" => ["publish", "private"],
-            "posts_per_page" => 3,
-            "orderby" => "modified",
-            "order" => "DESC",
-            "fields" => "ids",
-            "meta_query" => [
-                [
-                    "key" => "_ups_offer_status",
-                    "value" => "won",
-                ],
-            ],
-        ]);
-        $won_ctx = "";
-        foreach ($won_ids as $wid) {
-            $wid = (int) $wid;
-            $ttl = get_the_title($wid);
-            $price = (string) get_post_meta($wid, "_ups_offer_price", true);
-            if ($ttl !== "") {
-                $won_ctx .= "- " . $ttl . ($price !== "" ? ": " . $price . " PLN" : "") . "\n";
+    $wins = get_option("ups_ai_wins_snapshot", []);
+    $matching_wins = [];
+    if (is_array($wins) && is_array($wins["offers"] ?? null)) {
+        foreach ($wins["offers"] as $offer) {
+            if (is_array($offer)) {
+                $matching_wins[] = $offer;
             }
         }
-        if ($won_ctx !== "") {
-            $blob .= "\n\nPrzykłady wygranych projektów:\n" . trim($won_ctx);
+    }
+    $avg_close_segment = "";
+    if (count($matching_wins) > 0) {
+        $values = array_map(static function ($row) {
+            return (float) ($row["value"] ?? $row["close_value"] ?? $row["price"] ?? 0);
+        }, $matching_wins);
+        $values = array_filter($values, static function ($v) {
+            return $v > 0;
+        });
+        if (!empty($values)) {
+            $avg = array_sum($values) / count($values);
+            $avg_close_segment = sprintf(
+                "Średnia wartość zamknięcia w tym segmencie (problem=%s, industry=%s): %s zł, n=%d",
+                (string) ($lead_blob["quiz_problem"] ?? ""),
+                (string) ($lead_blob["quiz_industry"] ?? ""),
+                number_format($avg, 0),
+                count($values)
+            );
         }
     }
 
-    if (function_exists("upsellio_ai_master_context")) {
-        $master_ctx = upsellio_ai_master_context("scoring");
-        if ($master_ctx !== "") {
-            $blob .= "\n\nKontekst operacyjny (agregat dzienny — kalibracja scoringu vs Twoja historia):\n" . $master_ctx;
-        }
-    }
+    $system = <<<'EOT'
+Jesteś analitykiem B2B specjalizującym się w ocenie leadów dla agencji marketingowej premium (Google Ads + Meta Ads + strony B2B).
 
-    $prompt = upsellio_anthropic_crm_compose_api_prompt("lead_score", [
-        "lead_status_list" => $status_list,
-        "lead_blob" => $blob,
-        "lead_data" => $blob,
-        "lead_name" => $name,
-        "lead_email" => $email,
-        "lead_phone" => $phone,
-        "lead_company" => $company,
-        "lead_service" => $service,
-        "lead_budget" => $budget,
-        "lead_goal" => $goal,
-        "lead_message" => $message,
-        "lead_form_origin" => $origin,
-    ]);
+ICP (Ideal Customer Profile):
+- Firma B2B z budżetem reklamowym min. 5 000 PLN/mc po stronie klienta
+- Cykl decyzyjny: 2-12 tygodni
+- Przewidywalna marża pozwalająca na CPL 80-300 zł
+- Świadomy zakup (nie "sprawdzam ceny")
+
+Sygnały HIGH (boost score):
+- Quiz industry = e-commerce, SaaS, B2B usługi, produkcja
+- Quiz budget = 5-10k lub 10k+
+- gclid lub fbclid present (klient płatny — wyższa intencja niż organic random)
+- gsc_likely_query zawiera "agencja", "audyt", "specjalista" (commercial intent)
+- form_variant = full (pełna intencja, nie quick-grab email)
+- Wiadomość >= 50 znaków z konkretem
+- utm_term zawiera nazwę usługi (target intent)
+
+Sygnały LOW (penalize):
+- Quiz budget = <2k
+- Email z domeny konsumenckiej (gmail, wp.pl) bez firmowej
+- form_variant = micro/email-only
+- Wiadomość krótsza niż 30 znaków lub generic ("proszę o kontakt")
+- utm_source zawiera "konkurencja" lub "stażysta"
+
+Skala 0-100:
+- 0-20: spam / nie pasuje (np. ktoś szuka pracy)
+- 21-40: słaby — niski budżet lub niskie sygnały intencji
+- 41-60: potencjał — warto rozmowy 30-min
+- 61-80: dobry — wysoki priorytet, oddzwonić w 24h
+- 81-100: gorący — oddzwonić w godzinę
+
+Kontekst aggregatowy z bazy będzie dołączony niżej.
+
+Odpowiadasz WYŁĄCZNIE JSON: {"lead_score": <0-100>, "lead_status": "new|contacted|qualified|proposal", "score_reason": "2-3 zdania konkretu PO POLSKU"}
+EOT;
+
+    $user_block = "DANE LEADA:\n" . wp_json_encode($lead_blob, JSON_UNESCAPED_UNICODE) . "\n\n";
+    if ($avg_close_segment !== "") {
+        $user_block .= "WARTOŚĆ HISTORYCZNA:\n" . $avg_close_segment . "\n\n";
+    }
+    $master_ctx = function_exists("upsellio_ai_master_context")
+        ? (string) upsellio_ai_master_context("scoring")
+        : "";
+    $cache_split = $master_ctx !== ""
+        ? ["cached" => $system . "\n\n" . $master_ctx, "dynamic" => $user_block]
+        : null;
+    $prompt = $cache_split
+        ? ""
+        : $system . "\n\n" . $master_ctx . "\n\n" . $user_block;
 
     $score_model = function_exists("upsellio_ai_model_for")
         ? upsellio_ai_model_for("lead_scoring")
         : upsellio_anthropic_crm_resolve_model();
-    $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 280, 28, $score_model);
+    if (function_exists("upsellio_ai_can_call") && !upsellio_ai_can_call("lead_scoring", 0.01)) {
+        return;
+    }
+    $GLOBALS["upsellio_ai_current_task"] = "lead_scoring";
+    $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 320, 24, $score_model, $cache_split);
     if ($raw === null) {
         if (function_exists("upsellio_crm_add_timeline_event")) {
             upsellio_crm_add_timeline_event($lead_id, "ai_score", "Klasyfikacja AI: brak odpowiedzi API.");
@@ -823,13 +863,24 @@ function upsellio_crm_inbox_ai_draft_reply_ajax()
         } else {
             $plain_last = substr($plain_last, 0, 400);
         }
+        $cache_key = "ups_intent_" . md5((string) $offer_id . "|" . $plain_last);
+        $intent_cached = get_transient($cache_key);
         $intent_mini = "Sklasyfikuj ostatnią wiadomość klienta jednym tokenem (EN, snake_case): "
             . "price_question|timing_objection|positive_signal|ready_to_buy|no_interest|other.\n"
             . "Odpowiedz tylko tym jednym tokenem, bez zdań.\n\nWiadomość:\n" . $plain_last;
-        $intent_model = function_exists("upsellio_ai_model_for")
-            ? upsellio_ai_model_for("intent_classify")
-            : upsellio_anthropic_crm_resolve_model();
-        $intent_raw = upsellio_anthropic_crm_send_user_prompt($intent_mini, 64, 14, $intent_model);
+        $intent_raw = is_string($intent_cached) ? $intent_cached : null;
+        if ($intent_raw === null || trim($intent_raw) === "") {
+            $intent_model = function_exists("upsellio_ai_model_for")
+                ? upsellio_ai_model_for("intent_classify")
+                : upsellio_anthropic_crm_resolve_model();
+            if (!function_exists("upsellio_ai_can_call") || upsellio_ai_can_call("intent_classify", 0.005)) {
+                $GLOBALS["upsellio_ai_current_task"] = "intent_classify";
+                $intent_raw = upsellio_anthropic_crm_send_user_prompt($intent_mini, 64, 14, $intent_model);
+                if (is_string($intent_raw) && trim($intent_raw) !== "") {
+                    set_transient($cache_key, $intent_raw, DAY_IN_SECONDS);
+                }
+            }
+        }
         $intent_key = "";
         if ($intent_raw !== null && trim((string) $intent_raw) !== "") {
             $ir = trim((string) $intent_raw);
@@ -1095,7 +1146,11 @@ function upsellio_crm_ai_inbox_followup_hourly_run()
             continue;
         }
 
-        $subject = $subject_in !== "" ? $subject_in : ("Re: " . $title);
+        $last_inbound_msg_id = function_exists("upsellio_inbox_last_inbound_message_id")
+            ? upsellio_inbox_last_inbound_message_id($offer_id)
+            : "";
+        $is_real_reply = $last_inbound_msg_id !== "";
+        $subject = $subject_in !== "" ? $subject_in : ($is_real_reply ? ("Re: " . $title) : $title);
         if ($dry_run) {
             $preview = wp_trim_words($body_plain, 120, "…");
             if (function_exists("upsellio_offer_add_timeline_event")) {
@@ -1124,16 +1179,14 @@ function upsellio_crm_ai_inbox_followup_hourly_run()
             nl2br(esc_html($body_plain)) .
             "</body></html>";
 
-        $settings = upsellio_followup_get_sender_settings();
-        $mail_args = [
-            "crm_smtp" => true,
-            "to" => $to_emails,
-            "cc" => $cc_emails,
-            "bcc" => [],
-        ];
-
         $primary_to = $to_emails[0];
-        $sent = upsellio_followup_send_html_mail($primary_to, $subject, $html_core, $mail_args);
+        $sent = function_exists("upsellio_send_crm_mail")
+            ? upsellio_send_crm_mail($primary_to, $subject, nl2br(esc_html($body_plain)), [
+                "type" => "transactional",
+                "preheader" => wp_trim_words(wp_strip_all_tags($body_plain), 12),
+                "in_reply_to" => $last_inbound_msg_id,
+            ])
+            : upsellio_followup_send_html_mail($primary_to, $subject, $html_core, ["crm_smtp" => true, "to" => $to_emails, "cc" => $cc_emails, "bcc" => []]);
         if (!$sent) {
             if (function_exists("upsellio_mailbox_log")) {
                 upsellio_mailbox_log("mail", "warning", "AI follow-up: wysylka nieudana dla oferty #" . $offer_id, "");
@@ -1141,9 +1194,8 @@ function upsellio_crm_ai_inbox_followup_hourly_run()
             continue;
         }
 
-        $html_for_meta = function_exists("upsellio_followup_finalize_crm_html")
-            ? upsellio_followup_finalize_crm_html($html_core, $mail_args)
-            : $html_core;
+        $settings = function_exists("upsellio_followup_get_sender_settings") ? upsellio_followup_get_sender_settings() : ["from_email" => ""];
+        $html_for_meta = $html_core;
 
         upsellio_inbox_append_message($offer_id, [
             "direction" => "out",
@@ -1199,6 +1251,18 @@ function upsellio_anthropic_crm_build_offer_description_prompt(array $vars)
         "client_name" => (string) ($vars["client_name"] ?? ""),
         "offer_context" => (string) ($vars["offer_context"] ?? ""),
     ]);
+}
+
+function upsellio_inbox_last_inbound_message_id(int $offer_id): string
+{
+    $thread = (array) get_post_meta($offer_id, "_ups_offer_inbox_thread", true);
+    $thread = array_reverse($thread);
+    foreach ($thread as $msg) {
+        if (($msg["direction"] ?? "") === "in" && !empty($msg["message_id"])) {
+            return (string) $msg["message_id"];
+        }
+    }
+    return "";
 }
 
 add_action("upsellio_crm_ai_inbox_followup_hourly", "upsellio_crm_ai_inbox_followup_hourly_run");

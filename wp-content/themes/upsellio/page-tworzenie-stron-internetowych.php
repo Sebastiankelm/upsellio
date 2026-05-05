@@ -298,7 +298,7 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
         <a href="#proces">Proces</a>
         <a href="#faq">FAQ</a>
       </div>
-      <a href="#kontakt" class="web-quick-cta">Sprawdź stronę</a>
+      <a href="#kontakt" class="web-quick-cta" data-cta="web-quick-cta" data-cta-section="hero" data-cta-position="topbar">Sprawdź stronę</a>
     </div>
   </div>
 
@@ -313,7 +313,7 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
           <p>Różnica między stroną, która konwertuje, a stroną, która nie konwertuje, rzadko leży w grafice. Leży w jasności komunikatu, strukturze przekonywania i zaufaniu budowanym przez liczby, opinie, case studies oraz konkretne CTA.</p>
         </div>
         <div class="web-btn-row">
-          <a href="#kontakt" class="web-btn web-btn-primary">Chcę bezpłatną analizę strony</a>
+          <a href="#kontakt" class="web-btn web-btn-primary" data-cta="web-hero-analysis" data-cta-section="hero" data-cta-position="primary">Chcę bezpłatną analizę strony</a>
           <a href="#elementy" class="web-btn web-btn-secondary">Zobacz elementy skutecznej strony</a>
           <a href="#typy" class="web-btn web-btn-ghost">Strona czy landing page?</a>
         </div>
@@ -392,7 +392,7 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
           <strong>Nie zawsze potrzebujesz nowej strony. Czasem wystarczy naprawić sekcje, które blokują kontakt.</strong>
           <p>Audyt konwersji pokazuje, czy problem leży w treści, strukturze, szybkości, CTA, zaufaniu czy dopasowaniu do kampanii reklamowej.</p>
         </div>
-        <a href="#kontakt" class="web-btn web-btn-primary">Sprawdźmy obecną stronę</a>
+        <a href="#kontakt" class="web-btn web-btn-primary" data-cta="web-check-current" data-cta-section="services" data-cta-position="inline">Sprawdźmy obecną stronę</a>
       </div>
     </div>
   </section>

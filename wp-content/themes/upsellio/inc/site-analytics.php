@@ -19,9 +19,8 @@ function upsellio_site_analytics_page_slug(): string
  */
 function upsellio_site_analytics_admin_url(array $extra = []): string
 {
-    $query = array_merge(["page" => upsellio_site_analytics_page_slug()], $extra);
-
-    return add_query_arg($query, admin_url("admin.php"));
+    $query = array_merge(["view" => "analytics", "atab" => "today"], $extra);
+    return add_query_arg($query, home_url("/crm-app/"));
 }
 
 /**
@@ -59,26 +58,25 @@ function upsellio_site_analytics_redirect_from_wp_settings(): void
 
 function upsellio_site_analytics_menu(): void
 {
-    add_menu_page(
-        __("Analityka SEO i konwersji", "upsellio"),
-        __("Analityka SEO", "upsellio"),
-        "edit_posts",
-        upsellio_site_analytics_page_slug(),
-        "upsellio_render_site_analytics_page",
-        "dashicons-chart-area",
-        59
-    );
-
-    add_submenu_page(
-        "options-general.php",
-        __("Analityka SEO (GSC, GA4, konwersje)", "upsellio"),
-        __("Analityka SEO", "upsellio"),
-        "edit_posts",
-        "upsellio-analytics-from-settings",
-        "upsellio_site_analytics_redirect_from_wp_settings"
-    );
+    // Deprecated: analytics moved to CRM app.
+    add_action("admin_init", "upsellio_site_analytics_redirect_to_crm_app");
 }
 add_action("admin_menu", "upsellio_site_analytics_menu");
+
+function upsellio_site_analytics_redirect_to_crm_app(): void
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+    if (!isset($_GET["page"]) || (string) wp_unslash($_GET["page"]) !== upsellio_site_analytics_page_slug()) {
+        return;
+    }
+    $old_section = isset($_GET["section"]) ? sanitize_key((string) wp_unslash($_GET["section"])) : "overview";
+    $tab_map = ["overview" => "today", "seo" => "seo", "ads" => "paid", "sales" => "sales"];
+    $atab = isset($tab_map[$old_section]) ? $tab_map[$old_section] : "today";
+    wp_safe_redirect(add_query_arg(["view" => "analytics", "atab" => $atab], home_url("/crm-app/")));
+    exit;
+}
 
 function upsellio_is_trackable_content_view()
 {
@@ -872,6 +870,7 @@ function upsellio_handle_gsc_sync_submit()
     $property = isset($_POST["gsc_property"]) ? wp_unslash($_POST["gsc_property"]) : "";
     $sync_days = isset($_POST["gsc_sync_days"]) ? (int) $_POST["gsc_sync_days"] : 30;
     $sync_days = in_array($sync_days, [7, 14, 30, 60, 90], true) ? $sync_days : 30;
+    update_option("upsellio_gsc_sync_days_last", $sync_days, false);
     $trace_id = upsellio_gsc_debug_trace_id();
 
     upsellio_gsc_log("gsc.sync.form_submit", [
@@ -917,6 +916,37 @@ function upsellio_handle_gsc_sync_submit()
 }
 add_action("admin_init", "upsellio_handle_gsc_sync_submit");
 
+function upsellio_gsc_daily_sync_job()
+{
+    $credentials = upsellio_get_gsc_credentials();
+    if (
+        !is_array($credentials) ||
+        (string) ($credentials["client_id"] ?? "") === "" ||
+        (string) ($credentials["client_secret"] ?? "") === "" ||
+        (string) ($credentials["refresh_token"] ?? "") === "" ||
+        (string) ($credentials["property"] ?? "") === ""
+    ) {
+        return;
+    }
+
+    $sync_days = (int) get_option("upsellio_gsc_sync_days_last", 30);
+    $sync_days = in_array($sync_days, [7, 14, 30, 60, 90], true) ? $sync_days : 30;
+    $trace_id = "gsc_cron_" . (function_exists("wp_generate_uuid4") ? wp_generate_uuid4() : uniqid("", true));
+    $rows = upsellio_gsc_fetch_rows($credentials, $sync_days, $trace_id);
+    if (is_wp_error($rows) || $rows === []) {
+        if (is_wp_error($rows)) {
+            upsellio_gsc_log("gsc.cron.failed", ["message" => $rows->get_error_message()], $trace_id);
+        }
+
+        return;
+    }
+
+    update_option("upsellio_keyword_metrics_rows", array_values($rows), false);
+    update_option("upsellio_keyword_metrics_source", "gsc_live", false);
+    update_option("upsellio_keyword_metrics_last_sync", wp_date("Y-m-d H:i:s"), false);
+    upsellio_gsc_log("gsc.cron.success", ["rows" => count($rows)], $trace_id);
+}
+
 function upsellio_handle_gsc_logs_clear_submit()
 {
     if (!is_admin() || !current_user_can("edit_posts")) {
@@ -938,6 +968,36 @@ function upsellio_handle_gsc_logs_clear_submit()
     exit;
 }
 add_action("admin_init", "upsellio_handle_gsc_logs_clear_submit");
+
+function upsellio_handle_site_analytics_goals_submit()
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+    if (!isset($_POST["upsellio_analytics_goals_submit"])) {
+        return;
+    }
+    check_admin_referer("upsellio_analytics_goals_action", "upsellio_analytics_goals_nonce");
+
+    $lead_target = isset($_POST["ups_goal_leads"]) ? max(0, (int) $_POST["ups_goal_leads"]) : 0;
+    $won_target = isset($_POST["ups_goal_won"]) ? max(0, (int) $_POST["ups_goal_won"]) : 0;
+    $revenue_target = isset($_POST["ups_goal_revenue"]) ? max(0, (float) $_POST["ups_goal_revenue"]) : 0.0;
+    update_option("ups_analytics_goal_leads", $lead_target, false);
+    update_option("ups_analytics_goal_won", $won_target, false);
+    update_option("ups_analytics_goal_revenue", $revenue_target, false);
+
+    wp_safe_redirect(
+        add_query_arg(
+            [
+                "page" => upsellio_site_analytics_page_slug(),
+                "ups_goals_saved" => "1",
+            ],
+            admin_url("admin.php")
+        )
+    );
+    exit;
+}
+add_action("admin_init", "upsellio_handle_site_analytics_goals_submit");
 
 /**
  * Opcja: wymuszenie redirect URI (musi być tym samym co w Google Cloud + ten sam host co strona).
@@ -1140,7 +1200,7 @@ function upsellio_google_oauth_scope_string()
         "https://www.googleapis.com/auth/webmasters.readonly",
         "https://www.googleapis.com/auth/analytics.readonly",
     ];
-    if ((string) get_option("upsellio_google_ads_include_scope", "0") === "1") {
+    if ((string) get_option("upsellio_google_ads_include_scope", "1") === "1") {
         $default[] = "https://www.googleapis.com/auth/adwords";
     }
     $scopes = apply_filters("upsellio_google_oauth_scopes", $default);
@@ -2261,6 +2321,32 @@ function upsellio_get_keyword_metrics_for_url($url, $rows)
 
 function upsellio_build_page_recommendations($row)
 {
+    $post_id = (int) ($row["post_id"] ?? 0);
+    $ai_suggestions = get_option("ups_ai_page_perf_suggestions", []);
+    if ($post_id > 0 && is_array($ai_suggestions) && !empty($ai_suggestions)) {
+        if (isset($ai_suggestions[$post_id]) && is_array($ai_suggestions[$post_id])) {
+            $actions = isset($ai_suggestions[$post_id]["actions"]) && is_array($ai_suggestions[$post_id]["actions"])
+                ? $ai_suggestions[$post_id]["actions"]
+                : [];
+            if (!empty($actions)) {
+                return array_slice(array_map("strval", $actions), 0, 3);
+            }
+        }
+        foreach ($ai_suggestions as $ai_row) {
+            if (!is_array($ai_row)) {
+                continue;
+            }
+            if ((int) ($ai_row["post_id"] ?? 0) !== $post_id) {
+                continue;
+            }
+            $actions = isset($ai_row["actions"]) && is_array($ai_row["actions"]) ? $ai_row["actions"] : [];
+            if (!empty($actions)) {
+                return array_slice(array_map("strval", $actions), 0, 3);
+            }
+            break;
+        }
+    }
+
     $tips = [];
     if ((float) $row["avg_position"] > 10 && (float) $row["avg_position"] <= 20 && (int) $row["impressions"] >= 100) {
         $tips[] = "Pozycje 11-20: rozbuduj sekcje H2/H3 i dodaj linkowanie wewnętrzne do tej strony.";
@@ -2332,6 +2418,244 @@ function upsellio_calculate_roi_score($row)
     ];
 }
 
+function upsellio_calculate_period_delta_percent($current, $previous)
+{
+    $current = (float) $current;
+    $previous = (float) $previous;
+    if ($previous <= 0.0) {
+        return $current > 0 ? 100.0 : 0.0;
+    }
+
+    return round((($current - $previous) / $previous) * 100, 1);
+}
+
+function upsellio_is_anomaly_delta($delta_pct)
+{
+    return abs((float) $delta_pct) >= 25.0;
+}
+
+function upsellio_build_query_to_lead_value_rows(array $keyword_rows, string $from_date): array
+{
+    if (function_exists("upsellio_analytics_query_lead_value")) {
+        $days = 30;
+        $from_ts = strtotime($from_date);
+        if ($from_ts !== false) {
+            $days = max(1, (int) floor((time() - $from_ts) / DAY_IN_SECONDS));
+        }
+        $data = upsellio_analytics_query_lead_value($days, 1200);
+        return (array) ($data["rows"] ?? []);
+    }
+    $lead_ids = get_posts([
+        "post_type" => "lead",
+        "post_status" => "publish",
+        "posts_per_page" => 1200,
+        "date_query" => [[
+            "after" => $from_date,
+            "inclusive" => true,
+        ]],
+        "fields" => "ids",
+    ]);
+
+    $keyword_index = [];
+    foreach (array_slice($keyword_rows, 0, 1200) as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $query = trim((string) ($row["keyword"] ?? ""));
+        if ($query === "") {
+            continue;
+        }
+        $key = mb_strtolower($query);
+        if (!isset($keyword_index[$key])) {
+            $keyword_index[$key] = [
+                "query" => $query,
+                "impressions" => 0,
+                "clicks" => 0,
+                "leads" => 0,
+                "won" => 0,
+                "value" => 0.0,
+            ];
+        }
+        $keyword_index[$key]["impressions"] += (int) ($row["impressions"] ?? 0);
+        $keyword_index[$key]["clicks"] += (int) ($row["clicks"] ?? 0);
+    }
+
+    foreach ($lead_ids as $lead_id) {
+        $lead_id = (int) $lead_id;
+        $likely_query = trim((string) get_post_meta($lead_id, "_upsellio_lead_gsc_likely_query", true));
+        if ($likely_query === "") {
+            continue;
+        }
+        $key = mb_strtolower($likely_query);
+        if (!isset($keyword_index[$key])) {
+            $keyword_index[$key] = [
+                "query" => $likely_query,
+                "impressions" => 0,
+                "clicks" => 0,
+                "leads" => 0,
+                "won" => 0,
+                "value" => 0.0,
+            ];
+        }
+        $keyword_index[$key]["leads"]++;
+        $won_slugs = wp_get_object_terms($lead_id, "lead_status", ["fields" => "slugs"]);
+        $is_won = is_array($won_slugs) && in_array("won", $won_slugs, true);
+        if ($is_won) {
+            $keyword_index[$key]["won"]++;
+            $keyword_index[$key]["value"] += (float) get_post_meta($lead_id, "_upsellio_lead_close_value", true);
+        }
+    }
+
+    $rows = array_values($keyword_index);
+    foreach ($rows as &$row) {
+        $imp = (int) $row["impressions"];
+        $val = (float) $row["value"];
+        $row["rpm"] = $imp > 0 ? round(($val / $imp) * 1000, 2) : 0.0;
+    }
+    unset($row);
+
+    usort($rows, static function ($a, $b) {
+        return (($b["value"] ?? 0) <=> ($a["value"] ?? 0))
+            ?: (($b["leads"] ?? 0) <=> ($a["leads"] ?? 0))
+            ?: (($b["clicks"] ?? 0) <=> ($a["clicks"] ?? 0));
+    });
+
+    return array_slice($rows, 0, 40);
+}
+
+function upsellio_build_channel_ltv_rows(array $ga4_rows, string $from_date): array
+{
+    $channels = [];
+    foreach ($ga4_rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $source = sanitize_text_field((string) ($row["source"] ?? "(direct)"));
+        $medium = sanitize_text_field((string) ($row["medium"] ?? ""));
+        $key = strtolower(trim($source . "|" . $medium));
+        if (!isset($channels[$key])) {
+            $channels[$key] = [
+                "source" => $source,
+                "medium" => $medium,
+                "sessions" => 0,
+                "ga4_conversions" => 0,
+                "leads" => 0,
+                "won" => 0,
+                "value" => 0.0,
+            ];
+        }
+        $channels[$key]["sessions"] += (int) ($row["sessions"] ?? 0);
+        $channels[$key]["ga4_conversions"] += (int) round((float) ($row["conversions"] ?? 0));
+    }
+
+    $lead_ids = get_posts([
+        "post_type" => "lead",
+        "post_status" => "publish",
+        "posts_per_page" => 1200,
+        "date_query" => [[
+            "after" => $from_date,
+            "inclusive" => true,
+        ]],
+        "fields" => "ids",
+    ]);
+    foreach ($lead_ids as $lead_id) {
+        $lead_id = (int) $lead_id;
+        $source = sanitize_text_field((string) get_post_meta($lead_id, "_upsellio_lead_utm_source", true));
+        $medium = sanitize_text_field((string) get_post_meta($lead_id, "_upsellio_lead_utm_medium", true));
+        $key = strtolower(trim(($source !== "" ? $source : "(direct)") . "|" . $medium));
+        if (!isset($channels[$key])) {
+            $channels[$key] = [
+                "source" => $source !== "" ? $source : "(direct)",
+                "medium" => $medium,
+                "sessions" => 0,
+                "ga4_conversions" => 0,
+                "leads" => 0,
+                "won" => 0,
+                "value" => 0.0,
+            ];
+        }
+        $channels[$key]["leads"]++;
+        $won_slugs = wp_get_object_terms($lead_id, "lead_status", ["fields" => "slugs"]);
+        $is_won = is_array($won_slugs) && in_array("won", $won_slugs, true);
+        if ($is_won) {
+            $channels[$key]["won"]++;
+            $channels[$key]["value"] += (float) get_post_meta($lead_id, "_upsellio_lead_close_value", true);
+        }
+    }
+
+    $rows = array_values($channels);
+    foreach ($rows as &$row) {
+        $sessions = max(0, (int) $row["sessions"]);
+        $leads = max(0, (int) $row["leads"]);
+        $won = max(0, (int) $row["won"]);
+        $value = (float) $row["value"];
+        $row["cr_sessions_to_lead"] = $sessions > 0 ? round(($leads / $sessions) * 100, 2) : 0.0;
+        $row["ltv_per_session"] = $sessions > 0 ? round($value / $sessions, 2) : 0.0;
+        $row["win_rate"] = $leads > 0 ? round(($won / $leads) * 100, 2) : 0.0;
+    }
+    unset($row);
+
+    usort($rows, static function ($a, $b) {
+        return (($b["value"] ?? 0) <=> ($a["value"] ?? 0))
+            ?: (($b["leads"] ?? 0) <=> ($a["leads"] ?? 0));
+    });
+
+    return array_slice($rows, 0, 30);
+}
+
+function upsellio_build_landing_funnel_rows(array $report_rows, string $from_date): array
+{
+    $rows = [];
+    foreach (array_slice($report_rows, 0, 60) as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $path = (string) wp_parse_url((string) ($row["url"] ?? ""), PHP_URL_PATH);
+        $won = 0;
+        $value = 0.0;
+        $lead_ids = get_posts([
+            "post_type" => "lead",
+            "post_status" => "publish",
+            "posts_per_page" => 500,
+            "date_query" => [[
+                "after" => $from_date,
+                "inclusive" => true,
+            ]],
+            "meta_query" => [[
+                "key" => "_upsellio_lead_landing_url",
+                "value" => $path,
+                "compare" => "LIKE",
+            ]],
+            "fields" => "ids",
+        ]);
+        foreach ($lead_ids as $lead_id) {
+            $lead_id = (int) $lead_id;
+            $won_slugs = wp_get_object_terms($lead_id, "lead_status", ["fields" => "slugs"]);
+            if (is_array($won_slugs) && in_array("won", $won_slugs, true)) {
+                $won++;
+                $value += (float) get_post_meta($lead_id, "_upsellio_lead_close_value", true);
+            }
+        }
+        $rows[] = [
+            "title" => (string) ($row["title"] ?? ""),
+            "path" => $path,
+            "impressions" => (int) ($row["impressions"] ?? 0),
+            "clicks" => (int) ($row["clicks"] ?? 0),
+            "sessions" => (int) ($row["views_30d"] ?? 0),
+            "leads" => (int) ($row["leads"] ?? 0),
+            "won" => $won,
+            "value" => round($value, 2),
+        ];
+    }
+    usort($rows, static function ($a, $b) {
+        return (($b["value"] ?? 0) <=> ($a["value"] ?? 0))
+            ?: (($b["leads"] ?? 0) <=> ($a["leads"] ?? 0))
+            ?: (($b["sessions"] ?? 0) <=> ($a["sessions"] ?? 0));
+    });
+
+    return array_slice($rows, 0, 20);
+}
+
 function upsellio_render_site_analytics_page()
 {
     if (!current_user_can("edit_posts")) {
@@ -2371,6 +2695,7 @@ function upsellio_render_site_analytics_page()
         $views_last_7 = upsellio_get_post_views_for_dates($post_id, $last_7_dates);
         $views_prev_7 = upsellio_get_post_views_for_dates($post_id, $prev_7_dates);
         $trend_delta = $views_last_7 - $views_prev_7;
+        $trend_delta_pct = upsellio_calculate_period_delta_percent($views_last_7, $views_prev_7);
         $leads = upsellio_get_leads_for_post_url($post_url, $from_date);
         $keyword_metrics = upsellio_get_keyword_metrics_for_url($post_url, $keyword_rows);
         $avg_position = (float) $keyword_metrics["avg_position"];
@@ -2385,6 +2710,7 @@ function upsellio_render_site_analytics_page()
             "url" => $post_url,
             "views_30d" => $views_30d,
             "trend_delta" => $trend_delta,
+            "trend_delta_pct" => $trend_delta_pct,
             "leads" => $leads,
             "conversion_rate" => $conversion_rate,
             "avg_position" => $avg_position,
@@ -2416,6 +2742,24 @@ function upsellio_render_site_analytics_page()
     $conversion_total = $total_views > 0 ? round(($total_leads / $total_views) * 100, 2) : 0;
     $ctr_total = $total_impressions > 0 ? round(($total_clicks / $total_impressions) * 100, 2) : 0;
 
+    $prev_dates = upsellio_get_analytics_dates($days * 2);
+    $prev_period_dates = array_slice($prev_dates, 0, $days);
+    $prev_views_series = upsellio_get_daily_views_series($prev_period_dates);
+    $prev_leads_series = upsellio_get_daily_leads_series($prev_period_dates);
+    $prev_keyword_series = upsellio_get_daily_keyword_series($keyword_rows, $prev_period_dates);
+    $prev_views_total = (int) array_sum($prev_views_series);
+    $prev_leads_total = (int) array_sum($prev_leads_series);
+    $prev_impressions_total = 0;
+    $prev_clicks_total = 0;
+    foreach ($prev_keyword_series as $prev_keyword_day) {
+        $prev_impressions_total += (int) ($prev_keyword_day["impressions"] ?? 0);
+        $prev_clicks_total += (int) ($prev_keyword_day["clicks"] ?? 0);
+    }
+    $views_delta_pct = upsellio_calculate_period_delta_percent($total_views, $prev_views_total);
+    $leads_delta_pct = upsellio_calculate_period_delta_percent($total_leads, $prev_leads_total);
+    $impressions_delta_pct = upsellio_calculate_period_delta_percent($total_impressions, $prev_impressions_total);
+    $clicks_delta_pct = upsellio_calculate_period_delta_percent($total_clicks, $prev_clicks_total);
+
     $keywords_view = $keyword_rows;
     usort($keywords_view, function ($a, $b) {
         return ((float) $a["position"]) <=> ((float) $b["position"]);
@@ -2444,16 +2788,200 @@ function upsellio_render_site_analytics_page()
         return ((int) $b["roi"]["score"]) <=> ((int) $a["roi"]["score"]);
     });
     $priority_rows = array_slice($priority_rows, 0, 10);
+    $join_cache_suffix = md5(
+        wp_json_encode([
+            "from" => $from_date,
+            "keyword_rows" => count($keyword_rows),
+            "report_rows" => count($report_rows),
+            "ga4_rows" => count((array) get_option("ups_automation_ga4_daily_aggregates", [])),
+            "leads_last_changed" => (string) get_option("upsellio_crm_last_changed", ""),
+        ])
+    );
+    $query_value_rows = get_transient("ups_sa_query_value_" . $join_cache_suffix);
+    if (!is_array($query_value_rows)) {
+        $query_value_rows = upsellio_build_query_to_lead_value_rows($keyword_rows, $from_date);
+        set_transient("ups_sa_query_value_" . $join_cache_suffix, $query_value_rows, HOUR_IN_SECONDS);
+    }
     $gsc_credentials = upsellio_get_gsc_credentials();
     $gsc_debug_logs = upsellio_gsc_get_logs();
     $ga4_property_id_display = upsellio_get_ga4_property_id();
     $ga4_oauth_override = upsellio_get_ga4_oauth_override();
     $ga4_last = (string) get_option("ups_automation_ga4_last_sync", "");
+    $ga4_daily_aggregates = get_option("ups_automation_ga4_daily_aggregates", []);
+    if (!is_array($ga4_daily_aggregates)) {
+        $ga4_daily_aggregates = [];
+    }
+    $ga4_sessions_total = 0;
+    $ga4_conversions_total = 0;
+    foreach ($ga4_daily_aggregates as $ga4_row) {
+        if (!is_array($ga4_row)) {
+            continue;
+        }
+        $ga4_sessions_total += (int) ($ga4_row["sessions"] ?? 0);
+        $ga4_conversions_total += (int) ($ga4_row["conversions"] ?? 0);
+    }
+    $ga4_last_ts = $ga4_last !== "" ? strtotime($ga4_last) : false;
+    $ga4_is_fresh = $ga4_last_ts && (time() - (int) $ga4_last_ts) <= DAY_IN_SECONDS;
+    $views_primary_label = $ga4_is_fresh && $ga4_sessions_total > 0 ? "GA4 sessions" : "Lokalny licznik odsłon";
+    $views_display_total = $ga4_is_fresh && $ga4_sessions_total > 0 ? $ga4_sessions_total : $total_views;
+    $conversion_total = $views_display_total > 0 ? round(($total_leads / $views_display_total) * 100, 2) : 0;
+    $channel_ltv_rows = get_transient("ups_sa_channel_ltv_" . $join_cache_suffix);
+    if (!is_array($channel_ltv_rows)) {
+        $channel_ltv_rows = upsellio_build_channel_ltv_rows($ga4_daily_aggregates, $from_date);
+        set_transient("ups_sa_channel_ltv_" . $join_cache_suffix, $channel_ltv_rows, HOUR_IN_SECONDS);
+    }
+    $landing_funnel_rows = get_transient("ups_sa_landing_funnel_" . $join_cache_suffix);
+    if (!is_array($landing_funnel_rows)) {
+        $landing_funnel_rows = upsellio_build_landing_funnel_rows($report_rows, $from_date);
+        set_transient("ups_sa_landing_funnel_" . $join_cache_suffix, $landing_funnel_rows, HOUR_IN_SECONDS);
+    }
+    $ads_campaign_rows = get_option("ups_ads_campaigns_data", []);
+    $ads_search_term_rows = get_option("ups_ads_search_terms_data", []);
+    $ads_auction_rows = get_option("ups_ads_auction_data", []);
+    $gsc_sitemaps_rows = get_option("ups_gsc_sitemaps_data", []);
+    $gsc_sitemaps_last = (string) get_option("ups_gsc_sitemaps_last_sync", "");
+    $gsc_url_inspection_rows = get_option("ups_gsc_url_inspection_rows", []);
+    $gsc_url_inspection_last = (string) get_option("ups_gsc_url_inspection_last_sync", "");
+    $ga4_funnel_snapshot = get_option("ups_ga4_funnel_snapshot", []);
+    $ga4_funnel_last = (string) get_option("ups_ga4_funnel_last_sync", "");
+    $ga4_cohort_snapshot = get_option("ups_ga4_cohort_snapshot", []);
+    $ga4_cohort_last = (string) get_option("ups_ga4_cohort_last_sync", "");
+    if (!is_array($ads_campaign_rows)) {
+        $ads_campaign_rows = [];
+    }
+    if (!is_array($ads_search_term_rows)) {
+        $ads_search_term_rows = [];
+    }
+    if (!is_array($ads_auction_rows)) {
+        $ads_auction_rows = [];
+    }
+    if (!is_array($gsc_sitemaps_rows)) {
+        $gsc_sitemaps_rows = [];
+    }
+    if (!is_array($gsc_url_inspection_rows)) {
+        $gsc_url_inspection_rows = [];
+    }
+    if (!is_array($ga4_funnel_snapshot)) {
+        $ga4_funnel_snapshot = [];
+    }
+    if (!is_array($ga4_cohort_snapshot)) {
+        $ga4_cohort_snapshot = [];
+    }
+    $ads_campaign_join_rows = get_transient("ups_sa_ads_join_" . $join_cache_suffix);
+    if (!is_array($ads_campaign_join_rows)) {
+        $ads_campaign_join_rows = [];
+        foreach ($ads_campaign_rows as $ads_campaign) {
+            if (!is_array($ads_campaign)) {
+                continue;
+            }
+            $campaign_name = sanitize_text_field((string) ($ads_campaign["name"] ?? ""));
+            if ($campaign_name === "") {
+                continue;
+            }
+            $campaign_key = mb_strtolower($campaign_name);
+            $lead_ids = get_posts([
+                "post_type" => "lead",
+                "post_status" => "publish",
+                "posts_per_page" => 800,
+                "date_query" => [[
+                    "after" => $from_date,
+                    "inclusive" => true,
+                ]],
+                "meta_query" => [[
+                    "key" => "_upsellio_lead_utm_campaign",
+                    "value" => $campaign_name,
+                    "compare" => "LIKE",
+                ]],
+                "fields" => "ids",
+            ]);
+            $leads_count = count($lead_ids);
+            $won_count = 0;
+            $won_value = 0.0;
+            foreach ($lead_ids as $lead_id) {
+                $lead_id = (int) $lead_id;
+                $won_slugs = wp_get_object_terms($lead_id, "lead_status", ["fields" => "slugs"]);
+                if (is_array($won_slugs) && in_array("won", $won_slugs, true)) {
+                    $won_count++;
+                    $won_value += (float) get_post_meta($lead_id, "_upsellio_lead_close_value", true);
+                }
+            }
+            $spend = (float) ($ads_campaign["cost_pln"] ?? 0);
+            $ads_campaign_join_rows[] = [
+                "campaign" => $campaign_name,
+                "spend" => round($spend, 2),
+                "clicks" => (int) ($ads_campaign["clicks"] ?? 0),
+                "conversions" => (float) ($ads_campaign["conversions"] ?? 0),
+                "leads" => $leads_count,
+                "won" => $won_count,
+                "value" => round($won_value, 2),
+                "cac" => $won_count > 0 ? round($spend / $won_count, 2) : 0.0,
+                "roas" => $spend > 0 ? round($won_value / $spend, 2) : 0.0,
+                "campaign_key" => $campaign_key,
+            ];
+        }
+        usort($ads_campaign_join_rows, static function ($a, $b) {
+            return (($b["value"] ?? 0) <=> ($a["value"] ?? 0))
+                ?: (($b["spend"] ?? 0) <=> ($a["spend"] ?? 0));
+        });
+        $ads_campaign_join_rows = array_slice($ads_campaign_join_rows, 0, 30);
+        set_transient("ups_sa_ads_join_" . $join_cache_suffix, $ads_campaign_join_rows, HOUR_IN_SECONDS);
+    }
+
+    $anomalies = [];
+    $delta_map = [
+        "views" => $views_delta_pct,
+        "leads" => $leads_delta_pct,
+        "impressions" => $impressions_delta_pct,
+        "clicks" => $clicks_delta_pct,
+    ];
+    foreach ($delta_map as $metric => $delta_pct) {
+        if (!upsellio_is_anomaly_delta($delta_pct)) {
+            continue;
+        }
+        $anomalies[] = [
+            "metric" => $metric,
+            "delta_pct" => $delta_pct,
+            "direction" => $delta_pct >= 0 ? "up" : "down",
+            "severity" => abs($delta_pct) >= 40 ? "high" : "medium",
+            "suggestion" => $delta_pct < 0
+                ? "Spadek " . $metric . " wymaga audytu kanału i landing pages."
+                : "Silny wzrost " . $metric . " — rozważ skalowanie budżetu / contentu.",
+        ];
+    }
+
+    $goal_target_leads = (int) get_option("ups_analytics_goal_leads", 0);
+    $goal_target_won = (int) get_option("ups_analytics_goal_won", 0);
+    $goal_target_revenue = (float) get_option("ups_analytics_goal_revenue", 0);
+    $month_start = wp_date("Y-m-01");
+    $lead_month_ids = get_posts([
+        "post_type" => "lead",
+        "post_status" => "publish",
+        "posts_per_page" => 1200,
+        "date_query" => [[
+            "after" => $month_start,
+            "inclusive" => true,
+        ]],
+        "fields" => "ids",
+    ]);
+    $goal_current_leads = count($lead_month_ids);
+    $goal_current_won = 0;
+    $goal_current_revenue = 0.0;
+    foreach ($lead_month_ids as $lead_month_id) {
+        $lead_month_id = (int) $lead_month_id;
+        $won_slugs = wp_get_object_terms($lead_month_id, "lead_status", ["fields" => "slugs"]);
+        if (is_array($won_slugs) && in_array("won", $won_slugs, true)) {
+            $goal_current_won++;
+            $goal_current_revenue += (float) get_post_meta($lead_month_id, "_upsellio_lead_close_value", true);
+        }
+    }
+    $days_in_month = (int) wp_date("t");
+    $day_of_month = (int) wp_date("j");
+    $days_left = max(0, $days_in_month - $day_of_month);
     $ga4_ui_days = (int) get_option("upsellio_ga4_sync_days_last", 30);
     $ga4_ui_days = in_array($ga4_ui_days, [7, 14, 30, 60, 90], true) ? $ga4_ui_days : 30;
     $google_perm = upsellio_google_get_permission_snapshot();
     $gads_cfg = upsellio_google_ads_get_settings();
-    $gads_scope_on = (string) get_option("upsellio_google_ads_include_scope", "0") === "1";
+    $gads_scope_on = (string) get_option("upsellio_google_ads_include_scope", "1") === "1";
     $g_oauth_redirect_uri_override_val = (string) get_option(upsellio_google_oauth_redirect_uri_override_option_key(), "");
     $g_oauth_use_rest = upsellio_google_oauth_use_rest_callback();
     $ups_managed_google_oauth = function_exists("upsellio_google_managed_oauth_is_active") && upsellio_google_managed_oauth_is_active();
@@ -2469,6 +2997,12 @@ function upsellio_render_site_analytics_page()
     }
     $keyword_source = (string) get_option("upsellio_keyword_metrics_source", "csv_import");
     $last_sync = (string) get_option("upsellio_keyword_metrics_last_sync", "");
+    $ads_campaigns_synced = (string) get_option("ups_ads_campaigns_synced", "");
+    $ads_search_terms_synced = (string) get_option("ups_ads_search_terms_synced", "");
+    $ads_auction_synced = (string) get_option("ups_ads_auction_synced", "");
+    $gsc_last_ts = $last_sync !== "" ? strtotime($last_sync) : false;
+    $gsc_age_days = $gsc_last_ts ? max(0, (int) floor((time() - (int) $gsc_last_ts) / DAY_IN_SECONDS)) : null;
+    $ga4_age_hours = $ga4_last_ts ? max(0, (int) floor((time() - (int) $ga4_last_ts) / HOUR_IN_SECONDS)) : null;
     if ($keyword_source === "gsc_live") {
         $source_label = "Google Search Console (live sync)";
     } elseif ($keyword_source === "gsc_service_account") {
@@ -2485,6 +3019,10 @@ function upsellio_render_site_analytics_page()
         .ups-analytics-label{font-size:12px;color:#5f6368;text-transform:uppercase;letter-spacing:.03em}
         .ups-analytics-value{font-size:26px;font-weight:700;line-height:1.1;margin-top:6px}
         .ups-analytics-sub{font-size:12px;color:#5f6368;margin-top:4px}
+        .ups-freshness{margin:10px 0 14px;padding:10px 12px;border:1px solid #d9dde3;border-radius:10px;background:#fff;display:flex;gap:12px;flex-wrap:wrap}
+        .ups-freshness span{font-size:12px}
+        .ups-freshness .is-stale{color:#b45309;font-weight:700}
+        .ups-freshness .is-ok{color:#027a48;font-weight:700}
         .ups-analytics-table{width:100%;border-collapse:separate;border-spacing:0}
         .ups-analytics-table th,.ups-analytics-table td{border-bottom:1px solid #eceff3;padding:10px 9px;vertical-align:top;text-align:left}
         .ups-analytics-table th{font-size:12px;text-transform:uppercase;color:#5f6368;background:#f6f8fa}
@@ -2501,17 +3039,19 @@ function upsellio_render_site_analytics_page()
         .ups-trend-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
         .ups-trend-card{background:#fff;border:1px solid #d9dde3;border-radius:14px;padding:12px}
         .ups-trend-title{margin:0 0 8px;font-size:14px}
-        .ups-trend-bars{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(3px,1fr);align-items:end;gap:2px;height:120px}
-        .ups-trend-bar{display:block;border-radius:3px 3px 0 0;min-height:2px}
-        .ups-trend-bar.views{background:#0d9488}
-        .ups-trend-bar.leads{background:#2271b1}
-        .ups-trend-bar.impressions{background:#8b5cf6}
-        .ups-trend-bar.clicks{background:#f59e0b}
+        .ups-trend-chart{height:220px}
         .ups-trend-meta{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#5f6368;margin-top:8px}
         .ups-priority-score{font-size:20px;font-weight:700}
         .ups-priority-high{color:#b42318}
         .ups-priority-mid{color:#b45309}
         .ups-priority-low{color:#027a48}
+        .ups-chip.alert{background:#fff7ed;color:#b45309}
+        .ups-chip.alert-high{background:#fff1f1;color:#b42318}
+        .ups-goals-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+        .ups-goal-item{padding:10px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa}
+        .ups-reco-panel{margin-top:14px;background:#fff;border:1px solid #d9dde3;border-radius:14px;padding:12px}
+        .ups-reco-panel ul{margin:0;padding-left:18px;display:grid;gap:6px}
+        .ups-reco-panel li{font-size:13px}
         @media(max-width:1100px){.ups-analytics-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:1100px){.ups-trend-grid{grid-template-columns:1fr}}
       </style>
@@ -2519,6 +3059,43 @@ function upsellio_render_site_analytics_page()
         <h1>Analityka SEO i konwersji</h1>
         <p>Panel łączy odsłony stron, trendy ruchu, pozycje słów kluczowych (z importu CSV) i konwersje z CRM, a następnie generuje rekomendacje optymalizacji per URL.</p>
         <p><strong>Źródło danych keywordów:</strong> <?php echo esc_html($source_label); ?><?php echo $last_sync !== "" ? " · ostatnia synchronizacja: " . esc_html($last_sync) : ""; ?></p>
+        <div class="ups-freshness">
+          <span>
+            <strong>GSC:</strong>
+            <?php if ($last_sync !== "") : ?>
+              <span class="<?php echo ($gsc_age_days !== null && $gsc_age_days > 4) ? "is-stale" : "is-ok"; ?>">
+                <?php echo esc_html($last_sync); ?><?php echo $gsc_age_days !== null ? " (" . esc_html((string) $gsc_age_days) . " dni temu)" : ""; ?>
+              </span>
+            <?php else : ?>
+              <span class="is-stale">brak synchronizacji</span>
+            <?php endif; ?>
+          </span>
+          <span>
+            <strong>GA4:</strong>
+            <?php if ($ga4_last !== "") : ?>
+              <span class="<?php echo ($ga4_age_hours !== null && $ga4_age_hours > 24) ? "is-stale" : "is-ok"; ?>">
+                <?php echo esc_html($ga4_last); ?><?php echo $ga4_age_hours !== null ? " (" . esc_html((string) $ga4_age_hours) . " h temu)" : ""; ?>
+              </span>
+            <?php else : ?>
+              <span class="is-stale">brak synchronizacji</span>
+            <?php endif; ?>
+          </span>
+        </div>
+        <?php
+        $sa_weekly_brief = function_exists("upsellio_get_latest_weekly_brief") ? upsellio_get_latest_weekly_brief() : ["html" => "", "at" => 0];
+        $sa_wb_html = (string) ($sa_weekly_brief["html"] ?? "");
+        $sa_wb_at = (int) ($sa_weekly_brief["at"] ?? 0);
+        ?>
+        <?php if ($sa_wb_html !== "" && $sa_wb_at > 0 && (time() - $sa_wb_at) < (5 * DAY_IN_SECONDS)) : ?>
+          <?php $sa_wb_age = max(0, (int) floor((time() - $sa_wb_at) / DAY_IN_SECONDS)); ?>
+          <section class="ups-analytics-card" style="background:linear-gradient(135deg,#fff7ed,#fff);border-left:4px solid #f97316;">
+            <div style="font-size:11px;font-weight:800;color:#9a3412;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">
+              🎯 Brief AI · <?php echo $sa_wb_age === 0 ? esc_html__("dzisiaj", "upsellio") : esc_html(sprintf(__("%d dni temu", "upsellio"), $sa_wb_age)); ?>
+            </div>
+            <h3 style="margin:0 0 8px;font-size:18px;"><?php esc_html_e("Twój brief sprzedażowy", "upsellio"); ?></h3>
+            <div class="ups-weekly-brief-content" style="font-size:14px;line-height:1.55;"><?php echo wp_kses_post($sa_wb_html); ?></div>
+          </section>
+        <?php endif; ?>
 
         <form method="get" action="<?php echo esc_url(admin_url("admin.php")); ?>">
           <input type="hidden" name="page" value="<?php echo esc_attr(upsellio_site_analytics_page_slug()); ?>" />
@@ -2535,58 +3112,223 @@ function upsellio_render_site_analytics_page()
         </form>
 
         <div class="ups-analytics-kpi">
-          <div class="ups-analytics-card"><div class="ups-analytics-label">Wyświetlenia</div><div class="ups-analytics-value"><?php echo esc_html((string) $total_views); ?></div><div class="ups-analytics-sub">Zakres: <?php echo esc_html((string) $days); ?> dni</div></div>
-          <div class="ups-analytics-card"><div class="ups-analytics-label">Leady</div><div class="ups-analytics-value"><?php echo esc_html((string) $total_leads); ?></div><div class="ups-analytics-sub">Atrybucja po landing URL</div></div>
+          <div class="ups-analytics-card"><div class="ups-analytics-label">Wyświetlenia</div><div class="ups-analytics-value"><?php echo esc_html((string) $views_display_total); ?></div><div class="ups-analytics-sub">Źródło: <?php echo esc_html($views_primary_label); ?> <span class="ups-chip <?php echo $views_delta_pct >= 0 ? "up" : "down"; ?>"><?php echo $views_delta_pct >= 0 ? "+" : ""; ?><?php echo esc_html((string) $views_delta_pct); ?>% vs poprzedni okres</span></div></div>
+          <div class="ups-analytics-card"><div class="ups-analytics-label">Leady</div><div class="ups-analytics-value"><?php echo esc_html((string) $total_leads); ?></div><div class="ups-analytics-sub">Atrybucja po landing URL <span class="ups-chip <?php echo $leads_delta_pct >= 0 ? "up" : "down"; ?>"><?php echo $leads_delta_pct >= 0 ? "+" : ""; ?><?php echo esc_html((string) $leads_delta_pct); ?>%</span></div></div>
           <div class="ups-analytics-card"><div class="ups-analytics-label">Konwersja</div><div class="ups-analytics-value"><?php echo esc_html((string) $conversion_total); ?>%</div><div class="ups-analytics-sub">Leady / wyświetlenia</div></div>
           <div class="ups-analytics-card"><div class="ups-analytics-label">Śr. pozycja</div><div class="ups-analytics-value"><?php echo esc_html($avg_position_total > 0 ? (string) $avg_position_total : "—"); ?></div><div class="ups-analytics-sub">Z zaimportowanych słów kluczowych</div></div>
-          <div class="ups-analytics-card"><div class="ups-analytics-label">CTR</div><div class="ups-analytics-value"><?php echo esc_html((string) $ctr_total); ?>%</div><div class="ups-analytics-sub"><?php echo esc_html((string) $total_clicks); ?> kliknięć / <?php echo esc_html((string) $total_impressions); ?> wyświetleń</div></div>
+          <div class="ups-analytics-card"><div class="ups-analytics-label">CTR</div><div class="ups-analytics-value"><?php echo esc_html((string) $ctr_total); ?>%</div><div class="ups-analytics-sub"><?php echo esc_html((string) $total_clicks); ?> kliknięć / <?php echo esc_html((string) $total_impressions); ?> wyświetleń <span class="ups-chip <?php echo $clicks_delta_pct >= 0 ? "up" : "down"; ?>"><?php echo $clicks_delta_pct >= 0 ? "+" : ""; ?><?php echo esc_html((string) $clicks_delta_pct); ?>%</span><?php echo $ga4_is_fresh ? " · GA4 conv: " . esc_html((string) $ga4_conversions_total) : ""; ?></div></div>
+        </div>
+
+        <div class="ups-analytics-card" style="margin-top:12px;">
+          <h2 style="margin-top:0;">Cel miesięczny i pacing</h2>
+          <form method="post" action="<?php echo esc_url($upsellio_sa_form_action); ?>" style="margin-bottom:10px;">
+            <?php wp_nonce_field("upsellio_analytics_goals_action", "upsellio_analytics_goals_nonce"); ?>
+            <input type="hidden" name="upsellio_analytics_goals_submit" value="1" />
+            <div class="ups-goals-grid">
+              <div class="ups-goal-item"><label>Target leadów<br /><input type="number" min="0" name="ups_goal_leads" value="<?php echo esc_attr((string) $goal_target_leads); ?>" /></label></div>
+              <div class="ups-goal-item"><label>Target wygranych<br /><input type="number" min="0" name="ups_goal_won" value="<?php echo esc_attr((string) $goal_target_won); ?>" /></label></div>
+              <div class="ups-goal-item"><label>Target przychodu (PLN)<br /><input type="number" min="0" step="0.01" name="ups_goal_revenue" value="<?php echo esc_attr((string) $goal_target_revenue); ?>" /></label></div>
+            </div>
+            <p><button type="submit" class="button button-primary">Zapisz cele</button></p>
+          </form>
+          <p><strong>Aktualnie (miesiąc):</strong> leady <?php echo esc_html((string) $goal_current_leads); ?> / wygrane <?php echo esc_html((string) $goal_current_won); ?> / przychód <?php echo esc_html(number_format_i18n($goal_current_revenue, 2)); ?> zł</p>
+          <p><strong>Pozostało dni:</strong> <?php echo esc_html((string) $days_left); ?> · Potrzebne tempo dzienne:
+            leady <?php echo esc_html((string) ($days_left > 0 && $goal_target_leads > $goal_current_leads ? ceil(($goal_target_leads - $goal_current_leads) / $days_left) : 0)); ?>,
+            wygrane <?php echo esc_html((string) ($days_left > 0 && $goal_target_won > $goal_current_won ? ceil(($goal_target_won - $goal_current_won) / $days_left) : 0)); ?>,
+            przychód <?php echo esc_html(number_format_i18n($days_left > 0 && $goal_target_revenue > $goal_current_revenue ? (($goal_target_revenue - $goal_current_revenue) / $days_left) : 0, 2)); ?> zł.
+          </p>
+          <?php
+          $days_in_month = (int) wp_date("t");
+          $day_of_month = (int) wp_date("j");
+          $expected_pct = $days_in_month > 0 ? ($day_of_month / $days_in_month) * 100 : 0;
+          $goal_rows = [
+              ["label" => "Leady", "current" => (float) $goal_current_leads, "target" => (float) $goal_target_leads, "unit" => ""],
+              ["label" => "Wygrane", "current" => (float) $goal_current_won, "target" => (float) $goal_target_won, "unit" => ""],
+              ["label" => "Przychód", "current" => (float) $goal_current_revenue, "target" => (float) $goal_target_revenue, "unit" => "zł"],
+          ];
+          ?>
+          <?php foreach ($goal_rows as $gr) : ?>
+            <?php
+            $pct = $gr["target"] > 0 ? min(110, ($gr["current"] / $gr["target"]) * 100) : 0;
+            $on_track = $pct >= ($expected_pct - 5);
+            $bar_color = $pct >= 100 ? "#15803d" : ($on_track ? "#0d9488" : ($pct > ($expected_pct - 20) ? "#f97316" : "#d94c4c"));
+            $left_days = max(1, $days_in_month - $day_of_month);
+            $needed_per_day = $gr["target"] > $gr["current"] ? ceil(($gr["target"] - $gr["current"]) / $left_days) : 0;
+            ?>
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                <strong><?php echo esc_html((string) $gr["label"]); ?></strong>
+                <span><?php echo esc_html(number_format_i18n($gr["current"], 0)); ?> / <?php echo esc_html(number_format_i18n($gr["target"], 0)); ?> <?php echo esc_html((string) $gr["unit"]); ?> (<?php echo esc_html(number_format_i18n($pct, 1)); ?>%)</span>
+              </div>
+              <div style="position:relative;height:14px;background:#e5e7eb;border-radius:7px;overflow:hidden;">
+                <div style="position:absolute;left:<?php echo esc_attr((string) $expected_pct); ?>%;top:-2px;bottom:-2px;width:2px;background:#666;z-index:2"></div>
+                <div style="height:100%;width:<?php echo esc_attr((string) $pct); ?>%;background:<?php echo esc_attr($bar_color); ?>;transition:width .3s"></div>
+              </div>
+              <small style="color:var(--text-2);font-size:11px;">
+                <?php if ($needed_per_day > 0) : ?>
+                  <?php echo esc_html(sprintf(__("Tempo wymagane: %d/dzień", "upsellio"), (int) $needed_per_day)); ?>
+                <?php else : ?>
+                  <?php esc_html_e("✓ Cel osiągnięty", "upsellio"); ?>
+                <?php endif; ?>
+              </small>
+            </div>
+          <?php endforeach; ?>
+        </div>
+
+        <?php if (!empty($anomalies)) : ?>
+        <?php $ai_anomaly_explanations = get_option("ups_ai_anomaly_explanations", []); ?>
+        <div class="ups-reco-panel">
+          <h2 style="margin-top:0;">Anomalie i alerty</h2>
+          <ul>
+            <?php foreach ($anomalies as $anomaly) : ?>
+              <li>
+                <span class="ups-chip <?php echo esc_attr($anomaly["delta_pct"] >= 0 ? "up" : "down"); ?> <?php echo esc_attr($anomaly["severity"] === "high" ? "alert-high" : "alert"); ?>">
+                  <?php echo esc_html((string) strtoupper((string) $anomaly["metric"])); ?>: <?php echo ($anomaly["delta_pct"] >= 0 ? "+" : "") . esc_html((string) $anomaly["delta_pct"]); ?>%
+                </span>
+                — <?php echo esc_html((string) $anomaly["suggestion"]); ?>
+                <?php
+                $aikey = md5(serialize($anomaly));
+                if (is_array($ai_anomaly_explanations) && isset($ai_anomaly_explanations[$aikey])) :
+                  $aiexpl = $ai_anomaly_explanations[$aikey];
+                ?>
+                  <div class="ai-explanation" style="margin-top:8px;padding:10px;background:#fff7ed;border-left:3px solid #f97316;">
+                    <p><strong>Co:</strong> <?php echo esc_html((string) ($aiexpl["what"] ?? "")); ?></p>
+                    <p><strong>Dlaczego:</strong> <?php echo esc_html((string) ($aiexpl["why"] ?? "")); ?></p>
+                    <p><strong>Akcja:</strong> <?php echo esc_html((string) ($aiexpl["action"] ?? "")); ?></p>
+                  </div>
+                <?php else : ?>
+                  <button type="button" class="button button-secondary" style="margin-top:8px"
+                          onclick="upsellioExplainAnomaly('<?php echo esc_js($aikey); ?>', this)">
+                    🤖 <?php esc_html_e("Wygeneruj wyjaśnienie AI", "upsellio"); ?>
+                  </button>
+                <?php endif; ?>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        </div>
+        <?php endif; ?>
+
+        <div class="ups-analytics-card" style="margin-top:14px;">
+          <h2 style="margin-top:0;">GA4 Funnel Definitions (MVP)</h2>
+          <p class="ups-analytics-sub">Last sync: <?php echo $ga4_funnel_last !== "" ? esc_html($ga4_funnel_last) : "brak"; ?></p>
+          <table class="ups-analytics-table">
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Count (30 dni)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach (["page_view", "cta_click", "form_start", "generate_lead"] as $step_event) : ?>
+                <tr>
+                  <td><?php echo esc_html($step_event); ?></td>
+                  <td><?php echo esc_html((string) (int) ($ga4_funnel_snapshot[$step_event] ?? 0)); ?></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ups-analytics-card" style="margin-top:14px;">
+          <h2 style="margin-top:0;">GA4 Cohort Snapshot (new vs returning)</h2>
+          <p class="ups-analytics-sub">Last sync: <?php echo $ga4_cohort_last !== "" ? esc_html($ga4_cohort_last) : "brak"; ?></p>
+          <table class="ups-analytics-table">
+            <thead>
+              <tr>
+                <th>Segment</th>
+                <th>Sessions</th>
+                <th>Conversions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($ga4_cohort_snapshot)) : ?>
+                <tr><td colspan="3"><em>Brak danych cohort.</em></td></tr>
+              <?php else : ?>
+                <?php foreach ($ga4_cohort_snapshot as $cohort_row) : ?>
+                  <tr>
+                    <td><?php echo esc_html((string) ($cohort_row["segment"] ?? "")); ?></td>
+                    <td><?php echo esc_html((string) (int) ($cohort_row["sessions"] ?? 0)); ?></td>
+                    <td><?php echo esc_html((string) (int) ($cohort_row["conversions"] ?? 0)); ?></td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ups-analytics-card" style="margin-top:14px;">
+          <h2 style="margin-top:0;">GSC URL Inspection Health</h2>
+          <p class="ups-analytics-sub">Last sync: <?php echo $gsc_url_inspection_last !== "" ? esc_html($gsc_url_inspection_last) : "brak"; ?></p>
+          <table class="ups-analytics-table">
+            <thead>
+              <tr>
+                <th>URL</th>
+                <th>Verdict</th>
+                <th>Coverage state</th>
+                <th>Last crawl</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($gsc_url_inspection_rows)) : ?>
+                <tr><td colspan="4"><em>Brak danych URL Inspection.</em></td></tr>
+              <?php else : ?>
+                <?php foreach (array_slice($gsc_url_inspection_rows, 0, 20) as $inspection_row) : ?>
+                  <tr>
+                    <td><?php echo esc_html((string) wp_parse_url((string) ($inspection_row["url"] ?? ""), PHP_URL_PATH)); ?></td>
+                    <td><?php echo esc_html((string) ($inspection_row["verdict"] ?? "—")); ?></td>
+                    <td><?php echo esc_html((string) ($inspection_row["coverage_state"] ?? "—")); ?></td>
+                    <td><?php echo esc_html((string) ($inspection_row["last_crawl_time"] ?? "—")); ?></td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ups-analytics-card" style="margin-top:14px;">
+          <h2 style="margin-top:0;">GSC Sitemap Monitoring</h2>
+          <p class="ups-analytics-sub">Last sync: <?php echo $gsc_sitemaps_last !== "" ? esc_html($gsc_sitemaps_last) : "brak"; ?></p>
+          <table class="ups-analytics-table">
+            <thead>
+              <tr>
+                <th>Sitemap</th>
+                <th>Typ</th>
+                <th>Ostatnio przesłana</th>
+                <th>Pobrana</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($gsc_sitemaps_rows)) : ?>
+                <tr><td colspan="4"><em>Brak danych sitemap.</em></td></tr>
+              <?php else : ?>
+                <?php foreach (array_slice($gsc_sitemaps_rows, 0, 20) as $sitemap_row) : ?>
+                  <tr>
+                    <td><?php echo esc_html((string) ($sitemap_row["path"] ?? "—")); ?></td>
+                    <td><?php echo esc_html((string) ($sitemap_row["type"] ?? "—")); ?></td>
+                    <td><?php echo esc_html((string) ($sitemap_row["lastSubmitted"] ?? "—")); ?></td>
+                    <td><?php echo esc_html((string) ($sitemap_row["lastDownloaded"] ?? "—")); ?></td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
         </div>
 
         <div class="ups-trend-grid">
           <div class="ups-trend-card">
-            <h2 class="ups-trend-title">Trend dzień-po-dniu: wyświetlenia</h2>
-            <div class="ups-trend-bars">
-              <?php foreach ($daily_views_series as $date_key => $value) : ?>
-                <?php $height = max(2, (int) round(($value / $max_daily_views) * 120)); ?>
-                <span class="ups-trend-bar views" style="height:<?php echo esc_attr((string) $height); ?>px;" title="<?php echo esc_attr($date_key . ": " . $value); ?>"></span>
-              <?php endforeach; ?>
-            </div>
+            <h2 class="ups-trend-title">Trend dzień-po-dniu: wyświetlenia</h2><div id="ups-chart-views" class="ups-trend-chart"></div>
             <div class="ups-trend-meta"><span>max: <?php echo esc_html((string) $max_daily_views); ?></span><span>dni: <?php echo esc_html((string) count($dates)); ?></span></div>
           </div>
           <div class="ups-trend-card">
-            <h2 class="ups-trend-title">Trend dzień-po-dniu: leady</h2>
-            <div class="ups-trend-bars">
-              <?php foreach ($daily_leads_series as $date_key => $value) : ?>
-                <?php $height = max(2, (int) round(($value / $max_daily_leads) * 120)); ?>
-                <span class="ups-trend-bar leads" style="height:<?php echo esc_attr((string) $height); ?>px;" title="<?php echo esc_attr($date_key . ": " . $value); ?>"></span>
-              <?php endforeach; ?>
-            </div>
+            <h2 class="ups-trend-title">Trend dzień-po-dniu: leady</h2><div id="ups-chart-leads" class="ups-trend-chart"></div>
             <div class="ups-trend-meta"><span>max: <?php echo esc_html((string) $max_daily_leads); ?></span><span>dni: <?php echo esc_html((string) count($dates)); ?></span></div>
           </div>
           <div class="ups-trend-card">
-            <h2 class="ups-trend-title">Trend dzień-po-dniu: impressions</h2>
-            <div class="ups-trend-bars">
-              <?php foreach ($daily_keyword_series as $date_key => $values) : ?>
-                <?php
-                $impressions_value = (int) ($values["impressions"] ?? 0);
-                $height = max(2, (int) round(($impressions_value / $max_daily_impressions) * 120));
-                ?>
-                <span class="ups-trend-bar impressions" style="height:<?php echo esc_attr((string) $height); ?>px;" title="<?php echo esc_attr($date_key . ": " . $impressions_value); ?>"></span>
-              <?php endforeach; ?>
-            </div>
+            <h2 class="ups-trend-title">Trend dzień-po-dniu: impressions</h2><div id="ups-chart-impressions" class="ups-trend-chart"></div>
             <div class="ups-trend-meta"><span>max: <?php echo esc_html((string) $max_daily_impressions); ?></span><span>dane z CSV/API</span></div>
           </div>
           <div class="ups-trend-card">
-            <h2 class="ups-trend-title">Trend dzień-po-dniu: kliknięcia</h2>
-            <div class="ups-trend-bars">
-              <?php foreach ($daily_keyword_series as $date_key => $values) : ?>
-                <?php
-                $clicks_value = (int) ($values["clicks"] ?? 0);
-                $height = max(2, (int) round(($clicks_value / $max_daily_clicks) * 120));
-                ?>
-                <span class="ups-trend-bar clicks" style="height:<?php echo esc_attr((string) $height); ?>px;" title="<?php echo esc_attr($date_key . ": " . $clicks_value); ?>"></span>
-              <?php endforeach; ?>
-            </div>
+            <h2 class="ups-trend-title">Trend dzień-po-dniu: kliknięcia</h2><div id="ups-chart-clicks" class="ups-trend-chart"></div>
             <div class="ups-trend-meta"><span>max: <?php echo esc_html((string) $max_daily_clicks); ?></span><span>dane z CSV/API</span></div>
           </div>
         </div>
@@ -2637,6 +3379,7 @@ function upsellio_render_site_analytics_page()
 
         <div class="ups-analytics-card">
           <h2 style="margin-top:0;">Strony do optymalizacji</h2>
+          <?php $page_perf_suggestions = get_option("ups_ai_page_perf_suggestions", []); ?>
           <table class="ups-analytics-table">
             <thead>
               <tr>
@@ -2656,16 +3399,32 @@ function upsellio_render_site_analytics_page()
                 } elseif ((int) $row["trend_delta"] < 0) {
                     $trend_class = "down";
                 }
+                $row_post_id = (int) ($row["post_id"] ?? 0);
+                $row_perf_class = "";
+                if ($row_post_id > 0 && is_array($page_perf_suggestions) && isset($page_perf_suggestions[$row_post_id]) && is_array($page_perf_suggestions[$row_post_id])) {
+                    $row_perf_class = sanitize_key((string) ($page_perf_suggestions[$row_post_id]["classification"] ?? ""));
+                } elseif (is_array($page_perf_suggestions)) {
+                    foreach ($page_perf_suggestions as $pp_item) {
+                        if (!is_array($pp_item) || (int) ($pp_item["post_id"] ?? 0) !== $row_post_id) {
+                            continue;
+                        }
+                        $row_perf_class = sanitize_key((string) ($pp_item["classification"] ?? ""));
+                        break;
+                    }
+                }
                 ?>
                 <tr>
                   <td>
                     <strong><?php echo esc_html($row["title"]); ?></strong><br />
                     <a href="<?php echo esc_url($row["url"]); ?>" target="_blank" rel="noopener" class="ups-mono"><?php echo esc_html((string) wp_parse_url($row["url"], PHP_URL_PATH)); ?></a>
+                    <?php if ($row_perf_class !== "") : ?>
+                      <div style="margin-top:6px"><span class="ups-chip flat"><?php echo esc_html(strtoupper($row_perf_class)); ?></span></div>
+                    <?php endif; ?>
                   </td>
                   <td>
                     <?php echo esc_html((string) $row["views_30d"]); ?> wyświetleń<br />
-                    <span class="ups-chip <?php echo esc_attr($trend_class); ?>">
-                      trend 7d: <?php echo (int) $row["trend_delta"] > 0 ? "+" : ""; ?><?php echo esc_html((string) $row["trend_delta"]); ?>
+                    <span class="ups-chip <?php echo esc_attr($trend_class); ?> <?php echo upsellio_is_anomaly_delta((float) ($row["trend_delta_pct"] ?? 0)) ? "alert" : ""; ?>">
+                      trend 7d: <?php echo (int) $row["trend_delta"] > 0 ? "+" : ""; ?><?php echo esc_html((string) $row["trend_delta"]); ?> (<?php echo ((float) ($row["trend_delta_pct"] ?? 0)) >= 0 ? "+" : ""; ?><?php echo esc_html((string) ($row["trend_delta_pct"] ?? 0)); ?>%)
                     </span>
                   </td>
                   <td>
@@ -2728,6 +3487,208 @@ function upsellio_render_site_analytics_page()
               </tbody>
             </table>
           <?php endif; ?>
+        </div>
+
+        <div class="ups-analytics-card" style="margin-top:14px;">
+          <h2 style="margin-top:0;">Słowa kluczowe → Leady → Wartość zamknięcia</h2>
+          <p class="ups-analytics-sub">Last sync: <?php echo $last_sync !== "" ? esc_html($last_sync) : "brak"; ?></p>
+          <table class="ups-analytics-table">
+            <thead>
+              <tr>
+                <th>Query</th>
+                <th>Impressions</th>
+                <th>Clicks</th>
+                <th>Leady</th>
+                <th>Wygrane</th>
+                <th>Wartość</th>
+                <th>RPM</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($query_value_rows)) : ?>
+                <tr><td colspan="7"><em>Brak danych join dla wybranego okresu.</em></td></tr>
+              <?php else : ?>
+                <?php foreach ($query_value_rows as $join_row) : ?>
+                  <tr>
+                    <td><?php echo esc_html((string) ($join_row["query"] ?? "")); ?></td>
+                    <td><?php echo esc_html((string) (int) ($join_row["impressions"] ?? 0)); ?></td>
+                    <td><?php echo esc_html((string) (int) ($join_row["clicks"] ?? 0)); ?></td>
+                    <td><?php echo esc_html((string) (int) ($join_row["leads"] ?? 0)); ?></td>
+                    <td><?php echo esc_html((string) (int) ($join_row["won"] ?? 0)); ?></td>
+                    <td><?php echo esc_html(number_format_i18n((float) ($join_row["value"] ?? 0), 2)); ?> zł</td>
+                    <td><?php echo esc_html(number_format_i18n((float) ($join_row["rpm"] ?? 0), 2)); ?></td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ups-analytics-card" style="margin-top:14px;">
+          <h2 style="margin-top:0;">Kanał (GA4) → Leady → LTV</h2>
+          <p class="ups-analytics-sub">Last sync: <?php echo $ga4_last !== "" ? esc_html($ga4_last) : "brak"; ?></p>
+          <table class="ups-analytics-table">
+            <thead>
+              <tr>
+                <th>Source / medium</th>
+                <th>Sessions</th>
+                <th>GA4 conv</th>
+                <th>Leady</th>
+                <th>Wygrane</th>
+                <th>Wartość</th>
+                <th>CR</th>
+                <th>LTV / session</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($channel_ltv_rows)) : ?>
+                <tr><td colspan="8"><em>Brak danych kanałów.</em></td></tr>
+              <?php else : ?>
+                <?php foreach ($channel_ltv_rows as $channel_row) : ?>
+                  <tr>
+                    <td><?php echo esc_html((string) $channel_row["source"] . " / " . (string) $channel_row["medium"]); ?></td>
+                    <td><?php echo esc_html((string) (int) $channel_row["sessions"]); ?></td>
+                    <td><?php echo esc_html((string) (int) $channel_row["ga4_conversions"]); ?></td>
+                    <td><?php echo esc_html((string) (int) $channel_row["leads"]); ?></td>
+                    <td><?php echo esc_html((string) (int) $channel_row["won"]); ?></td>
+                    <td><?php echo esc_html(number_format_i18n((float) $channel_row["value"], 2)); ?> zł</td>
+                    <td><?php echo esc_html(number_format_i18n((float) $channel_row["cr_sessions_to_lead"], 2)); ?>%</td>
+                    <td><?php echo esc_html(number_format_i18n((float) $channel_row["ltv_per_session"], 2)); ?> zł</td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ups-analytics-card" style="margin-top:14px;">
+          <h2 style="margin-top:0;">Landing pages → Funnel</h2>
+          <p class="ups-analytics-sub">Last sync: GSC <?php echo $last_sync !== "" ? esc_html($last_sync) : "brak"; ?> · GA4 <?php echo $ga4_last !== "" ? esc_html($ga4_last) : "brak"; ?></p>
+          <table class="ups-analytics-table">
+            <thead>
+              <tr>
+                <th>Landing</th>
+                <th>Impressions</th>
+                <th>Clicks</th>
+                <th>Sessions</th>
+                <th>Leady</th>
+                <th>Wygrane</th>
+                <th>Wartość</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($landing_funnel_rows as $funnel_row) : ?>
+                <tr>
+                  <td><?php echo esc_html((string) $funnel_row["path"]); ?></td>
+                  <td><?php echo esc_html((string) (int) $funnel_row["impressions"]); ?></td>
+                  <td><?php echo esc_html((string) (int) $funnel_row["clicks"]); ?></td>
+                  <td><?php echo esc_html((string) (int) $funnel_row["sessions"]); ?></td>
+                  <td><a href="<?php echo esc_url(add_query_arg(["post_type" => "lead", "s" => (string) $funnel_row["path"]], admin_url("edit.php"))); ?>"><?php echo esc_html((string) (int) $funnel_row["leads"]); ?></a></td>
+                  <td><?php echo esc_html((string) (int) $funnel_row["won"]); ?></td>
+                  <td><?php echo esc_html(number_format_i18n((float) $funnel_row["value"], 2)); ?> zł</td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ups-analytics-card" style="margin-top:14px;">
+          <h2 style="margin-top:0;">Google Ads: kampania → lead → ROAS</h2>
+          <p class="ups-analytics-sub">Last sync: <?php echo $ads_campaigns_synced !== "" ? esc_html($ads_campaigns_synced) : "brak"; ?></p>
+          <table class="ups-analytics-table">
+            <thead>
+              <tr>
+                <th>Kampania</th>
+                <th>Spend</th>
+                <th>Kliknięcia</th>
+                <th>Leady</th>
+                <th>Wygrane</th>
+                <th>Wartość</th>
+                <th>CAC</th>
+                <th>ROAS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($ads_campaign_join_rows)) : ?>
+                <tr><td colspan="8"><em>Brak danych Ads (uruchom sync kampanii).</em></td></tr>
+              <?php else : ?>
+                <?php foreach ($ads_campaign_join_rows as $ads_row) : ?>
+                  <tr>
+                    <td><?php echo esc_html((string) $ads_row["campaign"]); ?></td>
+                    <td><?php echo esc_html(number_format_i18n((float) $ads_row["spend"], 2)); ?> zł</td>
+                    <td><?php echo esc_html((string) (int) $ads_row["clicks"]); ?></td>
+                    <td><a href="<?php echo esc_url(add_query_arg(["post_type" => "lead", "s" => (string) $ads_row["campaign"]], admin_url("edit.php"))); ?>"><?php echo esc_html((string) (int) $ads_row["leads"]); ?></a></td>
+                    <td><?php echo esc_html((string) (int) $ads_row["won"]); ?></td>
+                    <td><?php echo esc_html(number_format_i18n((float) $ads_row["value"], 2)); ?> zł</td>
+                    <td><?php echo esc_html(number_format_i18n((float) $ads_row["cac"], 2)); ?> zł</td>
+                    <td><?php echo esc_html(number_format_i18n((float) $ads_row["roas"], 2)); ?></td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ups-analytics-card" style="margin-top:14px;">
+          <h2 style="margin-top:0;">Google Ads: Search Terms (top koszt)</h2>
+          <p class="ups-analytics-sub">Last sync: <?php echo $ads_search_terms_synced !== "" ? esc_html($ads_search_terms_synced) : "brak"; ?></p>
+          <table class="ups-analytics-table">
+            <thead>
+              <tr>
+                <th>Search term</th>
+                <th>Kampania</th>
+                <th>Koszt</th>
+                <th>Kliknięcia</th>
+                <th>Conv</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($ads_search_term_rows)) : ?>
+                <tr><td colspan="5"><em>Brak danych search terms.</em></td></tr>
+              <?php else : ?>
+                <?php foreach (array_slice($ads_search_term_rows, 0, 30) as $term_row) : ?>
+                  <tr>
+                    <td><?php echo esc_html((string) ($term_row["search_term"] ?? "")); ?></td>
+                    <td><?php echo esc_html((string) ($term_row["campaign_name"] ?? "")); ?></td>
+                    <td><?php echo esc_html(number_format_i18n((float) ($term_row["cost_pln"] ?? 0), 2)); ?> zł</td>
+                    <td><?php echo esc_html((string) (int) ($term_row["clicks"] ?? 0)); ?></td>
+                    <td><?php echo esc_html(number_format_i18n((float) ($term_row["conversions"] ?? 0), 2)); ?></td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="ups-analytics-card" style="margin-top:14px;">
+          <h2 style="margin-top:0;">Google Ads: Auction insights</h2>
+          <p class="ups-analytics-sub">Last sync: <?php echo $ads_auction_synced !== "" ? esc_html($ads_auction_synced) : "brak"; ?></p>
+          <table class="ups-analytics-table">
+            <thead>
+              <tr>
+                <th>Domena</th>
+                <th>Impr. share</th>
+                <th>Overlap</th>
+                <th>Position above</th>
+                <th>Top share</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($ads_auction_rows)) : ?>
+                <tr><td colspan="5"><em>Brak danych auction insights.</em></td></tr>
+              <?php else : ?>
+                <?php foreach (array_slice($ads_auction_rows, 0, 25) as $auction_row) : ?>
+                  <tr>
+                    <td><?php echo esc_html((string) ($auction_row["domain"] ?? "")); ?></td>
+                    <td><?php echo esc_html(number_format_i18n((float) ($auction_row["impression_share"] ?? 0), 1)); ?>%</td>
+                    <td><?php echo esc_html(number_format_i18n((float) ($auction_row["overlap_rate"] ?? 0), 1)); ?>%</td>
+                    <td><?php echo esc_html(number_format_i18n((float) ($auction_row["position_above_rate"] ?? 0), 1)); ?>%</td>
+                    <td><?php echo esc_html(number_format_i18n((float) ($auction_row["top_share"] ?? 0), 1)); ?>%</td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
         </div>
 
         <div class="ups-import-box">
@@ -2853,7 +3814,7 @@ function upsellio_render_site_analytics_page()
             Nadal <code>redirect_uri_mismatch</code>? Sprawdź, czy edytujesz dane logowania powiązane z Client ID <code><?php echo esc_html((string) ($gsc_credentials["client_id"] ?? "")); ?></code>, oraz czy w Google nie ma końcowego ukośnika ani literówki. Opcjonalnie wypełnij „Nadpisanie redirect URI” w formularzu poniżej — identycznie jak w konsoli Google.
           </p>
           <?php endif; ?>
-          <p style="font-size:12px;color:#5f6368;">Domyślne zakresy zgody: Search Console (read-only) oraz Analytics (read-only). Opcjonalnie możesz dołączyć <strong>Google Ads API</strong> (<code>adwords</code>). Po kliknięciu zalogujesz się na Google i zatwierdzisz dostęp — refresh token uzupełni się automatycznie.</p>
+          <p style="font-size:12px;color:#5f6368;">Domyślne zakresy zgody: Search Console (read-only), Analytics (read-only) oraz <strong>Google Ads API</strong> (<code>adwords</code>). Po kliknięciu zalogujesz się na Google i zatwierdzisz dostęp — refresh token uzupełni się automatycznie.</p>
           <form method="post" action="<?php echo esc_url($upsellio_sa_form_action); ?>" style="margin-bottom:12px;">
             <?php wp_nonce_field("upsellio_google_ads_scope_action", "upsellio_google_ads_scope_nonce"); ?>
             <input type="hidden" name="upsellio_google_ads_scope_save" value="1" />
@@ -3120,6 +4081,75 @@ function upsellio_render_site_analytics_page()
             <p><button type="submit" class="button button-primary">Importuj metryki keywordów</button></p>
           </form>
         </div>
+        <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+        <script>
+          function upsellioExplainAnomaly(key, btn) {
+            if (!key || typeof ajaxurl === "undefined") return;
+            if (btn) {
+              btn.disabled = true;
+              btn.textContent = "Generuję...";
+            }
+            var body = new URLSearchParams({
+              action: "ups_explain_anomaly",
+              key: key,
+              _wpnonce: <?php echo wp_json_encode(wp_create_nonce("ups_explain_anomaly_action")); ?>
+            });
+            fetch(ajaxurl, {
+              method: "POST",
+              headers: {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"},
+              body: body.toString()
+            }).then(function (r) { return r.json(); }).then(function (d) {
+              if (d && d.success) {
+                window.location.reload();
+              } else if (btn) {
+                btn.disabled = false;
+                btn.textContent = "Spróbuj ponownie";
+              }
+            }).catch(function () {
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = "Spróbuj ponownie";
+              }
+            });
+          }
+          (function(){
+            if (typeof window.ApexCharts !== "function") return;
+            var labels = <?php echo wp_json_encode(array_values($dates)); ?>;
+            var prevLabels = <?php echo wp_json_encode(array_values($prev_period_dates)); ?>;
+            var viewsData = <?php echo wp_json_encode(array_values($daily_views_series)); ?>;
+            var viewsPrev = <?php echo wp_json_encode(array_values($prev_views_series)); ?>;
+            var leadsData = <?php echo wp_json_encode(array_values($daily_leads_series)); ?>;
+            var leadsPrev = <?php echo wp_json_encode(array_values($prev_leads_series)); ?>;
+            var impData = <?php echo wp_json_encode(array_values(array_map(static function($r){ return (int) ($r["impressions"] ?? 0); }, $daily_keyword_series))); ?>;
+            var impPrev = <?php echo wp_json_encode(array_values(array_map(static function($r){ return (int) ($r["impressions"] ?? 0); }, $prev_keyword_series))); ?>;
+            var clickData = <?php echo wp_json_encode(array_values(array_map(static function($r){ return (int) ($r["clicks"] ?? 0); }, $daily_keyword_series))); ?>;
+            var clickPrev = <?php echo wp_json_encode(array_values(array_map(static function($r){ return (int) ($r["clicks"] ?? 0); }, $prev_keyword_series))); ?>;
+            function mountChart(elId, name, current, previous, color){
+              var el = document.getElementById(elId);
+              if (!el) return;
+              var opts = {
+                chart: {type: "area", height: 220, toolbar: {show: false}},
+                colors: [color, "#94a3b8"],
+                series: [
+                  {name: name, data: current},
+                  {name: name + " (poprzedni okres)", data: previous}
+                ],
+                dataLabels: {enabled: false},
+                stroke: {curve: "smooth", width: [2, 2]},
+                fill: {type: "gradient", gradient: {opacityFrom: 0.25, opacityTo: 0.03}},
+                xaxis: {categories: labels, labels: {rotate: -35}},
+                yaxis: {labels: {formatter: function(v){ return Math.round(v); }}},
+                tooltip: {shared: true},
+                legend: {position: "top", horizontalAlign: "left"}
+              };
+              new ApexCharts(el, opts).render();
+            }
+            mountChart("ups-chart-views", "Views", viewsData, viewsPrev, "#0d9488");
+            mountChart("ups-chart-leads", "Leads", leadsData, leadsPrev, "#2271b1");
+            mountChart("ups-chart-impressions", "Impressions", impData, impPrev, "#8b5cf6");
+            mountChart("ups-chart-clicks", "Clicks", clickData, clickPrev, "#f59e0b");
+          })();
+        </script>
       </div>
     </div>
     <?php
@@ -3422,6 +4452,55 @@ function upsellio_google_ads_fetch_auction_insights(string $campaign_id = "")
     return array_slice($competitors, 0, 40);
 }
 
+function upsellio_google_ads_fetch_search_terms(string $date_range = "LAST_30_DAYS")
+{
+    $query = "SELECT
+      search_term_view.search_term,
+      campaign.name,
+      ad_group.name,
+      metrics.cost_micros,
+      metrics.clicks,
+      metrics.impressions,
+      metrics.conversions
+    FROM search_term_view
+    WHERE segments.date DURING {$date_range}
+    LIMIT 600";
+
+    $rows = upsellio_google_ads_gaql_search_stream($query);
+    if (is_wp_error($rows)) {
+        return $rows;
+    }
+
+    $terms = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $term = sanitize_text_field((string) (($row["searchTermView"]["searchTerm"] ?? "")));
+        if ($term === "") {
+            continue;
+        }
+        $campaign_name = sanitize_text_field((string) (($row["campaign"]["name"] ?? "")));
+        $ad_group_name = sanitize_text_field((string) (($row["adGroup"]["name"] ?? "")));
+        $metrics = (array) ($row["metrics"] ?? []);
+        $terms[] = [
+            "search_term" => $term,
+            "campaign_name" => $campaign_name,
+            "ad_group_name" => $ad_group_name,
+            "cost_pln" => round(((int) ($metrics["costMicros"] ?? 0)) / 1000000, 2),
+            "clicks" => (int) ($metrics["clicks"] ?? 0),
+            "impressions" => (int) ($metrics["impressions"] ?? 0),
+            "conversions" => (float) ($metrics["conversions"] ?? 0),
+        ];
+    }
+
+    usort($terms, static function ($a, $b) {
+        return ($b["cost_pln"] ?? 0) <=> ($a["cost_pln"] ?? 0);
+    });
+
+    return array_slice($terms, 0, 250);
+}
+
 function upsellio_google_ads_sync_campaigns(): void
 {
     $campaigns = upsellio_google_ads_fetch_campaigns("LAST_30_DAYS");
@@ -3435,6 +4514,18 @@ function upsellio_google_ads_sync_campaigns(): void
     update_option("ups_ads_campaigns_data", $campaigns, false);
     update_option("ups_ads_campaigns_synced", current_time("mysql"), false);
     delete_option("ups_ads_campaigns_sync_error");
+
+    $auction = upsellio_google_ads_fetch_auction_insights("");
+    if (!is_wp_error($auction)) {
+        update_option("ups_ads_auction_data", $auction, false);
+        update_option("ups_ads_auction_synced", current_time("mysql"), false);
+    }
+
+    $search_terms = upsellio_google_ads_fetch_search_terms("LAST_30_DAYS");
+    if (!is_wp_error($search_terms)) {
+        update_option("ups_ads_search_terms_data", $search_terms, false);
+        update_option("ups_ads_search_terms_synced", current_time("mysql"), false);
+    }
 
     if (!function_exists("upsellio_sales_engine_get_campaign_costs") || !function_exists("upsellio_sales_engine_save_campaign_costs")) {
         return;
@@ -3485,16 +4576,334 @@ function upsellio_google_ads_sync_campaigns(): void
 }
 
 add_action("upsellio_google_ads_daily_sync", "upsellio_google_ads_sync_campaigns");
+add_action("upsellio_automation_daily", "upsellio_google_ads_sync_campaigns", 34);
+add_action("upsellio_gsc_daily_sync_hook", "upsellio_gsc_daily_sync_job");
 
 add_action(
     "init",
     static function () {
+        if (!wp_next_scheduled("upsellio_gsc_daily_sync")) {
+            wp_schedule_event(time() + (45 * MINUTE_IN_SECONDS), "daily", "upsellio_gsc_daily_sync");
+        }
+        if (!wp_next_scheduled("upsellio_gsc_daily_sync_hook")) {
+            wp_schedule_event(time() + MINUTE_IN_SECONDS, "daily", "upsellio_gsc_daily_sync_hook");
+        }
         if (!wp_next_scheduled("upsellio_google_ads_daily_sync")) {
             wp_schedule_event(time() + HOUR_IN_SECONDS, "daily", "upsellio_google_ads_daily_sync");
         }
     },
     20
 );
+
+add_action("upsellio_gsc_daily_sync", "upsellio_gsc_daily_sync_job");
+add_action("switch_theme", static function () {
+    wp_clear_scheduled_hook("upsellio_gsc_daily_sync_hook");
+    wp_clear_scheduled_hook("upsellio_gsc_daily_sync");
+    wp_clear_scheduled_hook("upsellio_google_ads_daily_sync");
+});
+
+function upsellio_analytics_build_weekly_digest_text(): string
+{
+    $ga4_rows = get_option("ups_automation_ga4_daily_aggregates", []);
+    $keyword_rows = upsellio_get_keyword_metrics_data();
+    $leads_week = get_posts([
+        "post_type" => "lead",
+        "post_status" => "publish",
+        "posts_per_page" => 400,
+        "date_query" => [[
+            "after" => wp_date("Y-m-d", strtotime("-7 days")),
+            "inclusive" => true,
+        ]],
+        "fields" => "ids",
+    ]);
+    $won_week = 0;
+    $value_week = 0.0;
+    foreach ($leads_week as $lead_id) {
+        $lead_id = (int) $lead_id;
+        $won_slugs = wp_get_object_terms($lead_id, "lead_status", ["fields" => "slugs"]);
+        if (is_array($won_slugs) && in_array("won", $won_slugs, true)) {
+            $won_week++;
+            $value_week += (float) get_post_meta($lead_id, "_upsellio_lead_close_value", true);
+        }
+    }
+
+    $top_queries = [];
+    foreach (array_slice($keyword_rows, 0, 200) as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $query = (string) ($row["keyword"] ?? "");
+        if ($query === "") {
+            continue;
+        }
+        $top_queries[$query] = ($top_queries[$query] ?? 0) + (int) ($row["clicks"] ?? 0);
+    }
+    arsort($top_queries);
+    $top_query_list = implode(", ", array_slice(array_keys($top_queries), 0, 5));
+
+    $ga4_sessions = 0;
+    $ga4_conversions = 0;
+    if (is_array($ga4_rows)) {
+        foreach ($ga4_rows as $ga4_row) {
+            if (!is_array($ga4_row)) {
+                continue;
+            }
+            $ga4_sessions += (int) ($ga4_row["sessions"] ?? 0);
+            $ga4_conversions += (int) ($ga4_row["conversions"] ?? 0);
+        }
+    }
+
+    $fallback = "Tygodniowy digest Upsellio\n"
+        . "- GA4 sessions: {$ga4_sessions}, GA4 conversions: {$ga4_conversions}\n"
+        . "- Leady (7d): " . count($leads_week) . ", wygrane: {$won_week}, wartość: " . number_format_i18n($value_week, 2) . " zł\n"
+        . "- Top queries: " . ($top_query_list !== "" ? $top_query_list : "brak danych") . "\n"
+        . "- Rekomendacja: sprawdź kampanie o najwyższym koszcie i najniższym win-rate.";
+
+    if (function_exists("upsellio_anthropic_crm_send_user_prompt")) {
+        $prompt = "Przygotuj zwięzły tygodniowy executive digest (PL) dla właściciela firmy B2B.\n"
+            . "Dane:\n{$fallback}\n"
+            . "Wymagane: 1 kluczowy insight, 3 ryzyka/anomalie, 2 szanse do skalowania, 3 konkretne akcje.";
+        $ai = upsellio_anthropic_crm_send_user_prompt($prompt, 900, 45, null);
+        if (is_string($ai) && trim($ai) !== "") {
+            return trim($ai);
+        }
+    }
+
+    return $fallback;
+}
+
+function upsellio_analytics_weekly_digest_job(): void
+{
+    $weekday = (int) wp_date("N");
+    if ($weekday !== 1) {
+        return;
+    }
+    $digest = upsellio_analytics_build_weekly_digest_text();
+    update_option("ups_analytics_weekly_digest_last", $digest, false);
+    wp_mail(
+        sanitize_email((string) get_option("admin_email")),
+        "Upsellio: Weekly Analytics Digest",
+        $digest
+    );
+}
+add_action("upsellio_automation_daily", "upsellio_analytics_weekly_digest_job", 35);
+
+function upsellio_analytics_daily_anomaly_alert_job(): void
+{
+    $dates = upsellio_get_analytics_dates(14);
+    $curr = array_slice($dates, 7, 7);
+    $prev = array_slice($dates, 0, 7);
+    $curr_views = array_sum(upsellio_get_daily_views_series($curr));
+    $prev_views = array_sum(upsellio_get_daily_views_series($prev));
+    $delta_views = upsellio_calculate_period_delta_percent($curr_views, $prev_views);
+    if (!upsellio_is_anomaly_delta($delta_views)) {
+        return;
+    }
+    $msg = "Anomalia ruchu: " . ($delta_views >= 0 ? "+" : "") . $delta_views . "% vs poprzednie 7 dni.";
+    update_option("ups_analytics_last_anomaly_alert", $msg, false);
+    wp_mail(sanitize_email((string) get_option("admin_email")), "Upsellio: Anomaly alert", $msg);
+}
+add_action("upsellio_automation_daily", "upsellio_analytics_daily_anomaly_alert_job", 36);
+
+function upsellio_ga4_run_report_raw(string $property_numeric_id, array $body, string $trace_id = "")
+{
+    $property_numeric_id = preg_replace("/\D+/", "", $property_numeric_id);
+    if ($property_numeric_id === "") {
+        return new WP_Error("upsellio_ga4_missing_property", "Brak numerycznego ID property GA4.");
+    }
+    $oauth = upsellio_get_oauth_credentials_for_ga4();
+    if (
+        (string) ($oauth["client_id"] ?? "") === "" ||
+        (string) ($oauth["client_secret"] ?? "") === "" ||
+        (string) ($oauth["refresh_token"] ?? "") === ""
+    ) {
+        return new WP_Error("upsellio_ga4_missing_oauth", "Brak OAuth do GA4.");
+    }
+    $access_token = upsellio_gsc_get_access_token($oauth, $trace_id);
+    if (is_wp_error($access_token)) {
+        return $access_token;
+    }
+    $endpoint = "https://analyticsdata.googleapis.com/v1beta/properties/" . $property_numeric_id . ":runReport";
+    $response = wp_remote_post($endpoint, [
+        "timeout" => 45,
+        "headers" => [
+            "Authorization" => "Bearer " . $access_token,
+            "Content-Type" => "application/json",
+        ],
+        "body" => wp_json_encode($body),
+    ]);
+    if (is_wp_error($response)) {
+        return $response;
+    }
+    $status = (int) wp_remote_retrieve_response_code($response);
+    $decoded = json_decode((string) wp_remote_retrieve_body($response), true);
+    if ($status >= 400) {
+        return new WP_Error("upsellio_ga4_report_error", upsellio_gsc_extract_error_message(is_array($decoded) ? $decoded : [], "Błąd GA4 report HTTP " . $status));
+    }
+    return is_array($decoded) ? $decoded : new WP_Error("upsellio_ga4_report_invalid", "Nieprawidłowa odpowiedź GA4.");
+}
+
+function upsellio_analytics_health_daily_job(): void
+{
+    $trace_id = upsellio_gsc_debug_trace_id();
+    $credentials = upsellio_get_gsc_credentials();
+    if (
+        (string) ($credentials["client_id"] ?? "") !== "" &&
+        (string) ($credentials["client_secret"] ?? "") !== "" &&
+        (string) ($credentials["refresh_token"] ?? "") !== "" &&
+        (string) ($credentials["property"] ?? "") !== ""
+    ) {
+        $access_token = upsellio_gsc_get_access_token($credentials, $trace_id);
+        if (!is_wp_error($access_token)) {
+            $property = (string) ($credentials["property"] ?? "");
+            $sitemaps_endpoint = "https://searchconsole.googleapis.com/webmasters/v3/sites/" . rawurlencode($property) . "/sitemaps";
+            $sitemaps_response = wp_remote_get($sitemaps_endpoint, [
+                "timeout" => 25,
+                "headers" => ["Authorization" => "Bearer " . $access_token],
+            ]);
+            if (!is_wp_error($sitemaps_response) && (int) wp_remote_retrieve_response_code($sitemaps_response) < 400) {
+                $payload = json_decode((string) wp_remote_retrieve_body($sitemaps_response), true);
+                $entries = isset($payload["sitemap"]) && is_array($payload["sitemap"]) ? $payload["sitemap"] : [];
+                update_option("ups_gsc_sitemaps_data", $entries, false);
+                update_option("ups_gsc_sitemaps_last_sync", wp_date("Y-m-d H:i:s"), false);
+            }
+
+            $keyword_rows = get_option("upsellio_keyword_metrics_rows", []);
+            if (is_array($keyword_rows) && !empty($keyword_rows)) {
+                $pages = [];
+                foreach ($keyword_rows as $row) {
+                    if (!is_array($row)) {
+                        continue;
+                    }
+                    $page = esc_url_raw((string) ($row["page"] ?? ""));
+                    if ($page === "") {
+                        continue;
+                    }
+                    $pages[$page] = ((int) ($pages[$page] ?? 0)) + (int) ($row["clicks"] ?? 0);
+                }
+                arsort($pages);
+                $inspection_rows = [];
+                foreach (array_slice(array_keys($pages), 0, 20) as $page_url) {
+                    $inspect_response = wp_remote_post("https://searchconsole.googleapis.com/v1/urlInspection/index:inspect", [
+                        "timeout" => 25,
+                        "headers" => [
+                            "Authorization" => "Bearer " . $access_token,
+                            "Content-Type" => "application/json",
+                        ],
+                        "body" => wp_json_encode([
+                            "inspectionUrl" => $page_url,
+                            "siteUrl" => $property,
+                            "languageCode" => "pl-PL",
+                        ]),
+                    ]);
+                    if (is_wp_error($inspect_response) || (int) wp_remote_retrieve_response_code($inspect_response) >= 400) {
+                        continue;
+                    }
+                    $inspect_payload = json_decode((string) wp_remote_retrieve_body($inspect_response), true);
+                    $result = is_array($inspect_payload) ? (array) ($inspect_payload["inspectionResult"] ?? []) : [];
+                    $index = (array) ($result["indexStatusResult"] ?? []);
+                    $inspection_rows[] = [
+                        "url" => $page_url,
+                        "verdict" => (string) ($index["verdict"] ?? ""),
+                        "coverage_state" => (string) ($index["coverageState"] ?? ""),
+                        "last_crawl_time" => (string) ($index["lastCrawlTime"] ?? ""),
+                        "referring_urls_count" => (int) ($index["referringUrlsCount"] ?? 0),
+                    ];
+                }
+                if (!empty($inspection_rows)) {
+                    update_option("ups_gsc_url_inspection_rows", $inspection_rows, false);
+                    update_option("ups_gsc_url_inspection_last_sync", wp_date("Y-m-d H:i:s"), false);
+                }
+            }
+        }
+    }
+
+    $property_id = upsellio_get_ga4_property_id();
+    if ($property_id !== "") {
+        $funnel_report = upsellio_ga4_run_report_raw($property_id, [
+            "dateRanges" => [["startDate" => "30daysAgo", "endDate" => "yesterday"]],
+            "dimensions" => [["name" => "eventName"]],
+            "metrics" => [["name" => "eventCount"]],
+            "dimensionFilter" => [
+                "filter" => [
+                    "fieldName" => "eventName",
+                    "inListFilter" => [
+                        "values" => ["page_view", "cta_click", "form_start", "generate_lead"],
+                    ],
+                ],
+            ],
+            "limit" => 50,
+        ], $trace_id);
+        if (!is_wp_error($funnel_report)) {
+            $rows = [];
+            foreach ((array) ($funnel_report["rows"] ?? []) as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $name = (string) ($row["dimensionValues"][0]["value"] ?? "");
+                $count = (int) round((float) ($row["metricValues"][0]["value"] ?? 0));
+                if ($name !== "") {
+                    $rows[$name] = $count;
+                }
+            }
+            update_option("ups_ga4_funnel_snapshot", $rows, false);
+            update_option("ups_ga4_funnel_last_sync", wp_date("Y-m-d H:i:s"), false);
+        }
+
+        $cohort_report = upsellio_ga4_run_report_raw($property_id, [
+            "dateRanges" => [["startDate" => "30daysAgo", "endDate" => "yesterday"]],
+            "dimensions" => [["name" => "newVsReturning"]],
+            "metrics" => [["name" => "sessions"], ["name" => "conversions"]],
+            "limit" => 10,
+        ], $trace_id);
+        if (!is_wp_error($cohort_report)) {
+            $rows = [];
+            foreach ((array) ($cohort_report["rows"] ?? []) as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $segment = (string) ($row["dimensionValues"][0]["value"] ?? "");
+                if ($segment === "") {
+                    continue;
+                }
+                $rows[] = [
+                    "segment" => $segment,
+                    "sessions" => (int) round((float) ($row["metricValues"][0]["value"] ?? 0)),
+                    "conversions" => (int) round((float) ($row["metricValues"][1]["value"] ?? 0)),
+                ];
+            }
+            update_option("ups_ga4_cohort_snapshot", $rows, false);
+            update_option("ups_ga4_cohort_last_sync", wp_date("Y-m-d H:i:s"), false);
+        }
+    }
+}
+add_action("upsellio_automation_daily", "upsellio_analytics_health_daily_job", 37);
+
+function upsellio_register_dashboard_rest_routes(): void
+{
+    register_rest_route("upsellio/v1", "/dashboard/kpi", [
+        "methods" => "GET",
+        "permission_callback" => static function () {
+            return current_user_can("edit_posts");
+        },
+        "callback" => static function (WP_REST_Request $request) {
+            $days = (int) $request->get_param("range");
+            $days = in_array($days, [7, 14, 30, 60, 90], true) ? $days : 30;
+            $dates = upsellio_get_analytics_dates($days);
+            $views = array_sum(upsellio_get_daily_views_series($dates));
+            $leads = array_sum(upsellio_get_daily_leads_series($dates));
+            return [
+                "range_days" => $days,
+                "views" => (int) $views,
+                "leads" => (int) $leads,
+                "conversion_rate" => $views > 0 ? round(($leads / $views) * 100, 2) : 0,
+                "gsc_last_sync" => (string) get_option("upsellio_keyword_metrics_last_sync", ""),
+                "ga4_last_sync" => (string) get_option("ups_automation_ga4_last_sync", ""),
+            ];
+        },
+    ]);
+}
+add_action("rest_api_init", "upsellio_register_dashboard_rest_routes");
 
 function upsellio_ajax_ads_sync_campaigns(): void
 {

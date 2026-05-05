@@ -636,7 +636,7 @@ function upsellio_inbox_backfill_last_direction_batch(int $limit = 80): int
 function upsellio_inbox_segment_meta_clauses(string $segment): array
 {
     $segment = sanitize_key((string) $segment);
-    if (!in_array($segment, ["awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline"], true)) {
+    if (!in_array($segment, ["awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline", "hot", "warm", "cold", "stale", "snooze", "archived"], true)) {
         return [];
     }
     if ($segment === "awaiting") {
@@ -706,6 +706,26 @@ function upsellio_inbox_segment_meta_clauses(string $segment): array
             ],
         ];
     }
+    if (in_array($segment, ["hot", "warm", "cold", "stale"], true)) {
+        return [[
+            "key" => "_ups_offer_triage_bucket",
+            "value" => $segment,
+            "compare" => "=",
+        ]];
+    }
+    if ($segment === "snooze") {
+        return [[
+            "key" => "_ups_offer_snooze_until",
+            "compare" => "EXISTS",
+        ]];
+    }
+    if ($segment === "archived") {
+        return [[
+            "key" => "_ups_offer_archived",
+            "value" => "1",
+            "compare" => "=",
+        ]];
+    }
 
     return [];
 }
@@ -718,7 +738,7 @@ function upsellio_inbox_segment_sql_fragment(string $segment): string
     global $wpdb;
     $segment = sanitize_key((string) $segment);
     $pm = $wpdb->postmeta;
-    if (!in_array($segment, ["awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline"], true)) {
+    if (!in_array($segment, ["awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline", "hot", "warm", "cold", "stale", "snooze", "archived"], true)) {
         return "";
     }
     if ($segment === "awaiting") {
@@ -749,6 +769,24 @@ function upsellio_inbox_segment_sql_fragment(string $segment): string
             "_ups_offer_status",
             "open"
         );
+    }
+    if (in_array($segment, ["hot", "warm", "cold", "stale"], true)) {
+        return $wpdb->prepare(
+            " AND EXISTS (SELECT 1 FROM {$pm} tg WHERE tg.post_id = p.ID AND tg.meta_key = %s AND tg.meta_value = %s)",
+            "_ups_offer_triage_bucket",
+            $segment
+        );
+    }
+    if ($segment === "snooze") {
+        return " AND EXISTS (
+            SELECT 1 FROM {$pm} sn WHERE sn.post_id = p.ID AND sn.meta_key = '_ups_offer_snooze_until'
+            AND TRIM(IFNULL(sn.meta_value,'')) <> ''
+        )";
+    }
+    if ($segment === "archived") {
+        return " AND EXISTS (
+            SELECT 1 FROM {$pm} ar WHERE ar.post_id = p.ID AND ar.meta_key = '_ups_offer_archived' AND ar.meta_value = '1'
+        )";
     }
 
     return "";
@@ -846,7 +884,7 @@ function upsellio_inbox_list_meta_query(string $folder_id, string $flag_key, str
         $bucket = "all";
     }
     $segment = sanitize_key((string) $segment);
-    if (!in_array($segment, ["", "awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline"], true)) {
+    if (!in_array($segment, ["", "awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline", "hot", "warm", "cold", "stale", "snooze", "archived"], true)) {
         $segment = "";
     }
 
@@ -905,6 +943,22 @@ function upsellio_inbox_list_meta_query(string $folder_id, string $flag_key, str
         $mq[] = $clause;
     }
 
+    if ($segment !== "archived") {
+        $mq[] = [
+            "relation" => "OR",
+            ["key" => "_ups_offer_archived", "compare" => "NOT EXISTS"],
+            ["key" => "_ups_offer_archived", "value" => "0", "compare" => "="],
+            ["key" => "_ups_offer_archived", "value" => "", "compare" => "="],
+        ];
+    }
+    if ($segment !== "snooze") {
+        $mq[] = [
+            "relation" => "OR",
+            ["key" => "_ups_offer_snooze_until", "compare" => "NOT EXISTS"],
+            ["key" => "_ups_offer_snooze_until", "value" => "", "compare" => "="],
+        ];
+    }
+
     return $mq;
 }
 
@@ -931,7 +985,7 @@ function upsellio_inbox_query_list(array $ctx): array
         $bucket = "all";
     }
     $segment = sanitize_key((string) ($ctx["segment"] ?? ""));
-    if (!in_array($segment, ["", "awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline"], true)) {
+    if (!in_array($segment, ["", "awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline", "hot", "warm", "cold", "stale", "snooze", "archived"], true)) {
         $segment = "";
     }
     $search = trim((string) ($ctx["search"] ?? ""));
@@ -998,7 +1052,7 @@ function upsellio_inbox_query_list_with_search(
         $bucket = "all";
     }
     $segment = sanitize_key((string) $segment);
-    if (!in_array($segment, ["", "awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline"], true)) {
+    if (!in_array($segment, ["", "awaiting", "unlinked", "lead_web", "email_direct", "open_pipeline", "hot", "warm", "cold", "stale", "snooze", "archived"], true)) {
         $segment = "";
     }
     if ($folder_id === "") {
@@ -1076,8 +1130,20 @@ function upsellio_inbox_query_list_with_search(
         $like
     );
 
+    $archived_sql = $segment === "archived"
+        ? ""
+        : " AND (
+            NOT EXISTS (SELECT 1 FROM {$pm} arx WHERE arx.post_id = p.ID AND arx.meta_key = '_ups_offer_archived')
+            OR EXISTS (SELECT 1 FROM {$pm} arx2 WHERE arx2.post_id = p.ID AND arx2.meta_key = '_ups_offer_archived' AND (arx2.meta_value = '' OR arx2.meta_value = '0'))
+        )";
+    $snooze_sql = $segment === "snooze"
+        ? ""
+        : " AND (
+            NOT EXISTS (SELECT 1 FROM {$pm} snx WHERE snx.post_id = p.ID AND snx.meta_key = '_ups_offer_snooze_until')
+            OR EXISTS (SELECT 1 FROM {$pm} snx2 WHERE snx2.post_id = p.ID AND snx2.meta_key = '_ups_offer_snooze_until' AND TRIM(IFNULL(snx2.meta_value,'')) = '')
+        )";
     $where_core =
-        "p.post_type = 'crm_offer' AND p.post_status IN ({$in_status}) AND {$thread_exists}{$folder_sql}{$flag_sql}{$bucket_sql}{$segment_sql}{$search_sql}";
+        "p.post_type = 'crm_offer' AND p.post_status IN ({$in_status}) AND {$thread_exists}{$folder_sql}{$flag_sql}{$bucket_sql}{$segment_sql}{$archived_sql}{$snooze_sql}{$search_sql}";
 
     $count_sql = "SELECT COUNT(DISTINCT p.ID) FROM {$p} p WHERE {$where_core}";
     $total = (int) $wpdb->get_var($count_sql);
@@ -1113,6 +1179,59 @@ function upsellio_inbox_query_list_with_search(
     ];
 }
 
+function upsellio_inbox_extract_snippet(string $thread_text, string $query, int $context = 80): string
+{
+    $thread_text = (string) $thread_text;
+    $query = trim((string) $query);
+    if ($thread_text === "" || $query === "") {
+        return "";
+    }
+    $pos = function_exists("mb_stripos") ? mb_stripos($thread_text, $query, 0, "UTF-8") : stripos($thread_text, $query);
+    if ($pos === false) {
+        return "";
+    }
+    $qlen = function_exists("mb_strlen") ? mb_strlen($query, "UTF-8") : strlen($query);
+    $len = function_exists("mb_strlen") ? mb_strlen($thread_text, "UTF-8") : strlen($thread_text);
+    $start = max(0, (int) $pos - $context);
+    $slice_len = ($context * 2) + $qlen;
+    $excerpt = function_exists("mb_substr")
+        ? (string) mb_substr($thread_text, $start, $slice_len, "UTF-8")
+        : (string) substr($thread_text, $start, $slice_len);
+    if ($start > 0) {
+        $excerpt = "…" . $excerpt;
+    }
+    if (($start + (function_exists("mb_strlen") ? mb_strlen($excerpt, "UTF-8") : strlen($excerpt))) < $len) {
+        $excerpt .= "…";
+    }
+    $escaped = esc_html($excerpt);
+    return (string) preg_replace('/(' . preg_quote($query, '/') . ')/iu', "<mark>$1</mark>", $escaped);
+}
+
+function upsellio_inbox_search_snippet_for_offer(int $offer_id, string $query): string
+{
+    $offer_id = (int) $offer_id;
+    $query = trim((string) $query);
+    if ($offer_id <= 0 || $query === "") {
+        return "";
+    }
+    $thread = get_post_meta($offer_id, "_ups_offer_inbox_thread", true);
+    if (!is_array($thread) || $thread === []) {
+        return "";
+    }
+    for ($i = count($thread) - 1; $i >= 0; $i--) {
+        $msg = $thread[$i];
+        if (!is_array($msg)) {
+            continue;
+        }
+        $text = trim((string) ($msg["subject"] ?? "") . "\n" . (string) ($msg["body_plain"] ?? ""));
+        $snippet = upsellio_inbox_extract_snippet($text, $query);
+        if ($snippet !== "") {
+            return $snippet;
+        }
+    }
+    return "";
+}
+
 /**
  * Gdy wybrany wątek nie jest na bieżącej stronie listy, zwraca pojedynczy wpis do dopięcia na górze (bez zmiany total).
  */
@@ -1141,3 +1260,87 @@ function upsellio_inbox_maybe_prepend_selected_offer(array $posts, int $offer_id
 
     return array_merge([$post], $posts);
 }
+
+function upsellio_inbox_run_daily_triage(): void
+{
+    if (!post_type_exists("crm_offer")) {
+        return;
+    }
+    $offers = get_posts([
+        "post_type" => "crm_offer",
+        "post_status" => ["publish", "draft", "private", "pending"],
+        "posts_per_page" => 250,
+        "fields" => "ids",
+        "meta_query" => [[
+            "key" => "_ups_offer_inbox_thread",
+            "compare" => "EXISTS",
+        ]],
+    ]);
+    foreach ((array) $offers as $offer_id) {
+        $offer_id = (int) $offer_id;
+        if ($offer_id <= 0) {
+            continue;
+        }
+        $score = (int) get_post_meta($offer_id, "_ups_offer_score", true);
+        $summary = upsellio_inbox_get_thread_summary($offer_id);
+        $last_ts = strtotime((string) ($summary["last_ts"] ?? "")) ?: 0;
+        $silence_days = $last_ts > 0 ? (int) floor((time() - $last_ts) / DAY_IN_SECONDS) : 999;
+        $intent = (string) ($summary["last_cls"] ?? "");
+        $bucket = "cold";
+        if ($score >= 70 && $silence_days < 2 && in_array($intent, ["positive", "other"], true)) {
+            $bucket = "hot";
+        } elseif ($score >= 40 && $silence_days <= 7) {
+            $bucket = "warm";
+        } elseif ($silence_days > 14) {
+            $bucket = "stale";
+        }
+        update_post_meta($offer_id, "_ups_offer_triage_bucket", $bucket);
+        update_post_meta($offer_id, "_ups_offer_triage_at", time());
+    }
+}
+add_action("upsellio_inbox_daily_triage", "upsellio_inbox_run_daily_triage");
+
+function upsellio_inbox_hourly_unsnooze(): void
+{
+    if (!post_type_exists("crm_offer")) {
+        return;
+    }
+    $ids = get_posts([
+        "post_type" => "crm_offer",
+        "post_status" => ["publish", "draft", "private", "pending"],
+        "posts_per_page" => 200,
+        "fields" => "ids",
+        "meta_query" => [[
+            "key" => "_ups_offer_snooze_until",
+            "compare" => "EXISTS",
+        ]],
+    ]);
+    $now = time();
+    foreach ((array) $ids as $offer_id) {
+        $offer_id = (int) $offer_id;
+        $raw = (string) get_post_meta($offer_id, "_ups_offer_snooze_until", true);
+        if ($raw === "") {
+            continue;
+        }
+        $ts = ctype_digit($raw) ? (int) $raw : (strtotime($raw) ?: 0);
+        if ($ts <= 0 || $ts > $now) {
+            continue;
+        }
+        delete_post_meta($offer_id, "_ups_offer_snooze_until");
+        delete_post_meta($offer_id, "_ups_offer_snooze_reason");
+        if (function_exists("upsellio_offer_add_timeline_event")) {
+            upsellio_offer_add_timeline_event($offer_id, "snooze_ended", "Snooze zakonczony — watek wrocil do inboxu.");
+        }
+    }
+}
+add_action("upsellio_inbox_hourly_unsnooze", "upsellio_inbox_hourly_unsnooze");
+
+add_action("init", static function (): void {
+    if (!wp_next_scheduled("upsellio_inbox_daily_triage")) {
+        $next = strtotime("tomorrow 07:00:00", current_time("timestamp"));
+        wp_schedule_event($next, "daily", "upsellio_inbox_daily_triage");
+    }
+    if (!wp_next_scheduled("upsellio_inbox_hourly_unsnooze")) {
+        wp_schedule_event(time() + HOUR_IN_SECONDS, "hourly", "upsellio_inbox_hourly_unsnooze");
+    }
+});

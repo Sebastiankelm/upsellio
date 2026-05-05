@@ -634,9 +634,9 @@ add_action("upsellio_ai_master_daily_build", "upsellio_ai_master_build");
 
 add_action("init", function () {
     if (!wp_next_scheduled("upsellio_ai_master_daily_build")) {
-        $t = strtotime("tomorrow 05:00:00");
+        $t = strtotime("tomorrow 05:00:00", current_time("timestamp"));
         if ($t === false) {
-            $t = time() + HOUR_IN_SECONDS;
+            $t = current_time("timestamp") + HOUR_IN_SECONDS;
         }
         wp_schedule_event($t, "daily", "upsellio_ai_master_daily_build");
     }

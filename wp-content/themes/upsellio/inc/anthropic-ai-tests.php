@@ -545,6 +545,22 @@ add_action('admin_menu', 'upsellio_ai_tests_register_admin_page');
 
 function upsellio_ai_tests_render_page(): void {
     if (!current_user_can('manage_options')) { return; }
+    if (
+        isset($_POST['action'])
+        && $_POST['action'] === 'ups_ai_backfill_scores'
+        && check_admin_referer('ups_ai_backfill_scores')
+    ) {
+        $leads = get_posts([
+            'post_type' => 'lead',
+            'meta_query' => [['key' => '_upsellio_lead_score', 'compare' => 'NOT EXISTS']],
+            'posts_per_page' => 50,
+            'fields' => 'ids',
+        ]);
+        foreach ($leads as $idx => $lid) {
+            wp_schedule_single_event(current_time('timestamp') + 5 + ($idx * 2), 'upsellio_crm_run_ai_wp_lead_classification', [(int) $lid]);
+        }
+        echo '<div class="notice notice-success"><p>Zakolejkowano ' . count($leads) . ' leadów do scoringu.</p></div>';
+    }
     $nonce    = wp_create_nonce('upsellio_ai_tests_nonce');
     $ajax_url = admin_url('admin-ajax.php');
     ?>
@@ -630,6 +646,11 @@ function upsellio_ai_tests_render_page(): void {
             Wymaga niepustej kolejki tematów i działającego klucza API.
         </p>
         <button class="button button-secondary" id="ups-at-run-blogbot">🚀 Uruchom Blog Bota teraz</button>
+        <form method="post" style="margin-top:10px">
+            <?php wp_nonce_field('ups_ai_backfill_scores'); ?>
+            <input type="hidden" name="action" value="ups_ai_backfill_scores" />
+            <button class="button">⚡ Punktuj wszystkie nieocenione leady</button>
+        </form>
         <span id="ups-at-blogbot-loading" style="display:none;margin-left:10px;font-size:12px;color:#666">Generuję wpis… (może potrwać 15–60 sekund)</span>
         <div class="ups-at-blogbot-result" id="ups-at-blogbot-result"></div>
     </div>

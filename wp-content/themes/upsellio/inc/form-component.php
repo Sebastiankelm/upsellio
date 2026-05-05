@@ -10,7 +10,7 @@ if (!defined("ABSPATH")) {
  * @param array $args {
  *   @type string $origin               Identyfikator źródła (wymagane). Np. 'contact-page-form'.
  *   @type string $redirect_url         URL po sukcesie. Domyślnie: bieżąca strona.
- *   @type string $variant              Wariant pól: 'full'|'compact'|'micro'. Domyślnie: 'full'.
+ *   @type string $variant              Wariant pól: 'full'|'compact'|'micro'|'email-only'. Domyślnie: 'full'.
  *   @type string $heading              Tytuł nad formularzem.
  *   @type string $subheading           Podtytuł.
  *   @type string $submit_label         Tekst przycisku. Domyślnie: 'Wyślij →'.
@@ -31,7 +31,7 @@ function upsellio_render_lead_form(array $args = [])
 {
     $origin = sanitize_key((string) ($args["origin"] ?? "contact-form"));
     $redirect_url = esc_url_raw((string) ($args["redirect_url"] ?? (get_permalink() ?: home_url("/"))));
-    $variant = in_array($args["variant"] ?? "full", ["full", "compact", "micro"], true)
+    $variant = in_array($args["variant"] ?? "full", ["full", "compact", "micro", "email-only"], true)
         ? $args["variant"]
         : "full";
     $heading = sanitize_text_field((string) ($args["heading"] ?? ""));
@@ -115,6 +115,11 @@ function upsellio_render_lead_form(array $args = [])
         <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
         <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
         <input type="hidden" name="utm_campaign" data-ups-utm="campaign" value="" />
+        <input type="hidden" name="utm_term" data-ups-utm="term" value="" />
+        <input type="hidden" name="utm_content" data-ups-utm="content" value="" />
+        <input type="hidden" name="gclid" data-ups-utm="gclid" value="" />
+        <input type="hidden" name="fbclid" data-ups-utm="fbclid" value="" />
+        <input type="hidden" name="msclkid" data-ups-utm="msclkid" value="" />
         <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
         <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
         <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off"
@@ -166,6 +171,26 @@ function upsellio_render_lead_form(array $args = [])
             <input type="hidden" name="lead_name" value="Szybka analiza" />
             <input type="hidden" name="lead_message" value="Prośba o szybką analizę strony." />
             <input type="hidden" name="lead_consent" value="1" />
+
+        <?php elseif ($variant === "email-only") : ?>
+            <?php
+            $email_only_name = sanitize_text_field((string) ($args["hidden_lead_name"] ?? "Materiał — strona główna"));
+            $email_only_msg = sanitize_textarea_field((string) ($args["preset_message"] ?? "Prośba o checklistę PDF ze strony głównej."));
+            ?>
+            <div class="ups-form__row">
+                <label class="ups-form__label" for="ups-f-email-only-<?php echo esc_attr($origin); ?>">
+                    E-mail firmowy <span aria-hidden="true">*</span>
+                </label>
+                <input class="ups-form__input" id="ups-f-email-only-<?php echo esc_attr($origin); ?>"
+                       type="email" name="lead_email" placeholder="kontakt@firma.pl"
+                       autocomplete="email" required />
+            </div>
+            <input type="hidden" name="lead_name" value="<?php echo esc_attr($email_only_name); ?>" />
+            <input type="hidden" name="lead_message" value="<?php echo esc_attr($email_only_msg); ?>" />
+            <label class="ups-form__consent">
+                <input type="checkbox" name="lead_consent" value="1" required />
+                <span>Wyrażam zgodę na kontakt i przesłanie materiału na podany adres e-mail.</span>
+            </label>
 
         <?php elseif ($variant === "compact") : ?>
             <?php if ($hidden_service !== "") : ?>
@@ -285,6 +310,17 @@ function upsellio_render_lead_form(array $args = [])
                     <?php endforeach; ?>
                 </select>
             <?php endif; ?>
+            <label class="ups-form__label" for="ups-f-monthly-sales-<?php echo esc_attr($origin); ?>">
+                Twoja miesięczna sprzedaż
+            </label>
+            <select class="ups-form__select" id="ups-f-monthly-sales-<?php echo esc_attr($origin); ?>"
+                    name="lead_monthly_sales">
+                <option value="">— wybierz —</option>
+                <option value="<50k">&lt;50k</option>
+                <option value="50-200k">50-200k</option>
+                <option value="200k-1M">200k-1M</option>
+                <option value="1M+">1M+</option>
+            </select>
             <label class="ups-form__label" for="ups-f-msg-<?php echo esc_attr($origin); ?>">
                 Wiadomość <span aria-hidden="true">*</span>
             </label>

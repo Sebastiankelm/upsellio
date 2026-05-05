@@ -286,7 +286,7 @@ $faq_items = [
         <a href="#proces">Proces</a>
         <a href="#faq">FAQ</a>
       </div>
-      <a href="#kontakt" class="meta-quick-cta">Chcę sprawdzić Meta Ads</a>
+      <a href="#kontakt" class="meta-quick-cta" data-cta="metaads-quick-cta" data-cta-section="hero" data-cta-position="topbar">Chcę sprawdzić Meta Ads</a>
     </div>
   </div>
 
@@ -301,7 +301,7 @@ $faq_items = [
           <p>Skuteczne kampanie Meta Ads łączą precyzyjne targetowanie grupy docelowej, spójny komunikat dopasowany do etapu decyzyjnego, kreacje zatrzymujące uwagę w pierwszych sekundach scrollowania i stronę docelową, która zamienia kliknięcia w kontakty.</p>
         </div>
         <div class="meta-btn-row">
-          <a href="#kontakt" class="meta-btn meta-btn-primary">Chcę bezpłatną diagnozę</a>
+          <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Chcę bezpłatną diagnozę</a>
           <a href="#co-robie" class="meta-btn meta-btn-secondary">Zobacz, co obejmuje usługa</a>
           <a href="#lejek" class="meta-btn meta-btn-ghost">Zobacz lejek Meta Ads</a>
         </div>
@@ -362,7 +362,7 @@ $faq_items = [
           <strong>Nie chodzi o to, żeby puścić reklamę. Chodzi o to, żeby zbudować ścieżkę decyzji.</strong>
           <p>Zanim zaproponuję zmiany, sprawdzam kampanie, kreacje, grupy odbiorców, stronę docelową i ofertę.</p>
         </div>
-        <a href="#kontakt" class="meta-btn meta-btn-primary">Sprawdźmy Twoje kampanie</a>
+        <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-audit" data-cta-section="services" data-cta-position="inline">Sprawdźmy Twoje kampanie</a>
       </div>
     </div>
   </section>
@@ -561,7 +561,7 @@ $faq_items = [
           <strong>Największy błąd? Reklamowanie oferty osobom, które jeszcze nie rozumieją problemu.</strong>
           <p>Dlatego układam komunikaty tak, żeby prowadzić klienta od uwagi do decyzji.</p>
         </div>
-        <a href="#kontakt" class="meta-btn meta-btn-primary">Chcę lejek Meta Ads</a>
+        <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-funnel" data-cta-section="process" data-cta-position="inline">Chcę lejek Meta Ads</a>
       </div>
     </div>
   </section>
@@ -574,7 +574,7 @@ $faq_items = [
           <h2 class="meta-h2">Jak wygląda współpraca przy prowadzeniu Meta Ads: od diagnozy do optymalizacji?</h2>
           <p class="meta-lead">Każda współpraca zaczyna się od diagnozy, a nie od uruchomienia kampanii. Najpierw trzeba zrozumieć, co sprzedajesz, do kogo, jaki jest proces decyzyjny klienta i gdzie dziś giną potencjalni klienci.</p>
           <div class="meta-btn-row">
-            <a href="#kontakt" class="meta-btn meta-btn-primary">Zacznijmy od diagnozy</a>
+            <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-final-diagnosis" data-cta-section="contact" data-cta-position="final">Zacznijmy od diagnozy</a>
           </div>
         </div>
 
