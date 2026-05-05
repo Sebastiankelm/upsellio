@@ -427,6 +427,10 @@ function upsellio_crm_app_template_redirect()
         .side-badge.hot{background:#e24b4a;color:#fff}
         .offer-dlg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
         label.odlg-hint{font-size:11px;color:var(--text-3);margin:-4px 0 2px}
+        .ups-tip{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:999px;border:1px solid var(--border-s);font-size:11px;line-height:1;color:var(--text-3);cursor:help;position:relative}
+        .ups-tip:focus,.ups-tip:hover{border-color:var(--teal);color:var(--teal)}
+        .ups-tip:focus::after,.ups-tip:hover::after{content:attr(data-tip);position:absolute;left:50%;transform:translateX(-50%);bottom:calc(100% + 8px);background:#0a1410;color:#fff;padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.35;min-width:220px;max-width:320px;white-space:normal;z-index:20;box-shadow:0 14px 28px rgba(0,0,0,.22)}
+        .ups-tip:focus::before,.ups-tip:hover::before{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:calc(100% + 2px);border:6px solid transparent;border-top-color:#0a1410}
         @media(max-width:1100px){html,body{height:auto;overflow:auto}.layout{flex-direction:column;height:auto;min-height:100vh;overflow:visible}.side{width:100%;height:auto;max-height:none;position:relative}.main{overflow:visible;min-height:0}.kpi,.half{grid-column:span 12}.topbar{padding:12px 16px}.content{padding:16px}.content.content--inbox{overflow:visible}}
         @media(max-width:720px){.offer-dlg-grid{grid-template-columns:1fr}}
       </style>
@@ -2208,7 +2212,7 @@ function upsellio_crm_app_template_redirect()
                           <button type="button" class="btn alt" style="margin-top:8px" id="ups-fill-from-client">Uzupełnij z klienta</button>
                         </div>
                         <div>
-                          <label><strong>Szablon layoutu (nowa oferta)</strong></label>
+                          <label><strong>Szablon layoutu (nowa oferta)</strong> <?php echo upsellio_help_tooltip("Używany tylko przy pierwszym zapisie nowej oferty. Potem treść edytujesz już bezpośrednio w budowniczku."); ?></label>
                           <select name="offer_layout_template_id" id="fld_offer_layout_template_id">
                             <option value="">— bez szablonu —</option>
                             <?php foreach ($offer_layout_templates as $olt) : ?>
@@ -2225,12 +2229,19 @@ function upsellio_crm_app_template_redirect()
                             <a href="<?php echo esc_url($preview_url); ?>?preview_mode=1" target="_blank" class="btn alt" id="ups-offer-preview-btn">👁 Podgląd jak klient</a>
                           <?php endif; ?>
                         </div>
+                        <div style="grid-column:1/-1">
+                          <label><strong>Zapisz jako nowy szablon layoutu</strong> <?php echo upsellio_help_tooltip("Po zapisie oferty utworzymy nowy rekord w Generatorze szablonów na bazie bieżących pól strony publicznej."); ?></label>
+                          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                            <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="offer_save_as_layout" value="1" /> Utwórz szablon przy zapisie</label>
+                            <input type="text" name="offer_save_as_layout_title" placeholder="Nazwa nowego szablonu (opcjonalnie)" style="min-width:280px" />
+                          </div>
+                        </div>
                         <div>
-                          <label><strong>Cena / inwestycja</strong></label>
+                          <label><strong>Cena / inwestycja</strong> <?php echo upsellio_help_tooltip("Wspiera scoring i raportowanie. Możesz wpisać wolny format, np. 4500 netto / mc."); ?></label>
                           <input type="text" name="offer_price" id="fld_offer_price" value="<?php echo esc_attr($oe_id > 0 ? (string) get_post_meta($oe_id, "_ups_offer_price", true) : ""); ?>" />
                         </div>
                         <div>
-                          <label><strong>Start / timeline</strong></label>
+                          <label><strong>Start / timeline</strong> <?php echo upsellio_help_tooltip("To pole wpływa na priorytet w pipeline i automatyzacje follow-up."); ?></label>
                           <input type="text" name="offer_timeline" id="fld_offer_timeline" value="<?php echo esc_attr($oe_id > 0 ? (string) get_post_meta($oe_id, "_ups_offer_timeline", true) : ""); ?>" />
                         </div>
                         <div>
@@ -2243,7 +2254,7 @@ function upsellio_crm_app_template_redirect()
                           <input type="datetime-local" name="offer_expires_at" id="fld_offer_expires_at" value="<?php echo esc_attr($oe_exp_local); ?>" />
                         </div>
                         <div>
-                          <label><strong>Status</strong></label>
+                          <label><strong>Status</strong> <?php echo upsellio_help_tooltip("Zmiana statusu uruchamia logikę automatyzacji, np. przypomnienia po wysyłce."); ?></label>
                           <select name="offer_status" id="fld_offer_status">
                             <?php $oe_st = $oe_id > 0 ? (string) get_post_meta($oe_id, "_ups_offer_status", true) : "open"; ?>
                             <option value="open" <?php selected($oe_st, "open"); ?>>otwarty</option>
@@ -2369,6 +2380,9 @@ function upsellio_crm_app_template_redirect()
                         <div style="grid-column:1/-1">
                           <label><strong>Pytania do klienta (linia = pytanie, opcjonalnie „pytanie|notka”)</strong></label>
                           <textarea name="offer_questions_raw" id="fld_offer_questions_raw" rows="4"><?php echo esc_textarea($oe_id > 0 ? (string) get_post_meta($oe_id, "_ups_offer_questions_raw", true) : ""); ?></textarea>
+                          <?php if (function_exists("upsellio_render_qa_picker")) {
+                              upsellio_render_qa_picker("fld_offer_questions_raw");
+                          } ?>
                         </div>
                         <div style="grid-column:1/-1">
                           <label><strong>Zawarte w cenie (linie)</strong></label>
@@ -2831,6 +2845,14 @@ function upsellio_crm_app_template_redirect()
                       </td>
                       <td style="white-space:nowrap">
                         <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "template-studio", "tab" => "offer", "edit_offer_layout" => $olt_id], home_url("/crm-app/"))); ?>">Edytuj</a>
+                        <form method="post" style="display:inline;margin-left:6px">
+                          <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
+                          <input type="hidden" name="ups_action" value="duplicate_offer_layout" />
+                          <input type="hidden" name="crm_view" value="template-studio" />
+                          <input type="hidden" name="template_studio_tab" value="offer" />
+                          <input type="hidden" name="offer_layout_id" value="<?php echo esc_attr((string) $olt_id); ?>" />
+                          <button type="submit" class="btn alt">Duplikuj</button>
+                        </form>
                         <details style="display:inline-block;margin-left:4px;vertical-align:middle">
                           <summary class="btn alt" style="cursor:pointer;display:inline-block">JSON</summary>
                           <pre style="margin-top:8px;font-size:11px;white-space:pre-wrap;max-height:180px;overflow:auto"><?php echo esc_html($prev_raw); ?></pre>

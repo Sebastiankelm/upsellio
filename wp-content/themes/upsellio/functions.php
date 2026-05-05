@@ -1206,6 +1206,7 @@ require_once get_template_directory() . "/inc/marketing-portfolio-seed.php";
 require_once get_template_directory() . "/inc/lead-magnet-seed.php";
 require_once get_template_directory() . "/inc/theme-config.php";
 require_once get_template_directory() . "/inc/offers.php";
+require_once get_template_directory() . "/inc/qa-library.php";
 require_once get_template_directory() . "/inc/inbox.php";
 require_once get_template_directory() . "/inc/inbox-templates.php";
 require_once get_template_directory() . "/inc/followups.php";

@@ -287,6 +287,21 @@ function upsellio_crm_app_handle_post_actions()
             wp_trash_post($tid);
             upsellio_crm_app_append_entity_log("offer_layout", $tid, "offer_layout_trashed", "Usunięto szablon layoutu oferty.", []);
         }
+    } elseif ($action === "duplicate_offer_layout") {
+        $tid = isset($_POST["offer_layout_id"]) ? (int) wp_unslash($_POST["offer_layout_id"]) : 0;
+        if ($tid > 0 && get_post_type($tid) === "crm_offer_layout" && current_user_can("edit_post", $tid)) {
+            $payload = function_exists("upsellio_offer_layout_get_payload_from_post") ? upsellio_offer_layout_get_payload_from_post($tid) : [];
+            $new_id = (int) wp_insert_post([
+                "post_type" => "crm_offer_layout",
+                "post_status" => "publish",
+                "post_title" => (string) get_the_title($tid) . " (kopia)",
+            ]);
+            if ($new_id > 0) {
+                update_post_meta($new_id, "_ups_offer_layout_payload", wp_json_encode($payload, JSON_UNESCAPED_UNICODE));
+                set_transient("ups_crm_offer_layout_just_saved_" . get_current_user_id(), $new_id, 120);
+                upsellio_crm_app_append_entity_log("offer_layout", $new_id, "offer_layout_duplicated", "Zduplikowano szablon layoutu oferty.", ["source_id" => $tid]);
+            }
+        }
     } elseif ($action === "save_contract_layout") {
         $tid = isset($_POST["contract_layout_id"]) ? (int) wp_unslash($_POST["contract_layout_id"]) : 0;
         $name = isset($_POST["contract_layout_title"]) ? sanitize_text_field(wp_unslash($_POST["contract_layout_title"])) : "";
@@ -447,6 +462,22 @@ function upsellio_crm_app_handle_post_actions()
                     "ID" => $offer_id,
                     "post_content" => "<style>" . $resolved_css . "</style>\n" . $resolved_html,
                 ]);
+            }
+            if (!empty($_POST["offer_save_as_layout"]) && function_exists("upsellio_offer_get_landing_payload")) {
+                $layout_title = isset($_POST["offer_save_as_layout_title"]) ? sanitize_text_field(wp_unslash($_POST["offer_save_as_layout_title"])) : "";
+                if ($layout_title === "") {
+                    $layout_title = sprintf("Layout z oferty #%d", $offer_id);
+                }
+                $payload = upsellio_offer_get_landing_payload($offer_id);
+                $layout_id = (int) wp_insert_post([
+                    "post_type" => "crm_offer_layout",
+                    "post_status" => "publish",
+                    "post_title" => $layout_title,
+                ]);
+                if ($layout_id > 0) {
+                    update_post_meta($layout_id, "_ups_offer_layout_payload", wp_json_encode($payload, JSON_UNESCAPED_UNICODE));
+                    upsellio_crm_app_append_entity_log("offer_layout", $layout_id, "offer_layout_created_from_offer", "Zapisano ofertę jako szablon layoutu.", ["offer_id" => $offer_id]);
+                }
             }
             if ($old_offer_status !== $new_offer_status) {
                 do_action("upsellio_offer_status_changed", $offer_id, $new_offer_status, $old_offer_status);
