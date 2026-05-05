@@ -544,10 +544,18 @@ a{text-decoration:none;color:inherit}
 .ups-modal__field{display:block;margin-bottom:14px}
 .ups-modal__field span{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:6px}
 .ups-modal__field input,.ups-modal__field textarea{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--font-b);font-size:15px;background:var(--bg)}
+.ups-modal__field select{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--font-b);font-size:15px;background:var(--bg)}
 .ups-modal__field textarea{min-height:120px;resize:vertical;line-height:1.5}
 .ups-modal__actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
 .ups-modal__err{font-size:13px;color:#b45309;margin-bottom:10px;display:none}
 .ups-modal__err.is-visible{display:block}
+.ups-modal-progress{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 14px}
+.ups-modal-progress .step{font-size:11px;padding:6px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted);text-align:center}
+.ups-modal-progress .step.active{background:rgba(11,108,107,.08);border-color:var(--brand);color:var(--brand)}
+.ups-modal-step{display:none}
+.ups-modal-step.active{display:block}
+.ups-radio-group{display:grid;gap:8px}
+.ups-radio-group label{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink2)}
 .ups-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);z-index:220;max-width:min(420px,calc(100% - 32px));background:var(--ink);color:#fff;padding:14px 20px;border-radius:var(--r);font-size:14px;line-height:1.45;box-shadow:0 12px 40px rgba(0,0,0,.25);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
 .ups-toast.is-visible{transform:translateX(-50%) translateY(0)}
 .ups-toast strong{color:#5eead4;font-weight:600}
@@ -955,14 +963,82 @@ a{text-decoration:none;color:inherit}
 
 <div class="ups-modal" id="ups-modal-contact" aria-hidden="true">
   <div class="ups-modal__backdrop" data-ups-close></div>
-  <div class="ups-modal__box" role="dialog" aria-modal="true" aria-labelledby="ups-modal-contact-title">
-    <h3 id="ups-modal-contact-title">Adres e-mail do potwierdzenia</h3>
-    <p>Na ten adres wyślemy <strong>kopię podsumowania</strong> (równolegle dostanie ją opiekun). Bez poprawnego maila nie mogę wysłać potwierdzenia.</p>
+  <div class="ups-modal__box" role="dialog" aria-modal="true" aria-labelledby="ups-modal-contact-title" style="max-width:620px">
+    <h3 id="ups-modal-contact-title">Akceptacja oferty</h3>
+    <div class="ups-modal-progress">
+      <div class="step active" data-step="1">1. Pakiet</div>
+      <div class="step" data-step="2">2. Start i budżet</div>
+      <div class="step" data-step="3">3. Decyzja</div>
+      <div class="step" data-step="4">4. Kontakt</div>
+    </div>
     <div class="ups-modal__err" id="ups-modal-contact-err"></div>
-    <label class="ups-modal__field"><span>Twój e-mail</span><input type="email" id="ups-modal-contact-input" autocomplete="email" placeholder="jan@firma.pl"/></label>
-    <div class="ups-modal__actions">
-      <button type="button" class="btn btn-g" data-ups-close>Anuluj</button>
-      <button type="button" class="btn btn-p" id="ups-modal-contact-submit">Wyślij akceptację</button>
+    <div class="ups-modal-step active" data-step="1">
+      <h4>Potwierdź wybór</h4>
+      <p>Wybrany pakiet: <strong id="confirmCommitLabel">—</strong></p>
+      <div class="ups-modal__actions">
+        <button type="button" class="btn btn-g" data-ups-close>Anuluj</button>
+        <button type="button" class="btn btn-p" onclick="goStep(2)">Dalej →</button>
+      </div>
+    </div>
+    <div class="ups-modal-step" data-step="2">
+      <h4>Kiedy chcesz startować?</h4>
+      <div class="ups-radio-group">
+        <label><input type="radio" name="accept_timeline" value="asap" required /> ASAP — w tym tygodniu</label>
+        <label><input type="radio" name="accept_timeline" value="2_weeks" /> W 2 tygodnie</label>
+        <label><input type="radio" name="accept_timeline" value="month" /> W ciągu miesiąca</label>
+        <label><input type="radio" name="accept_timeline" value="flexible" /> Elastycznie</label>
+      </div>
+      <h4 style="margin-top:14px">Budżet reklamowy</h4>
+      <div class="ups-radio-group">
+        <label><input type="radio" name="accept_ad_budget" value="under_3k" required /> Do 3 000 zł / mc</label>
+        <label><input type="radio" name="accept_ad_budget" value="3_5k" /> 3-5 000 zł / mc</label>
+        <label><input type="radio" name="accept_ad_budget" value="5_10k" /> 5-10 000 zł / mc</label>
+        <label><input type="radio" name="accept_ad_budget" value="10k_plus" /> Powyżej 10 000 zł / mc</label>
+      </div>
+      <div class="ups-modal__actions">
+        <button type="button" class="btn btn-g" onclick="goStep(1)">← Wróć</button>
+        <button type="button" class="btn btn-p" onclick="goStep(3)">Dalej →</button>
+      </div>
+    </div>
+    <div class="ups-modal-step" data-step="3">
+      <h4>Kto podejmuje decyzję?</h4>
+      <div class="ups-radio-group">
+        <label><input type="radio" name="accept_decision" value="me" required /> Tylko ja</label>
+        <label><input type="radio" name="accept_decision" value="me_team" /> Ja + zespół</label>
+        <label><input type="radio" name="accept_decision" value="board" /> Zarząd / wspólnicy</label>
+      </div>
+      <label class="ups-modal__field"><span>Obawy / pytania</span><textarea id="accept_concerns" placeholder="Np. cena, timing, poprzednie doświadczenia"></textarea></label>
+      <div class="ups-modal__actions">
+        <button type="button" class="btn btn-g" onclick="goStep(2)">← Wróć</button>
+        <button type="button" class="btn btn-p" onclick="goStep(4)">Dalej →</button>
+      </div>
+    </div>
+    <div class="ups-modal-step" data-step="4">
+      <h4>Kontakt</h4>
+      <label class="ups-modal__field"><span>Email</span><input type="email" id="accept_email" autocomplete="email" placeholder="jan@firma.pl" required /></label>
+      <label class="ups-modal__field"><span>Telefon (opcjonalnie)</span><input type="tel" id="accept_phone" placeholder="+48..." /></label>
+      <label class="ups-modal__field"><span>Kanał kontaktu</span>
+        <select id="accept_contact_pref">
+          <option value="phone">Telefon</option>
+          <option value="email">Email</option>
+          <option value="meeting">Spotkanie online</option>
+        </select>
+      </label>
+      <label class="ups-modal__field"><span>Najlepszy czas na telefon</span>
+        <select id="accept_call_window">
+          <option value="">Bez preferencji</option>
+          <option value="9_12">9-12</option>
+          <option value="12_15">12-15</option>
+          <option value="15_18">15-18</option>
+        </select>
+      </label>
+      <input type="hidden" id="acceptCtaSource" value="" />
+      <input type="hidden" id="acceptCommitKey" value="" />
+      <input type="hidden" id="acceptCommitLabel" value="" />
+      <div class="ups-modal__actions">
+        <button type="button" class="btn btn-g" onclick="goStep(3)">← Wróć</button>
+        <button type="button" class="btn btn-p" id="ups-modal-contact-submit">Wyślij i umów rozmowę →</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1129,24 +1205,6 @@ function closeModals(){
   document.querySelectorAll('.ups-modal.is-open').forEach(function(m){m.classList.remove('is-open');m.setAttribute('aria-hidden','true');});
   document.body.style.overflow='';
 }
-window.__pendingContactEmail=null;
-window.__pendingSource='pricing';
-function runAccept(source){
-  var c=getCommit();
-  var extra={msg_type:'accept',commit_key:c.key,commit_label:c.label,cta_source:source};
-  if(window.__pendingContactEmail)extra.contact_email=window.__pendingContactEmail;
-  postMessaging(extra).then(function(res){
-    if(res&&res.success){
-      if(res.data&&res.data.saved_contact)hasClientEmail=true;
-      window.__pendingContactEmail=null;
-      closeModals();
-      showToast((res.data&&res.data.message)||'Wysłano. Sprawdź skrzynkę — kopia dotarła też do Ciebie.');
-      pushDl('offer_public_accept',{cta_label:source});
-    }else{
-      showToast((res&&res.data&&res.data.message)||'Nie udało się wysłać. Spróbuj ponownie.',true);
-    }
-  }).catch(function(){showToast('Błąd sieci. Spróbuj ponownie.',true);});
-}
 function onAcceptClick(source){
   cta(source==='pricing'?'pricing_accept_ajax':'footer_accept_ajax');
   var hasVariants=document.querySelectorAll('input[name="commit"]').length>0;
@@ -1161,17 +1219,48 @@ function onAcceptClick(source){
     showToast('Wybierz najpierw pakiet, którym jesteś zainteresowany.',true);
     return;
   }
-  window.__pendingContactEmail=null;
-  if(!hasClientEmail){
-    window.__pendingSource=source;
-    var errEl=document.getElementById('ups-modal-contact-err');
-    if(errEl){errEl.classList.remove('is-visible');errEl.textContent='';}
-    var inp=document.getElementById('ups-modal-contact-input');
-    if(inp)inp.value='';
-    openModal('ups-modal-contact');
-    return;
+  openAcceptModal(source,commit);
+}
+function goStep(step){
+  var err=document.getElementById('ups-modal-contact-err');
+  if(err){err.classList.remove('is-visible');err.textContent='';}
+  if(step===3){
+    var timeline=document.querySelector('input[name="accept_timeline"]:checked');
+    var budget=document.querySelector('input[name="accept_ad_budget"]:checked');
+    if(!timeline||!budget){if(err){err.textContent='Wybierz termin startu i budżet reklamowy.';err.classList.add('is-visible');}return;}
   }
-  runAccept(source);
+  if(step===4){
+    var decision=document.querySelector('input[name="accept_decision"]:checked');
+    if(!decision){if(err){err.textContent='Wybierz sposób podejmowania decyzji.';err.classList.add('is-visible');}return;}
+  }
+  document.querySelectorAll('#ups-modal-contact .ups-modal-step').forEach(function(s){s.classList.toggle('active',String(s.dataset.step)===String(step));});
+  document.querySelectorAll('#ups-modal-contact .ups-modal-progress .step').forEach(function(s){s.classList.toggle('active',Number(s.dataset.step)<=Number(step));});
+}
+window.goStep=goStep;
+function openAcceptModal(source,commit){
+  var errEl=document.getElementById('ups-modal-contact-err');
+  if(errEl){errEl.classList.remove('is-visible');errEl.textContent='';}
+  document.querySelectorAll('#ups-modal-contact input[type="radio"]').forEach(function(el){el.checked=false;});
+  var concerns=document.getElementById('accept_concerns');
+  if(concerns)concerns.value='';
+  var email=document.getElementById('accept_email');
+  if(email)email.value=hasClientEmail?<?php echo wp_json_encode((string) $client_email); ?>:'';
+  var phone=document.getElementById('accept_phone');
+  if(phone)phone.value='';
+  var pref=document.getElementById('accept_contact_pref');
+  if(pref)pref.value='phone';
+  var windowField=document.getElementById('accept_call_window');
+  if(windowField)windowField.value='';
+  var src=document.getElementById('acceptCtaSource');
+  if(src)src.value=source;
+  var ck=document.getElementById('acceptCommitKey');
+  if(ck)ck.value=commit.key||'';
+  var cl=document.getElementById('acceptCommitLabel');
+  if(cl)cl.value=commit.label||'';
+  var cLabel=document.getElementById('confirmCommitLabel');
+  if(cLabel)cLabel.textContent=commit.label||'Brak';
+  goStep(1);
+  openModal('ups-modal-contact');
 }
 var questionSource='pricing';
 function onQuestionClick(source){
@@ -1202,16 +1291,51 @@ if(elQp)elQp.addEventListener('click',function(){onQuestionClick('pricing');});
 if(elQf)elQf.addEventListener('click',function(){onQuestionClick('footer');});
 var elCs=document.getElementById('ups-modal-contact-submit');
 if(elCs)elCs.addEventListener('click',function(){
-  var inp=document.getElementById('ups-modal-contact-input');
-  var v=inp?(inp.value||'').trim():'';
+  var v=(document.getElementById('accept_email')||{}).value||'';
+  v=v.trim();
   var err=document.getElementById('ups-modal-contact-err');
   if(!v||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
     if(err){err.textContent='Podaj poprawny adres e-mail.';err.classList.add('is-visible');}
     return;
   }
+  var timeline=(document.querySelector('input[name="accept_timeline"]:checked')||{}).value||'';
+  var budget=(document.querySelector('input[name="accept_ad_budget"]:checked')||{}).value||'';
+  var decision=(document.querySelector('input[name="accept_decision"]:checked')||{}).value||'';
+  if(!timeline||!budget||!decision){
+    if(err){err.textContent='Uzupełnij wszystkie kroki przed wysyłką.';err.classList.add('is-visible');}
+    return;
+  }
   if(err)err.classList.remove('is-visible');
-  window.__pendingContactEmail=v;
-  runAccept(window.__pendingSource||'pricing');
+  var body=new URLSearchParams();
+  body.append('action','upsellio_offer_accept_full');
+  body.append('offer_id',String(offerId));
+  body.append('client_id',String(clientId));
+  body.append('person_id',String(personId||''));
+  body.append('nonce',publicNonce);
+  body.append('contact_email',v);
+  body.append('contact_phone',((document.getElementById('accept_phone')||{}).value||'').trim());
+  body.append('contact_pref',((document.getElementById('accept_contact_pref')||{}).value||'').trim());
+  body.append('call_window',((document.getElementById('accept_call_window')||{}).value||'').trim());
+  body.append('timeline',timeline);
+  body.append('ad_budget',budget);
+  body.append('decision',decision);
+  body.append('concerns',((document.getElementById('accept_concerns')||{}).value||'').trim());
+  body.append('commit_key',((document.getElementById('acceptCommitKey')||{}).value||'').trim());
+  body.append('commit_label',((document.getElementById('acceptCommitLabel')||{}).value||'').trim());
+  body.append('cta_source',((document.getElementById('acceptCtaSource')||{}).value||'pricing');
+  fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'},credentials:'same-origin',body:body.toString()})
+    .then(function(r){return r.json();})
+    .then(function(res){
+      if(res&&res.success){
+        hasClientEmail=true;
+        closeModals();
+        showToast((res.data&&res.data.message)||'Dzięki! Potwierdzenie wysłane, wracamy z kontaktem.');
+        pushDl('offer_public_accept',{cta_label:((document.getElementById('acceptCtaSource')||{}).value||'pricing')});
+      }else{
+        showToast((res&&res.data&&res.data.message)||'Nie udało się wysłać. Spróbuj ponownie.',true);
+      }
+    })
+    .catch(function(){showToast('Błąd sieci. Spróbuj ponownie.',true);});
 });
 var elQs=document.getElementById('ups-modal-q-submit');
 if(elQs)elQs.addEventListener('click',function(){
@@ -1432,6 +1556,83 @@ function upsellio_offer_public_messaging_ajax()
 }
 add_action("wp_ajax_upsellio_offer_public_messaging", "upsellio_offer_public_messaging_ajax");
 add_action("wp_ajax_nopriv_upsellio_offer_public_messaging", "upsellio_offer_public_messaging_ajax");
+
+function upsellio_offer_accept_full_ajax()
+{
+    $offer_id = isset($_POST["offer_id"]) ? (int) $_POST["offer_id"] : 0;
+    if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
+        wp_send_json_error(["message" => "Nieprawidłowa oferta."]);
+    }
+    if (!isset($_POST["nonce"]) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["nonce"])), "ups_offer_public_" . $offer_id)) {
+        wp_send_json_error(["message" => "Sesja wygasła. Odśwież stronę i spróbuj ponownie."]);
+    }
+    if (function_exists("upsellio_offer_is_expired") && upsellio_offer_is_expired($offer_id)) {
+        wp_send_json_error(["message" => "Ta oferta wygasła. Skontaktuj się z opiekunem."]);
+    }
+
+    $contact_email = isset($_POST["contact_email"]) ? sanitize_email(wp_unslash($_POST["contact_email"])) : "";
+    if (!is_email($contact_email)) {
+        wp_send_json_error(["message" => "Podaj poprawny adres e-mail."]);
+    }
+    $timeline = isset($_POST["timeline"]) ? sanitize_key(wp_unslash($_POST["timeline"])) : "";
+    $ad_budget = isset($_POST["ad_budget"]) ? sanitize_key(wp_unslash($_POST["ad_budget"])) : "";
+    $decision = isset($_POST["decision"]) ? sanitize_key(wp_unslash($_POST["decision"])) : "";
+    if ($timeline === "" || $ad_budget === "" || $decision === "") {
+        wp_send_json_error(["message" => "Uzupełnij wszystkie kroki akceptacji."]);
+    }
+
+    if (!function_exists("upsellio_offer_apply_public_accept") || !upsellio_offer_apply_public_accept($offer_id)) {
+        wp_send_json_error(["message" => "Nie można zapisać akceptacji."]);
+    }
+
+    $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
+    if ($client_id > 0) {
+        update_post_meta($client_id, "_ups_client_email", $contact_email);
+        update_post_meta($client_id, "_ups_client_phone", isset($_POST["contact_phone"]) ? sanitize_text_field(wp_unslash($_POST["contact_phone"])) : "");
+    }
+
+    $decision_payload = [
+        "timeline" => $timeline,
+        "ad_budget" => $ad_budget,
+        "decision" => $decision,
+        "concerns" => isset($_POST["concerns"]) ? sanitize_textarea_field(wp_unslash($_POST["concerns"])) : "",
+        "contact_pref" => isset($_POST["contact_pref"]) ? sanitize_key(wp_unslash($_POST["contact_pref"])) : "phone",
+        "call_window" => isset($_POST["call_window"]) ? sanitize_key(wp_unslash($_POST["call_window"])) : "",
+        "commit_key" => isset($_POST["commit_key"]) ? sanitize_key(wp_unslash($_POST["commit_key"])) : "",
+        "commit_label" => isset($_POST["commit_label"]) ? sanitize_text_field(wp_unslash($_POST["commit_label"])) : "",
+        "cta_source" => isset($_POST["cta_source"]) ? sanitize_key(wp_unslash($_POST["cta_source"])) : "pricing",
+    ];
+    update_post_meta($offer_id, "_ups_offer_accept_payload", $decision_payload);
+
+    [$owner_name, $owner_email] = upsellio_offer_public_resolve_owner_mail($offer_id);
+    $rows = [
+        __("Oferta", "upsellio") => get_the_title($offer_id),
+        __("Kontakt", "upsellio") => $contact_email,
+        __("Wariant", "upsellio") => (string) $decision_payload["commit_label"],
+        __("Start", "upsellio") => (string) $decision_payload["timeline"],
+        __("Budżet reklamowy", "upsellio") => (string) $decision_payload["ad_budget"],
+        __("Decyzja", "upsellio") => (string) $decision_payload["decision"],
+        __("Preferowany kontakt", "upsellio") => (string) $decision_payload["contact_pref"],
+        __("Okno kontaktu", "upsellio") => (string) $decision_payload["call_window"],
+        __("Obawy", "upsellio") => (string) $decision_payload["concerns"],
+    ];
+    $subject = "[Upsellio] " . __("Akceptacja oferty (pełny brief)", "upsellio") . ": " . get_the_title($offer_id);
+    $body = upsellio_offer_public_format_mail_html(
+        __("Klient przeszedł pełny formularz akceptacji oferty.", "upsellio"),
+        $rows,
+        $owner_name
+    );
+    wp_mail($owner_email, $subject, $body, [
+        "Content-Type: text/html; charset=UTF-8",
+        "Cc: " . $contact_email,
+    ]);
+
+    wp_send_json_success([
+        "message" => __("Dziękuję! Akceptacja zapisana. Wrócimy z kontaktem w ustalonym oknie czasowym.", "upsellio"),
+    ]);
+}
+add_action("wp_ajax_upsellio_offer_accept_full", "upsellio_offer_accept_full_ajax");
+add_action("wp_ajax_nopriv_upsellio_offer_accept_full", "upsellio_offer_accept_full_ajax");
 
 function upsellio_offer_qa_submit_handler()
 {
