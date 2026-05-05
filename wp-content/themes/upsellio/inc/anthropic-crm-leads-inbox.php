@@ -1137,7 +1137,11 @@ function upsellio_crm_ai_inbox_followup_hourly_run()
             continue;
         }
 
-        $subject = $subject_in !== "" ? $subject_in : ("Re: " . $title);
+        $last_inbound_msg_id = function_exists("upsellio_inbox_last_inbound_message_id")
+            ? upsellio_inbox_last_inbound_message_id($offer_id)
+            : "";
+        $is_real_reply = $last_inbound_msg_id !== "";
+        $subject = $subject_in !== "" ? $subject_in : ($is_real_reply ? ("Re: " . $title) : $title);
         if ($dry_run) {
             $preview = wp_trim_words($body_plain, 120, "…");
             if (function_exists("upsellio_offer_add_timeline_event")) {
@@ -1166,16 +1170,14 @@ function upsellio_crm_ai_inbox_followup_hourly_run()
             nl2br(esc_html($body_plain)) .
             "</body></html>";
 
-        $settings = upsellio_followup_get_sender_settings();
-        $mail_args = [
-            "crm_smtp" => true,
-            "to" => $to_emails,
-            "cc" => $cc_emails,
-            "bcc" => [],
-        ];
-
         $primary_to = $to_emails[0];
-        $sent = upsellio_followup_send_html_mail($primary_to, $subject, $html_core, $mail_args);
+        $sent = function_exists("upsellio_send_crm_mail")
+            ? upsellio_send_crm_mail($primary_to, $subject, nl2br(esc_html($body_plain)), [
+                "type" => "transactional",
+                "preheader" => wp_trim_words(wp_strip_all_tags($body_plain), 12),
+                "in_reply_to" => $last_inbound_msg_id,
+            ])
+            : upsellio_followup_send_html_mail($primary_to, $subject, $html_core, ["crm_smtp" => true, "to" => $to_emails, "cc" => $cc_emails, "bcc" => []]);
         if (!$sent) {
             if (function_exists("upsellio_mailbox_log")) {
                 upsellio_mailbox_log("mail", "warning", "AI follow-up: wysylka nieudana dla oferty #" . $offer_id, "");
@@ -1183,9 +1185,8 @@ function upsellio_crm_ai_inbox_followup_hourly_run()
             continue;
         }
 
-        $html_for_meta = function_exists("upsellio_followup_finalize_crm_html")
-            ? upsellio_followup_finalize_crm_html($html_core, $mail_args)
-            : $html_core;
+        $settings = function_exists("upsellio_followup_get_sender_settings") ? upsellio_followup_get_sender_settings() : ["from_email" => ""];
+        $html_for_meta = $html_core;
 
         upsellio_inbox_append_message($offer_id, [
             "direction" => "out",
@@ -1241,6 +1242,18 @@ function upsellio_anthropic_crm_build_offer_description_prompt(array $vars)
         "client_name" => (string) ($vars["client_name"] ?? ""),
         "offer_context" => (string) ($vars["offer_context"] ?? ""),
     ]);
+}
+
+function upsellio_inbox_last_inbound_message_id(int $offer_id): string
+{
+    $thread = (array) get_post_meta($offer_id, "_ups_offer_inbox_thread", true);
+    $thread = array_reverse($thread);
+    foreach ($thread as $msg) {
+        if (($msg["direction"] ?? "") === "in" && !empty($msg["message_id"])) {
+            return (string) $msg["message_id"];
+        }
+    }
+    return "";
 }
 
 add_action("upsellio_crm_ai_inbox_followup_hourly", "upsellio_crm_ai_inbox_followup_hourly_run");

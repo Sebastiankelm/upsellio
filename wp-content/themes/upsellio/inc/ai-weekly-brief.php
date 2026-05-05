@@ -23,6 +23,19 @@ function upsellio_ai_compute_wow_deltas(array $now, array $prev): array
     return $deltas;
 }
 
+function upsellio_get_latest_weekly_brief(): array
+{
+    $base_ts = current_time("timestamp");
+    for ($i = 0; $i < 7; $i++) {
+        $date = wp_date("Y-m-d", strtotime("-{$i} day", $base_ts));
+        $brief = (string) get_option("ups_ai_weekly_brief_{$date}", "");
+        if ($brief !== "") {
+            return ["html" => $brief, "at" => strtotime($date, $base_ts)];
+        }
+    }
+    return ["html" => "", "at" => 0];
+}
+
 function upsellio_ai_generate_weekly_brief(): ?string
 {
     if (function_exists("upsellio_ai_can_call") && !upsellio_ai_can_call("weekly_brief", 0.10)) {
@@ -85,7 +98,17 @@ EOT;
         update_option("ups_ai_master_snapshot_prev_week", $snapshot, false);
         $owner = get_user_by("id", (int) get_option("ups_ai_brief_recipient", 1));
         if ($owner) {
-            wp_mail($owner->user_email, "🎯 Brief Sprzedażowy — " . current_time("Y-m-d"), $brief, ["Content-Type: text/html; charset=UTF-8"]);
+            $week_label = wp_date("W", current_time("timestamp"));
+            $subject = "Brief sprzedażowy — tydzień {$week_label}/" . wp_date("Y");
+            if (function_exists("upsellio_send_crm_mail")) {
+                upsellio_send_crm_mail($owner->user_email, $subject, $brief, [
+                    "type" => "transactional",
+                    "preheader" => "Top 3 leady, 2 anomalie, 1 wygrana do skopiowania.",
+                    "allow_internal" => true,
+                ]);
+            } else {
+                wp_mail($owner->user_email, $subject, $brief, ["Content-Type: text/html; charset=UTF-8"]);
+            }
         }
     }
     return $brief;

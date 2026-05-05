@@ -1209,6 +1209,9 @@ require_once get_template_directory() . "/inc/offers.php";
 require_once get_template_directory() . "/inc/inbox.php";
 require_once get_template_directory() . "/inc/inbox-templates.php";
 require_once get_template_directory() . "/inc/followups.php";
+require_once get_template_directory() . "/inc/crm-email-template.php";
+require_once get_template_directory() . "/inc/crm-unsub.php";
+require_once get_template_directory() . "/inc/crm-mailer.php";
 require_once get_template_directory() . "/inc/ai-model-router.php";
 require_once get_template_directory() . "/inc/ai-cost-tracker.php";
 require_once get_template_directory() . "/inc/ai-cost-dashboard.php";
@@ -1241,6 +1244,7 @@ if (is_readable($suggestions_php)) {
     require_once $suggestions_php;
 }
 require_once get_template_directory() . "/inc/crm-app.php";
+require_once get_template_directory() . "/inc/crm-app/defaults.php";
 require_once get_template_directory() . "/inc/contracts.php";
 
 function upsellio_setup()

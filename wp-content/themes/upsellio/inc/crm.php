@@ -564,20 +564,60 @@ function upsellio_crm_send_emails($lead_id, $name, $email, $message)
     $adminEmail = sanitize_email((string) get_option("admin_email"));
     $backupEmail = upsellio_crm_get_backup_recipient();
     $recipient = is_email($adminEmail) ? $adminEmail : $backupEmail;
-    $subject = "Nowy lead w CRM Upsellio";
-    $body = "Lead ID: {$lead_id}\nImię/Firma: {$name}\nE-mail: {$email}\n\nWiadomość:\n{$message}";
-    $adminSent = is_email($recipient) ? wp_mail($recipient, $subject, $body) : false;
+    $score = (int) get_post_meta($lead_id, "_upsellio_lead_score", true);
+    $score_reason = (string) get_post_meta($lead_id, "_upsellio_lead_score_reason", true);
+    $company = (string) get_post_meta($lead_id, "_upsellio_lead_company", true);
+    $service = (string) get_post_meta($lead_id, "_upsellio_lead_service", true);
+    $utm_source = (string) get_post_meta($lead_id, "_upsellio_lead_utm_source", true);
+    $gclid = get_post_meta($lead_id, "_upsellio_lead_gclid", true) ? "✓" : "";
+    $quiz_industry = (string) get_post_meta($lead_id, "_upsellio_lead_quiz_industry", true);
+    $quiz_problem = (string) get_post_meta($lead_id, "_upsellio_lead_quiz_problem", true);
+    $quiz_budget = (string) get_post_meta($lead_id, "_upsellio_lead_quiz_budget", true);
+    $edit_url = admin_url("post.php?post=" . (int) $lead_id . "&action=edit");
+    $subject = "🎯 Lead: {$name}" . ($company !== "" ? " ({$company})" : "") . " · score {$score}";
+    $body = "<p><strong>" . esc_html($name) . "</strong>" . ($company !== "" ? " · " . esc_html($company) : "") . "<br><span style='font-size:13px;color:#64748b;'>" . esc_html($email) . "</span></p>
+<div style='background:#f0fdfa;border-left:4px solid #0d9488;padding:14px 16px;margin:14px 0;'><strong>AI Score: {$score}/100</strong><p style='margin:6px 0 0;font-size:13px;'>" . esc_html($score_reason) . "</p></div>
+<p><strong>Zgłoszenie:</strong></p><blockquote style='border-left:3px solid #e5e7eb;padding:8px 12px;color:#475569;font-style:italic;'>" . nl2br(esc_html($message)) . "</blockquote>
+<p><strong>Kontekst:</strong></p><table style='font-size:13px;border-collapse:collapse;'>
+<tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Usługa:</td><td>" . esc_html($service ?: "—") . "</td></tr>
+<tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Quiz:</td><td>" . esc_html($quiz_problem) . " · " . esc_html($quiz_industry) . " · " . esc_html($quiz_budget) . "</td></tr>
+<tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Źródło:</td><td>" . esc_html($utm_source ?: "organic") . " " . esc_html($gclid) . "</td></tr>
+</table>
+<p><a href='" . esc_url($edit_url) . "' class='ups-cta'>Otwórz lead w CRM →</a></p>";
+    $adminSent = is_email($recipient) && function_exists("upsellio_send_crm_mail")
+        ? upsellio_send_crm_mail($recipient, $subject, $body, [
+            "type" => "transactional",
+            "preheader" => "AI score {$score}. " . wp_trim_words($message, 10),
+            "allow_internal" => true,
+        ])
+        : false;
     if (!$adminSent && is_email($backupEmail) && strtolower($backupEmail) !== strtolower((string) $recipient)) {
-        $adminSent = wp_mail($backupEmail, $subject, $body);
+        $adminSent = function_exists("upsellio_send_crm_mail")
+            ? upsellio_send_crm_mail($backupEmail, $subject, $body, ["type" => "transactional", "allow_internal" => true])
+            : false;
     }
     if (!$adminSent) {
         upsellio_crm_add_timeline_event((int) $lead_id, "mail_error", "Nie udało się wysłać powiadomienia e-mail do administratora.");
     }
 
     if (is_email($email)) {
-        $autoresponderSubject = "Dziękuję za kontakt - Upsellio";
-        $autoresponderBody = "Cześć {$name},\n\nDziękuję za wiadomość. Wrócę do Ciebie możliwie szybko z konkretną odpowiedzią.\n\nPozdrawiam,\nSebastian / Upsellio";
-        if (!wp_mail($email, $autoresponderSubject, $autoresponderBody)) {
+        $first_name_parts = preg_split('/\s+/', trim((string) $name));
+        $first_name = $first_name_parts[0] ?? "Cześć";
+        $autoresponderSubject = "Mam Twoje zgłoszenie — odezwę się jutro do 14:00";
+        $autoresponderBody = "<p>Cześć " . esc_html($first_name) . ",</p>
+<p><strong>Mam Twoje zgłoszenie.</strong> Jutro do 14:00 dostaniesz ode mnie konkretną odpowiedź — nie szablon, tylko wstępną diagnozę.</p>
+<p><strong>Co zrobię w tych ~24h:</strong></p>
+<ul style='margin:0 0 14px 20px;padding:0;'><li>Rzut oka na stronę i kampanie</li><li>Szybki benchmark Search Console i CPL</li><li>2-3 największe blokery lejka</li></ul>
+<p>Jeśli masz pilny temat — <a href='tel:+48575522595'>+48 575 522 595</a>.</p>
+<p>Do jutra,<br><strong>Sebastian Kelm</strong></p>";
+        $sent_lead = function_exists("upsellio_send_crm_mail")
+            ? upsellio_send_crm_mail($email, $autoresponderSubject, $autoresponderBody, [
+                "type" => "transactional",
+                "preheader" => "Konkretna odpowiedź w ciągu 24h. Nie auto-reply.",
+                "reply_to" => (string) get_option("ups_followup_from_email", get_bloginfo("admin_email")),
+            ])
+            : false;
+        if (!$sent_lead) {
             upsellio_crm_add_timeline_event((int) $lead_id, "mail_error", "Nie udało się wysłać autorespondera do leada.");
         }
     }
@@ -713,10 +753,24 @@ function upsellio_crm_followup_reminder($lead_id)
         return;
     }
 
-    $adminEmail = get_option("admin_email");
-    $subject = "Przypomnienie: lead bez kontaktu >24h";
-    $body = "Lead #{$lead_id} nadal ma status NOWY i nie ma oznaczonego pierwszego kontaktu.";
-    wp_mail($adminEmail, $subject, $body);
+    $adminEmail = (string) get_option("admin_email");
+    $lead_title = get_the_title($lead_id);
+    $lead_email = (string) get_post_meta($lead_id, "_upsellio_lead_email", true);
+    $score = (int) get_post_meta($lead_id, "_upsellio_lead_score", true);
+    $company = (string) get_post_meta($lead_id, "_upsellio_lead_company", true);
+    $urgency = $score >= 70 ? "🔥 HOT" : ($score >= 50 ? "☀️ WARM" : "🌑 COLD");
+    $subject = "{$urgency} · 24h cisza: {$lead_title}";
+    $body = "<p><strong>{$urgency} · " . esc_html($lead_title) . "</strong>" . ($company !== "" ? " (" . esc_html($company) . ")" : "") . "</p>
+<p style='font-size:13px;color:#64748b;'>Score: {$score}/100 · Cisza: 24h</p>
+<p>Lead nadal ma status NOWY i nie ma oznaczonego pierwszego kontaktu.</p>
+<p><a href='" . esc_url(admin_url("post.php?post=" . $lead_id . "&action=edit")) . "' class='ups-cta'>Otwórz lead</a> &nbsp; <a href='mailto:" . esc_attr($lead_email) . "' style='color:#64748b'>Mailto: " . esc_html($lead_email) . "</a></p>";
+    if (function_exists("upsellio_send_crm_mail")) {
+        upsellio_send_crm_mail($adminEmail, $subject, $body, [
+            "type" => "transactional",
+            "preheader" => "Lead z score {$score} czeka 24h.",
+            "allow_internal" => true,
+        ]);
+    }
     upsellio_crm_add_timeline_event($lead_id, "reminder", "Wysłano przypomnienie follow-up >24h.");
 }
 add_action("upsellio_crm_followup_reminder", "upsellio_crm_followup_reminder");

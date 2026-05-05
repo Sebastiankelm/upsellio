@@ -218,14 +218,17 @@ function upsellio_offer_send_email($offer_id)
         return false;
     }
 
-    $subject_tpl = (string) get_option("ups_offer_email_subject", "Twoja oferta: {{offer_title}}");
-    $html_tpl = (string) get_option("ups_offer_email_html", "<p>Czesc {{client_name}},</p><p>Twoja oferta jest gotowa:</p><p><a href='{{offer_url}}'>{{offer_url}}</a></p>");
+    $subject_tpl = (string) get_option("ups_offer_email_subject", "Oferta dla {{client_name}} — {{offer_title}}");
+    $html_tpl = (string) get_option("ups_offer_email_html", "<p>Cześć {{client_name}},</p><p><strong>Twoja oferta jest gotowa do przejrzenia.</strong></p><p>Spędziłem nad nią ~2 godziny — to konkretna propozycja oparta na Twojej sytuacji.</p><p><a href='{{offer_url}}' class='ups-cta'>Otwórz ofertę →</a></p><p>Sebastian</p>");
     $css = (string) get_option("ups_offer_email_css", "body{font-family:Arial,sans-serif;color:#0f172a}a{color:#0ea5e9}");
     $subject = sanitize_text_field(upsellio_offer_replace_email_placeholders($subject_tpl, $offer_id));
     $html_content = upsellio_offer_replace_email_placeholders($html_tpl, $offer_id);
     $html = "<html><head><meta charset='utf-8'><style>" . $css . "</style></head><body>" . $html_content . "</body></html>";
-    $sent = function_exists("upsellio_followup_send_html_mail")
-        ? (bool) upsellio_followup_send_html_mail($client_email, $subject, $html)
+    $sent = function_exists("upsellio_send_crm_mail")
+        ? (bool) upsellio_send_crm_mail($client_email, $subject, $html, [
+            "type" => "marketing",
+            "preheader" => "Twoja personalizowana oferta — kliknij i zobacz co przygotowałem.",
+        ])
         : (bool) wp_mail($client_email, $subject, $html, ["Content-Type: text/html; charset=UTF-8"]);
     update_post_meta($offer_id, "_ups_offer_email_sent_at", $sent ? current_time("mysql") : "");
     update_post_meta($offer_id, "_ups_offer_email_last_status", $sent ? "sent" : "failed");
@@ -923,6 +926,50 @@ function upsellio_save_offer_meta_box($post_id)
     }
 }
 add_action("save_post", "upsellio_save_offer_meta_box");
+
+function upsellio_normalize_price(string $raw): array
+{
+    $raw = trim($raw);
+    if ($raw === "") {
+        return ["display" => "", "value" => 0, "currency" => "PLN", "is_range" => false];
+    }
+    $is_range = (bool) preg_match('/(od|from|—|–|-)\s*\d/iu', $raw);
+    $value = 0;
+    if (preg_match('/(\d[\d\s,.]*)\s*(k|tys|tysięcy|tys\.)?/iu', $raw, $m)) {
+        $num = (float) str_replace([" ", ","], ["", "."], (string) $m[1]);
+        $multiplier = !empty($m[2]) ? 1000 : 1;
+        $value = (int) round($num * $multiplier);
+    }
+    $currency = "PLN";
+    if (preg_match('/eur|€/i', $raw)) {
+        $currency = "EUR";
+    } elseif (preg_match('/usd|\$/i', $raw)) {
+        $currency = "USD";
+    }
+    if ($value > 0) {
+        $display = number_format($value, 0, ",", " ") . " " . ($currency === "PLN" ? "zł" : $currency);
+        if ($is_range) {
+            $display = "od " . $display;
+        }
+        if (preg_match('/\/?\s*(mc|mies|miesięcznie|monthly)/iu', $raw)) {
+            $display .= " / mc";
+        }
+    } else {
+        $display = $raw;
+    }
+    return ["display" => $display, "value" => $value, "currency" => $currency, "is_range" => $is_range];
+}
+
+add_action("save_post_crm_offer", function ($post_id) {
+    if ((defined("DOING_AUTOSAVE") && DOING_AUTOSAVE) || wp_is_post_revision((int) $post_id)) {
+        return;
+    }
+    $raw_price = (string) get_post_meta((int) $post_id, "_ups_offer_price", true);
+    $normalized = upsellio_normalize_price($raw_price);
+    update_post_meta((int) $post_id, "_ups_offer_price_value", (int) ($normalized["value"] ?? 0));
+    update_post_meta((int) $post_id, "_ups_offer_price_currency", (string) ($normalized["currency"] ?? "PLN"));
+    update_post_meta((int) $post_id, "_ups_offer_price_display", (string) ($normalized["display"] ?? ""));
+}, 20);
 
 function upsellio_offer_track_event()
 {
