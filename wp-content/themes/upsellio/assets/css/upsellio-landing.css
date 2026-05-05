@@ -15,23 +15,23 @@
 :root {
   /* Surface, border, text */
   --lp-surface: #ffffff;
-  --lp-surface-soft: #f8fafc;
-  --lp-surface-mist: #f1f5f9;
-  --lp-border: #e2e8f0;
-  --lp-border-strong: #cbd5e1;
-  --lp-text: #0f172a;
-  --lp-text-muted: #475569;
-  --lp-text-subtle: #64748b;
+  --lp-surface-soft: #fafaf6;
+  --lp-surface-mist: #f2f2ec;
+  --lp-border: #e8e8e0;
+  --lp-border-strong: #c8c2b5;
+  --lp-text: #0d0d0b;
+  --lp-text-muted: #3a3a35;
+  --lp-text-subtle: #7a7a72;
 
-  /* Per-service accents - jedna paleta dla całego motywu */
+  /* Akcenty usług — turkus + linie */
   --lp-accent-google: #0d9488;
-  --lp-accent-google-soft: #ccfbf1;
+  --lp-accent-google-soft: #e0f5f2;
   --lp-accent-google-line: #99f6e4;
   --lp-accent-meta: #0d9488;
-  --lp-accent-meta-soft: #ccfbf1;
+  --lp-accent-meta-soft: #e0f5f2;
   --lp-accent-meta-line: #99f6e4;
   --lp-accent-web: #0d9488;
-  --lp-accent-web-soft: #ccfbf1;
+  --lp-accent-web-soft: #e0f5f2;
   --lp-accent-web-line: #99f6e4;
   --lp-accent-content: #0ea5e9;
   --lp-accent-content-soft: #e0f2fe;
@@ -41,10 +41,10 @@
   --lp-r-md: 14px;
   --lp-r-lg: 20px;
   --lp-r-xl: 28px;
-  --lp-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --lp-shadow-sm: 0 6px 18px -8px rgba(15, 23, 42, 0.18);
-  --lp-shadow-md: 0 14px 40px rgba(15, 23, 42, 0.08);
-  --lp-shadow-lg: 0 24px 60px -20px rgba(13, 148, 136, 0.4);
+  --lp-shadow-xs: 0 1px 2px rgba(13, 13, 11, 0.04);
+  --lp-shadow-sm: 0 6px 18px -8px rgba(13, 13, 11, 0.16);
+  --lp-shadow-md: 0 14px 40px rgba(13, 13, 11, 0.07);
+  --lp-shadow-lg: 0 24px 60px -20px rgba(13, 148, 136, 0.36);
   --lp-shadow-meta: 0 24px 60px -20px rgba(79, 70, 229, 0.45);
   --lp-shadow-web: 0 24px 60px -20px rgba(245, 158, 11, 0.4);
 
@@ -73,8 +73,8 @@
 }
 
 .lp-section--dark {
-  background: radial-gradient(circle at 0% 0%, #0f172a, #020617 70%);
-  color: #f8fafc;
+  background: radial-gradient(circle at 0% 0%, #1a1a16, #0d0d0b 70%);
+  color: #fafaf6;
 }
 
 .lp-wrap {
@@ -107,7 +107,7 @@
 }
 
 .lp-h1 {
-  font-family: Syne, "Inter", system-ui, sans-serif;
+  font-family: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
   font-size: clamp(34px, 5vw, 54px);
   line-height: 1.06;
   letter-spacing: -0.025em;
@@ -116,7 +116,7 @@
 }
 
 .lp-h2 {
-  font-family: Syne, "Inter", system-ui, sans-serif;
+  font-family: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
   font-size: clamp(26px, 3.4vw, 38px);
   line-height: 1.12;
   letter-spacing: -0.02em;
@@ -263,7 +263,7 @@
 }
 
 .lp-kpi-value {
-  font-family: Syne, "Inter", system-ui, sans-serif;
+  font-family: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
   font-size: clamp(28px, 3vw, 38px);
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -333,7 +333,7 @@
 
 .lp-form-host-body strong {
   display: block;
-  font-family: Syne, "Inter", system-ui, sans-serif;
+  font-family: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
   font-size: 16px;
   letter-spacing: -0.02em;
   color: var(--lp-text);

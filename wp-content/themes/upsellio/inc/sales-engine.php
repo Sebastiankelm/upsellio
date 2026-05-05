@@ -237,14 +237,34 @@ function upsellio_sales_engine_refresh_hot_index($offer_id, $summary, $stage)
     update_post_meta($offer_id, "_ups_offer_hot_index", $hot_index);
     update_post_meta($offer_id, "_ups_offer_hot_offer", $is_hot ? "1" : "0");
     update_post_meta($offer_id, "_ups_offer_stage", sanitize_key((string) $stage));
+    $objection = (string) get_post_meta($offer_id, "_ups_offer_behavior_objection", true);
+
     $action = "Niski priorytet: utrzymuj lekki follow-up edukacyjny.";
-    if ($fit_score >= 75 && $intent_score < 35) {
+
+    if ($fit_score >= 70 && $intent_score >= 70) {
+        if ($objection === "price") {
+            $action = "Priorytet A: zadzwon i omow ROI — klient blokuje sie na cenie.";
+        } elseif ($objection === "trust") {
+            $action = "Priorytet A: wyslij case study lub referencje — klient szuka potwierdzenia.";
+        } elseif ($objection === "scope") {
+            $action = "Priorytet A: doprecyzuj zakres w mailu — klient analizuje co dostaje.";
+        } else {
+            $action = "Priorytet A: natychmiastowy follow-up domykajacy.";
+        }
+    } elseif ($fit_score >= 75 && $intent_score < 35) {
         $action = "Wysoki fit / niski intent: wyslij krotki email z case study i 1 CTA.";
     } elseif ($fit_score < 45 && $intent_score >= 70) {
         $action = "Wysoki intent / niski fit: zweryfikuj budget i zakres przed dalszym domykaniem.";
-    } elseif ($fit_score >= 70 && $intent_score >= 70) {
-        $action = "Priorytet A: natychmiastowy follow-up domykajacy.";
+    } elseif ($objection === "price" && $intent_score >= 40) {
+        $action = "Wyslij wersje ROI lub doprecyzowanie zakresu — objekcja cenowa.";
+    } elseif ($objection === "trust" && $intent_score >= 40) {
+        $action = "Wyslij referencje lub case study — klient szuka potwierdzenia.";
+    } elseif ($objection === "scope") {
+        $action = "Napisz krotkie podsumowanie co konkretnie dostaje klient.";
+    } elseif ($objection === "no_fit") {
+        $action = "Nie priorytetyzuj — krotka sesja bez zaangazowania.";
     }
+
     update_post_meta($offer_id, "_ups_offer_action_recommendation", $action);
 
     $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);

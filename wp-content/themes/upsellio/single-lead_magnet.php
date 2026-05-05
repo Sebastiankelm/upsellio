@@ -159,15 +159,15 @@ add_action("wp_head", static function () use ($post_id, $title, $lead_magnet_des
   .lms-badge { display:inline-flex; margin-top:12px; border-radius:999px; border:1px solid #99f6e4; background:#ecfeff; color:#0f766e; font-size:12px; font-weight:700; padding:6px 12px; }
   .lms-format { display:inline-flex; align-items:center; gap:8px; margin:10px 0 0; padding:5px 11px; border-radius:999px; background:#fff; border:1px solid #e2e8f0; color:#475569; font-size:12px; font-weight:600; letter-spacing:.02em; }
   .lms-format svg { width:13px; height:13px; color:#0d9488; }
-  .lms-title { margin:16px 0 14px; max-width:830px; font-family:"Syne",sans-serif; font-size:clamp(34px, 6vw, 62px); line-height:.98; letter-spacing:-.05em; }
+  .lms-title { margin:16px 0 14px; max-width:830px; font-family:"Bricolage Grotesque",sans-serif; font-size:clamp(34px, 6vw, 62px); line-height:.98; letter-spacing:-.05em; }
   .lms-excerpt { margin:0; max-width:850px; color:#334155; font-size:19px; line-height:1.72; }
   .lms-meta { margin-top:15px; color:#64748b; font-size:14px; }
   .lms-mockup { position:relative; max-width:340px; margin-left:auto; aspect-ratio:1 / 1.32; border-radius:18px; background:#fff; box-shadow:0 30px 80px -30px rgba(15,23,42,.35), 0 8px 28px -10px rgba(15,23,42,.18); border:1px solid #e2e8f0; transform:rotate(-2deg); padding:28px 24px; display:flex; flex-direction:column; gap:14px; }
   .lms-mockup::after { content:""; position:absolute; inset:0; border-radius:18px; background:linear-gradient(160deg, rgba(20,184,166,0.10), rgba(255,255,255,0) 45%); pointer-events:none; }
   .lms-mockup-head { display:flex; align-items:center; justify-content:space-between; }
-  .lms-mockup-brand { font-family:"Syne",sans-serif; font-weight:800; font-size:14px; letter-spacing:-.02em; color:#0d9488; }
+  .lms-mockup-brand { font-family:"Bricolage Grotesque",sans-serif; font-weight:800; font-size:14px; letter-spacing:-.02em; color:#0d9488; }
   .lms-mockup-tag { font-size:9px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#94a3b8; }
-  .lms-mockup-title { margin:6px 0 4px; font-family:"Syne",sans-serif; font-size:18px; line-height:1.15; letter-spacing:-.02em; color:#071426; }
+  .lms-mockup-title { margin:6px 0 4px; font-family:"Bricolage Grotesque",sans-serif; font-size:18px; line-height:1.15; letter-spacing:-.02em; color:#071426; }
   .lms-mockup-line { height:8px; border-radius:6px; background:linear-gradient(90deg,#e2e8f0,#f1f5f9); }
   .lms-mockup-line.short { width:62%; }
   .lms-mockup-check { display:flex; align-items:center; gap:10px; }
@@ -179,13 +179,13 @@ add_action("wp_head", static function () use ($post_id, $title, $lead_magnet_des
   .lms-cover { border-radius:18px; overflow:hidden; margin-bottom:18px; max-height:390px; }
   .lms-cover img { width:100%; height:100%; object-fit:cover; display:block; }
   .lms-content { color:#334155; line-height:1.85; }
-  .lms-content h2, .lms-content h3 { font-family:"Syne",sans-serif; letter-spacing:-.03em; color:#071426; margin:20px 0 8px; }
+  .lms-content h2, .lms-content h3 { font-family:"Bricolage Grotesque",sans-serif; letter-spacing:-.03em; color:#071426; margin:20px 0 8px; }
   .lms-bullets { margin:22px 0; border:1px solid #99f6e4; border-radius:18px; background:#ecfeff; padding:18px; }
-  .lms-bullets h2 { margin:0 0 12px; font-family:"Syne",sans-serif; color:#071426; }
+  .lms-bullets h2 { margin:0 0 12px; font-family:"Bricolage Grotesque",sans-serif; color:#071426; }
   .lms-bullets ul { margin:0; padding:0; list-style:none; display:grid; gap:10px; }
   .lms-bullets li { position:relative; padding-left:24px; color:#334155; }
   .lms-bullets li::before { content:"✓"; position:absolute; left:0; color:#0d9488; font-weight:900; }
-  .lms-form-title { margin:0 0 7px; font-family:"Syne",sans-serif; font-size:28px; line-height:1.05; letter-spacing:-.03em; }
+  .lms-form-title { margin:0 0 7px; font-family:"Bricolage Grotesque",sans-serif; font-size:28px; line-height:1.05; letter-spacing:-.03em; }
   .lms-form-text { margin:0 0 14px; color:#334155; line-height:1.7; }
   .lms-form .field { margin-bottom:12px; }
   .lms-form label { display:block; margin-bottom:6px; color:#334155; font-size:12px; font-weight:600; }

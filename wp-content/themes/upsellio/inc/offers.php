@@ -519,6 +519,36 @@ function upsellio_offer_build_analytics_summary($offer_id)
     ];
 }
 
+function upsellio_offer_detect_behavior_objection(array $summary): string
+{
+    $pricing_sec = (int) ($summary["pricing_seconds"] ?? 0);
+    $cta_clicks = (int) ($summary["cta_clicks"] ?? 0);
+    $section_sec = is_array($summary["section_seconds"] ?? null)
+        ? $summary["section_seconds"] : [];
+    $faq_sec = (int) ($section_sec["faq"] ?? 0);
+    $scope_sec = (int) ($section_sec["zakres"] ?? $section_sec["szczegoly"] ?? 0);
+    $views = (int) ($summary["views"] ?? 0);
+    $total_sec = (int) ($summary["total_seconds"] ?? 0);
+
+    if ($views === 1 && $total_sec < 30 && $cta_clicks === 0) {
+        return "no_fit";
+    }
+
+    if ($pricing_sec >= 45 && $cta_clicks === 0) {
+        return "price";
+    }
+
+    if ($faq_sec >= 20 && $cta_clicks === 0) {
+        return "trust";
+    }
+
+    if ($scope_sec >= 30 && $pricing_sec < 15 && $cta_clicks === 0) {
+        return "scope";
+    }
+
+    return "none";
+}
+
 function upsellio_offer_detect_stage($summary)
 {
     $score = (int) ($summary["score"] ?? 0);
@@ -589,6 +619,8 @@ function upsellio_offer_refresh_score($offer_id)
     $summary = upsellio_offer_build_analytics_summary($offer_id);
     $stage = upsellio_offer_detect_stage($summary);
     update_post_meta($offer_id, "_ups_offer_score", (int) $summary["score"]);
+    $behavior_objection = upsellio_offer_detect_behavior_objection($summary);
+    update_post_meta($offer_id, "_ups_offer_behavior_objection", $behavior_objection);
     update_post_meta($offer_id, "_ups_offer_hot_offer", !empty($summary["is_hot"]) ? "1" : "0");
     $previous_stage = (string) get_post_meta($offer_id, "_ups_offer_stage", true);
     update_post_meta($offer_id, "_ups_offer_stage", $stage);
@@ -615,6 +647,80 @@ function upsellio_offer_refresh_score($offer_id)
         upsellio_offer_create_followup_task($offer_id, $summary);
     }
     do_action("upsellio_offer_scores_refreshed", $offer_id, $summary, $stage);
+}
+
+/**
+ * Po wykryciu nowej wizyty na ofercie — aktualizuje najbliższy queued follow-up.
+ * Jeśli wyslanie jest za < 12h od wizyty: wstrzymuje (klient właśnie ogląda).
+ * Jeśli za >= 12h: zamienia subject/body na kontekstowy na podstawie objekcji.
+ */
+function upsellio_offer_update_followup_on_visit(int $offer_id): void
+{
+    $offer_id = (int) $offer_id;
+    if ($offer_id <= 0) {
+        return;
+    }
+
+    $queue = get_post_meta($offer_id, "_ups_offer_followup_queue", true);
+    if (!is_array($queue) || empty($queue)) {
+        return;
+    }
+
+    $summary_visit = upsellio_offer_build_analytics_summary($offer_id);
+    $objection = upsellio_offer_detect_behavior_objection($summary_visit);
+    $now = time();
+    $updated = false;
+
+    foreach ($queue as $idx => $item) {
+        if ((string) ($item["status"] ?? "") !== "queued") {
+            continue;
+        }
+
+        $send_at_ts = strtotime((string) ($item["send_at"] ?? ""));
+        if ($send_at_ts === false) {
+            $gap_h = 999.0;
+        } else {
+            $gap_h = ($send_at_ts - $now) / 3600;
+        }
+
+        if ($gap_h < 12) {
+            $queue[$idx]["status"] = "paused_visit_too_close";
+            $queue[$idx]["paused_at"] = current_time("mysql");
+            $updated = true;
+            continue;
+        }
+
+        if ($objection === "price") {
+            $queue[$idx]["context_override"] = [
+                "subject_prefix" => "[ROI] ",
+                "note" => "Klient analizowal cennik — wyslij uzupelnienie z ROI.",
+            ];
+        } elseif ($objection === "trust") {
+            $queue[$idx]["context_override"] = [
+                "subject_prefix" => "",
+                "note" => "Klient czytal FAQ — dolacz case study lub referencje.",
+            ];
+        } elseif ($objection === "scope") {
+            $queue[$idx]["context_override"] = [
+                "subject_prefix" => "",
+                "note" => "Klient tkwil na zakresie — wyslij krotkie podsumowanie co dostaje.",
+            ];
+        }
+        $queue[$idx]["visit_detected_at"] = current_time("mysql");
+        $updated = true;
+        break;
+    }
+
+    if ($updated) {
+        update_post_meta($offer_id, "_ups_offer_followup_queue", $queue);
+        if (function_exists("upsellio_offer_add_timeline_event")) {
+            upsellio_offer_add_timeline_event(
+                $offer_id,
+                "visit_followup_adjusted",
+                "Follow-up dostosowany do wizyty klienta na ofercie. Objekcja: " . $objection
+            );
+        }
+    }
 }
 
 function upsellio_offer_maybe_schedule_score_refresh($offer_id)
@@ -811,6 +917,63 @@ function upsellio_render_offer_meta_box($post)
     <?php else : ?>
       <p><em>Link publiczny wygeneruje sie po zapisaniu oferty.</em></p>
     <?php endif; ?>
+
+    <hr style="margin:20px 0" />
+    <h3 style="font-size:14px;margin:0 0 8px;font-weight:700">Zakres oferty — co pokazujemy klientowi</h3>
+    <p style="font-size:12px;color:#666;margin:0 0 14px">Zaznacz konkretne pozycje zakresu, które ma widzieć klient. Puste checkboxy = układ jak wcześniej (Google / Meta / Web z szablonu layoutu).</p>
+    <?php
+    $scope_catalog_admin = [
+        ["key" => "g_audit", "group" => "Google Ads", "title" => "Audyt konta i kampanii"],
+        ["key" => "g_strategy", "group" => "Google Ads", "title" => "Strategia kampanii"],
+        ["key" => "g_setup", "group" => "Google Ads", "title" => "Konfiguracja i uruchomienie"],
+        ["key" => "g_optim", "group" => "Google Ads", "title" => "Bieżąca optymalizacja"],
+        ["key" => "g_pmax", "group" => "Google Ads", "title" => "Performance Max / Shopping (opcjonalne)"],
+        ["key" => "m_audit", "group" => "Meta Ads", "title" => "Audyt konta Meta"],
+        ["key" => "m_funnel", "group" => "Meta Ads", "title" => "Strategia lejka"],
+        ["key" => "m_pixel", "group" => "Meta Ads", "title" => "Pixel + Conversions API"],
+        ["key" => "m_optim", "group" => "Meta Ads", "title" => "Optymalizacja i testy kreacji"],
+        ["key" => "m_creative", "group" => "Meta Ads", "title" => "Produkcja kreacji (opcjonalne)"],
+        ["key" => "w_brief", "group" => "Strona / landing", "title" => "Brief i warsztat"],
+        ["key" => "w_design", "group" => "Strona / landing", "title" => "Projekt i copy"],
+        ["key" => "w_dev", "group" => "Strona / landing", "title" => "Wdrożenie WordPress"],
+        ["key" => "w_perf", "group" => "Strona / landing", "title" => "Optymalizacja Core Web Vitals"],
+        ["key" => "w_seo", "group" => "Strona / landing", "title" => "SEO podstawowe"],
+        ["key" => "c_ga4", "group" => "Wspólne", "title" => "GA4 + Google Tag Manager"],
+        ["key" => "c_report", "group" => "Wspólne", "title" => "Raport cotygodniowy"],
+        ["key" => "c_strategic", "group" => "Wspólne", "title" => "Rozmowa strategiczna"],
+        ["key" => "c_account", "group" => "Wspólne", "title" => "Dedykowany account manager"],
+    ];
+    $scope_items_meta = get_post_meta($post_id, "_ups_offer_scope_items", true);
+    $scope_items_selected = is_array($scope_items_meta) ? array_map("strval", $scope_items_meta) : [];
+    $current_group = "";
+    foreach ($scope_catalog_admin as $item) :
+        $g = (string) ($item["group"] ?? "");
+        if ($g !== $current_group) :
+            if ($current_group !== "") {
+                echo "</div>";
+            }
+            ?>
+            <div style="margin:12px 0">
+              <strong style="display:block;margin-bottom:6px;font-size:12px;color:#0a1410;letter-spacing:.4px;text-transform:uppercase"><?php echo esc_html($g); ?></strong>
+            <?php
+            $current_group = $g;
+        endif;
+        $key = (string) ($item["key"] ?? "");
+        $checked = in_array($key, $scope_items_selected, true);
+        ?>
+        <label style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:13px">
+          <input type="checkbox" name="ups_offer_scope_items[]" value="<?php echo esc_attr($key); ?>" <?php checked($checked); ?> style="margin-top:3px;flex-shrink:0" />
+          <span><?php echo esc_html((string) ($item["title"] ?? "")); ?></span>
+        </label>
+        <?php
+    endforeach;
+    if ($current_group !== "") {
+        echo "</div>";
+    }
+    ?>
+    <p style="margin-top:14px;padding:10px 12px;background:#f8fafc;border-left:3px solid #0d9488;border-radius:4px;font-size:12px;color:#475569;line-height:1.5">
+      <strong>Wskazówka:</strong> jeśli zostawisz wszystko puste, system pokaże klientowi standardowy zestaw na podstawie usług (Google Ads / Meta Ads / Strona) z szablonu layoutu. Checkboxy dają precyzyjną kontrolę.
+    </p>
     <?php
 }
 
@@ -921,6 +1084,16 @@ function upsellio_save_offer_meta_box($post_id)
     if (isset($_POST["ups_offer_send_email_now"]) && (string) wp_unslash($_POST["ups_offer_send_email_now"]) === "1") {
         upsellio_offer_send_email((int) $post_id);
     }
+
+    $scope_items_input = isset($_POST["ups_offer_scope_items"]) && is_array($_POST["ups_offer_scope_items"])
+        ? array_map("sanitize_key", array_map("strval", wp_unslash($_POST["ups_offer_scope_items"])))
+        : [];
+    $scope_items_input = array_values(array_unique(array_filter($scope_items_input)));
+    if (!empty($scope_items_input)) {
+        update_post_meta((int) $post_id, "_ups_offer_scope_items", $scope_items_input);
+    } else {
+        delete_post_meta((int) $post_id, "_ups_offer_scope_items");
+    }
 }
 add_action("save_post", "upsellio_save_offer_meta_box");
 
@@ -994,6 +1167,10 @@ function upsellio_offer_track_event()
     $stage = upsellio_offer_detect_stage($summary);
     do_action("upsellio_offer_event_tracked", $offer_id, $event_name, $summary, $stage);
     upsellio_offer_maybe_schedule_score_refresh($offer_id);
+
+    if ($event_name === "offer_view") {
+        upsellio_offer_update_followup_on_visit($offer_id);
+    }
 
     wp_send_json_success(["ok" => true]);
 }

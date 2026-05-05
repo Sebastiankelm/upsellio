@@ -616,7 +616,7 @@ function upsellio_topicgen_render_panel(): void
 	<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px">
 		<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px">
 			<div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Kolejka tematów</div>
-			<div id="ups-tg-queue-count" style="font-size:22px;font-weight:800;font-family:var(--font-display,Syne,sans-serif);letter-spacing:-.03em"><?php echo esc_html((string) $queue_count); ?></div>
+			<div id="ups-tg-queue-count" style="font-size:22px;font-weight:800;font-family:var(--font-display,"Bricolage Grotesque",sans-serif);letter-spacing:-.03em"><?php echo esc_html((string) $queue_count); ?></div>
 			<div style="font-size:11px;color:var(--text-3)">tematów czeka na Blog Bota</div>
 		</div>
 		<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px">

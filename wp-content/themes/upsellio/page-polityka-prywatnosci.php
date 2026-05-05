@@ -27,12 +27,12 @@ get_header();
   .pp-hero{padding:92px 0 36px;background:radial-gradient(circle at 90% 0%,rgba(13,148,136,.1),transparent 40%);border-bottom:1px solid #e7e7e1}
   .pp-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#0d9488;margin-bottom:14px}
   .pp-eyebrow::before{content:"";width:26px;height:2px;background:#0d9488;border-radius:99px}
-  .pp-h1{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(38px,4.6vw,58px);line-height:1.03;letter-spacing:-1.6px;margin:0 0 16px}
+  .pp-h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(38px,4.6vw,58px);line-height:1.03;letter-spacing:-1.6px;margin:0 0 16px}
   .pp-lead{font-size:17px;color:#3d3d38;max-width:70ch}
   .pp-main{padding:40px 0 96px}
   .pp-section{background:#fff;border:1px solid #e7e7e1;border-radius:18px;padding:26px 28px}
   .pp-section + .pp-section{margin-top:14px}
-  .pp-h2{font-family:"Syne",sans-serif;font-size:clamp(24px,2.8vw,32px);line-height:1.1;letter-spacing:-.8px;margin:0 0 12px}
+  .pp-h2{font-family:"Bricolage Grotesque",sans-serif;font-size:clamp(24px,2.8vw,32px);line-height:1.1;letter-spacing:-.8px;margin:0 0 12px}
   .pp-p{margin:0 0 10px;color:#3d3d38;font-size:15px;line-height:1.8}
   .pp-p:last-child{margin-bottom:0}
   .pp-list{margin:8px 0 0;padding-left:20px;display:grid;gap:6px}

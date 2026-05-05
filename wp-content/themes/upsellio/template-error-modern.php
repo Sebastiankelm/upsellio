@@ -108,7 +108,7 @@ get_header();
   .ups-error-dot{width:9px;height:9px;border-radius:50%;background:<?php echo esc_attr($ups_error_accent); ?>}
   .ups-error h1{
     margin:0 0 12px;
-    font-family:"Syne",sans-serif;
+    font-family:"Bricolage Grotesque",sans-serif;
     font-size:clamp(34px,5vw,56px);
     line-height:1.03;
     letter-spacing:-1px;
@@ -127,7 +127,7 @@ get_header();
     width:220px;height:220px;border-radius:28px;
     background:linear-gradient(160deg, <?php echo esc_attr($ups_error_accent); ?>, #0f172a);
     display:grid;place-items:center;
-    color:#fff;font-family:"Syne",sans-serif;font-size:72px;font-weight:800;letter-spacing:-2px;
+    color:#fff;font-family:"Bricolage Grotesque",sans-serif;font-size:72px;font-weight:800;letter-spacing:-2px;
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);
   }
   .ups-error-links{margin-top:22px;display:flex;gap:12px;flex-wrap:wrap}

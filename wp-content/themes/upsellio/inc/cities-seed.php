@@ -273,7 +273,7 @@ function upsellio_get_footer_popular_definitions_html()
     ob_start();
     ?>
     <section style="margin-top:28px;padding-top:24px;border-top:1px solid #e6e6e1;">
-      <h3 style="margin:0 0 12px;font-family:Syne,sans-serif;font-size:18px;color:#071426;">Popularne definicje</h3>
+      <h3 style="margin:0 0 12px;font-family:"Bricolage Grotesque",sans-serif;font-size:18px;color:#071426;">Popularne definicje</h3>
       <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;">
         <?php foreach ($popularDefinitions as $definition) :
             $term = get_post_meta($definition->ID, "_upsellio_definition_term", true) ?: get_the_title($definition->ID);

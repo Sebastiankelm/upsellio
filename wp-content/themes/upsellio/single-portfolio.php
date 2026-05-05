@@ -114,8 +114,8 @@ add_action("wp_head", static function () use ($post_id, $title, $schema_descript
   .pf-eyebrow::before{content:"";width:26px;height:2px;background:#0d9488;border-radius:99px}
   .pf-eyebrow-light{color:#5eead4}
   .pf-eyebrow-light::before{background:#5eead4}
-  .pf-h1{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(38px,4.4vw,58px);line-height:1.02;letter-spacing:-1.8px;margin:0 0 20px;max-width:18ch}
-  .pf-h2{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(24px,2.8vw,34px);line-height:1.1;letter-spacing:-1.2px;margin:48px 0 16px}
+  .pf-h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(38px,4.4vw,58px);line-height:1.02;letter-spacing:-1.8px;margin:0 0 20px;max-width:18ch}
+  .pf-h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(24px,2.8vw,34px);line-height:1.1;letter-spacing:-1.2px;margin:48px 0 16px}
   .pf-h2:first-child{margin-top:0}
   .pf-h2-light{color:#fff}
   .pf-lead{font-size:18px;line-height:1.6;color:#3d3d38;max-width:60ch;margin:0 0 28px}
@@ -135,11 +135,11 @@ add_action("wp_head", static function () use ($post_id, $title, $schema_descript
   .pf-side::before{content:"";position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,.2),transparent 65%);right:-80px;top:-80px;pointer-events:none}
   .pf-side .pf-eyebrow{color:#5eead4;position:relative}
   .pf-side .pf-eyebrow::before{background:#5eead4}
-  .pf-stat-big{position:relative;font-family:"Syne",sans-serif;font-weight:700;font-size:64px;line-height:1;letter-spacing:-3px;color:#5eead4;margin:6px 0 4px}
+  .pf-stat-big{position:relative;font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:64px;line-height:1;letter-spacing:-3px;color:#5eead4;margin:6px 0 4px}
   .pf-stat-label{position:relative;font-size:13px;color:rgba(255,255,255,.7);margin-bottom:18px}
   .pf-side ul{position:relative;list-style:none;padding:0;margin:0;display:grid;gap:10px;border-top:1px solid rgba(255,255,255,.12);padding-top:16px}
   .pf-side ul li{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;gap:10px}
-  .pf-side ul strong{font-family:"Syne",sans-serif;font-weight:700;color:#5eead4;font-size:18px;letter-spacing:-.3px;white-space:nowrap}
+  .pf-side ul strong{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;color:#5eead4;font-size:18px;letter-spacing:-.3px;white-space:nowrap}
   .pf-side ul span{color:rgba(255,255,255,.7);font-size:13px;text-align:right}
   .pf-cover{padding:0 0 96px}
   .pf-cover-img{position:relative;aspect-ratio:2.2;background:#dff8f4;border-radius:24px;overflow:hidden;border:1px solid #99f6e4}
@@ -147,16 +147,16 @@ add_action("wp_head", static function () use ($post_id, $title, $schema_descript
   .pf-section{padding:0 0 96px}
   .pf-content-grid{display:grid;grid-template-columns:1fr;gap:28px;align-items:start}
   .pf-content p{margin:0 0 18px;font-size:16px;color:#262625;line-height:1.75}
-  .pf-content h2,.pf-content h3{font-family:"Syne",sans-serif;font-size:clamp(24px,2.8vw,34px);line-height:1.1;letter-spacing:-1.2px;margin:48px 0 16px}
+  .pf-content h2,.pf-content h3{font-family:"Bricolage Grotesque",sans-serif;font-size:clamp(24px,2.8vw,34px);line-height:1.1;letter-spacing:-1.2px;margin:48px 0 16px}
   .pf-bullets{list-style:none;padding:0;margin:0 0 32px;display:grid;gap:12px}
   .pf-bullets li{padding-left:24px;position:relative;font-size:15.5px;line-height:1.7;color:#262625}
   .pf-bullets li::before{content:"";position:absolute;left:2px;top:11px;width:8px;height:8px;background:#0d9488;border-radius:50%}
   .pf-bullets strong{color:#0a1410;font-weight:700}
   .pf-quote{background:#fff;border:1px solid #e7e7e1;border-left:3px solid #0d9488;border-radius:0 18px 18px 0;padding:28px 32px;margin:32px 0}
-  .pf-quote p{margin:0 0 18px !important;font-family:"Syne",sans-serif;font-size:20px;line-height:1.4;letter-spacing:-.4px;color:#0a1410}
+  .pf-quote p{margin:0 0 18px !important;font-family:"Bricolage Grotesque",sans-serif;font-size:20px;line-height:1.4;letter-spacing:-.4px;color:#0a1410}
   .pf-quote-author{display:flex;align-items:center;gap:12px;padding-top:16px;border-top:1px solid #e7e7e1}
-  .pf-avatar{width:40px;height:40px;border-radius:50%;background:#dff8f4;border:1px solid #99f6e4;display:grid;place-items:center;font-family:"Syne",sans-serif;color:#0f766e;font-weight:800;font-size:13px}
-  .pf-quote-author strong{display:block;font-family:"Syne",sans-serif;font-size:14.5px;font-weight:700}
+  .pf-avatar{width:40px;height:40px;border-radius:50%;background:#dff8f4;border:1px solid #99f6e4;display:grid;place-items:center;font-family:"Bricolage Grotesque",sans-serif;color:#0f766e;font-weight:800;font-size:13px}
+  .pf-quote-author strong{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:14.5px;font-weight:700}
   .pf-quote-author span{display:block;font-size:12.5px;color:#7c7c74}
   .pf-shots{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:24px 0 32px}
   .pf-shot{margin:0;background:#fff;border:1px solid #e7e7e1;border-radius:14px;overflow:hidden}
@@ -190,8 +190,8 @@ add_action("wp_head", static function () use ($post_id, $title, $schema_descript
   .pf-rel-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .pf-rel-body{padding:20px 22px}
   .pf-rel-tag{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#7c7c74;font-weight:700;margin-bottom:8px}
-  .pf-rel-card h3{margin:0 0 10px;font-family:"Syne",sans-serif;font-size:18px;letter-spacing:-.4px;line-height:1.2;font-weight:700}
-  .pf-rel-card strong{font-family:"Syne",sans-serif;font-size:13px;color:#0d9488}
+  .pf-rel-card h3{margin:0 0 10px;font-family:"Bricolage Grotesque",sans-serif;font-size:18px;letter-spacing:-.4px;line-height:1.2;font-weight:700}
+  .pf-rel-card strong{font-family:"Bricolage Grotesque",sans-serif;font-size:13px;color:#0d9488}
   @media (max-width:1060px){
     .pf-wrap{width:min(1180px,100% - 40px)}
     .pf-head-grid,.pf-content-grid{grid-template-columns:1fr;gap:28px}

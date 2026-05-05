@@ -1260,6 +1260,17 @@ function upsellio_followup_send_due_queue()
             if (strpos($subject, "[OFFER#") === false) {
                 $subject .= " [OFFER#" . $offer_id . "]";
             }
+            if (!empty($item["context_override"]["subject_prefix"])) {
+                $subject = (string) $item["context_override"]["subject_prefix"] . $subject;
+            }
+            if (!empty($item["context_override"]["note"]) && function_exists("upsellio_mailbox_log")) {
+                upsellio_mailbox_log(
+                    "followup",
+                    "info",
+                    "Context override: " . (string) $item["context_override"]["note"],
+                    ["offer_id" => $offer_id]
+                );
+            }
             $html_tpl = (string) get_post_meta($template_id, "_ups_followup_html", true);
             if ($html_tpl === "") {
                 $content_tpl = (string) get_post_field("post_content", $template_id);

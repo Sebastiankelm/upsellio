@@ -342,6 +342,75 @@ function upsellio_offer_render_public_landing($offer)
     $upsellio_offer_track_public = !function_exists("upsellio_should_load_public_tracking_tags") || upsellio_should_load_public_tracking_tags();
     $offer_title = (string) $offer->post_title;
     $content_html = (string) apply_filters("the_content", (string) $offer->post_content);
+    $has_offer_details = trim((string) $offer->post_content) !== "";
+
+    $has_google = !empty($payload["has_google"]);
+    $has_meta = !empty($payload["has_meta"]);
+    $has_web = !empty($payload["has_web"]);
+    $services_count = (int) $has_google + (int) $has_meta + (int) $has_web;
+
+    $scope_catalog = [
+        ["key" => "g_audit", "group" => "google", "title" => "Audyt konta i kampanii", "desc" => "Analiza struktury konta, grup reklam i historii wyników.", "when" => "Tydzień 1"],
+        ["key" => "g_strategy", "group" => "google", "title" => "Strategia kampanii", "desc" => "Słowa kluczowe, struktura, wykluczenia — zatwierdzasz przed startem.", "when" => "Tydzień 2"],
+        ["key" => "g_setup", "group" => "google", "title" => "Konfiguracja i uruchomienie", "desc" => "Pełna konfiguracja konta, śledzenia konwersji i testów.", "when" => "Tydzień 3"],
+        ["key" => "g_optim", "group" => "google", "title" => "Bieżąca optymalizacja", "desc" => "Cotygodniowe korekty stawek, tekstów i budżetu.", "when" => "Ciągle"],
+        ["key" => "g_pmax", "group" => "google", "title" => "Performance Max / Shopping", "desc" => "Kampanie produktowe z feed-em produktów (e-commerce).", "when" => "Tydzień 2-3", "optional" => true],
+        ["key" => "m_audit", "group" => "meta", "title" => "Audyt konta Meta", "desc" => "Pixel, grupy odbiorców, struktura zestawów reklam.", "when" => "Tydzień 1"],
+        ["key" => "m_funnel", "group" => "meta", "title" => "Strategia lejka", "desc" => "TOF / MOF / BOF z dopasowanym komunikatem.", "when" => "Tydzień 2"],
+        ["key" => "m_pixel", "group" => "meta", "title" => "Pixel + Conversions API", "desc" => "Konfiguracja zdarzeń pod atrybucję po zmianach iOS.", "when" => "Tydzień 1–2"],
+        ["key" => "m_optim", "group" => "meta", "title" => "Optymalizacja i testy kreacji", "desc" => "Cotygodniowe korekty budżetów, kreacji i grup docelowych.", "when" => "Ciągle"],
+        ["key" => "m_creative", "group" => "meta", "title" => "Produkcja kreacji", "desc" => "Body copy, hooki, warianty wideo i grafik.", "when" => "Co 2 tyg.", "optional" => true],
+        ["key" => "w_brief", "group" => "web", "title" => "Brief i warsztat", "desc" => "Cel, grupa docelowa, struktura sekcji i CTA.", "when" => "Tydzień 1"],
+        ["key" => "w_design", "group" => "web", "title" => "Projekt i copy", "desc" => "Układ desktop/mobile i teksty pod konwersję.", "when" => "Tydz. 2–3"],
+        ["key" => "w_dev", "group" => "web", "title" => "Wdrożenie WordPress", "desc" => "Responsywnie, szybko, z panelem edycji.", "when" => "Tydzień 3–4"],
+        ["key" => "w_perf", "group" => "web", "title" => "Optymalizacja Core Web Vitals", "desc" => "Lazy load, kompresja, lighthouse 90+.", "when" => "Tydzień 3-4"],
+        ["key" => "w_seo", "group" => "web", "title" => "SEO podstawowe", "desc" => "Struktura, meta tagi, sitemap, schema.org.", "when" => "Tydzień 4"],
+        ["key" => "c_ga4", "group" => "common", "title" => "GA4 + Google Tag Manager", "desc" => "Śledzenie konwersji, atrybucji kanałów, raportowanie.", "when" => "Start"],
+        ["key" => "c_report", "group" => "common", "title" => "Raport cotygodniowy", "desc" => "Wydatki, konwersje, wnioski i plan na kolejny tydzień.", "when" => "Co tydzień"],
+        ["key" => "c_strategic", "group" => "common", "title" => "Rozmowa strategiczna", "desc" => "Comiesięczny przegląd wyników i priorytetów.", "when" => "1× / mies."],
+        ["key" => "c_account", "group" => "common", "title" => "Dedykowany account manager", "desc" => "Bez juniorów - prowadzę osobiście od pierwszej rozmowy do raportu.", "when" => "Ciągle"],
+    ];
+
+    $scope_items_meta = get_post_meta($offer_id, "_ups_offer_scope_items", true);
+    $scope_items_selected = is_array($scope_items_meta) ? array_map("strval", $scope_items_meta) : [];
+
+    if (empty($scope_items_selected)) {
+        foreach ($scope_catalog as $item) {
+            if (!empty($item["optional"])) {
+                continue;
+            }
+            $g = (string) ($item["group"] ?? "");
+            if ($g === "google" && $has_google) {
+                $scope_items_selected[] = $item["key"];
+            }
+            if ($g === "meta" && $has_meta) {
+                $scope_items_selected[] = $item["key"];
+            }
+            if ($g === "web" && $has_web) {
+                $scope_items_selected[] = $item["key"];
+            }
+            if ($g === "common" && $services_count > 0) {
+                $scope_items_selected[] = $item["key"];
+            }
+        }
+    }
+
+    $scope_grouped = ["google" => [], "meta" => [], "web" => [], "common" => []];
+    foreach ($scope_catalog as $item) {
+        $key = (string) ($item["key"] ?? "");
+        if (in_array($key, $scope_items_selected, true)) {
+            $g = (string) ($item["group"] ?? "common");
+            if (isset($scope_grouped[$g])) {
+                $scope_grouped[$g][] = $item;
+            }
+        }
+    }
+    $scope_group_labels = [
+        "google" => "Google Ads",
+        "meta" => "Meta Ads (Facebook + Instagram)",
+        "web" => "Strona / landing page",
+        "common" => "Wspólne dla całego zakresu",
+    ];
 
     status_header(200);
     nocache_headers();
@@ -353,7 +422,7 @@ function upsellio_offer_render_public_landing($offer)
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title><?php echo esc_html($offer_title); ?> — Upsellio</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&amp;family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&amp;family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet"/>
 <?php if ($gtm !== "" && $upsellio_offer_track_public) : ?>
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','<?php echo esc_js($gtm); ?>');</script>
 <?php endif; ?>
@@ -370,10 +439,11 @@ dataLayer.push({event:'offer_view',offer_id:UPS.offer_id,offer_title:UPS.offer_t
   --bg:#fafaf7;--surface:#fff;--ink:#0a1410;--ink2:#2e2e2a;--muted:#6b6b63;
   --border:#e6e6e0;--teal:#0d9488;--tealh:#0f766e;--teald:#134e4a;
   --teals:#ccfbf1;--teall:#99f6e4;
-  --font-d:'Syne',sans-serif;--font-b:'DM Sans',sans-serif;--r:14px;--rl:22px;
+  --font-d:'Bricolage Grotesque',sans-serif;--font-b:'DM Sans',sans-serif;--r:14px;--rl:22px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;scroll-padding-top:132px}
+[id^="sec-"]{scroll-margin-top:132px}
 body{font-family:var(--font-b);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
 a{text-decoration:none;color:inherit}
 #bar{position:fixed;top:0;left:0;height:2px;background:var(--teal);z-index:100;width:0;transition:width .1s linear}
@@ -402,6 +472,29 @@ a{text-decoration:none;color:inherit}
 .snav-link.active{color:var(--teal);border-bottom-color:var(--teal)}
 .snav-num{width:18px;height:18px;border-radius:50%;background:var(--border);font-size:10px;font-weight:800;display:grid;place-items:center;color:var(--muted);transition:.18s}
 .snav-link.active .snav-num{background:var(--teals);color:var(--teald)}
+.process-bar{padding:20px 0 8px}
+.process-bar-inner{padding:22px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);box-shadow:0 4px 14px rgba(15,23,42,.04)}
+.process-bar-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:16px}
+.process-bar-label{font-family:var(--font-d);font-weight:800;font-size:14px;letter-spacing:-.3px;color:var(--ink)}
+.process-bar-meta{font-size:12px;color:var(--muted);font-weight:600}
+.process-bar-meta strong{color:var(--teal);font-weight:800}
+.process-track{position:relative;padding:0 16px}
+.process-track::before{content:"";position:absolute;top:14px;left:16px;right:16px;height:3px;background:#f1f1ec;border-radius:99px;z-index:1}
+.process-track-fill{position:absolute;top:14px;left:16px;height:3px;background:var(--teal);border-radius:99px;z-index:2;width:calc(33.333% + 10px);transition:width .3s ease}
+.process-steps{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;z-index:3}
+.process-step{position:relative;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:32px 12px 14px;text-align:center;transition:border-color .2s,box-shadow .2s}
+.process-step::before{content:"";position:absolute;top:-8px;left:50%;width:16px;height:16px;border-radius:50%;background:var(--surface);border:3px solid var(--border);transform:translateX(-50%);z-index:4;transition:background .2s,border-color .2s}
+.process-step.is-done{border-color:rgba(13,148,136,.28);background:linear-gradient(180deg,#fff,#f8fdfc)}
+.process-step.is-done::before{background:var(--teal);border-color:var(--teal)}
+.process-step.is-current{border-color:var(--teal);box-shadow:0 8px 22px rgba(13,148,136,.14)}
+.process-step.is-current::before{background:var(--teal);border-color:var(--teal);box-shadow:0 0 0 5px rgba(13,148,136,.14)}
+.process-step-num{display:block;font-size:9px;color:var(--muted);margin-bottom:4px;letter-spacing:1px;text-transform:uppercase;font-weight:800;font-family:var(--font-d)}
+.process-step.is-done .process-step-num{color:var(--tealh)}
+.process-step.is-current .process-step-num{color:var(--teal)}
+.process-step-name{font-family:var(--font-d);font-weight:800;font-size:13px;color:var(--ink);letter-spacing:-.2px;margin-bottom:5px;line-height:1.15}
+.process-step.is-current .process-step-name{color:var(--teal)}
+.process-step-desc{font-size:11px;color:var(--muted);line-height:1.45;font-weight:500}
+.process-step.is-current .process-step-desc{color:var(--ink2);font-weight:600}
 .w{max-width:960px;margin:0 auto;padding:0 24px}
 .hr{height:1px;background:var(--border)}
 .sec{padding:56px 0}
@@ -459,7 +552,20 @@ a{text-decoration:none;color:inherit}
 .scope-row:last-child{border-bottom:none}
 .scope-row:hover{background:#f7f7f4}
 .scope-group{padding:8px 20px;background:#f4f4f0;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
-.scope-group-dot{width:6px;height:6px;border-radius:50%;background:var(--teal)}
+.scope-group-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0}
+.scope-group.is-meta .scope-group-dot{background:#db2777}
+.scope-group.is-web .scope-group-dot{background:#4338ca}
+.pfoot-commit{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.pfoot-commit-label{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.commit-opt--pricing{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;transition:all .18s;background:var(--bg)}
+.commit-opt--pricing:hover{border-color:var(--teall);background:var(--teals)}
+.commit-opt--pricing.sel{border-color:var(--teal);background:var(--teals);color:var(--teald);font-weight:700}
+.commit-opt--pricing input{width:15px;height:15px;accent-color:var(--teal);flex-shrink:0;cursor:pointer}
+.commit-opt--pricing .commit-label{flex:1;font-weight:600}
+.commit-opt--pricing .commit-hint{margin-left:auto;font-size:11px;color:var(--muted);font-weight:400;text-align:right}
+.scope-empty{padding:24px;background:var(--bg);border-radius:var(--r);color:var(--muted);text-align:center;line-height:1.55}
+.hero-name{font-size:14px;color:var(--muted);margin-bottom:8px;font-weight:500}
+.hero-name strong{color:var(--ink);font-weight:700}
 .sn{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px}
 .sd{font-size:13px;color:var(--muted);line-height:1.5}
 .sw{font-size:13px;color:var(--ink2);font-weight:500}
@@ -560,8 +666,8 @@ a{text-decoration:none;color:inherit}
 .foot{background:var(--surface);border-top:1px solid var(--border);padding:18px 24px}
 .foot-in{max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:12px;color:var(--muted);flex-wrap:wrap}
 .foot-logo{display:flex;align-items:center;gap:8px;color:var(--ink);font-weight:700;font-size:13px}
-@media(max-width:860px){.hero-grid{grid-template-columns:1fr}.sc{position:static;top:0}.scope-head,.scope-row{grid-template-columns:1fr 100px}.scope-head>*:nth-child(2),.scope-row>*:nth-child(2){display:none}.pbody{grid-template-columns:1fr}}
-@media(max-width:580px){.w{padding:0 18px}.nav-for{display:none}.step{grid-template-columns:40px 1fr;gap:14px}.ptop{flex-direction:column;gap:12px}.snav-link{padding:11px 12px;font-size:12px}.cta-acts--stack .btn-ol{order:unset}}
+@media(max-width:860px){.hero-grid{grid-template-columns:1fr}.sc{position:static;top:0}.scope-head,.scope-row{grid-template-columns:1fr 100px}.scope-head>*:nth-child(2),.scope-row>*:nth-child(2){display:none}.pbody{grid-template-columns:1fr}.process-steps{grid-template-columns:repeat(2,1fr);gap:14px 10px}}
+@media(max-width:580px){.w{padding:0 18px}.nav-for{display:none}.step{grid-template-columns:40px 1fr;gap:14px}.ptop{flex-direction:column;gap:12px}.snav-link{padding:11px 12px;font-size:12px}.cta-acts--stack .btn-ol{order:unset}.process-step-desc{font-size:10.5px}}
 </style>
 </head>
 <body>
@@ -591,22 +697,58 @@ a{text-decoration:none;color:inherit}
   </div>
 </nav>
 
-<div class="snav" id="snav">
+<nav class="snav" id="snav" aria-label="Sekcje oferty">
   <div class="snav-in">
-    <div class="snav-link active" data-target="sec-zakres" onclick="jumpTo('sec-zakres')"><div class="snav-num">1</div>Zakres</div>
-    <div class="snav-link" data-target="sec-szczegoly" onclick="jumpTo('sec-szczegoly')"><div class="snav-num">2</div>Szczegóły</div>
-    <div class="snav-link" data-target="sec-etapy" onclick="jumpTo('sec-etapy')"><div class="snav-num">3</div>Etapy</div>
-    <?php
-    $nav_i = 4;
-    if ($has_questions) :
-        ?>
-    <div class="snav-link" data-target="sec-pytania" onclick="jumpTo('sec-pytania')"><div class="snav-num"><?php echo esc_html((string) $nav_i); ?></div>Pytania</div>
-        <?php
-        $nav_i++;
-    endif;
-    ?>
-    <div class="snav-link" data-target="sec-cennik" onclick="jumpTo('sec-cennik')"><div class="snav-num"><?php echo esc_html((string) $nav_i); ?></div>Cennik</div>
-    <div class="snav-link" data-target="sec-faq" onclick="jumpTo('sec-faq')"><div class="snav-num"><?php echo esc_html((string) ($nav_i + 1)); ?></div>FAQ</div>
+    <?php $nav_n = 1; ?>
+    <div class="snav-link active" data-target="sec-zakres" onclick="jumpTo('sec-zakres')"><div class="snav-num"><?php echo esc_html((string) $nav_n); ?></div>Zakres</div>
+    <?php $nav_n++; ?>
+    <?php if ($has_offer_details) : ?>
+    <div class="snav-link" data-target="sec-szczegoly" onclick="jumpTo('sec-szczegoly')"><div class="snav-num"><?php echo esc_html((string) $nav_n); ?></div>Szczegóły</div>
+    <?php $nav_n++; endif; ?>
+    <div class="snav-link" data-target="sec-etapy" onclick="jumpTo('sec-etapy')"><div class="snav-num"><?php echo esc_html((string) $nav_n); ?></div>Etapy</div>
+    <?php $nav_n++; ?>
+    <?php if ($has_questions) : ?>
+    <div class="snav-link" data-target="sec-pytania" onclick="jumpTo('sec-pytania')"><div class="snav-num"><?php echo esc_html((string) $nav_n); ?></div>Pytania</div>
+    <?php $nav_n++; endif; ?>
+    <div class="snav-link" data-target="sec-cennik" onclick="jumpTo('sec-cennik')"><div class="snav-num"><?php echo esc_html((string) $nav_n); ?></div>Cennik</div>
+    <?php $nav_n++; ?>
+    <div class="snav-link" data-target="sec-faq" onclick="jumpTo('sec-faq')"><div class="snav-num"><?php echo esc_html((string) $nav_n); ?></div>FAQ</div>
+  </div>
+</nav>
+
+<div class="w offer-process-bar">
+  <div class="process-bar">
+    <div class="process-bar-inner">
+      <div class="process-bar-head">
+        <div class="process-bar-label">Gdzie jesteśmy w procesie współpracy</div>
+        <div class="process-bar-meta">Etap <strong>2 z 4</strong></div>
+      </div>
+      <div class="process-track">
+        <div class="process-track-fill"></div>
+        <div class="process-steps">
+          <div class="process-step is-done">
+            <span class="process-step-num">Krok 1 · Zakończony</span>
+            <div class="process-step-name">Diagnoza</div>
+            <div class="process-step-desc">Krótka rozmowa i audyt — już za nami.</div>
+          </div>
+          <div class="process-step is-current">
+            <span class="process-step-num">Krok 2 · Teraz</span>
+            <div class="process-step-name">Oferta</div>
+            <div class="process-step-desc">Czytasz zakres, etapy i wycenę dopasowane do rozmowy.</div>
+          </div>
+          <div class="process-step">
+            <span class="process-step-num">Krok 3 · Następnie</span>
+            <div class="process-step-name">Akceptacja</div>
+            <div class="process-step-desc">Potwierdzenie w sekcji Cennik — umowa i pro forma w 24h.</div>
+          </div>
+          <div class="process-step">
+            <span class="process-step-num">Krok 4 · Potem</span>
+            <div class="process-step-name">Wdrożenie</div>
+            <div class="process-step-desc">Onboarding, dostępy i start prac według planu.</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -615,6 +757,7 @@ a{text-decoration:none;color:inherit}
   <div class="hero-lbl">Oferta indywidualna · <?php echo esc_html($offer_date_label); ?></div>
   <div class="hero-grid">
     <div>
+      <div class="hero-name">Dla: <strong><?php echo esc_html($client_name); ?></strong></div>
       <h1 class="h1"><?php echo esc_html($offer_title); ?></h1>
       <p class="hero-lead"><?php echo esc_html((string) ($payload["lead"] ?? "")); ?></p>
       <div class="chips">
@@ -661,24 +804,6 @@ a{text-decoration:none;color:inherit}
       </div>
       <?php endif; ?>
 
-      <div class="sc-commit">
-        <div class="sc-commit-label">Co najbardziej Cię interesuje?</div>
-        <div class="commit-opts" id="commitOpts">
-          <?php if (!empty($services)) : ?>
-            <?php foreach ($services as $svc) : ?>
-              <?php if (!is_array($svc)) { continue; } ?>
-              <label class="commit-opt" onclick="commitSelect(this)">
-                <input type="radio" name="commit" value="<?php echo esc_attr(sanitize_key((string) ($svc["key"] ?? ""))); ?>"/>
-                <?php echo esc_html((string) ($svc["label"] ?? "")); ?>
-                <?php if (!empty($svc["price_hint"])) : ?><span><?php echo esc_html((string) $svc["price_hint"]); ?></span><?php endif; ?>
-              </label>
-            <?php endforeach; ?>
-          <?php else : ?>
-            <label class="commit-opt" onclick="commitSelect(this)"><input type="radio" name="commit" value="all"/>Cały zakres</label>
-          <?php endif; ?>
-        </div>
-      </div>
-
       <a class="btn btn-p" href="#pricing-accept-anchor" onclick="cta('sum_card')" id="scCta" style="width:100%;justify-content:center;padding:13px;">Chcę tę ofertę →</a>
       <div class="sc-note">
         <div class="sc-shield"><svg viewBox="0 0 20 20"><path d="M10 2L3 5v5c0 4.4 3.1 8.1 7 9 3.9-.9 7-4.6 7-9V5l-7-3Z"/></svg></div>
@@ -695,33 +820,35 @@ a{text-decoration:none;color:inherit}
 <div class="sec r" data-offer-section="zakres">
   <div class="lbl">Zakres działania</div>
   <h2 class="h2">Co dokładnie wchodzi w ofertę</h2>
-  <p class="sub">Pełna lista elementów — co jest w cenie, co opcjonalne, a co dostępne jako rozszerzenie.</p>
+  <p class="sub">Pełna lista elementów dopasowana do Twojej sytuacji — wybrane pozycje ustaliliśmy podczas rozmowy diagnostycznej.</p>
+  <?php if (array_filter($scope_grouped)) : ?>
   <div class="scope">
     <div class="scope-head"><span>Element zakresu</span><span>Kiedy / jak często</span><span>Status</span></div>
-    <?php if (!empty($payload["has_google"])) : ?>
-    <div class="scope-group"><div class="scope-group-dot"></div>Google Ads</div>
-    <div class="scope-row"><div><div class="sn">Audyt konta i kampanii</div><div class="sd">Analiza struktury konta, grup reklam i historii wyników.</div></div><div class="sw">Tydzień 1</div><div><span class="tag ti">W cenie</span></div></div>
-    <div class="scope-row"><div><div class="sn">Strategia kampanii</div><div class="sd">Słowa kluczowe, struktura, wykluczenia — zatwierdzasz przed startem.</div></div><div class="sw">Tydzień 2</div><div><span class="tag ti">W cenie</span></div></div>
-    <div class="scope-row"><div><div class="sn">Konfiguracja i uruchomienie</div><div class="sd">Pełna konfiguracja konta, śledzenia konwersji i testów.</div></div><div class="sw">Tydzień 3</div><div><span class="tag ti">W cenie</span></div></div>
-    <div class="scope-row"><div><div class="sn">Bieżąca optymalizacja</div><div class="sd">Cotygodniowe korekty stawek, tekstów i budżetu.</div></div><div class="sw">Ciągle</div><div><span class="tag ti">W cenie</span></div></div>
-    <?php endif; ?>
-    <?php if (!empty($payload["has_meta"])) : ?>
-    <div class="scope-group"><div class="scope-group-dot"></div>Meta Ads</div>
-    <div class="scope-row"><div><div class="sn">Audyt konta Meta</div><div class="sd">Pixel, grupy odbiorców, struktura zestawów reklam.</div></div><div class="sw">Tydzień 1</div><div><span class="tag ti">W cenie</span></div></div>
-    <div class="scope-row"><div><div class="sn">Strategia lejka</div><div class="sd">TOF / MOF / BOF z dopasowanym komunikatem.</div></div><div class="sw">Tydzień 2</div><div><span class="tag ti">W cenie</span></div></div>
-    <div class="scope-row"><div><div class="sn">Pixel + CAPI</div><div class="sd">Konfiguracja zdarzeń pod atrybucję po zmianach iOS.</div></div><div class="sw">Tydzień 1–2</div><div><span class="tag ti">W cenie</span></div></div>
-    <div class="scope-row"><div><div class="sn">Optymalizacja i testy</div><div class="sd">Cotygodniowe korekty budżetów, kreacji i grup docelowych.</div></div><div class="sw">Ciągle</div><div><span class="tag ti">W cenie</span></div></div>
-    <?php endif; ?>
-    <?php if (!empty($payload["has_web"])) : ?>
-    <div class="scope-group"><div class="scope-group-dot"></div>Strona / landing</div>
-    <div class="scope-row"><div><div class="sn">Brief i warsztat</div><div class="sd">Cel, grupa docelowa, struktura sekcji i CTA.</div></div><div class="sw">Tydzień 1</div><div><span class="tag ti">W cenie</span></div></div>
-    <div class="scope-row"><div><div class="sn">Projekt i copy</div><div class="sd">Układ desktop/mobile i teksty pod konwersję.</div></div><div class="sw">Tydz. 2–3</div><div><span class="tag ti">W cenie</span></div></div>
-    <div class="scope-row"><div><div class="sn">Wdrożenie WordPress</div><div class="sd">Responsywnie, szybko, z panelem edycji.</div></div><div class="sw">Tydz. 3–4</div><div><span class="tag ti">W cenie</span></div></div>
-    <?php endif; ?>
-    <div class="scope-group"><div class="scope-group-dot"></div>Wspólne</div>
-    <div class="scope-row"><div><div class="sn">GA4 + GTM</div><div class="sd">Śledzenie konwersji i atrybucji kanałów.</div></div><div class="sw">Start</div><div><span class="tag ti">W cenie</span></div></div>
-    <div class="scope-row"><div><div class="sn">Raport cotygodniowy</div><div class="sd">Wydatki, konwersje, wnioski i plan na kolejny tydzień.</div></div><div class="sw">Co tydzień</div><div><span class="tag ti">W cenie</span></div></div>
-    <div class="scope-row"><div><div class="sn">Rozmowa strategiczna</div><div class="sd">Comiesięczny przegląd wyników i priorytetów.</div></div><div class="sw">1× / mies.</div><div><span class="tag ti">W cenie</span></div></div>
+    <?php foreach (["google", "meta", "web", "common"] as $group_key) : ?>
+      <?php if (empty($scope_grouped[$group_key])) {
+          continue;
+      } ?>
+      <div class="scope-group<?php echo $group_key === "meta" ? " is-meta" : ($group_key === "web" ? " is-web" : ""); ?>">
+        <div class="scope-group-dot"></div>
+        <?php echo esc_html($scope_group_labels[$group_key]); ?>
+      </div>
+      <?php foreach ($scope_grouped[$group_key] as $item) : ?>
+        <div class="scope-row">
+          <div>
+            <div class="sn"><?php echo esc_html((string) ($item["title"] ?? "")); ?></div>
+            <div class="sd"><?php echo esc_html((string) ($item["desc"] ?? "")); ?></div>
+          </div>
+          <div class="sw"><?php echo esc_html((string) ($item["when"] ?? "")); ?></div>
+          <div>
+            <?php if (!empty($item["optional"])) : ?>
+              <span class="tag to">Opcjonalnie</span>
+            <?php else : ?>
+              <span class="tag ti">W cenie</span>
+            <?php endif; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    <?php endforeach; ?>
     <?php
     $extra_scope = (string) get_post_meta($offer_id, "_ups_offer_scope_extra_html", true);
     if ($extra_scope !== "") {
@@ -729,11 +856,15 @@ a{text-decoration:none;color:inherit}
     }
     ?>
   </div>
+  <?php else : ?>
+  <p class="scope-empty">Zakres oferty zostanie ustalony po rozmowie wstępnej. Skontaktuj się z opiekunem.</p>
+  <?php endif; ?>
 </div>
 </div>
 
 <div class="hr"></div>
 
+<?php if ($has_offer_details) : ?>
 <div class="w" id="sec-szczegoly" data-offer-section="szczegoly">
 <div class="sec r">
   <div class="lbl">Szczegóły oferty</div>
@@ -743,6 +874,7 @@ a{text-decoration:none;color:inherit}
 </div>
 
 <div class="hr"></div>
+<?php endif; ?>
 
 <div class="w" id="sec-etapy">
 <div class="sec r" data-offer-section="etapy">
@@ -832,6 +964,25 @@ a{text-decoration:none;color:inherit}
       </div>
     </div>
     <div class="pfoot pfoot--stack" id="pricing-accept-anchor">
+      <div class="pfoot-commit">
+        <div class="pfoot-commit-label">Co bierzesz?</div>
+        <div class="commit-opts" id="commitOpts">
+          <?php if (!empty($services)) : ?>
+            <?php foreach ($services as $svc) : ?>
+              <?php if (!is_array($svc)) {
+                  continue;
+              } ?>
+              <label class="commit-opt commit-opt--pricing" onclick="commitSelect(this)">
+                <input type="radio" name="commit" value="<?php echo esc_attr(sanitize_key((string) ($svc["key"] ?? ""))); ?>"/>
+                <span class="commit-label"><?php echo esc_html((string) ($svc["label"] ?? "")); ?></span>
+                <?php if (!empty($svc["price_hint"])) : ?><span class="commit-hint"><?php echo esc_html((string) $svc["price_hint"]); ?></span><?php endif; ?>
+              </label>
+            <?php endforeach; ?>
+          <?php else : ?>
+            <label class="commit-opt commit-opt--pricing" onclick="commitSelect(this)"><input type="radio" name="commit" value="all"/><span class="commit-label">Cały zakres</span></label>
+          <?php endif; ?>
+        </div>
+      </div>
       <div class="pfoot-primary">
         <button type="button" class="btn btn-p" id="btn-offer-accept-pricing"><?php echo esc_html($cta_text); ?></button>
       </div>
@@ -844,7 +995,7 @@ a{text-decoration:none;color:inherit}
         · Po kliknięciu „<?php echo esc_html($cta_text); ?>” wyślemy podsumowanie do opiekuna i kopię na Twój e-mail.
       </div>
       <noscript>
-        <form method="post" class="pfoot-secondary" style="margin-top:8px">
+        <form method="post" class="pfoot-secondary" style="margin-top:8px" action="<?php echo esc_url(function_exists("upsellio_offer_get_public_url") ? upsellio_offer_get_public_url($offer_id) : home_url("/")); ?>">
           <?php wp_nonce_field("ups_offer_accept_" . $offer_id, "ups_offer_accept_nonce"); ?>
           <button class="btn btn-p" type="submit" style="border:none"><?php echo esc_html($cta_text); ?> (bez JS)</button>
         </form>
@@ -960,8 +1111,14 @@ window.addEventListener('scroll',function(){
 },{passive:true});
 var snavLinks=document.querySelectorAll('.snav-link');
 var snavSections=Array.from(snavLinks).map(function(l){return document.getElementById(l.dataset.target);}).filter(Boolean);
+function stickyOffset(){
+  var nav=document.querySelector('.nav');
+  var snav=document.querySelector('.snav');
+  var pb=document.querySelector('.offer-process-bar');
+  return (nav?nav.offsetHeight:0)+(snav?snav.offsetHeight:0)+(pb?pb.offsetHeight:0)+20;
+}
 function updateSnav(){
-  var top=window.scrollY+130;
+  var top=window.scrollY+stickyOffset();
   var active=null;
   snavSections.forEach(function(s){if(s&&s.offsetTop<=top)active=s;});
   if(!active)active=snavSections[0];
@@ -972,8 +1129,10 @@ updateSnav();
 function jumpTo(id){
   var el=document.getElementById(id);
   if(!el)return;
-  var offset=el.getBoundingClientRect().top+window.scrollY-120;
-  window.scrollTo({top:offset,behavior:'smooth'});
+  var off=stickyOffset();
+  var target=el.getBoundingClientRect().top+window.scrollY-off;
+  window.scrollTo({top:target,behavior:'smooth'});
+  if(window.history&&history.replaceState)history.replaceState(null,'','#'+id);
   trackEvent('offer_section_click',{section_id:id.replace('sec-','')});
 }
 var ro=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting)x.target.classList.add('in');});},{threshold:.1});
@@ -1017,12 +1176,17 @@ var po=new IntersectionObserver(function(e){e.forEach(function(x){
 });},{threshold:0.5});
 if(pEl)po.observe(pEl);
 window.commitSelect=function(el){
+  if(!el)return;
+  var inp=el.querySelector('input[type="radio"]');if(!inp)return;
+  inp.checked=true;
   document.querySelectorAll('.commit-opt').forEach(function(o){o.classList.remove('sel');});
   el.classList.add('sel');
-  var inp=el.querySelector('input');var val=inp?inp.value:'';
-  trackEvent('offer_commit_selected',{section_id:String(val||'')});
+  var val=inp.value||'';
+  trackEvent('offer_commit_selected',{section_id:String(val)});
   var ctaEl=document.getElementById('scCta');
-  if(ctaEl&&val){var t=el.textContent.trim().split('\n')[0];ctaEl.textContent='Chcę: '+t+' →';}
+  var labEl=el.querySelector('.commit-label');
+  var t=labEl?labEl.textContent.trim():el.textContent.replace(/\s+/g,' ').trim();
+  if(ctaEl&&val&&t)ctaEl.textContent='Chcę: '+t+' →';
 };
 window.cta=function(l){pushDl('offer_cta_click',{cta_label:l});trackEvent('offer_cta_click',{section_id:String(l)});};
 window.faqToggle=function(i){var o=i.classList.contains('open');document.querySelectorAll('.fi.open').forEach(function(el){el.classList.remove('open');});if(!o)i.classList.add('open');};
@@ -1031,7 +1195,8 @@ function getCommit(){
   var sel=document.querySelector('input[name="commit"]:checked');
   if(!sel)return{key:'',label:''};
   var lab=sel.closest('.commit-opt');
-  var text=lab?lab.textContent.replace(/\s+/g,' ').trim():'';
+  var labelEl=lab?lab.querySelector('.commit-label'):null;
+  var text=labelEl?labelEl.textContent.replace(/\s+/g,' ').trim():(lab?lab.textContent.replace(/\s+/g,' ').trim():'');
   return{key:sel.value||'',label:text};
 }
 function postMessaging(payload){

@@ -68,9 +68,9 @@ get_header();
   .am-wrap{width:min(1180px,100% - 64px);margin-inline:auto}
   .am-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#0d9488;margin-bottom:14px}
   .am-eyebrow::before{content:"";width:26px;height:2px;background:#0d9488;border-radius:99px}
-  .am-h1{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(42px,5vw,68px);line-height:1.02;letter-spacing:-2px;margin:0 0 20px;max-width:18ch}
-  .am-h2{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(30px,3.6vw,48px);line-height:1.06;letter-spacing:-1.4px;margin:0 0 14px;max-width:22ch}
-  .am-h3{font-family:"Syne",sans-serif;font-weight:700;font-size:22px;line-height:1.2;letter-spacing:-.4px;margin:0 0 10px}
+  .am-h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(42px,5vw,68px);line-height:1.02;letter-spacing:-2px;margin:0 0 20px;max-width:18ch}
+  .am-h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(30px,3.6vw,48px);line-height:1.06;letter-spacing:-1.4px;margin:0 0 14px;max-width:22ch}
+  .am-h3{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:22px;line-height:1.2;letter-spacing:-.4px;margin:0 0 10px}
   .am-lead{font-size:18px;line-height:1.65;color:#3d3d38;max-width:64ch;margin:0 0 30px}
   .am-body{font-size:15px;color:#3d3d38;line-height:1.8;max-width:78ch}
   .am-section{padding:96px 0;border-bottom:1px solid #e7e7e1}
@@ -82,7 +82,7 @@ get_header();
   .am-photo-label{position:absolute;inset:0;display:grid;place-items:center;font-family:ui-monospace,monospace;color:#0f766e;font-size:12px;letter-spacing:.8px;text-align:center;padding:0 16px}
   .am-proof{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
   .am-proof div{background:#fff;border:1px solid #e7e7e1;border-radius:16px;padding:18px}
-  .am-proof strong{display:block;font-family:"Syne",sans-serif;color:#0d9488;font-size:30px;line-height:1}
+  .am-proof strong{display:block;font-family:"Bricolage Grotesque",sans-serif;color:#0d9488;font-size:30px;line-height:1}
   .am-proof span{display:block;margin-top:6px;font-size:13px;color:#5e5e56}
   .am-btn-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
   .am-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;min-height:48px;padding:0 24px;font-weight:700;font-size:15px;text-decoration:none;border:1px solid transparent}

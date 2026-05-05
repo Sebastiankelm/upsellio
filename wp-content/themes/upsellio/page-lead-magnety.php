@@ -74,7 +74,7 @@ $faq_items = [
   .lm-hero-inner { padding:64px 0 52px; }
   .lm-pill { display:inline-flex; align-items:center; gap:10px; border:1px solid #99f6e4; background:#ecfeff; color:#0f766e; font-size:12px; font-weight:600; border-radius:999px; padding:9px 14px; }
   .lm-pill-dot { width:8px; height:8px; border-radius:50%; background:#0d9488; }
-  .lm-h1 { margin:18px 0 16px; max-width:920px; font-family:"Syne",sans-serif; font-size:clamp(36px, 6vw, 64px); line-height:0.97; letter-spacing:-0.05em; }
+  .lm-h1 { margin:18px 0 16px; max-width:920px; font-family:"Bricolage Grotesque",sans-serif; font-size:clamp(36px, 6vw, 64px); line-height:0.97; letter-spacing:-0.05em; }
   .lm-accent { color:#0d9488; }
   .lm-lead { margin:0; max-width:860px; font-size:19px; line-height:1.72; color:#334155; }
   .lm-search { margin-top:30px; display:grid; gap:12px; grid-template-columns:1fr; }
@@ -90,20 +90,20 @@ $faq_items = [
   .lm-featured-visual img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
   .lm-featured-body { padding:28px; }
   .lm-badge { display:inline-flex; border-radius:999px; border:1px solid #99f6e4; background:#ecfeff; color:#0f766e; font-size:12px; font-weight:700; padding:5px 11px; }
-  .lm-featured-title { margin:14px 0 12px; font-family:"Syne",sans-serif; font-size:clamp(30px, 3.6vw, 44px); line-height:1.02; letter-spacing:-0.04em; }
+  .lm-featured-title { margin:14px 0 12px; font-family:"Bricolage Grotesque",sans-serif; font-size:clamp(30px, 3.6vw, 44px); line-height:1.02; letter-spacing:-0.04em; }
   .lm-featured-excerpt { margin:0; color:#334155; line-height:1.78; }
   .lm-btn { margin-top:18px; display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; border-radius:12px; background:linear-gradient(135deg,#0d9488,#14b8a6); color:#fff; font-size:14px; font-weight:700; padding:10px 18px; }
   .lm-grid-section { background:#fff; }
   .lm-grid-head { padding:42px 0 14px; display:flex; justify-content:space-between; align-items:end; gap:16px; flex-wrap:wrap; }
   .lm-eyebrow { font-size:11px; letter-spacing:.18em; text-transform:uppercase; font-weight:700; color:#6f746f; }
-  .lm-h2 { margin:10px 0 0; font-family:"Syne",sans-serif; font-size:clamp(31px, 4vw, 44px); line-height:1.06; letter-spacing:-0.04em; }
+  .lm-h2 { margin:10px 0 0; font-family:"Bricolage Grotesque",sans-serif; font-size:clamp(31px, 4vw, 44px); line-height:1.06; letter-spacing:-0.04em; }
   .lm-grid { display:grid; gap:14px; padding:16px 0 54px; grid-template-columns:1fr; }
   .lm-card { border:1px solid #e2e8f0; border-radius:24px; padding:22px; background:#fff; display:flex; flex-direction:column; min-height:100%; transition:.2s ease; }
   .lm-card:hover { border-color:#0d9488; transform:translateY(-2px); box-shadow:0 14px 40px rgba(15,23,42,.08); }
   .lm-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
   .lm-card-category { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#6a6f6a; font-weight:700; }
   .lm-card-type { font-size:12px; color:#596059; margin-top:5px; }
-  .lm-card-title { margin:14px 0 8px; font-family:"Syne",sans-serif; font-size:26px; line-height:1.06; letter-spacing:-.04em; }
+  .lm-card-title { margin:14px 0 8px; font-family:"Bricolage Grotesque",sans-serif; font-size:26px; line-height:1.06; letter-spacing:-.04em; }
   .lm-card-excerpt { margin:0; color:#5a5f5a; line-height:1.74; font-size:15px; }
   .lm-card-meta { margin-top:10px; font-size:13px; color:#737973; }
   .lm-card-link { margin-top:auto; padding-top:18px; color:#0d9488; font-size:14px; font-weight:700; }
@@ -111,7 +111,7 @@ $faq_items = [
   .lm-extra { border-top:1px solid #e2e8f0; background:#f1f5f9; padding:48px 0; }
   .lm-extra-grid { display:grid; grid-template-columns:1fr; gap:16px; }
   .lm-extra-card { border:1px solid #e2e8f0; border-radius:22px; background:#fff; padding:22px; }
-  .lm-extra-card h3 { margin:8px 0 10px; font-family:"Syne",sans-serif; font-size:28px; line-height:1.06; letter-spacing:-.03em; }
+  .lm-extra-card h3 { margin:8px 0 10px; font-family:"Bricolage Grotesque",sans-serif; font-size:28px; line-height:1.06; letter-spacing:-.03em; }
   .lm-extra-card p { margin:0; color:#5f635f; line-height:1.75; }
   .lm-extra-list { margin:14px 0 0; padding-left:17px; color:#535953; line-height:1.8; }
   .lm-seo-section { border-top:1px solid #e2e8f0; background:#fff; padding:48px 0; }

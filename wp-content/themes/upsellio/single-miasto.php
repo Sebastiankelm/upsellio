@@ -364,16 +364,16 @@ while (have_posts()) :
       .city-hero-map-pin::after{width:18px;height:18px;background:rgba(13,148,136,.32)}
       .city-hero-map-pin-dot{display:block;width:10px;height:10px;border-radius:999px;background:#0f766e}
       .city-hero-map-caption{margin-top:10px;display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:12px;color:#475569}
-      .city-hero-map-caption strong{color:#0f766e;font-family:Syne,sans-serif;font-size:16px;letter-spacing:-.02em}
+      .city-hero-map-caption strong{color:#0f766e;font-family:"Bricolage Grotesque",sans-serif;font-size:16px;letter-spacing:-.02em}
       @media(min-width:961px){.city-hero-grid{grid-template-columns:1.25fr .75fr}.city-hero-map{display:block}}
       .city-breadcrumbs{font-size:12px;color:var(--text-3,#64748b);margin-bottom:14px}
-      .city-h1{font-family:var(--font-display, "Syne", sans-serif);font-weight:800;font-size:clamp(36px,5vw,62px);line-height:1.02;letter-spacing:-1.5px}
+      .city-h1{font-family:var(--font-display, "Bricolage Grotesque", sans-serif);font-weight:800;font-size:clamp(36px,5vw,62px);line-height:1.02;letter-spacing:-1.5px}
       .city-lead{margin-top:18px;font-size:18px;line-height:1.8;color:var(--text-2,#334155);max-width:860px}
       .city-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
       .city-pill{font-size:12px;border:1px solid var(--border-strong,#c9c9c3);border-radius:999px;padding:6px 12px;background:var(--surface,#fff)}
       .city-main{padding:56px 0 72px;display:grid;grid-template-columns:1fr;gap:34px}
       .city-content{line-height:1.8;color:#262624;padding:26px;border:1px solid var(--border,#e6e6e1);border-radius:18px;background:var(--surface,#fff)}
-      .city-content h2,.city-content h3{font-family:var(--font-display, "Syne", sans-serif);line-height:1.2;color:#071426}
+      .city-content h2,.city-content h3{font-family:var(--font-display, "Bricolage Grotesque", sans-serif);line-height:1.2;color:#071426}
       .city-content h2{font-size:32px;margin:0 0 16px}
       .city-content h3{font-size:23px;margin:28px 0 10px}
       .city-content p{margin:0 0 14px}
@@ -385,7 +385,7 @@ while (have_posts()) :
       .city-inline-cta-links a{font-size:12px;color:#145f49;font-weight:500}
       .city-inline-cta-btn{display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;padding:7px 12px;border-radius:999px;background:var(--teal,#0d9488);color:#fff}
       .city-side-card{border:1px solid var(--border,#e6e6e1);border-radius:18px;padding:22px;background:var(--surface,#fff);position:static;top:96px}
-      .city-side-title{font-family:var(--font-display, "Syne", sans-serif);font-size:22px;margin-bottom:10px}
+      .city-side-title{font-family:var(--font-display, "Bricolage Grotesque", sans-serif);font-size:22px;margin-bottom:10px}
       .city-side-list{display:grid;gap:8px;margin-top:14px}
       .city-side-link{font-size:14px;color:#5f5f58}
       .city-side-link:hover{color:var(--teal,#0d9488)}

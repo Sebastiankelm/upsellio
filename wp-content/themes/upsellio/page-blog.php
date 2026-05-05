@@ -51,10 +51,10 @@ get_header();
   .bl-eyebrow::before{content:"";width:26px;height:2px;background:var(--brand,#0d9488);border-radius:99px}
   .bl-eyebrow-light{color:#5eead4}
   .bl-eyebrow-light::before{background:#5eead4}
-  .bl-h1{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(40px,4.4vw,60px);line-height:1.02;letter-spacing:-1.8px;margin:0 0 20px;max-width:18ch}
-  .bl-h2{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(26px,3vw,40px);line-height:1.05;letter-spacing:-1.4px;margin:0 0 14px;max-width:24ch}
+  .bl-h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(40px,4.4vw,60px);line-height:1.02;letter-spacing:-1.8px;margin:0 0 20px;max-width:18ch}
+  .bl-h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(26px,3vw,40px);line-height:1.05;letter-spacing:-1.4px;margin:0 0 14px;max-width:24ch}
   .bl-h2-light{color:#fff}
-  .bl-h3{font-family:"Syne",sans-serif;font-weight:700;font-size:20px;line-height:1.2;letter-spacing:-.5px;margin:0 0 10px}
+  .bl-h3{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:20px;line-height:1.2;letter-spacing:-.5px;margin:0 0 10px}
   .bl-lead{font-size:18px;line-height:1.6;color:var(--text-muted,#475569);max-width:60ch;margin:0 0 28px}
   .bl-lead-light{color:rgba(255,255,255,.7)}
   .bl-divider{height:1px;background:var(--border,#dbe7ea);margin:48px 0 32px}
@@ -115,7 +115,7 @@ get_header();
   .bl-top h1 {
     margin: 0;
     font-size: 42px;
-    font-family: "Syne", sans-serif;
+    font-family: "Bricolage Grotesque", sans-serif;
     letter-spacing: -1px;
     font-weight: 700;
     line-height: 1.1;
@@ -166,7 +166,7 @@ get_header();
 
   .bl-seo h2 {
     margin: 0 0 16px;
-    font-family: "Syne", sans-serif;
+    font-family: "Bricolage Grotesque", sans-serif;
     font-size: 32px;
     font-weight: 700;
     letter-spacing: -0.6px;

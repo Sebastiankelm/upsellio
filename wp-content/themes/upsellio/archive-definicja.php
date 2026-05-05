@@ -54,14 +54,14 @@ echo wp_json_encode([
 <style>
   .defs-wrap{width:min(1140px,calc(100% - 32px));margin:0 auto}
   .defs-hero{position:relative;overflow:hidden;padding:72px 0 36px;border-bottom:1px solid #e2e8f0;background:radial-gradient(circle at top right, rgba(20,184,166,0.16), transparent 40%), linear-gradient(180deg,#ecfeff,#f1f5f9)}
-  .defs-hero::before{content:"ABC";position:absolute;top:-30px;right:-20px;font-family:Syne,sans-serif;font-weight:800;font-size:clamp(160px,28vw,320px);line-height:.85;letter-spacing:-.08em;color:rgba(15,118,110,.06);pointer-events:none;user-select:none}
+  .defs-hero::before{content:"ABC";position:absolute;top:-30px;right:-20px;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(160px,28vw,320px);line-height:.85;letter-spacing:-.08em;color:rgba(15,118,110,.06);pointer-events:none;user-select:none}
   .defs-hero > .defs-wrap{position:relative}
   .defs-pill{display:inline-flex;align-items:center;gap:8px;margin-bottom:14px;padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #99f6e4;color:#0f766e;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
   .defs-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:#0d9488}
-  .defs-title{font-family:Syne,sans-serif;font-size:clamp(34px,5vw,56px);line-height:1.05;letter-spacing:-1px}
+  .defs-title{font-family:"Bricolage Grotesque",sans-serif;font-size:clamp(34px,5vw,56px);line-height:1.05;letter-spacing:-1px}
   .defs-lead{margin-top:16px;max-width:860px;font-size:18px;line-height:1.75;color:#334155}
   .defs-stats{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px;font-size:13px;color:#475569}
-  .defs-stats strong{font-family:Syne,sans-serif;font-size:22px;color:#0f766e;letter-spacing:-.02em;display:block}
+  .defs-stats strong{font-family:"Bricolage Grotesque",sans-serif;font-size:22px;color:#0f766e;letter-spacing:-.02em;display:block}
   .defs-controls{margin-top:24px;display:flex;flex-wrap:wrap;gap:12px;flex-direction:column}
   .defs-search{flex:1 1 300px}
   .defs-search input{width:100%;border:1px solid #c9c9c3;border-radius:10px;padding:12px 14px}
@@ -112,7 +112,7 @@ echo wp_json_encode([
 
 <main class="defs-main defs-wrap">
   <div class="defs-headline">
-    <h2 style="font-family:Syne,sans-serif;font-size:30px;line-height:1.2;">Słownik wiedzy</h2>
+    <h2 style="font-family:"Bricolage Grotesque",sans-serif;font-size:30px;line-height:1.2;">Słownik wiedzy</h2>
     <div class="defs-count" id="defs-count"><?php echo esc_html(count($definitions)); ?> definicji</div>
   </div>
 

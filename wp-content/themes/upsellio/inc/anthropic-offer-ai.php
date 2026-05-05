@@ -405,8 +405,9 @@ function upsellio_offer_ai_fill_ajax(): void
         : (defined("UPSELLIO_ANTHROPIC_DEFAULT_MODEL")
             ? (string) UPSELLIO_ANTHROPIC_DEFAULT_MODEL
             : "claude-haiku-4-5-20251001");
+    /* Duży max_tokens — odpowiedź z API bywa >42 s; krótszy timeout dawał cURL 28 w WordPressie. */
     $raw = function_exists("upsellio_anthropic_crm_send_user_prompt")
-        ? upsellio_anthropic_crm_send_user_prompt($prompt, 4096, 42, $model)
+        ? upsellio_anthropic_crm_send_user_prompt($prompt, 4096, 180, $model)
         : null;
     if ($raw === null) {
         $err = function_exists("upsellio_anthropic_crm_get_last_send_error") ? upsellio_anthropic_crm_get_last_send_error() : "";

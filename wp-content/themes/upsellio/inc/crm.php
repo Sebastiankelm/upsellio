@@ -31,6 +31,29 @@ function upsellio_crm_get_default_owner_id()
     return 1;
 }
 
+/**
+ * Zgłoszenia z formularza idą przez admin-post bez zalogowanego użytkownika (ID 0).
+ * WordPress wymaga przy tworzeniu wpisów CPT uprawnień — tymczasowo ustawiamy właściciela leada.
+ *
+ * @template T
+ * @param callable(): T $callback
+ * @return T
+ */
+function upsellio_crm_run_as_user($user_id, $callback)
+{
+    $user_id = (int) $user_id;
+    if ($user_id <= 0) {
+        $user_id = upsellio_crm_get_default_owner_id();
+    }
+    $prev = get_current_user_id();
+    wp_set_current_user($user_id);
+    try {
+        return $callback();
+    } finally {
+        wp_set_current_user($prev);
+    }
+}
+
 function upsellio_crm_register_post_type()
 {
     register_post_type("lead", [
@@ -177,56 +200,213 @@ function upsellio_crm_create_lead($payload)
         $ownerId = upsellio_crm_get_default_owner_id();
     }
 
-    $title = $name !== "" ? $name : ($email !== "" ? $email : "Nowy lead");
-    $leadId = wp_insert_post([
-        "post_type" => "lead",
-        "post_status" => "publish",
-        "post_title" => $title,
-        "post_content" => $message,
-        "post_author" => $ownerId,
-    ], true);
+    return upsellio_crm_run_as_user($ownerId, static function () use (
+        $name,
+        $email,
+        $message,
+        $company,
+        $phone,
+        $service,
+        $budget,
+        $goal,
+        $score,
+        $formOrigin,
+        $source,
+        $utmSource,
+        $utmMedium,
+        $utmCampaign,
+        $landingUrl,
+        $referrer,
+        $ownerId
+    ) {
+        $title = $name !== "" ? $name : ($email !== "" ? $email : "Nowy lead");
+        $leadId = wp_insert_post([
+            "post_type" => "lead",
+            "post_status" => "publish",
+            "post_title" => $title,
+            "post_content" => $message,
+            "post_author" => $ownerId,
+        ], true);
 
-    if (is_wp_error($leadId)) {
-        return 0;
-    }
-
-    update_post_meta($leadId, "_upsellio_lead_email", $email);
-    update_post_meta($leadId, "_upsellio_lead_company", $company);
-    update_post_meta($leadId, "_upsellio_lead_phone", $phone);
-    update_post_meta($leadId, "_upsellio_lead_service", $service);
-    update_post_meta($leadId, "_upsellio_lead_budget", $budget);
-    update_post_meta($leadId, "_upsellio_lead_goal", $goal);
-    update_post_meta($leadId, "_upsellio_lead_score", $score);
-    update_post_meta($leadId, "_upsellio_lead_form_origin", $formOrigin);
-    update_post_meta($leadId, "_upsellio_lead_utm_source", $utmSource);
-    update_post_meta($leadId, "_upsellio_lead_utm_medium", $utmMedium);
-    update_post_meta($leadId, "_upsellio_lead_utm_campaign", $utmCampaign);
-    update_post_meta($leadId, "_upsellio_lead_landing_url", $landingUrl);
-    update_post_meta($leadId, "_upsellio_lead_referrer", $referrer);
-
-    $statusTermId = upsellio_crm_get_term_id_by_slug("lead_status", "new");
-    if ($statusTermId > 0) {
-        wp_set_object_terms($leadId, [$statusTermId], "lead_status", false);
-    }
-
-    $sourceTermId = upsellio_crm_get_term_id_by_slug("lead_source", $source);
-    if ($sourceTermId <= 0) {
-        $sourceTerm = wp_insert_term($formOrigin, "lead_source", ["slug" => $source]);
-        if (!is_wp_error($sourceTerm) && isset($sourceTerm["term_id"])) {
-            $sourceTermId = (int) $sourceTerm["term_id"];
+        if (is_wp_error($leadId)) {
+            return 0;
         }
-    }
-    if ($sourceTermId > 0) {
-        wp_set_object_terms($leadId, [$sourceTermId], "lead_source", false);
-    }
 
-    upsellio_crm_add_timeline_event($leadId, "created", "Lead został utworzony.");
-    upsellio_crm_create_followup_tasks_for_owner($leadId, $ownerId);
+        update_post_meta($leadId, "_upsellio_lead_email", $email);
+        update_post_meta($leadId, "_upsellio_lead_company", $company);
+        update_post_meta($leadId, "_upsellio_lead_phone", $phone);
+        update_post_meta($leadId, "_upsellio_lead_service", $service);
+        update_post_meta($leadId, "_upsellio_lead_budget", $budget);
+        update_post_meta($leadId, "_upsellio_lead_goal", $goal);
+        update_post_meta($leadId, "_upsellio_lead_score", $score);
+        update_post_meta($leadId, "_upsellio_lead_form_origin", $formOrigin);
+        update_post_meta($leadId, "_upsellio_lead_utm_source", $utmSource);
+        update_post_meta($leadId, "_upsellio_lead_utm_medium", $utmMedium);
+        update_post_meta($leadId, "_upsellio_lead_utm_campaign", $utmCampaign);
+        update_post_meta($leadId, "_upsellio_lead_landing_url", $landingUrl);
+        update_post_meta($leadId, "_upsellio_lead_referrer", $referrer);
 
-    do_action("upsellio_crm_contact_lead_created", (int) $leadId);
+        $statusTermId = upsellio_crm_get_term_id_by_slug("lead_status", "new");
+        if ($statusTermId > 0) {
+            wp_set_object_terms($leadId, [$statusTermId], "lead_status", false);
+        }
 
-    return (int) $leadId;
+        $sourceTermId = upsellio_crm_get_term_id_by_slug("lead_source", $source);
+        if ($sourceTermId <= 0) {
+            $sourceTerm = wp_insert_term($formOrigin, "lead_source", ["slug" => $source]);
+            if (!is_wp_error($sourceTerm) && isset($sourceTerm["term_id"])) {
+                $sourceTermId = (int) $sourceTerm["term_id"];
+            }
+        }
+        if ($sourceTermId > 0) {
+            wp_set_object_terms($leadId, [$sourceTermId], "lead_source", false);
+        }
+
+        upsellio_crm_add_timeline_event($leadId, "created", "Lead został utworzony.");
+        upsellio_crm_create_followup_tasks_for_owner($leadId, $ownerId);
+
+        do_action("upsellio_crm_contact_lead_created", (int) $leadId);
+
+        return (int) $leadId;
+    });
 }
+
+/**
+ * Duplikuje lead z formularza WWW (CPT `lead`) do modułu CRM (`crm_lead`),
+ * żeby wpisywały się na listę Leadów w /crm-app/.
+ */
+function upsellio_crm_mirror_legacy_lead_to_crm_lead($legacy_lead_id)
+{
+    $legacy_lead_id = (int) $legacy_lead_id;
+    if ($legacy_lead_id <= 0 || !post_type_exists("crm_lead")) {
+        return;
+    }
+
+    $post = get_post($legacy_lead_id);
+    if (!($post instanceof WP_Post) || $post->post_type !== "lead") {
+        return;
+    }
+
+    $dup = get_posts([
+        "post_type" => "crm_lead",
+        "post_status" => "any",
+        "posts_per_page" => 1,
+        "fields" => "ids",
+        "no_found_rows" => true,
+        "meta_query" => [
+            [
+                "key" => "_ups_wp_legacy_lead_id",
+                "value" => (string) $legacy_lead_id,
+                "compare" => "=",
+            ],
+        ],
+    ]);
+    if (!empty($dup)) {
+        return;
+    }
+
+    $owner_id = (int) $post->post_author;
+    if ($owner_id <= 0) {
+        $owner_id = upsellio_crm_get_default_owner_id();
+    }
+
+    $email = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_email", true);
+    $phone = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_phone", true);
+    $company = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_company", true);
+    $service = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_service", true);
+    $budget = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_budget", true);
+    $goal = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_goal", true);
+    $form_origin = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_form_origin", true);
+    $utm_source = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_utm_source", true);
+    $utm_medium = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_utm_medium", true);
+    $utm_campaign = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_utm_campaign", true);
+    $landing = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_landing_url", true);
+    $referrer = (string) get_post_meta($legacy_lead_id, "_upsellio_lead_referrer", true);
+
+    $title = $post->post_title !== "" ? $post->post_title : ($email !== "" ? $email : "Lead WWW");
+    $need = (string) $post->post_content;
+
+    $notes_parts = [];
+    if ($company !== "") {
+        $notes_parts[] = "Firma: " . $company;
+    }
+    if ($service !== "") {
+        $notes_parts[] = "Usługa / temat: " . $service;
+    }
+    if ($budget !== "") {
+        $notes_parts[] = "Budżet (z formularza): " . $budget;
+    }
+    if ($goal !== "") {
+        $notes_parts[] = "Cel: " . $goal;
+    }
+    if ($landing !== "") {
+        $notes_parts[] = "Landing: " . $landing;
+    }
+    if ($referrer !== "") {
+        $notes_parts[] = "Referrer: " . $referrer;
+    }
+    $notes_parts[] = "Legacy lead ID (WP): #" . $legacy_lead_id;
+    $notes = implode("\n", $notes_parts);
+
+    $crm_id = upsellio_crm_run_as_user($owner_id, static function () use (
+        $legacy_lead_id,
+        $owner_id,
+        $title,
+        $email,
+        $phone,
+        $form_origin,
+        $need,
+        $notes,
+        $utm_source,
+        $utm_medium,
+        $utm_campaign,
+        $budget
+    ) {
+        $new_id = wp_insert_post([
+            "post_type" => "crm_lead",
+            "post_status" => "publish",
+            "post_title" => sanitize_text_field($title),
+            "post_content" => "",
+            "post_author" => $owner_id,
+        ], true);
+
+        if (is_wp_error($new_id) || (int) $new_id <= 0) {
+            return 0;
+        }
+
+        $new_id = (int) $new_id;
+
+        update_post_meta($new_id, "_ups_wp_legacy_lead_id", $legacy_lead_id);
+        update_post_meta($legacy_lead_id, "_upsellio_crm_lead_id", $new_id);
+
+        update_post_meta($new_id, "_ups_lead_email", sanitize_email($email));
+        update_post_meta($new_id, "_ups_lead_phone", sanitize_text_field($phone));
+        $source_label = $form_origin !== "" ? $form_origin : "formularz-www";
+        update_post_meta($new_id, "_ups_lead_source", sanitize_text_field($source_label));
+        update_post_meta($new_id, "_ups_lead_type", "inbound");
+        update_post_meta($new_id, "_ups_lead_qualification_status", "new");
+        update_post_meta($new_id, "_ups_lead_need", sanitize_textarea_field($need));
+        update_post_meta($new_id, "_ups_lead_notes", sanitize_textarea_field($notes));
+        update_post_meta($new_id, "_ups_lead_utm_source", sanitize_text_field($utm_source));
+        update_post_meta($new_id, "_ups_lead_utm_medium", sanitize_text_field($utm_medium));
+        update_post_meta($new_id, "_ups_lead_utm_campaign", sanitize_text_field($utm_campaign));
+
+        $budget_num = is_numeric($budget) ? (float) $budget : 0.0;
+        update_post_meta($new_id, "_ups_lead_budget", $budget_num);
+
+        if (function_exists("upsellio_sales_engine_refresh_lead_hybrid_scores")) {
+            upsellio_sales_engine_refresh_lead_hybrid_scores($new_id);
+        }
+
+        return $new_id;
+    });
+
+    if ($crm_id <= 0) {
+        return;
+    }
+}
+
+add_action("upsellio_crm_contact_lead_created", "upsellio_crm_mirror_legacy_lead_to_crm_lead", 20, 1);
 
 function upsellio_crm_get_open_tasks_for_lead($lead_id)
 {
@@ -430,10 +610,6 @@ function upsellio_crm_handle_lead_submission()
         upsellio_crm_redirect_lead_form_success($redirectUrl);
     }
 
-    if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
-        upsellio_crm_redirect_lead_form_success($redirectUrl);
-    }
-
     $name = isset($_POST["lead_name"]) ? sanitize_text_field(wp_unslash($_POST["lead_name"])) : "";
     $email = isset($_POST["lead_email"]) ? sanitize_email(wp_unslash($_POST["lead_email"])) : "";
     $message = isset($_POST["lead_message"]) ? sanitize_textarea_field(wp_unslash($_POST["lead_message"])) : "";
@@ -473,6 +649,14 @@ function upsellio_crm_handle_lead_submission()
     $leadId = upsellio_crm_create_lead($payload);
     if ($leadId <= 0) {
         upsellio_crm_redirect_lead_form_error($redirectUrl, "save");
+    }
+
+    if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
+        update_post_meta($leadId, "_upsellio_lead_internal_tester", "1");
+        $crmLinked = (int) get_post_meta($leadId, "_upsellio_crm_lead_id", true);
+        if ($crmLinked > 0) {
+            update_post_meta($crmLinked, "_ups_lead_internal_tester", "1");
+        }
     }
 
     upsellio_crm_send_emails($leadId, $name, $email, $message);

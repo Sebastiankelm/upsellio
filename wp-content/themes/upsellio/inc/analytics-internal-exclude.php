@@ -5,7 +5,8 @@ if (!defined("ABSPATH")) {
 }
 
 /**
- * Zalogowany użytkownik z uprawnieniami redakcyjnymi — nie liczymy go w GA4/GTM ani jako leadów WWW.
+ * Zalogowany użytkownik z uprawnieniami redakcyjnymi — nie liczymy go w GA4/GTM.
+ * Zgłoszenia z formularza nadal trafiają do CRM, oznaczone meta _upsellio_lead_internal_tester / _ups_lead_internal_tester.
  * Filtr: upsellio_is_internal_tracking_user (bool).
  */
 function upsellio_is_internal_tracking_user()

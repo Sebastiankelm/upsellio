@@ -255,13 +255,13 @@ while (have_posts()) :
       .definition-hero-diagram svg{width:100%;height:auto;display:block;border-radius:22px;background:#fff;border:1px solid #e2e8f0;padding:18px;box-shadow:0 14px 40px rgba(15,23,42,.08)}
       @media(min-width:981px){.definition-hero-grid{grid-template-columns:1.2fr .8fr}.definition-hero-diagram{display:block}}
       .definition-breadcrumbs{font-size:12px;color:#6f6f67;margin-bottom:14px}
-      .definition-title{font-family:Syne,sans-serif;font-size:clamp(34px,5vw,56px);line-height:1.05;letter-spacing:-1px}
+      .definition-title{font-family:"Bricolage Grotesque",sans-serif;font-size:clamp(34px,5vw,56px);line-height:1.05;letter-spacing:-1px}
       .definition-lead{margin-top:14px;max-width:860px;font-size:18px;line-height:1.75;color:#334155}
       .definition-pills{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
       .definition-pill{font-size:12px;border:1px solid #c9c9c3;border-radius:999px;background:#fff;padding:7px 12px}
       .definition-main{padding:46px 0 60px;display:grid;grid-template-columns:1fr;gap:34px}
       .definition-content{line-height:1.8;color:#262624}
-      .definition-content h2,.definition-content h3{font-family:Syne,sans-serif;color:#071426;line-height:1.2}
+      .definition-content h2,.definition-content h3{font-family:"Bricolage Grotesque",sans-serif;color:#071426;line-height:1.2}
       .definition-content h2{font-size:33px;margin:0 0 14px}
       .definition-content h3{font-size:22px;margin:24px 0 8px}
       .definition-content p{margin:0 0 14px}
@@ -286,7 +286,7 @@ while (have_posts()) :
       .definition-tool-btn.ghost{background:#f3f3ef;color:#4c4c46}
       .definition-tool-result{margin-top:12px;padding:14px;border-radius:12px;background:#f1f5f9;border:1px solid #e2e8f0;display:none}
       .definition-tool-result.show{display:block}
-      .definition-tool-score{font-size:30px;font-family:Syne,sans-serif;line-height:1}
+      .definition-tool-score{font-size:30px;font-family:"Bricolage Grotesque",sans-serif;line-height:1}
       .definition-tool-note{margin-top:6px;font-size:13px;color:#3f3f38}
       .definition-contact{margin-top:26px;padding:20px;border:1px solid #e6e6e1;border-radius:14px;background:#fff}
       .definition-contact h2{font-size:26px;margin:0 0 8px}
@@ -307,7 +307,7 @@ while (have_posts()) :
       .definition-link-grid a:hover{color:#0d9488}
       .definition-side{position:static;display:grid;gap:16px;height:max-content}
       .definition-card{border:1px solid #e6e6e1;border-radius:14px;background:#fff;padding:18px}
-      .definition-card-title{font-family:Syne,sans-serif;font-size:22px;margin-bottom:10px}
+      .definition-card-title{font-family:"Bricolage Grotesque",sans-serif;font-size:22px;margin-bottom:10px}
       .definition-list{display:grid;gap:8px}
       .definition-list a{font-size:14px;color:#5f5f58}
       .definition-list a:hover{color:#0d9488}
@@ -350,7 +350,7 @@ while (have_posts()) :
                 <rect x="14" y="14" width="192" height="22" rx="6" fill="#f1f5f9"/>
                 <circle cx="28" cy="25" r="6" fill="none" stroke="#0d9488" stroke-width="2"/>
                 <line x1="32" y1="29" x2="38" y2="35" stroke="#0d9488" stroke-width="2" stroke-linecap="round"/>
-                <text x="48" y="29" font-family="Syne,sans-serif" font-size="11" fill="#475569">jak zoptymalizować...</text>
+                <text x="48" y="29" font-family="Bricolage Grotesque,sans-serif" font-size="11" fill="#475569">jak zoptymalizować...</text>
                 <rect x="14" y="46" width="192" height="14" rx="4" fill="#ecfeff"/>
                 <text x="20" y="56" font-size="10" fill="#0f766e" font-weight="700">1.</text>
                 <text x="32" y="56" font-size="10" fill="#0f766e">Wynik #1: idealny tytuł, meta i intent</text>
@@ -372,7 +372,7 @@ while (have_posts()) :
               </svg>
             <?php elseif ($diagramType === "konwersja") : ?>
               <svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg">
-                <text x="14" y="22" font-family="Syne,sans-serif" font-size="11" font-weight="800" fill="#0f766e">LEJEK KONWERSJI</text>
+                <text x="14" y="22" font-family="Bricolage Grotesque,sans-serif" font-size="11" font-weight="800" fill="#0f766e">LEJEK KONWERSJI</text>
                 <path d="M14 36 L206 36 L160 84 L160 130 L60 130 L60 84 Z" fill="#ecfeff" stroke="#99f6e4"/>
                 <text x="110" y="58" text-anchor="middle" font-size="11" font-weight="700" fill="#081827">Odwiedzający</text>
                 <text x="110" y="73" text-anchor="middle" font-size="9" fill="#64748b">100%</text>
@@ -384,7 +384,7 @@ while (have_posts()) :
               </svg>
             <?php elseif ($diagramType === "analityka") : ?>
               <svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg">
-                <text x="14" y="22" font-family="Syne,sans-serif" font-size="11" font-weight="800" fill="#0f766e">DASHBOARD ANALITYKI</text>
+                <text x="14" y="22" font-family="Bricolage Grotesque,sans-serif" font-size="11" font-weight="800" fill="#0f766e">DASHBOARD ANALITYKI</text>
                 <line x1="14" y1="130" x2="206" y2="130" stroke="#cbd5e1"/>
                 <line x1="14" y1="40" x2="14" y2="130" stroke="#cbd5e1"/>
                 <polyline points="14,110 50,90 86,98 122,72 158,80 194,52" fill="none" stroke="#0d9488" stroke-width="2"/>
@@ -403,7 +403,7 @@ while (have_posts()) :
               </svg>
             <?php elseif ($diagramType === "reklamy") : ?>
               <svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg">
-                <text x="14" y="22" font-family="Syne,sans-serif" font-size="11" font-weight="800" fill="#0f766e">KAMPANIA → STRONA → LEAD</text>
+                <text x="14" y="22" font-family="Bricolage Grotesque,sans-serif" font-size="11" font-weight="800" fill="#0f766e">KAMPANIA → STRONA → LEAD</text>
                 <rect x="14" y="36" width="56" height="44" rx="8" fill="#ecfeff" stroke="#99f6e4"/>
                 <text x="42" y="56" text-anchor="middle" font-size="10" font-weight="700" fill="#0f766e">Reklama</text>
                 <text x="42" y="68" text-anchor="middle" font-size="9" fill="#475569">CTR</text>
@@ -420,7 +420,7 @@ while (have_posts()) :
               </svg>
             <?php else : ?>
               <svg viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg">
-                <text x="14" y="22" font-family="Syne,sans-serif" font-size="11" font-weight="800" fill="#0f766e">SYSTEM MARKETINGU</text>
+                <text x="14" y="22" font-family="Bricolage Grotesque,sans-serif" font-size="11" font-weight="800" fill="#0f766e">SYSTEM MARKETINGU</text>
                 <circle cx="55" cy="80" r="32" fill="#ecfeff" stroke="#99f6e4"/>
                 <text x="55" y="78" text-anchor="middle" font-size="10" font-weight="700" fill="#0f766e">Ruch</text>
                 <text x="55" y="92" text-anchor="middle" font-size="9" fill="#475569">Ads · SEO</text>

@@ -24,6 +24,7 @@ if (!defined("ABSPATH")) {
  *   @type string $form_id              Atrybut id formularza.
  *   @type string $submit_button_id     Atrybut id przycisku wysyłki.
  *   @type string $preset_message       Pre-wypełniona wiadomość.
+ *   @type string $message_placeholder  Placeholder pola wiadomości.
  * }
  */
 function upsellio_render_lead_form(array $args = [])
@@ -41,6 +42,7 @@ function upsellio_render_lead_form(array $args = [])
     $show_goal = !empty($args["show_goal"]);
     $css_class = sanitize_html_class((string) ($args["css_class"] ?? ""));
     $preset_msg = sanitize_textarea_field((string) ($args["preset_message"] ?? ""));
+    $message_placeholder = sanitize_text_field((string) ($args["message_placeholder"] ?? "Krótko opisz sytuację: co działa, co nie, jaki jest cel."));
     $form_id = isset($args["form_id"]) ? sanitize_html_class((string) $args["form_id"]) : "";
     $submit_button_id = isset($args["submit_button_id"]) ? sanitize_html_class((string) $args["submit_button_id"]) : "";
     $hidden_service = isset($args["hidden_service"]) ? sanitize_text_field((string) $args["hidden_service"]) : "";
@@ -288,7 +290,7 @@ function upsellio_render_lead_form(array $args = [])
             </label>
             <textarea class="ups-form__textarea" id="ups-f-msg-<?php echo esc_attr($origin); ?>"
                       name="lead_message"
-                      placeholder="Krótko opisz sytuację: co działa, co nie, jaki jest cel."
+                      placeholder="<?php echo esc_attr($message_placeholder); ?>"
                       rows="5" required><?php echo esc_textarea($preset_msg); ?></textarea>
             <label class="ups-form__consent">
                 <input type="checkbox" name="lead_consent" value="1" required />

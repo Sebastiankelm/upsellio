@@ -59,9 +59,9 @@ foreach ($items as $index => $item) {
   .mp-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#0d9488;margin-bottom:14px}
   .mp-eyebrow::before{content:"";width:26px;height:2px;background:#0d9488;border-radius:99px}
   .mp-eyebrow-light{color:#5eead4}.mp-eyebrow-light::before{background:#5eead4}
-  .mp-h1{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(40px,4.6vw,64px);line-height:1.02;letter-spacing:-2px;margin:0 0 20px;max-width:18ch}
-  .mp-h2{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(28px,3.2vw,42px);line-height:1.05;letter-spacing:-1.4px;margin:0;max-width:22ch}
-  .mp-h2-light{color:#fff}.mp-h3{font-family:"Syne",sans-serif;font-weight:700;font-size:21px;line-height:1.18;letter-spacing:-.5px;margin:0 0 10px}
+  .mp-h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(40px,4.6vw,64px);line-height:1.02;letter-spacing:-2px;margin:0 0 20px;max-width:18ch}
+  .mp-h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(28px,3.2vw,42px);line-height:1.05;letter-spacing:-1.4px;margin:0;max-width:22ch}
+  .mp-h2-light{color:#fff}.mp-h3{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:21px;line-height:1.18;letter-spacing:-.5px;margin:0 0 10px}
   .mp-lead{font-size:18px;line-height:1.6;color:#3d3d38;max-width:60ch;margin:0 0 32px}.mp-section{padding:96px 0 128px}
   .mp-hero{padding:96px 0 56px;background:radial-gradient(circle at 90% 0%,rgba(13,148,136,.1),transparent 40%)}
   .mp-filters{display:flex;flex-wrap:wrap;gap:8px}
@@ -79,7 +79,7 @@ foreach ($items as $index => $item) {
   .mp-card-tag{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:#7c7c74;font-weight:700;margin-bottom:12px}
   .mp-card p{margin:0 0 18px;color:#3d3d38;font-size:14.5px;line-height:1.6;flex:1}
   .mp-card-foot{display:flex;justify-content:space-between;align-items:center;padding-top:16px;border-top:1px solid #e7e7e1}
-  .mp-card-foot strong{font-family:"Syne",sans-serif;font-size:14px;color:#0d9488;letter-spacing:-.2px}
+  .mp-card-foot strong{font-family:"Bricolage Grotesque",sans-serif;font-size:14px;color:#0d9488;letter-spacing:-.2px}
   .mp-card-foot a{color:#0a1410;font-weight:700;font-size:13px;text-decoration:none}.mp-card-foot a:hover{color:#0d9488}
   .mp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:15px 24px;font-weight:700;font-size:15px;text-decoration:none;border:1px solid transparent}
   .mp-btn-primary{background:#0d9488;color:#fff}.mp-cta{background:#0a1410;color:#fff;padding:80px 0;position:relative;overflow:hidden}

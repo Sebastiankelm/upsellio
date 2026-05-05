@@ -115,8 +115,8 @@ foreach ($case_faq as $faq_item) {
   .mc-eyebrow::before{content:"";width:26px;height:2px;background:#0d9488;border-radius:99px}
   .mc-eyebrow-light{color:#5eead4}
   .mc-eyebrow-light::before{background:#5eead4}
-  .mc-h1{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(36px,4.2vw,56px);line-height:1.04;letter-spacing:-1.7px;margin:0 0 20px;max-width:20ch}
-  .mc-h2{font-family:"Syne",sans-serif;font-weight:700;font-size:clamp(24px,2.8vw,34px);line-height:1.1;letter-spacing:-1.2px;margin:0 0 16px;max-width:22ch}
+  .mc-h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(36px,4.2vw,56px);line-height:1.04;letter-spacing:-1.7px;margin:0 0 20px;max-width:20ch}
+  .mc-h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(24px,2.8vw,34px);line-height:1.1;letter-spacing:-1.2px;margin:0 0 16px;max-width:22ch}
   .mc-h2-light{color:#fff}
   .mc-lead{font-size:18px;line-height:1.6;color:#3d3d38;max-width:60ch;margin:0 0 28px}
   .mc-crumbs{padding:32px 0 0;font-size:13px;color:#7c7c74}
@@ -136,7 +136,7 @@ foreach ($case_faq as $faq_item) {
   .mc-side .mc-eyebrow::before{background:#5eead4}
   .mc-results{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:18px}
   .mc-results > div{display:flex;flex-direction:column;gap:2px}
-  .mc-results strong{font-family:"Syne",sans-serif;font-size:30px;color:#5eead4;letter-spacing:-1px;font-weight:700}
+  .mc-results strong{font-family:"Bricolage Grotesque",sans-serif;font-size:30px;color:#5eead4;letter-spacing:-1px;font-weight:700}
   .mc-results span{font-size:12.5px;color:rgba(255,255,255,.7)}
   .mc-cover{padding:0 0 96px}
   .mc-cover-img{position:relative;aspect-ratio:2.2;background:#dff8f4;border-radius:24px;overflow:hidden;border:1px solid #99f6e4}
@@ -144,14 +144,14 @@ foreach ($case_faq as $faq_item) {
   .mc-section{padding:32px 0 96px}
   .mc-block{display:grid;grid-template-columns:80px 1fr;gap:32px;padding:32px 0;border-top:1px solid #e7e7e1}
   .mc-block:first-child{border-top:0;padding-top:0}
-  .mc-block-num{font-family:"Syne",sans-serif;font-size:54px;font-weight:700;color:#dff8f4;letter-spacing:-2px;line-height:1}
+  .mc-block-num{font-family:"Bricolage Grotesque",sans-serif;font-size:54px;font-weight:700;color:#dff8f4;letter-spacing:-2px;line-height:1}
   .mc-block-body p{margin:0 0 16px;font-size:16px;line-height:1.75;color:#262625}
   .mc-bullets{list-style:none;padding:0;margin:0 0 24px;display:grid;gap:10px}
   .mc-bullets li{padding-left:24px;position:relative;font-size:15px;line-height:1.7;color:#262625}
   .mc-bullets li::before{content:"";position:absolute;left:2px;top:11px;width:8px;height:8px;background:#0d9488;border-radius:50%}
   .mc-phases{display:grid;gap:14px;margin-top:18px}
   .mc-phase{background:#fff;border:1px solid #e7e7e1;border-left:3px solid #0d9488;border-radius:0 14px 14px 0;padding:22px 26px}
-  .mc-phase strong{display:block;font-family:"Syne",sans-serif;font-size:15px;font-weight:700;margin-bottom:8px;color:#0d9488;letter-spacing:-0.2px}
+  .mc-phase strong{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:15px;font-weight:700;margin-bottom:8px;color:#0d9488;letter-spacing:-0.2px}
   .mc-phase p{margin:0 !important;font-size:14.5px;color:#3d3d38;line-height:1.65}
   .mc-chart{background:#fff;border:1px solid #e7e7e1;border-radius:18px;padding:24px;display:grid;grid-template-columns:60px 1fr;column-gap:14px;row-gap:8px;align-items:end}
   .mc-chart-y{display:grid;grid-template-rows:repeat(5,1fr);font-size:10.5px;color:#7c7c74;letter-spacing:.4px;height:200px}
@@ -160,15 +160,15 @@ foreach ($case_faq as $faq_item) {
   .mc-chart-x{grid-column:2;display:flex;justify-content:space-between;font-size:11px;color:#7c7c74;padding:0 4px}
   .mc-results-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}
   .mc-r-card{background:#fff;border:1px solid #e7e7e1;border-radius:14px;padding:22px}
-  .mc-r-card strong{display:block;font-family:"Syne",sans-serif;font-weight:700;font-size:36px;color:#0d9488;letter-spacing:-1.4px;line-height:1}
+  .mc-r-card strong{display:block;font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:36px;color:#0d9488;letter-spacing:-1.4px;line-height:1}
   .mc-r-card span{display:block;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#7c7c74;font-weight:700;margin:8px 0 4px}
   .mc-r-card p{margin:0 !important;font-size:13px;color:#3d3d38}
   .mc-quote{background:#0a1410;color:#fff;border-radius:24px;padding:40px;margin-top:32px;position:relative;overflow:hidden}
-  .mc-quote::before{content:"\201C";position:absolute;font-family:"Syne",sans-serif;font-size:240px;line-height:1;color:rgba(94,234,212,.12);top:0;left:24px;pointer-events:none}
-  .mc-quote p{position:relative;margin:0 0 22px;font-family:"Syne",sans-serif;font-size:24px;line-height:1.4;letter-spacing:-0.5px;font-weight:600}
+  .mc-quote::before{content:"\201C";position:absolute;font-family:"Bricolage Grotesque",sans-serif;font-size:240px;line-height:1;color:rgba(94,234,212,.12);top:0;left:24px;pointer-events:none}
+  .mc-quote p{position:relative;margin:0 0 22px;font-family:"Bricolage Grotesque",sans-serif;font-size:24px;line-height:1.4;letter-spacing:-0.5px;font-weight:600}
   .mc-quote-author{position:relative;display:flex;align-items:center;gap:12px;padding-top:18px;border-top:1px solid rgba(255,255,255,.12)}
-  .mc-avatar{width:42px;height:42px;border-radius:50%;background:#0f766e;display:grid;place-items:center;font-family:"Syne",sans-serif;color:#fff;font-weight:800;font-size:14px}
-  .mc-quote-author strong{display:block;font-family:"Syne",sans-serif;font-size:15px;font-weight:700}
+  .mc-avatar{width:42px;height:42px;border-radius:50%;background:#0f766e;display:grid;place-items:center;font-family:"Bricolage Grotesque",sans-serif;color:#fff;font-weight:800;font-size:14px}
+  .mc-quote-author strong{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:15px;font-weight:700}
   .mc-quote-author span{display:block;font-size:12.5px;color:rgba(255,255,255,.7)}
   .mc-cta{background:#0d9488;color:#fff;padding:80px 0;position:relative;overflow:hidden}
   .mc-cta::before{content:"";position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.18),transparent 65%);right:-200px;top:-300px;pointer-events:none}

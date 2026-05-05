@@ -17,10 +17,10 @@ get_header();
   .miasta-hero-decor img{width:100%;max-width:320px;aspect-ratio:497/463;height:auto;display:block;margin-left:auto;object-fit:contain}
   .miasta-pill{display:inline-flex;align-items:center;gap:8px;margin-bottom:14px;padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #99f6e4;color:#0f766e;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
   .miasta-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:#0d9488}
-  .miasta-title{font-family:Syne,sans-serif;font-size:clamp(32px,5vw,52px);line-height:1.05;letter-spacing:-1px}
+  .miasta-title{font-family:"Bricolage Grotesque",sans-serif;font-size:clamp(32px,5vw,52px);line-height:1.05;letter-spacing:-1px}
   .miasta-lead{max-width:780px;margin-top:16px;color:#334155;font-size:17px;line-height:1.8}
   .miasta-stats{display:flex;flex-wrap:wrap;gap:18px;margin-top:18px;font-size:13px;color:#475569}
-  .miasta-stats strong{display:block;font-family:Syne,sans-serif;font-size:22px;color:#0f766e;letter-spacing:-.02em}
+  .miasta-stats strong{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:22px;color:#0f766e;letter-spacing:-.02em}
   .miasta-grid{margin-top:28px;display:grid;grid-template-columns:1fr;gap:14px}
   .miasta-card{display:flex;gap:14px;align-items:center;padding:16px;border:1px solid #e2e8f0;border-radius:16px;color:#334155;text-decoration:none;background:#fff;transition:.2s ease;box-shadow:0 4px 14px rgba(15,23,42,.04)}
   .miasta-card:hover{border-color:#0d9488;color:#081827;transform:translateY(-3px);box-shadow:0 14px 30px rgba(15,23,42,.08)}

@@ -346,7 +346,16 @@ function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $ti
         ]
     );
     if (is_wp_error($response)) {
-        $GLOBALS["upsellio_anthropic_crm_last_send_error"] = "Sieć WordPress: " . $response->get_error_message();
+        $err = $response->get_error_message();
+        $low = strtolower((string) $err);
+        if (
+            strpos($low, "timed out") !== false
+            || strpos($low, "timeout") !== false
+            || strpos($low, "curl error 28") !== false
+        ) {
+            $err .= " — Sprawdź połączenie wychodzące z serwera do https://api.anthropic.com (firewall hostingu). Przy wolnych odpowiedziach możesz podnieść limit: filtr PHP `upsellio_anthropic_http_timeout`.";
+        }
+        $GLOBALS["upsellio_anthropic_crm_last_send_error"] = "Sieć WordPress: " . $err;
 
         return null;
     }

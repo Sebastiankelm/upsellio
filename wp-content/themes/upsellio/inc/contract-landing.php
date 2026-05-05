@@ -109,7 +109,7 @@ function upsellio_contract_render_public_landing(WP_Post $contract)
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title><?php echo esc_html($contract_title); ?> — Upsellio</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&amp;family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&amp;family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet"/>
 <?php if ($gtm !== "" && $upsellio_contract_track_public) : ?>
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','<?php echo esc_js($gtm); ?>');</script>
 <?php endif; ?>
@@ -132,7 +132,7 @@ dataLayer.push({event:'contract_view',contract_id:UPS.contract_id,contract_title
   --border:#e6e6e0;--border-mid:#d0d0c8;
   --teal:#0d9488;--tealh:#0f766e;--teald:#134e4a;--teals:#ccfbf1;--teall:#99f6e4;
   --warn:#c07d10;--warns:#fefce8;--warnl:#fde68a;
-  --font-d:'Syne',sans-serif;--font-b:'DM Sans',sans-serif;
+  --font-d:'Bricolage Grotesque',sans-serif;--font-b:'DM Sans',sans-serif;
   --font-m:ui-monospace,'Cascadia Code',monospace;
   --r:14px;--rl:22px;
 }

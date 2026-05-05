@@ -1024,7 +1024,7 @@ function upsellio_render_unified_footer($args = [])
         .nf-footer *,.nf-footer *::before,.nf-footer *::after{box-sizing:border-box}
         .nf-footer::before{content:"";position:absolute;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,.16),transparent 65%);right:-300px;top:-300px;pointer-events:none}
         .nf-wrap{width:min(1240px,100% - 48px);margin-inline:auto}
-        .nf-logo{display:flex;align-items:center;gap:8px;font-family:"Syne",sans-serif;font-size:22px;font-weight:800;letter-spacing:-1px;color:#fff;text-decoration:none}
+        .nf-logo{display:flex;align-items:center;gap:8px;font-family:"Bricolage Grotesque",sans-serif;font-size:22px;font-weight:800;letter-spacing:-1px;color:#fff;text-decoration:none}
         .nf-logo img{height:30px;width:auto;display:block}
         .nf-logo-mark{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#0d9488,#0f766e);position:relative;flex:0 0 26px}
         .nf-logo-mark::after{content:"";position:absolute;inset:7px;border-radius:50%;background:#0a1410}
@@ -1838,6 +1838,9 @@ function upsellio_render_admin_content_tools_screen()
 
 function upsellio_assets()
 {
+    $fonts_url = "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&display=swap";
+    wp_enqueue_style("upsellio-fonts", $fonts_url, [], null);
+
     $style_path = get_template_directory() . "/assets/css/upsellio.css";
     $style_uri = get_template_directory_uri() . "/assets/css/upsellio.css";
     $style_version = file_exists($style_path) ? (string) filemtime($style_path) : "1.0.0";
@@ -1856,47 +1859,25 @@ function upsellio_assets()
 
     $is_home_template_request = is_front_page() || (function_exists("upsellio_is_homepage_request") && upsellio_is_homepage_request());
     if ($is_home_template_request) {
-        wp_enqueue_style("upsellio-main", $style_uri, [], $style_version);
+        wp_enqueue_style("upsellio-main", $style_uri, ["upsellio-fonts"], $style_version);
         wp_enqueue_script("upsellio-ui", $ui_script_uri, [], $ui_script_version, true);
         wp_enqueue_script("upsellio-home", $home_script_uri, [], $home_script_version, true);
-        add_action(
-            "wp_footer",
-            function () use ($script_uri, $script_version) {
-                ?>
-                <script>
-                  window.upsellioData = window.upsellioData || <?php echo wp_json_encode([
-                      "ajaxUrl" => admin_url("admin-ajax.php"),
-                      "blogNonce" => wp_create_nonce("upsellio_blog_filter"),
-                      "blogIndexUrl" => upsellio_get_blog_index_url(),
-                      "contactNonce" => wp_create_nonce("upsellio_contact_click"),
-                      "skipAnalytics" => function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user(),
-                  ], JSON_UNESCAPED_SLASHES); ?>;
-                  (function () {
-                    function loadUpsellioMain() {
-                      if (window.__upsellioMainLoaded) return;
-                      window.__upsellioMainLoaded = true;
-                      var script = document.createElement("script");
-                      script.src = <?php echo wp_json_encode($script_uri . "?ver=" . rawurlencode($script_version)); ?>;
-                      script.async = true;
-                      document.body.appendChild(script);
-                    }
-                    window.addEventListener("load", function () {
-                      if ("requestIdleCallback" in window) {
-                        window.requestIdleCallback(loadUpsellioMain, { timeout: 1200 });
-                        return;
-                      }
-                      window.setTimeout(loadUpsellioMain, 1);
-                    }, { once: true });
-                  })();
-                </script>
-                <?php
-            },
-            20
+        wp_enqueue_script("upsellio-main", $script_uri, ["upsellio-ui", "upsellio-home"], $script_version, true);
+        wp_localize_script(
+            "upsellio-main",
+            "upsellioData",
+            [
+                "ajaxUrl" => admin_url("admin-ajax.php"),
+                "blogNonce" => wp_create_nonce("upsellio_blog_filter"),
+                "blogIndexUrl" => upsellio_get_blog_index_url(),
+                "contactNonce" => wp_create_nonce("upsellio_contact_click"),
+                "skipAnalytics" => function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user(),
+            ]
         );
         return;
     }
 
-    wp_enqueue_style("upsellio-main", $style_uri, [], $style_version);
+    wp_enqueue_style("upsellio-main", $style_uri, ["upsellio-fonts"], $style_version);
     wp_enqueue_style("upsellio-landing", $landing_style_uri, ["upsellio-main"], $landing_style_version);
     wp_enqueue_script("upsellio-ui", $ui_script_uri, [], $ui_script_version, true);
     wp_enqueue_script("upsellio-main", $script_uri, [], $script_version, true);
@@ -2328,7 +2309,16 @@ function upsellio_get_blog_index_url()
 
 function upsellio_front_page_document_title($title)
 {
-    if (!is_front_page()) {
+    /*
+     * Na URL głównym motyw wymusza front-page.php, ale upsellio_reset_homepage_query_state()
+     * zeruje is_page — wtedy is_front_page() jest fałsz (przy statycznej stronie głównej w Ustawieniach
+     * czytanie) i WordPress zwraca tytuł jak dla indeksu bloga („Blog | …”).
+     */
+    $is_marketing_home = is_front_page();
+    if (!$is_marketing_home && function_exists("upsellio_is_homepage_request")) {
+        $is_marketing_home = upsellio_is_homepage_request();
+    }
+    if (!$is_marketing_home) {
         return $title;
     }
 
@@ -2351,7 +2341,7 @@ function upsellio_front_page_document_title($title)
 
     return $resolved;
 }
-add_filter("pre_get_document_title", "upsellio_front_page_document_title");
+add_filter("pre_get_document_title", "upsellio_front_page_document_title", 99);
 
 function upsellio_runtime_bootstrap_site_structure()
 {

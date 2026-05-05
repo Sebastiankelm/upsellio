@@ -644,29 +644,42 @@
     }
   }
 
+  function applyAttributionToLeadForms(attrib) {
+    if (!attrib) return;
+    document.querySelectorAll('form[data-upsellio-lead-form="1"]').forEach((leadForm) => {
+      const sourceInput = leadForm.querySelector('[data-ups-utm="source"]');
+      const mediumInput = leadForm.querySelector('[data-ups-utm="medium"]');
+      const campaignInput = leadForm.querySelector('[data-ups-utm="campaign"]');
+      const landingInput = leadForm.querySelector('[data-ups-context="landing"]');
+      const referrerInput = leadForm.querySelector('[data-ups-context="referrer"]');
+      if (sourceInput) sourceInput.value = attrib.source;
+      if (mediumInput) mediumInput.value = attrib.medium;
+      if (campaignInput) campaignInput.value = attrib.campaign;
+      if (landingInput) landingInput.value = attrib.landing;
+      if (referrerInput) referrerInput.value = attrib.referrer;
+    });
+  }
+
   const currentUrl = new URL(window.location.href);
   const rememberedAttribution = getStoredAttribution();
+  const docReferrer = document.referrer || "";
+  const firstTouchLanding =
+    typeof rememberedAttribution.landing === "string" && rememberedAttribution.landing.trim() !== ""
+      ? rememberedAttribution.landing
+      : window.location.href;
+  const firstTouchReferrer =
+    typeof rememberedAttribution.referrer === "string" && rememberedAttribution.referrer.trim() !== ""
+      ? rememberedAttribution.referrer
+      : docReferrer;
   const attribution = {
     source: currentUrl.searchParams.get("utm_source") || rememberedAttribution.source || "",
     medium: currentUrl.searchParams.get("utm_medium") || rememberedAttribution.medium || "",
     campaign: currentUrl.searchParams.get("utm_campaign") || rememberedAttribution.campaign || "",
-    landing: window.location.href,
-    referrer: document.referrer || rememberedAttribution.referrer || "",
+    landing: firstTouchLanding,
+    referrer: firstTouchReferrer,
   };
   saveAttribution(attribution);
-
-  document.querySelectorAll('form[data-upsellio-lead-form="1"]').forEach((leadForm) => {
-    const sourceInput = leadForm.querySelector('[data-ups-utm="source"]');
-    const mediumInput = leadForm.querySelector('[data-ups-utm="medium"]');
-    const campaignInput = leadForm.querySelector('[data-ups-utm="campaign"]');
-    const landingInput = leadForm.querySelector('[data-ups-context="landing"]');
-    const referrerInput = leadForm.querySelector('[data-ups-context="referrer"]');
-    if (sourceInput) sourceInput.value = attribution.source;
-    if (mediumInput) mediumInput.value = attribution.medium;
-    if (campaignInput) campaignInput.value = attribution.campaign;
-    if (landingInput) landingInput.value = attribution.landing;
-    if (referrerInput) referrerInput.value = attribution.referrer;
-  });
+  applyAttributionToLeadForms(attribution);
 
   function initLeadPolicyNotices() {
     const policyUrl = `${window.location.origin}/polityka-prywatnosci/`;
@@ -708,6 +721,9 @@
    */
   function resolveLeadConversionEventName(formOrigin) {
     const o = String(formOrigin || "");
+    if (o === "landing-reklama-form") return "lead_form_submit";
+    if (o === "landing-www-form") return "lead_form_submit";
+    if (o === "landing-b2c-form") return "lead_form_submit";
     if (o === "audit-form") return "lead_audit_form";
     if (o === "blog-form") return "lead_blog_form";
     if (o === "home-lead-magnet" || o === "lead-magnet-single") return "";
@@ -748,7 +764,7 @@
     const emailInput = formElement.querySelector('input[type="email"], input[name*="email"]');
     const hasEmail = Boolean(emailInput?.value && String(emailInput.value).trim() !== "");
 
-    return {
+    const payload = {
       form_id: formId,
       form_origin: formOrigin,
       lead_source: leadSource,
@@ -761,6 +777,20 @@
       utm_campaign: attribution.campaign || "",
       referrer: attribution.referrer || "",
     };
+    if (
+      formOrigin === "landing-reklama-form" ||
+      formOrigin === "landing-www-form" ||
+      formOrigin === "landing-b2c-form"
+    ) {
+      payload.form_type = "free_consultation";
+    }
+    if (formOrigin === "landing-www-form") {
+      payload.service_category = "website_development";
+    }
+    if (formOrigin === "landing-b2c-form") {
+      payload.service_category = "b2c_marketing";
+    }
+    return payload;
   }
 
   function trackContactClick(type, target) {
@@ -850,6 +880,31 @@
     }
   }
 
+  /**
+   * URL wysyłki formularza. Nie używać form.action — przy <input name="action"> (admin-post)
+   * właściwość form.action w JS wskazuje na ten input, a fetch() dostaje [object HTMLInputElement] → 404.
+   */
+  function resolveFormActionUrl(formEl) {
+    if (!formEl || typeof formEl.getAttribute !== "function") {
+      return String(window.location.href);
+    }
+    const attr = formEl.getAttribute("action");
+    if (!attr || !String(attr).trim()) {
+      return String(window.location.href);
+    }
+    try {
+      return new URL(attr, window.location.href).href;
+    } catch (e) {
+      return String(window.location.href);
+    }
+  }
+
+  function resolveFormMethod(formEl) {
+    if (!formEl || typeof formEl.getAttribute !== "function") return "POST";
+    const m = String(formEl.getAttribute("method") || "POST").trim().toUpperCase();
+    return m === "GET" ? "GET" : "POST";
+  }
+
   function initServerLeadForms() {
     const serverForms = Array.from(document.querySelectorAll("form[data-upsellio-server-form='1']"));
     if (!serverForms.length) return;
@@ -879,8 +934,8 @@
         feedback.classList.remove("is-success", "is-error");
 
         try {
-          const response = await fetch(serverForm.action, {
-            method: serverForm.method || "POST",
+          const response = await fetch(resolveFormActionUrl(serverForm), {
+            method: resolveFormMethod(serverForm),
             body: new FormData(serverForm),
             credentials: "same-origin",
             redirect: "follow",
@@ -897,8 +952,13 @@
               form_id: serverForm.id || serverForm.dataset.upsellioLeadForm || "lead-form",
             });
           }
-          pushLeadConversionStack(serverForm);
+          try {
+            pushLeadConversionStack(serverForm);
+          } catch (analyticsError) {
+            // Sukces zapisu leada nie może zależeć od GTM/dataLayer
+          }
           serverForm.reset();
+          applyAttributionToLeadForms(attribution);
         } catch (error) {
           feedback.textContent = error.message || "Błąd wysyłki. Spróbuj ponownie.";
           feedback.classList.add("is-error");
@@ -957,8 +1017,8 @@
         feedback.style.display = "none";
 
         try {
-          const response = await fetch(form.action, {
-            method: form.method || "POST",
+          const response = await fetch(resolveFormActionUrl(form), {
+            method: resolveFormMethod(form),
             body: new FormData(form),
             credentials: "same-origin",
             redirect: "follow",
@@ -979,11 +1039,16 @@
               form_id: form.id || form.dataset.upsellioLeadForm || "lead-form",
             });
           }
-          pushLeadConversionStack(form);
+          try {
+            pushLeadConversionStack(form);
+          } catch (analyticsError) {
+            // Sukces zapisu leada nie może zależeć od GTM/dataLayer
+          }
           setTimeout(() => {
             submitBtn.textContent = defaultText;
             submitBtn.disabled = false;
             form.reset();
+            applyAttributionToLeadForms(attribution);
           }, 2800);
         } catch (error) {
           feedback.textContent = error.message || "Błąd wysyłki. Spróbuj ponownie.";
@@ -1049,7 +1114,11 @@
             form_id: form.id || "contact-form",
           });
         }
-        pushLeadConversionStack(form);
+        try {
+          pushLeadConversionStack(form);
+        } catch (analyticsError) {
+          // Sukces zapisu leada nie może zależeć od GTM/dataLayer
+        }
         setTimeout(() => {
           submitBtn.textContent = defaultText;
           submitBtn.style.background = "";

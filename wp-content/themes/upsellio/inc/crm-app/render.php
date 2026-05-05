@@ -263,9 +263,9 @@ function upsellio_crm_app_template_redirect()
       <meta charset="<?php bloginfo("charset"); ?>" />
       <meta name="viewport" content="width=device-width,initial-scale=1" />
       <title>CRM App — Upsellio</title>
-      <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
+      <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&display=swap" rel="stylesheet"/>
       <style>
-        :root{--bg:#fafaf7;--surface:#fff;--text:#0a1410;--text-2:#3d3d38;--text-3:#7c7c74;--border:#e7e7e1;--border-s:#c9c9c3;--teal:#0d9488;--teal-hover:#0f766e;--teal-h:#0f766e;--teal-dark:#0f766e;--teal-soft:#ccfbf1;--teal-line:#99f6e4;--teal-s:var(--teal-soft);--teal-l:var(--teal-line);--danger:#d94c4c;--warn:#d97706;--success:#16a34a;--sidebar:220px;--r-sm:8px;--r-md:12px;--r-lg:18px;--r-xl:24px;--font-display:'Syne',sans-serif;--font-body:'DM Sans',sans-serif}
+        :root{--bg:#fafaf6;--surface:#fff;--text:#0d0d0b;--text-2:#3a3a35;--text-3:#7a7a72;--border:#e8e8e0;--border-s:#c8c2b5;--teal:#0d9488;--teal-hover:#0a7a70;--teal-h:#0a7a70;--teal-dark:#0a7a70;--teal-soft:#e0f5f2;--teal-line:#99f6e4;--teal-s:var(--teal-soft);--teal-l:var(--teal-line);--danger:#c0392b;--warn:#b45309;--success:#15803d;--sidebar:220px;--r-sm:8px;--r-md:12px;--r-lg:18px;--r-xl:24px;--font-display:'Bricolage Grotesque',sans-serif;--font-body:'DM Sans',sans-serif}
         *{box-sizing:border-box;margin:0;padding:0}
         html,body{height:100%;overflow:hidden}
         body{font-family:var(--font-body);background:var(--bg);color:var(--text);line-height:1.55;font-size:14px}
@@ -332,7 +332,7 @@ function upsellio_crm_app_template_redirect()
         .crm-snap-bar > span{display:block;height:100%;flex-shrink:0;min-width:3px}
         .crm-score-hot{color:#0d9488;font-weight:800}
         .crm-score-warm{color:#ca8a04}
-        .crm-score-cold{color:#64748b}
+        .crm-score-cold{color:#7a7a72}
         .crm-mini-chart{width:100%;height:220px;display:block}
         .card{grid-column:span 12;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:20px}
         h2{font-family:var(--font-display);font-size:18px;margin-bottom:10px}
@@ -967,7 +967,7 @@ function upsellio_crm_app_template_redirect()
                   <div style="display:flex;flex-direction:column;gap:6px">
                   <?php foreach ($dashboard_hot_offers as $dho) : ?>
                     <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">
-                      <div style="width:32px;height:32px;border-radius:50%;border:2px solid <?php echo (int) ($dho["score"] ?? 0) >= 70 ? "#0d9488" : "#e2e5de"; ?>;display:grid;place-items:center;font-size:11px;font-weight:800;color:<?php echo (int) ($dho["score"] ?? 0) >= 70 ? "#0f766e" : "var(--text-3)"; ?>;flex-shrink:0">
+                      <div style="width:32px;height:32px;border-radius:50%;border:2px solid <?php echo (int) ($dho["score"] ?? 0) >= 70 ? "#0d9488" : "#e8e8e0"; ?>;display:grid;place-items:center;font-size:11px;font-weight:800;color:<?php echo (int) ($dho["score"] ?? 0) >= 70 ? "#0f766e" : "var(--text-3)"; ?>;flex-shrink:0">
                         <?php echo (int) ($dho["score"] ?? 0); ?>
                       </div>
                       <div style="flex:1;min-width:0">
@@ -1293,12 +1293,12 @@ function upsellio_crm_app_template_redirect()
                         }
                         $l_created = $l_created_raw !== "" ? strtotime($l_created_raw) : 0;
                         $l_age_h = $l_created > 0 ? round((time() - $l_created) / 3600, 1) : 0;
-                        $l_age_color = $l_age_h > 48 ? "#ef4444" : ($l_age_h > 24 ? "#f59e0b" : "#16a34a");
+                        $l_age_color = $l_age_h > 48 ? "#ef4444" : ($l_age_h > 24 ? "#f59e0b" : "#15803d");
                         $l_first_contact = (string) get_post_meta($lid, "_upsellio_first_contact_at", true);
                         $l_responded = $l_first_contact !== "";
                         ?>
                         <td style="font-size:12px">
-                          <span style="color:<?php echo $l_responded ? "#16a34a" : esc_attr($l_age_color); ?>;font-weight:700">
+                          <span style="color:<?php echo $l_responded ? "#15803d" : esc_attr($l_age_color); ?>;font-weight:700">
                             <?php echo $l_responded ? esc_html__("✓ odpowiedź", "upsellio") : esc_html((string) $l_age_h . "h"); ?>
                           </span>
                           <?php if (!$l_responded && $l_age_h > 24) : ?>
@@ -1407,7 +1407,7 @@ function upsellio_crm_app_template_redirect()
                             }
                         }
                         ?>
-                      <div style="background:#f8f9f4;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                      <div style="background:#f2f2ec;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
                         <div style="flex:1;min-width:0">
                           <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
                             <?php echo esc_html((string) $a360_offer->post_title); ?>
@@ -1425,7 +1425,7 @@ function upsellio_crm_app_template_redirect()
                           <div style="font-size:13px;font-weight:800;color:<?php echo $a360_score >= 70 ? "#0f766e" : ($a360_score >= 40 ? "#d97706" : "var(--text-3)"); ?>">
                             <?php echo (int) $a360_score; ?>/100
                           </div>
-                          <div style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;background:<?php echo $a360_stage === "decision" ? "#dcfce7" : ($a360_stage === "consideration" ? "#fef3c7" : "#f4f5f0"); ?>;color:<?php echo $a360_stage === "decision" ? "#16a34a" : ($a360_stage === "consideration" ? "#92400e" : "var(--text-3)"); ?>">
+                          <div style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:700;background:<?php echo $a360_stage === "decision" ? "#e0f5f2" : ($a360_stage === "consideration" ? "#fef3c7" : "#f2f2ec"); ?>;color:<?php echo $a360_stage === "decision" ? "#15803d" : ($a360_stage === "consideration" ? "#92400e" : "var(--text-3)"); ?>">
                             <?php echo esc_html($a360_stage !== "" ? $a360_stage : "awareness"); ?>
                           </div>
                           <a class="btn alt" style="font-size:11px;padding:4px 10px"
@@ -1681,7 +1681,7 @@ function upsellio_crm_app_template_redirect()
                         ["val" => (string) (int) ($oa["score"] ?? 0) . "/100", "lbl" => __("Score intencji", "upsellio"), "color" => ($oa["score"] ?? 0) >= 70 ? "#0f766e" : (($oa["score"] ?? 0) >= 40 ? "#d97706" : "")],
                         ["val" => (string) (int) ($oa["total_cta"] ?? 0), "lbl" => __("Kliknięcia CTA", "upsellio"), "color" => ($oa["total_cta"] ?? 0) > 0 ? "#0f766e" : ""],
                         ["val" => $oa_pricing_sec_total > 0 ? (string) (int) ($oa_pricing_sec_total / 60) . " min" : "—", "lbl" => __("Czas na cenniku", "upsellio"), "color" => ""],
-                        ["val" => $oa_last_commit_disp !== "" ? $oa_last_commit_disp : "—", "lbl" => __("Wybrany pakiet", "upsellio"), "color" => $oa_last_commit_disp !== "" ? "#7c3aed" : ""],
+                        ["val" => $oa_last_commit_disp !== "" ? $oa_last_commit_disp : "—", "lbl" => __("Wybrany pakiet", "upsellio"), "color" => $oa_last_commit_disp !== "" ? "#0a7a70" : ""],
                     ];
                     foreach ($oa_kpis as $kpi) :
                         ?>
@@ -1707,12 +1707,12 @@ function upsellio_crm_app_template_redirect()
                             $sec = (int) ($oa["all_section_times"][$sid] ?? 0);
                             $pct = $oa_max_t > 0 ? (int) round($sec / $oa_max_t * 100) : 0;
                             $views = (int) ($oa["all_sections_viewed"][$sid] ?? 0);
-                            $bar_color = $pct >= 70 ? "#0d9488" : ($pct >= 40 ? "#d97706" : "#e2e5de");
+                            $bar_color = $pct >= 70 ? "#0d9488" : ($pct >= 40 ? "#d97706" : "#e8e8e0");
                             $text_color = $pct >= 70 ? "#0f766e" : ($pct >= 40 ? "#92400e" : "var(--text-3)");
                             ?>
                           <div style="display:grid;grid-template-columns:140px 1fr 80px;gap:10px;align-items:center">
                             <div style="font-size:12px;font-weight:600;color:var(--text-2)"><?php echo esc_html($slabel); ?></div>
-                            <div style="background:#f4f5f0;border-radius:999px;height:8px;overflow:hidden">
+                            <div style="background:#f2f2ec;border-radius:999px;height:8px;overflow:hidden">
                               <div style="width:<?php echo (int) $pct; ?>%;height:100%;background:<?php echo esc_attr($bar_color); ?>;border-radius:999px;transition:width .4s ease"></div>
                             </div>
                             <div style="font-size:11px;color:<?php echo esc_attr($text_color); ?>;font-weight:700;text-align:right">
@@ -1734,8 +1734,8 @@ function upsellio_crm_app_template_redirect()
                             ?>
                           <div style="display:grid;grid-template-columns:140px 1fr 60px;gap:10px;align-items:center">
                             <div style="font-size:12px;color:var(--text-2)"><?php echo esc_html((string) ($fdata["label"] ?? "")); ?></div>
-                            <div style="background:#f4f5f0;border-radius:4px;height:20px;overflow:hidden;position:relative">
-                              <div style="width:<?php echo (int) $fpct; ?>%;height:100%;background:<?php echo $fpct < 50 ? "#fee2e2" : ($fpct < 80 ? "#fef3c7" : "#dcfce7"); ?>;border-radius:4px"></div>
+                            <div style="background:#f2f2ec;border-radius:4px;height:20px;overflow:hidden;position:relative">
+                              <div style="width:<?php echo (int) $fpct; ?>%;height:100%;background:<?php echo $fpct < 50 ? "#fee2e2" : ($fpct < 80 ? "#fef3c7" : "#e0f5f2"); ?>;border-radius:4px"></div>
                               <div style="position:absolute;inset:0;display:flex;align-items:center;padding:0 8px;font-size:10px;font-weight:700;color:var(--text-2)">
                                 <?php echo (int) $reached; ?>/<?php echo (int) $oa_funnel_total; ?> <?php esc_html_e("sesji", "upsellio"); ?>
                               </div>
@@ -1751,50 +1751,95 @@ function upsellio_crm_app_template_redirect()
                           <p class="muted" style="font-size:12px"><?php esc_html_e("Brak zarejestrowanej aktywności na tej ofercie.", "upsellio"); ?></p>
                         <?php else : ?>
                         <div style="display:flex;flex-direction:column;gap:8px">
-                        <?php foreach (array_reverse($oa["sessions"] ?? []) as $sess) :
-                            $has_cta = !empty($sess["cta_clicks"]);
-                            $has_commit = !empty($sess["commit"]);
-                            ?>
-                          <div style="background:#f8f9f4;border:1px solid var(--border);border-radius:10px;padding:10px 14px">
-                            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
-                              <div style="font-size:12px;font-weight:700;color:var(--text)"><?php echo esc_html((string) ($sess["ts_disp"] ?? "")); ?></div>
-                              <div style="font-size:11px;color:var(--text-3)">
-                                <?php echo (int) ($sess["duration_sec"] ?? 0) > 0 ? esc_html((string) round((int) $sess["duration_sec"] / 60, 1)) . " min" : "&lt;1 min"; ?>
-                                · <?php echo (int) ($sess["depth"] ?? 0); ?>/<?php echo (int) $oa_sec_count; ?> <?php esc_html_e("sekcji", "upsellio"); ?>
-                              </div>
-                              <?php if (!empty($sess["utm"])) : ?>
-                                <div style="font-size:10px;background:#e0e7ff;color:#3730a3;padding:2px 7px;border-radius:99px;font-weight:700">
-                                  <?php echo esc_html((string) $sess["utm"]); ?><?php echo !empty($sess["campaign"]) ? "/" . esc_html((string) $sess["campaign"]) : ""; ?>
-                                </div>
-                              <?php endif; ?>
-                              <?php if ($has_cta) : ?>
-                                <div style="font-size:10px;background:#dcfce7;color:#16a34a;padding:2px 7px;border-radius:99px;font-weight:700">CTA ✓</div>
-                              <?php endif; ?>
-                              <?php if ($has_commit) : ?>
-                                <div style="font-size:10px;background:#f5f3ff;color:#7c3aed;padding:2px 7px;border-radius:99px;font-weight:700"><?php esc_html_e("Pakiet:", "upsellio"); ?> <?php echo esc_html((string) $sess["commit"]); ?></div>
-                              <?php endif; ?>
-                            </div>
-                            <div style="display:flex;gap:4px">
-                              <?php foreach ($oa_sec_ids as $s_id) :
-                                  $visited = in_array($s_id, $sess["sections_viewed"] ?? [], true);
-                                  $s_time = (int) (($sess["section_times"] ?? [])[$s_id] ?? 0);
-                                  $s_color = !$visited ? "#e2e5de" : ($s_time > 60 ? "#0d9488" : ($s_time > 20 ? "#5eead4" : "#99f6e4"));
-                                  ?>
-                                <div title="<?php echo esc_attr($s_id . ": " . $s_time . "s"); ?>"
-                                     style="flex:1;min-width:0;height:6px;border-radius:3px;background:<?php echo esc_attr($s_color); ?>"></div>
-                              <?php endforeach; ?>
-                            </div>
-                            <div style="display:flex;gap:4px;margin-top:3px">
-                              <?php foreach ($oa_sec_ids as $s_id) :
-                                  $mini_lbl = $oa_section_labels[$s_id] ?? $s_id;
-                                  $short = function_exists("mb_substr")
-                                      ? mb_substr((string) $mini_lbl, 0, 2, "UTF-8")
-                                      : substr((string) $mini_lbl, 0, 2);
-                                  ?>
-                                <div style="flex:1;min-width:0;font-size:9px;color:var(--text-3);text-align:center"><?php echo esc_html($short); ?></div>
-                              <?php endforeach; ?>
-                            </div>
-                          </div>
+                        <?php foreach (array_reverse($oa["sessions"] ?? []) as $sess) : ?>
+                          <div style="background:#f2f2ec;border:1px solid var(--border);
+    border-radius:10px;padding:0;overflow:hidden;margin-bottom:8px">
+
+  <!-- Nagłówek sesji -->
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+      padding:10px 14px;border-bottom:1px solid var(--border)">
+
+    <div style="font-size:12px;font-weight:700;color:var(--text)">
+      <?php esc_html_e("Sesja", "upsellio"); ?> <?php echo (int) ($sess["idx"] ?? 0); ?>
+      &nbsp;<span style="font-weight:400;color:var(--text-3)">
+        <?php echo esc_html((string) ($sess["ts_disp"] ?? "")); ?>
+      </span>
+    </div>
+
+    <div style="font-size:11px;color:var(--text-3)">
+      <?php
+      $s_dur = (int) ($sess["duration_sec"] ?? 0);
+      echo $s_dur > 60
+          ? esc_html((string) round($s_dur / 60, 1)) . " min"
+          : esc_html((string) $s_dur) . "s";
+      ?> &nbsp;·&nbsp;
+      <?php echo (int) ($sess["depth"] ?? 0); ?>/<?php echo (int) $oa_sec_count; ?> <?php esc_html_e("sekcji", "upsellio"); ?>
+    </div>
+
+    <?php if (!empty($sess["utm"])) : ?>
+      <div style="font-size:10px;background:#e0e7ff;color:#3730a3;
+          padding:2px 7px;border-radius:99px;font-weight:700">
+        <?php echo esc_html((string) $sess["utm"]); ?>
+      </div>
+    <?php endif; ?>
+
+    <?php if (!empty($sess["cta_clicks"])) : ?>
+      <div style="font-size:10px;background:#e0f5f2;color:#15803d;
+          padding:2px 7px;border-radius:99px;font-weight:700">CTA ✓</div>
+    <?php endif; ?>
+
+    <?php if (!empty($sess["commit"])) : ?>
+      <div style="font-size:10px;background:#f5f0e8;color:#0a7a70;
+          padding:2px 7px;border-radius:99px;font-weight:700">
+        <?php esc_html_e("Pakiet:", "upsellio"); ?> <?php echo esc_html((string) $sess["commit"]); ?>
+      </div>
+    <?php endif; ?>
+
+  </div><!-- /nagłówek -->
+
+  <!-- Oś czasu sekcji -->
+  <div style="padding:10px 14px">
+    <?php
+    $s_times = is_array($sess["section_times"] ?? null) ? $sess["section_times"] : [];
+    $s_visited = is_array($sess["sections_viewed"] ?? null) ? $sess["sections_viewed"] : [];
+    $s_max_t = max(array_values($s_times) ?: [1]);
+    foreach ($oa_sec_ids as $s_id) :
+        $visited = in_array($s_id, $s_visited, true);
+        $s_time = (int) ($s_times[$s_id] ?? 0);
+        $s_pct = $s_max_t > 0 ? (int) round($s_time / $s_max_t * 100) : 0;
+        if (!$visited && $s_time === 0) {
+            continue;
+        }
+        $s_label = $oa_section_labels[$s_id] ?? ucwords(str_replace(["_", "-"], " ", $s_id));
+        $bar_col = !$visited ? "#e8e8e0" : ($s_time > 60 ? "#0d9488" : ($s_time > 20 ? "#5eead4" : "#99f6e4"));
+        $cta_here = in_array($s_id, (array) ($sess["cta_clicks"] ?? []), true);
+    ?>
+    <div style="display:grid;grid-template-columns:120px 1fr 64px 20px;
+        gap:8px;align-items:center;margin-bottom:5px">
+
+      <div style="font-size:11px;color:var(--text-2);font-weight:<?php echo $visited ? "600" : "400"; ?>">
+        <?php echo esc_html($s_label); ?>
+      </div>
+
+      <div style="background:#eef0eb;border-radius:999px;height:6px;overflow:hidden">
+        <div style="width:<?php echo $visited ? (int) $s_pct : 0; ?>%;height:100%;
+            background:<?php echo esc_attr($bar_col); ?>;
+            border-radius:999px"></div>
+      </div>
+
+      <div style="font-size:10px;color:var(--text-3);text-align:right">
+        <?php echo $s_time > 0 ? esc_html((string) round($s_time / 60, 1)) . " min" : "—"; ?>
+      </div>
+
+      <div style="font-size:11px;text-align:center">
+        <?php echo $cta_here ? '<span title="CTA">✓</span>' : ""; ?>
+      </div>
+
+    </div>
+    <?php endforeach; ?>
+  </div><!-- /oś czasu -->
+
+</div><!-- /karta sesji -->
                         <?php endforeach; ?>
                         </div>
                         <?php endif; ?>
@@ -1808,15 +1853,15 @@ function upsellio_crm_app_template_redirect()
                         <div style="font-size:11px;opacity:.65;margin-top:4px;line-height:1.45"><?php esc_html_e("Klient wykazuje wysoką intencję zakupu. Odpowiedz dziś.", "upsellio"); ?></div>
                       </div>
                       <?php else : ?>
-                      <div style="background:#f8f9f4;border:1px solid var(--border);border-radius:12px;padding:14px">
+                      <div style="background:#f2f2ec;border:1px solid var(--border);border-radius:12px;padding:14px">
                         <div style="font-size:11px;font-weight:700;color:var(--text-3);letter-spacing:.5px;margin-bottom:4px"><?php esc_html_e("SCORE INTENCJI", "upsellio"); ?></div>
                         <div style="font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px"><?php echo (int) ($oa["score"] ?? 0); ?>/100</div>
-                        <div style="background:#f4f5f0;border-radius:999px;height:4px;margin-top:8px">
-                          <div style="width:<?php echo (int) min(100, (int) ($oa["score"] ?? 0)); ?>%;height:100%;background:<?php echo ($oa["score"] ?? 0) >= 70 ? "#0d9488" : (($oa["score"] ?? 0) >= 40 ? "#d97706" : "#e2e5de"); ?>;border-radius:999px"></div>
+                        <div style="background:#f2f2ec;border-radius:999px;height:4px;margin-top:8px">
+                          <div style="width:<?php echo (int) min(100, (int) ($oa["score"] ?? 0)); ?>%;height:100%;background:<?php echo ($oa["score"] ?? 0) >= 70 ? "#0d9488" : (($oa["score"] ?? 0) >= 40 ? "#d97706" : "#e8e8e0"); ?>;border-radius:999px"></div>
                         </div>
                       </div>
                       <?php endif; ?>
-                      <div style="background:#f8f9f4;border:1px solid var(--border);border-radius:12px;padding:14px">
+                      <div style="background:#f2f2ec;border:1px solid var(--border);border-radius:12px;padding:14px">
                         <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px"><?php esc_html_e("Sygnały zakupowe", "upsellio"); ?></div>
                         <?php
                         $oa_signals = [
@@ -1830,8 +1875,8 @@ function upsellio_crm_app_template_redirect()
                             [$active, $label, $desc] = $oa_sig;
                             ?>
                           <div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border)">
-                            <div style="width:18px;height:18px;border-radius:50%;background:<?php echo $active ? "#dcfce7" : "#f4f5f0"; ?>;display:grid;place-items:center;flex-shrink:0;margin-top:1px">
-                              <span style="font-size:10px;color:<?php echo $active ? "#16a34a" : "#d0d4cc"; ?>"><?php echo $active ? "✓" : "○"; ?></span>
+                            <div style="width:18px;height:18px;border-radius:50%;background:<?php echo $active ? "#e0f5f2" : "#f2f2ec"; ?>;display:grid;place-items:center;flex-shrink:0;margin-top:1px">
+                              <span style="font-size:10px;color:<?php echo $active ? "#15803d" : "#d0d4cc"; ?>"><?php echo $active ? "✓" : "○"; ?></span>
                             </div>
                             <div>
                               <div style="font-size:12px;font-weight:<?php echo $active ? "700" : "400"; ?>;color:<?php echo $active ? "var(--text)" : "var(--text-3)"; ?>"><?php echo esc_html($label); ?></div>
@@ -1839,6 +1884,33 @@ function upsellio_crm_app_template_redirect()
                             </div>
                           </div>
                         <?php endforeach; ?>
+                      <?php
+                        $oa_objection = (string) get_post_meta($oa_offer_id, "_ups_offer_behavior_objection", true);
+                        $oa_objection_labels = [
+                            "price" => ["label" => __("Objekcja: cena", "upsellio"), "color" => "#dc2626", "bg" => "#fef2f2",
+                                "tip" => __("Klient analizowal cennik >45s bez klikniecia CTA.", "upsellio")],
+                            "trust" => ["label" => __("Objekcja: zaufanie", "upsellio"), "color" => "#d97706", "bg" => "#fffbeb",
+                                "tip" => __("Klient spedzil czas w FAQ — szuka potwierdzenia.", "upsellio")],
+                            "scope" => ["label" => __("Objekcja: zakres", "upsellio"), "color" => "#0a7a70", "bg" => "#f5f0e8",
+                                "tip" => __("Klient analizowal zakres, nie dotarl do cennika.", "upsellio")],
+                            "no_fit" => ["label" => __("Brak dopasowania", "upsellio"), "color" => "#7a7a72", "bg" => "#fafaf6",
+                                "tip" => __("Krotka sesja, brak zaangazowania.", "upsellio")],
+                        ];
+                      if ($oa_objection !== "" && $oa_objection !== "none" && isset($oa_objection_labels[$oa_objection])) :
+                          $oa_obj = $oa_objection_labels[$oa_objection];
+                          ?>
+                        <div style="margin-top:10px;background:<?php echo esc_attr($oa_obj["bg"]); ?>;
+    border:1px solid <?php echo esc_attr($oa_obj["color"]); ?>;
+    border-radius:8px;padding:10px 12px">
+                          <div style="font-size:12px;font-weight:700;
+      color:<?php echo esc_attr($oa_obj["color"]); ?>">
+                            <?php echo esc_html($oa_obj["label"]); ?>
+                          </div>
+                          <div style="font-size:11px;color:var(--text-3);margin-top:3px">
+                            <?php echo esc_html($oa_obj["tip"]); ?>
+                          </div>
+                        </div>
+                      <?php endif; ?>
                       </div>
                       <?php
                       $oa_score = (int) ($oa["score"] ?? 0);
@@ -4784,8 +4856,8 @@ function upsellio_crm_app_template_redirect()
                   }
                   drawBars("ups-chart-status", <?php echo wp_json_encode(array_keys($status_counts)); ?>, <?php echo wp_json_encode(array_values($status_counts)); ?>, "#0d9488");
                   drawBars("ups-chart-stage", <?php echo wp_json_encode(array_keys($stage_counts)); ?>, <?php echo wp_json_encode(array_values($stage_counts)); ?>, "#2563eb");
-                  drawBars("ups-chart-revenue", <?php echo wp_json_encode(array_keys($monthly_revenue)); ?>, <?php echo wp_json_encode(array_values($monthly_revenue)); ?>, "#16a34a");
-                  drawBars("ups-chart-inbound", <?php echo wp_json_encode(array_keys($inbound_class_counts)); ?>, <?php echo wp_json_encode(array_values($inbound_class_counts)); ?>, "#7c3aed");
+                  drawBars("ups-chart-revenue", <?php echo wp_json_encode(array_keys($monthly_revenue)); ?>, <?php echo wp_json_encode(array_values($monthly_revenue)); ?>, "#15803d");
+                  drawBars("ups-chart-inbound", <?php echo wp_json_encode(array_keys($inbound_class_counts)); ?>, <?php echo wp_json_encode(array_values($inbound_class_counts)); ?>, "#0a7a70");
                 })();
               </script>
               <?php endif; ?>
@@ -5115,7 +5187,7 @@ function upsellio_crm_app_template_redirect()
                     <p class="muted" style="grid-column:1/-1;margin:-6px 0 4px;font-size:12px"><code>upsellio_anthropic_crm_build_offer_description_prompt()</code> — <code>{offer_title}</code>, <code>{client_name}</code>, <code>{offer_context}</code></p>
                     <textarea name="ups_anthropic_prompt_offer_description" rows="8" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:ui-monospace,Menlo,Consolas,monospace"><?php echo esc_textarea((string) get_option("ups_anthropic_prompt_offer_description", "")); ?></textarea>
 
-                    <h3 id="ups-blog-bot-panel" style="grid-column:1/-1;margin:18px 0 6px;font-size:16px;font-family:var(--font-display),Syne,sans-serif">Blog Bot (WP-Cron → draft)</h3>
+                    <h3 id="ups-blog-bot-panel" style="grid-column:1/-1;margin:18px 0 6px;font-size:16px;font-family:var(--font-display)">Blog Bot (WP-Cron → draft)</h3>
                     <p class="muted" style="grid-column:1/-1;margin:-4px 0 8px;font-size:12px;line-height:1.5">Harmonogram: pierwsze uruchomienie w okolicy <strong>poniedziałku 07:00</strong> (strefa witryny), potem wg interwału. Fraza jest zdejmowana z kolejki dopiero po udanym zapisie szkicu (błąd API nie kasuje tematu).</p>
                     <label style="grid-column:1/-1"><input type="checkbox" name="ups_blog_bot_enabled" value="1" <?php checked((string) get_option("ups_blog_bot_enabled", "0"), "1"); ?> /> Włącz Blog Bota</label>
                     <label>Model Blog Bot (legacy / override)</label>
@@ -5157,7 +5229,7 @@ function upsellio_crm_app_template_redirect()
                     <p class="muted" style="grid-column:1/-1;margin:-6px 0 4px;font-size:12px">Zmienne: <code>{keyword}</code>, <code>{target_length}</code>, <code>{existing_posts}</code>, <code>{services_context}</code>, <code>{converting_keywords}</code>, <code>{internal_url_catalog}</code>, <code>{tone}</code> — jeśli w szablonie nie ma <code>{internal_url_catalog}</code>, katalog URL (do linków markdown) jest dopisywany na końcu promptu.</p>
                     <textarea name="ups_ai_prompt_blog_post" rows="12" style="grid-column:1/-1;width:100%;font-size:13px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);font-family:ui-monospace,Menlo,Consolas,monospace"><?php echo esc_textarea((string) get_option("ups_ai_prompt_blog_post", "")); ?></textarea>
 
-                    <h3 style="grid-column:1/-1;margin:18px 0 6px;font-size:15px;font-family:var(--font-display),Syne,sans-serif">Narzędzie SEO Blog Tool (generator w WP)</h3>
+                    <h3 style="grid-column:1/-1;margin:18px 0 6px;font-size:15px;font-family:var(--font-display)">Narzędzie SEO Blog Tool (generator w WP)</h3>
                     <p class="muted" style="grid-column:1/-1;margin:-4px 0 8px;font-size:12px;line-height:1.5">Te pola sterują wyłącznie ręcznym generatorem (<em>Wpisy → SEO Blog Tool</em>): lista tematów + JSON wpisu. Model i klucz API jak Blog Bot powyżej.</p>
                     <label style="grid-column:1/-1;font-weight:700">Prompt systemowy — generator SEO (<code>ups_ai_prompt_blog_seo_system</code>)</label>
                     <p class="muted" style="grid-column:1/-1;margin:-6px 0 4px;font-size:12px">Używany jako instrukcja systemowa przy generowaniu tematów i treści JSON w narzędziu SEO Blog Tool.</p>
@@ -5352,6 +5424,14 @@ function upsellio_crm_app_template_redirect()
                     <input type="text" name="ups_followup_inbound_secret" value="<?php echo esc_attr((string) get_option("ups_followup_inbound_secret", "")); ?>" />
                     <label><input type="checkbox" name="ups_followup_mailbox_enabled" value="1" <?php checked((string) get_option("ups_followup_mailbox_enabled", "0"), "1"); ?> /> Włącz pobieranie odpowiedzi ze skrzynki (IMAP)</label>
                     <span></span>
+                    <p class="muted" style="grid-column:1/-1;margin:-4px 0 8px;font-size:12px;line-height:1.5">
+                      <strong>IMAP z serwera WWW:</strong> połączenie idzie z maszyny, na której stoi WordPress (PHP), nie z Twojego komputera.
+                      Jeśli test zwraca <em>Connection timed out</em> na porcie 993 lub 143, a w kliencie poczty (Outlook, telefon) ta sama skrzynka działa — zwykle hosting blokuje <strong>wychodzący</strong> ruch IMAP z WWW.
+                      Napisz do supportu hostingu z prośbą o odblokowanie połączeń wychodzących z serwera WWW do Twojego hosta poczty (np. <code>poczta.cyberfolks.pl</code>) na wybranym porcie.
+                      Alternatywa bez IMAP: wyślij odpowiedzi do CRM przez <strong>webhook</strong>
+                      <code><?php echo esc_html(rest_url("upsellio/v1/followup-inbound")); ?></code>
+                      (nagłówek <code>X-Upsellio-Secret</code> lub parametr <code>secret</code> = wartość „Inbound secret” powyżej; body: <code>offer_id</code>, <code>from_email</code>, <code>subject</code>, <code>body</code>).
+                    </p>
                     <label>IMAP host</label>
                     <input type="text" name="ups_followup_mailbox_host" value="<?php echo esc_attr((string) get_option("ups_followup_mailbox_host", "")); ?>" placeholder="imap.twojadomena.pl" />
                     <label>IMAP port</label>
