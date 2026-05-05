@@ -60,9 +60,9 @@ get_header();
   .bl-divider{height:1px;background:var(--border,#dbe7ea);margin:48px 0 32px}
   .bl-section{padding:48px 0 128px;background:var(--bg,#f8fafc)}
   .bl-filters{display:flex;flex-wrap:wrap;gap:8px}
-  .bl-filters a{padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;color:var(--text-muted,#475569);text-decoration:none;border:1px solid var(--border,#dbe7ea);background:var(--surface,#fff)}
-  .bl-filters a.is-active{background:var(--surface-soft,#f1f5f9);color:var(--text,#0f172a);border:1px solid var(--border,#dbe7ea);font-weight:700}
-  .bl-filters a:hover{color:var(--brand,#0d9488)}
+  .bl-filter-link{padding:10px 18px;border-radius:999px;font-size:13px;font-weight:600;text-decoration:none;border:1px solid var(--border-strong,#cbd5e1);background:transparent;color:var(--text-muted,#475569)}
+  .bl-filter-link:hover{background:var(--brand-soft,#ccfbf1);color:var(--brand-dark,#0f766e)}
+  .bl-filter-link.is-active{background:var(--brand,#0d9488);color:#fff;border-color:var(--brand,#0d9488);font-weight:800}
   .bl-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft,#64748b);margin-bottom:10px;flex-wrap:wrap}
   .bl-cat{display:inline-flex;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--text,#0f172a);background:var(--surface-soft,#f1f5f9);border:1px solid var(--border,#dbe7ea);padding:3px 10px;border-radius:999px;font-weight:700}
   .bl-thumb{position:relative;aspect-ratio:1.6;background:var(--surface-soft,#f1f5f9);overflow:hidden;border-radius:14px}
@@ -146,6 +146,25 @@ get_header();
     background: var(--brand-dark, #0f766e);
     color: #fff;
   }
+  .bl-newsletter {
+    max-width: 460px;
+    background: #fff;
+    border: 1px solid var(--border,#dbe7ea);
+    border-radius: 18px;
+    padding: 16px;
+  }
+  .bl-newsletter p { margin: 0 0 10px; font-size: 13px; color: var(--text-muted,#475569); }
+  .bl-newsletter form { display: flex; gap: 8px; }
+  .bl-newsletter input { flex: 1; min-height: 42px; border: 1px solid var(--border,#dbe7ea); border-radius: 10px; padding: 0 12px; }
+  .bl-newsletter button { min-height: 42px; padding: 0 14px; border: 0; border-radius: 999px; background: linear-gradient(135deg,var(--brand,#0d9488),var(--brand-dark,#0f766e)); color:#fff; font-weight: 700; cursor: pointer; }
+  .bl-inline-cta { margin: 8px 0 4px; border: 1px solid var(--accent-line,#fed7aa); background: var(--accent-soft,#fff7ed); border-radius: 18px; padding: 18px; }
+  .bl-inline-cta h3 { margin: 0 0 6px; }
+  .bl-inline-cta p { margin: 0 0 12px; color: var(--text-muted,#475569); }
+  .bl-inline-links { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+  .bl-inline-links a { display:block; padding:10px; border:1px solid var(--border,#dbe7ea); border-radius: 12px; background:#fff; color:var(--text,#0f172a); text-decoration:none; font-size:13px; }
+  .bl-final-cta { padding: 64px 0; background: var(--section-dark,#0b1320); color:#fff; }
+  .bl-final-cta p { color: rgba(255,255,255,.76); max-width: 760px; }
+  .bl-final-cta a { display:inline-flex; margin-top:14px; min-height:46px; align-items:center; padding:0 18px; border-radius:999px; background: linear-gradient(135deg,var(--brand,#0d9488),var(--brand-dark,#0f766e)); color:#fff; text-decoration:none; font-weight:700; }
 
   .bl-filter-bar {
     position: sticky;
@@ -329,8 +348,17 @@ get_header();
       <div>
         <h1>Marketing bez zgadywania</h1>
         <p>
-          Google Ads, Meta Ads, SEO i strony, które mają dowozić leady — nie wyglądać.
+          Marketing B2B bez buzzwordów i bez "trendów". Praktyczne decyzje: co robić z kampanią, stroną i konwersją, żeby rosła sprzedaż.
         </p>
+        <div class="bl-newsletter">
+          <p>Co tydzień jeden mail: praktyczny insight + jeden case. Bez clickbaitu.</p>
+          <form method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>">
+            <input type="hidden" name="action" value="upsellio_lead_form_submit">
+            <input type="hidden" name="lead_form_origin" value="blog-newsletter">
+            <input type="email" name="email" placeholder="Twój email" required>
+            <button type="submit">Subskrybuj →</button>
+          </form>
+        </div>
       </div>
 
       <a href="<?php echo esc_url(home_url("/kontakt/")); ?>" class="bl-top-cta">
@@ -342,9 +370,9 @@ get_header();
   <section class="bl-filter-bar" aria-label="Filtry kategorii" data-animate="fade">
     <div class="bl-wrap">
       <div class="bl-filters">
-        <a class="<?php echo $selected_category === "" ? "is-active" : ""; ?>" href="<?php echo esc_url($blog_index_url); ?>">Wszystkie</a>
+          <a class="bl-filter-link <?php echo $selected_category === "" ? "is-active" : ""; ?>" href="<?php echo esc_url($blog_index_url); ?>">Wszystkie</a>
         <?php foreach ($categories as $category) : ?>
-          <a class="<?php echo $selected_category === $category->slug ? "is-active" : ""; ?>" href="<?php echo esc_url(add_query_arg("category", $category->slug, $blog_index_url)); ?>">
+          <a class="bl-filter-link <?php echo $selected_category === $category->slug ? "is-active" : ""; ?>" href="<?php echo esc_url(add_query_arg("category", $category->slug, $blog_index_url)); ?>">
             <?php echo esc_html($category->name); ?>
           </a>
         <?php endforeach; ?>
@@ -434,6 +462,23 @@ get_header();
               </div>
             </div>
           </article>
+          <?php if ($post_index === 2) : ?>
+            <div class="bl-inline-cta">
+              <h3>Zanim ruszysz z kampanią — pobierz checklistę 27 punktów.</h3>
+              <p>To lista, którą przechodzę z każdym klientem przed startem. Jeśli Twoja strona nie odpowiada na 5 z 27 pytań, budżet się pali.</p>
+              <a class="bl-link" href="<?php echo esc_url(home_url("/lead-magnety/")); ?>">Wyślij PDF →</a>
+            </div>
+          <?php endif; ?>
+          <?php if ($post_index === 5) : ?>
+            <div class="bl-inline-cta">
+              <h3>Praktyczne zasoby — pobierz i użyj</h3>
+              <div class="bl-inline-links">
+                <a href="<?php echo esc_url(home_url("/lead-magnety/")); ?>">Checklist 27 punktów przed kampanią →</a>
+                <a href="<?php echo esc_url(home_url("/lead-magnety/")); ?>">Szablon raportu sprzedażowego →</a>
+                <a href="<?php echo esc_url(home_url("/lead-magnety/")); ?>">Mapa funnel B2B z benchmarkami →</a>
+              </div>
+            </div>
+          <?php endif; ?>
         <?php endforeach; ?>
       </div>
 
@@ -474,17 +519,23 @@ get_header();
 
   <section class="bl-seo">
     <div class="bl-wrap">
-      <h2>O czym jest ten blog?</h2>
+      <h2>Wszystkie zasoby do pobrania</h2>
 
       <p>
-        Ten blog powstał z jednego powodu: zbyt wiele firm wydaje pieniądze na marketing,
-        nie rozumiejąc, dlaczego wyniki są takie, jakie są.
+        Zobacz pełną bazę lead magnetów i materiałów do wdrożenia.
       </p>
 
       <p>
-        Znajdziesz tu konkretne artykuły o Google Ads, Meta Ads, stronach i konwersji —
-        pisane z perspektywy sprzedaży, nie teorii.
+        <a class="bl-link" href="<?php echo esc_url(home_url("/lead-magnety/")); ?>">Przejdź do /lead-magnety/ →</a>
       </p>
+    </div>
+  </section>
+
+  <section class="bl-final-cta">
+    <div class="bl-wrap">
+      <h2 class="bl-h2 bl-h2-light">Czytasz blog, ale dalej nie wiesz, gdzie zacząć?</h2>
+      <p>30 minut rozmowy wystarczy, żeby ustalić czy inwestować w Google Ads, Meta, czy najpierw naprawić stronę. Bez prezentacji, sam konkret.</p>
+      <a href="<?php echo esc_url(home_url("/kontakt/")); ?>">Umów rozmowę →</a>
     </div>
   </section>
 

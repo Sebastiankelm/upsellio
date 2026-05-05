@@ -629,8 +629,11 @@
 
   function getStoredAttribution() {
     try {
-      const raw = window.sessionStorage.getItem("upsellioAttribution");
-      return raw ? JSON.parse(raw) : {};
+      const raw = window.localStorage.getItem("upsellioAttribution");
+      if (!raw) return {};
+      const data = JSON.parse(raw);
+      if (data.savedAt && Date.now() - data.savedAt > 90 * 24 * 3600 * 1000) return {};
+      return data;
     } catch (error) {
       return {};
     }
@@ -638,7 +641,7 @@
 
   function saveAttribution(value) {
     try {
-      window.sessionStorage.setItem("upsellioAttribution", JSON.stringify(value));
+      window.localStorage.setItem("upsellioAttribution", JSON.stringify({ ...value, savedAt: Date.now() }));
     } catch (error) {
       // noop
     }
@@ -650,20 +653,23 @@
     source: currentUrl.searchParams.get("utm_source") || rememberedAttribution.source || "",
     medium: currentUrl.searchParams.get("utm_medium") || rememberedAttribution.medium || "",
     campaign: currentUrl.searchParams.get("utm_campaign") || rememberedAttribution.campaign || "",
-    landing: window.location.href,
-    referrer: document.referrer || rememberedAttribution.referrer || "",
+    term: currentUrl.searchParams.get("utm_term") || rememberedAttribution.term || "",
+    content: currentUrl.searchParams.get("utm_content") || rememberedAttribution.content || "",
+    gclid: currentUrl.searchParams.get("gclid") || rememberedAttribution.gclid || "",
+    fbclid: currentUrl.searchParams.get("fbclid") || rememberedAttribution.fbclid || "",
+    msclkid: currentUrl.searchParams.get("msclkid") || rememberedAttribution.msclkid || "",
+    landing: rememberedAttribution.landing || window.location.href,
+    referrer: rememberedAttribution.referrer || document.referrer || "",
   };
   saveAttribution(attribution);
 
   document.querySelectorAll('form[data-upsellio-lead-form="1"]').forEach((leadForm) => {
-    const sourceInput = leadForm.querySelector('[data-ups-utm="source"]');
-    const mediumInput = leadForm.querySelector('[data-ups-utm="medium"]');
-    const campaignInput = leadForm.querySelector('[data-ups-utm="campaign"]');
+    leadForm.querySelectorAll("[data-ups-utm]").forEach((input) => {
+      const key = input.getAttribute("data-ups-utm");
+      if (key && key in attribution) input.value = attribution[key] || "";
+    });
     const landingInput = leadForm.querySelector('[data-ups-context="landing"]');
     const referrerInput = leadForm.querySelector('[data-ups-context="referrer"]');
-    if (sourceInput) sourceInput.value = attribution.source;
-    if (mediumInput) mediumInput.value = attribution.medium;
-    if (campaignInput) campaignInput.value = attribution.campaign;
     if (landingInput) landingInput.value = attribution.landing;
     if (referrerInput) referrerInput.value = attribution.referrer;
   });
@@ -729,10 +735,53 @@
 
   function pushLeadConversionStack(formElement) {
     const payload = buildLeadPayload(formElement);
-    pushDataLayerEvent("generate_lead", payload);
+    const eventId =
+      window.crypto && crypto.randomUUID
+        ? crypto.randomUUID()
+        : "lead_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+    const enrichedPayload = { ...payload, event_id: eventId };
+
+    if (formElement) {
+      const existingEventInput = formElement.querySelector('input[name="lead_event_id"]');
+      if (existingEventInput) {
+        existingEventInput.value = eventId;
+      } else {
+        const hiddenInput = document.createElement("input");
+        hiddenInput.type = "hidden";
+        hiddenInput.name = "lead_event_id";
+        hiddenInput.value = eventId;
+        formElement.appendChild(hiddenInput);
+      }
+    }
+
+    pushDataLayerEvent("generate_lead", enrichedPayload);
     const extra = resolveLeadConversionEventName(payload.form_origin);
-    if (extra) pushDataLayerEvent(extra, payload);
-    if (payload.lead_magnet_name) pushDataLayerEvent("lead_magnet_signup", payload);
+    if (extra) pushDataLayerEvent(extra, enrichedPayload);
+    if (payload.lead_magnet_name) pushDataLayerEvent("lead_magnet_signup", enrichedPayload);
+
+    if (!skipAnalytics && typeof window.fbq === "function") {
+      window.fbq(
+        "track",
+        "Lead",
+        {
+          content_name: payload.form_origin || "lead_form",
+          content_category: payload.lead_service || "",
+        },
+        { eventID: eventId }
+      );
+    }
+
+    if (
+      !skipAnalytics &&
+      typeof window.gtag === "function" &&
+      window.upsellioAds &&
+      window.upsellioAds.conversionLabel
+    ) {
+      window.gtag("event", "conversion", {
+        send_to: window.upsellioAds.conversionLabel,
+        transaction_id: eventId,
+      });
+    }
   }
 
   function buildLeadPayload(formElement) {
@@ -747,10 +796,12 @@
     const lead_budget = leadBudgetEl?.value || "";
     const emailInput = formElement.querySelector('input[type="email"], input[name*="email"]');
     const hasEmail = Boolean(emailInput?.value && String(emailInput.value).trim() !== "");
+    const variantMatch = (formElement.className || "").match(/ups-form--([a-z0-9_-]+)/i);
 
     return {
       form_id: formId,
       form_origin: formOrigin,
+      form_variant: variantMatch?.[1] || "unknown",
       lead_source: leadSource,
       lead_magnet_name: leadMagnetName,
       lead_service: leadService,
@@ -759,9 +810,60 @@
       utm_source: attribution.source || "",
       utm_medium: attribution.medium || "",
       utm_campaign: attribution.campaign || "",
+      utm_term: attribution.term || "",
+      utm_content: attribution.content || "",
+      gclid: attribution.gclid || "",
+      fbclid: attribution.fbclid || "",
+      msclkid: attribution.msclkid || "",
+      landing_url: attribution.landing || "",
       referrer: attribution.referrer || "",
     };
   }
+
+  (function attachFormEngagementEvents() {
+    document.querySelectorAll('form[data-upsellio-lead-form="1"]').forEach((formEl) => {
+      let started = false;
+      let submitted = false;
+      let lastFieldFired = "";
+      const formId = formEl.id || formEl.dataset.upsellioLeadForm || "lead-form";
+      const formOrigin = formEl.querySelector('input[name="lead_form_origin"]')?.value || "";
+
+      formEl.addEventListener("focusin", (event) => {
+        if (!started && event.target.matches("input,textarea,select")) {
+          started = true;
+          pushDataLayerEvent("form_start", { form_id: formId, form_origin: formOrigin });
+        }
+      });
+
+      formEl.addEventListener("change", (event) => {
+        if (!event.target.matches("input,textarea,select")) return;
+        const name = event.target.name || "";
+        if (!name || name === lastFieldFired) return;
+        const value = String(event.target.value || "").trim();
+        if (value.length < 2) return;
+        lastFieldFired = name;
+        pushDataLayerEvent("form_field_complete", {
+          form_id: formId,
+          form_origin: formOrigin,
+          field_name: name,
+        });
+      });
+
+      formEl.addEventListener("submit", () => {
+        submitted = true;
+      });
+
+      window.addEventListener("beforeunload", () => {
+        if (!started || submitted) return;
+        try {
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({ event: "form_abandon", form_id: formId, form_origin: formOrigin });
+        } catch (error) {
+          // noop
+        }
+      });
+    });
+  })();
 
   function trackContactClick(type, target) {
     if (skipAnalytics) return;
@@ -816,6 +918,170 @@
     });
   });
 
+  document.addEventListener("click", (event) => {
+    const cta = event.target.closest("[data-cta]");
+    if (!cta) return;
+    pushDataLayerEvent("cta_click", {
+      cta_label: cta.getAttribute("data-cta") || (cta.textContent || "").trim().slice(0, 80),
+      cta_section: cta.getAttribute("data-cta-section") || "",
+      cta_position: cta.getAttribute("data-cta-position") || "",
+      cta_href: cta.getAttribute("href") || "",
+      page_path: window.location.pathname,
+    });
+  });
+
+  (function initOfferPageTracking() {
+    const offerSections = document.querySelectorAll("[data-offer-section]");
+    if (!offerSections.length) return;
+    const marks = [25, 50, 75, 90];
+    const hit = {};
+
+    if ("IntersectionObserver" in window) {
+      const seen = {};
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            const sectionId = entry.target.getAttribute("data-offer-section");
+            if (!sectionId || seen[sectionId]) return;
+            seen[sectionId] = true;
+            pushDataLayerEvent("offer_public_section_view", { section_id: sectionId });
+          });
+        },
+        { threshold: 0.5 }
+      );
+      offerSections.forEach((section) => io.observe(section));
+    }
+
+    const onScroll = () => {
+      const root = document.documentElement;
+      if (!root || !root.scrollHeight) return;
+      const pct = Math.round(((root.scrollTop + window.innerHeight) / root.scrollHeight) * 100);
+      marks.forEach((mark) => {
+        if (pct >= mark && !hit[mark]) {
+          hit[mark] = true;
+          pushDataLayerEvent("scroll_depth", { percent: mark });
+        }
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    let active = true;
+    let ticks = 0;
+    document.addEventListener("visibilitychange", () => {
+      active = !document.hidden;
+    });
+    window.setInterval(() => {
+      if (!active) return;
+      ticks += 15;
+      if (ticks === 15 || ticks === 30 || ticks === 60 || ticks === 120) {
+        pushDataLayerEvent("offer_public_engagement_tick", { seconds: ticks });
+      }
+    }, 15000);
+  })();
+
+  (function initOfferQualifier() {
+    const root = document.querySelector(".offer-qualifier");
+    if (!root) return;
+    const answers = {};
+    root.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-quiz-answer]");
+      if (!button) return;
+      const question = button.getAttribute("data-quiz-question") || "";
+      const answer = button.getAttribute("data-quiz-answer") || "";
+      if (!question || !answer) return;
+
+      answers[question] = answer;
+      pushDataLayerEvent("quiz_answer", { quiz_question: question, quiz_answer: answer });
+
+      const currentStep = button.closest("[data-quiz-step]");
+      const currentNum = Number.parseInt(currentStep?.getAttribute("data-quiz-step") || "1", 10);
+      const nextStep = root.querySelector(`[data-quiz-step="${currentNum + 1}"]`);
+      if (currentStep) currentStep.hidden = true;
+      if (nextStep) {
+        nextStep.hidden = false;
+        return;
+      }
+
+      const result = root.querySelector("[data-quiz-result]");
+      if (result) result.hidden = false;
+      const summary = root.querySelector("[data-quiz-summary]");
+      if (summary) {
+        summary.textContent = `Wybrane: ${answers.problem || "-"}, ${answers.industry || "-"}, budzet: ${answers.budget || "-"}.`;
+      }
+      try {
+        window.localStorage.setItem("upsellioOfferQuiz", JSON.stringify(answers));
+      } catch (error) {
+        // noop
+      }
+      pushDataLayerEvent("quiz_complete", answers);
+
+      const formEl = document.querySelector("form[data-upsellio-server-form='1']");
+      if (!formEl) return;
+      Object.entries(answers).forEach(([key, value]) => {
+        const inputName = `lead_quiz_${key}`;
+        const existing = formEl.querySelector(`input[name="${inputName}"]`);
+        if (existing) {
+          existing.value = value;
+          return;
+        }
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = inputName;
+        input.value = value;
+        formEl.appendChild(input);
+      });
+    });
+  })();
+
+  (function initExitIntentModal() {
+    const modal = document.getElementById("ups-exit-intent");
+    if (!modal) return;
+    if (window.sessionStorage.getItem("ups_exit_shown")) return;
+    let armed = false;
+    window.setTimeout(() => {
+      armed = true;
+    }, 15000);
+
+    const closeModal = () => {
+      modal.hidden = true;
+    };
+
+    if (!window.matchMedia("(max-width: 900px)").matches) {
+      document.addEventListener("mouseout", (event) => {
+        if (!armed) return;
+        if (event.clientY > 0) return;
+        if (event.relatedTarget || event.toElement) return;
+        modal.hidden = false;
+        window.sessionStorage.setItem("ups_exit_shown", "1");
+        pushDataLayerEvent("exit_intent_shown", { page_path: window.location.pathname });
+      });
+    } else {
+      let scrolled50 = false;
+      let idleTimer;
+      const maybeShow = () => {
+        if (!armed || !scrolled50 || window.sessionStorage.getItem("ups_exit_shown")) return;
+        modal.hidden = false;
+        window.sessionStorage.setItem("ups_exit_shown", "1");
+        pushDataLayerEvent("exit_intent_shown", { page_path: window.location.pathname });
+      };
+      window.addEventListener("scroll", () => {
+        const root = document.documentElement;
+        const pct = Math.round(((root.scrollTop + window.innerHeight) / root.scrollHeight) * 100);
+        if (pct >= 50) scrolled50 = true;
+        window.clearTimeout(idleTimer);
+        idleTimer = window.setTimeout(maybeShow, 10000);
+      }, { passive: true });
+      window.setTimeout(maybeShow, 60000);
+    }
+
+    modal.addEventListener("click", (event) => {
+      if (!event.target.closest("[data-exit-close]")) return;
+      closeModal();
+      pushDataLayerEvent("exit_intent_dismissed", {});
+    });
+  })();
+
   function upsellioMessageForLeadFormResponse(finalUrl, responseOk) {
     var generic =
       "Nie udało się wysłać formularza. Odśwież stronę i spróbuj ponownie, albo napisz na kontakt@upsellio.pl.";
@@ -850,6 +1116,21 @@
     }
   }
 
+  /**
+   * Adres POST formularza. Nie używać form.action — ukryte pole name="action" (WordPress)
+   * cieniuje getter i zwraca HTMLInputElement, co daje fetch("…/[object HTMLInputElement]").
+   */
+  function getFormActionUrl(formEl) {
+    const raw = formEl.getAttribute("action");
+    const s = raw == null ? "" : String(raw).trim();
+    if (!s) return window.location.href;
+    try {
+      return new URL(s, window.location.href).href;
+    } catch {
+      return window.location.href;
+    }
+  }
+
   function initServerLeadForms() {
     const serverForms = Array.from(document.querySelectorAll("form[data-upsellio-server-form='1']"));
     if (!serverForms.length) return;
@@ -879,7 +1160,7 @@
         feedback.classList.remove("is-success", "is-error");
 
         try {
-          const response = await fetch(serverForm.action, {
+          const response = await fetch(getFormActionUrl(serverForm), {
             method: serverForm.method || "POST",
             body: new FormData(serverForm),
             credentials: "same-origin",
@@ -957,7 +1238,7 @@
         feedback.style.display = "none";
 
         try {
-          const response = await fetch(form.action, {
+          const response = await fetch(getFormActionUrl(form), {
             method: form.method || "POST",
             body: new FormData(form),
             credentials: "same-origin",

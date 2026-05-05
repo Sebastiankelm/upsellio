@@ -291,7 +291,7 @@ $faq_items = [
         <a href="#proces">Proces</a>
         <a href="#faq">FAQ</a>
       </div>
-      <a href="#kontakt" class="gads-quick-cta">Sprawdź koszt leada</a>
+      <a href="#kontakt" class="gads-quick-cta" data-cta="googleads-quick-cta" data-cta-section="hero" data-cta-position="topbar">Sprawdź koszt leada</a>
     </div>
   </div>
 
@@ -306,7 +306,7 @@ $faq_items = [
           <p>Skuteczna kampania Google Ads to precyzyjny dobór słów kluczowych z wysoką intencją zakupową, wykluczenie fraz generujących drogi ruch, spójność reklamy ze stroną docelową, poprawne śledzenie konwersji i ciągła optymalizacja.</p>
         </div>
         <div class="gads-btn-row">
-          <a href="#kontakt" class="gads-btn gads-btn-primary">Chcę bezpłatną diagnozę</a>
+          <a href="#kontakt" class="gads-btn gads-btn-primary" data-cta="googleads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Chcę bezpłatną diagnozę</a>
           <a href="#zakres" class="gads-btn gads-btn-secondary">Zobacz zakres usługi</a>
           <a href="#typy" class="gads-btn gads-btn-ghost">Search czy PMax?</a>
         </div>

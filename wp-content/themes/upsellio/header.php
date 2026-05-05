@@ -64,13 +64,34 @@ foreach ((array) $primary_navigation_links as $nav_link) {
   <?php if ($upsellio_load_public_tracking) : ?>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-R37SMGVBNC"></script>
+  <?php if (defined("UPSELLIO_GOOGLE_ADS_ID") && (string) UPSELLIO_GOOGLE_ADS_ID !== "") : ?>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo esc_attr((string) UPSELLIO_GOOGLE_ADS_ID); ?>"></script>
+  <?php endif; ?>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
 
     gtag('config', 'G-R37SMGVBNC');
+    <?php if (defined("UPSELLIO_GOOGLE_ADS_ID") && (string) UPSELLIO_GOOGLE_ADS_ID !== "") : ?>
+    gtag('config', <?php echo wp_json_encode((string) UPSELLIO_GOOGLE_ADS_ID); ?>);
+    <?php endif; ?>
   </script>
+  <?php
+  $upsellio_clarity_project_id = defined("UPSELLIO_CLARITY_PROJECT_ID") && (string) UPSELLIO_CLARITY_PROJECT_ID !== ""
+      ? (string) UPSELLIO_CLARITY_PROJECT_ID
+      : "wm94kd7gyw";
+  ?>
+  <?php if ($upsellio_clarity_project_id !== "") : ?>
+  <!-- Microsoft Clarity -->
+  <script>
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", <?php echo wp_json_encode($upsellio_clarity_project_id); ?>);
+  </script>
+  <?php endif; ?>
   <?php endif; ?>
   <meta charset="<?php bloginfo("charset"); ?>">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -101,8 +122,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <header class="nav site-nav">
   <div class="nav-topbar" aria-label="Szybki kontakt">
     <div class="wrap nav-topbar-inner">
-      <a href="<?php echo esc_url("tel:" . $contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
-      <a href="<?php echo esc_url("mailto:" . $contact_email); ?>"><?php echo esc_html($contact_email); ?></a>
+      <span class="nav-topbar-pos">Marketing B2B, który zamienia kliki w sprzedaż</span>
+      <span class="nav-topbar-proof">10 lat sprzedaży B2B · 1,5 mln PLN/mc generowane przez moje lejki</span>
+      <a class="nav-topbar-phone" href="<?php echo esc_url("tel:" . $contact_phone_href); ?>" data-cta="topbar-phone" data-cta-section="topbar">
+        <?php echo esc_html($contact_phone); ?> · zadzwoń, 15 min bez prezentacji
+      </a>
     </div>
   </div>
   <div class="wrap nav-inner">
@@ -228,7 +252,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   </div>
 </header>
 <?php if ($nav_cta_url !== "" && (!function_exists("upsellio_is_contact_page_context") || !upsellio_is_contact_page_context())) : ?>
-<a href="<?php echo esc_url($nav_cta_url); ?>" class="mobile-sticky-cta">Umów bezpłatną konsultację →</a>
+<a href="<?php echo esc_url("tel:" . $contact_phone_href); ?>" class="mobile-sticky-cta">Zadzwoń: <?php echo esc_html($contact_phone); ?></a>
 <?php endif; ?>
 <?php if (function_exists("upsellio_render_breadcrumbs")) : ?>
 <?php echo upsellio_render_breadcrumbs(); ?>

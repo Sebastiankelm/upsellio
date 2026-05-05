@@ -16,6 +16,14 @@
   --brand-dark: #0f766e;
   --brand-soft: #ccfbf1;
   --brand-glow: rgba(13, 148, 136, 0.18);
+  --accent: #f97316;
+  --accent-soft: #fff7ed;
+  --accent-line: #fed7aa;
+  --section-dark: #0b1320;
+  --section-dark-2: #111c2e;
+  --section-tint: #f0fdfa;
+  --text-muted-strong: #334155;
+  --focus-ring: 0 0 0 3px rgba(13, 148, 136, 0.35);
 
   --dark: #0f172a;
   --dark-2: #1e293b;
@@ -215,6 +223,13 @@
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 112px;
+}
+
+/* Mobile / touch: smooth na <html> bywa konfliktem z inercją przewijania („cofanie” pozycji). */
+@media (hover: none) and (pointer: coarse) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 body {
@@ -471,22 +486,39 @@ select {
 }
 
 .nav-topbar {
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-soft);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--section-dark);
 }
 
 .nav-topbar-inner {
-  min-height: 36px;
+  min-height: 38px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 14px;
-  font-size: 12px;
-  color: var(--text-3);
+  justify-content: space-between;
+  gap: 24px;
+  font-size: 13px;
+  color: #cbd5e1;
 }
 
-.nav-topbar-inner a:hover {
-  color: var(--teal);
+.nav-topbar-pos {
+  color: #fff;
+  font-weight: 700;
+}
+
+.nav-topbar-proof {
+  color: #94a3b8;
+  flex: 1;
+  text-align: center;
+}
+
+.nav-topbar-phone {
+  color: #fff;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.nav-topbar-phone:hover {
+  color: var(--brand);
 }
 
 .nav-inner {
@@ -504,6 +536,25 @@ select {
 
 .nav.is-scrolled .brand-logo {
   height: 56px;
+}
+
+/* Stała wysokość paska na wąskich ekranach — unikamy skoku układu przy przełączaniu .is-scrolled (sticky + zmiana wysokości). */
+@media (max-width: 980px) {
+  .nav-inner {
+    height: 84px;
+  }
+
+  .nav.is-scrolled .nav-inner {
+    height: 84px;
+  }
+
+  .brand-logo {
+    height: 62px;
+  }
+
+  .nav.is-scrolled .brand-logo {
+    height: 62px;
+  }
 }
 
 .brand {
@@ -634,7 +685,7 @@ select {
 
 .nav-links a.active,
 .nav-links a[aria-current="page"] {
-  color: var(--text);
+  color: var(--brand);
   border-bottom-color: var(--brand);
   font-weight: 600;
 }
@@ -1922,7 +1973,8 @@ select {
 
 @media (min-width: 980px) {
   .hero-wrap {
-    grid-template-columns: minmax(0, 1fr) 400px;
+    grid-template-columns: minmax(0, 1fr) minmax(448px, 520px);
+    gap: clamp(28px, 3.5vw, 48px);
   }
 }
 
@@ -5380,6 +5432,18 @@ select {
 
 .nav-cta-long {
   display: none;
+}
+
+@media (max-width: 900px) {
+  .nav-topbar-pos,
+  .nav-topbar-proof {
+    display: none;
+  }
+
+  .nav-topbar-phone {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 .nav-cta-short {
@@ -9445,11 +9509,10 @@ main.sp-art .sp-end-cta {
   border: 1px dashed var(--border);
 }
 
-.btn-primary:focus-visible,
-.ups-form__submit:focus-visible,
-main.bl-art .bl-filters a:focus-visible {
+*:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px var(--brand-soft), 0 0 0 5px var(--brand);
+  box-shadow: var(--focus-ring);
+  border-radius: 8px;
 }
 
 /* === Upsellio: scroll reveal, cards, blog, contact, case study, reduced motion === */

@@ -341,6 +341,7 @@ function upsellio_get_service_schema_payload($name, $description, $url, $service
         "url" => upsellio_get_schema_url($url),
         "serviceType" => trim((string) $service_type),
         "areaServed" => trim((string) ($organization["contactPoint"]["areaServed"] ?? "PL")),
+        "priceRange" => "$$",
         "provider" => [
             "@type" => "Organization",
             "@id" => home_url("/#organization"),
