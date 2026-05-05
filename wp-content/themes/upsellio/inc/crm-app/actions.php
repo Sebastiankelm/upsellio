@@ -387,13 +387,31 @@ function upsellio_crm_app_handle_post_actions()
             update_post_meta($offer_id, "_ups_offer_has_meta", isset($_POST["offer_has_meta"]) ? "1" : "0");
             update_post_meta($offer_id, "_ups_offer_has_web", isset($_POST["offer_has_web"]) ? "1" : "0");
             update_post_meta($offer_id, "_ups_offer_questions_raw", isset($_POST["offer_questions_raw"]) ? sanitize_textarea_field(wp_unslash($_POST["offer_questions_raw"])) : "");
-            $srv_json = isset($_POST["offer_services_json"]) ? (string) wp_unslash($_POST["offer_services_json"]) : "";
-            if ($srv_json !== "") {
-                $dec = json_decode($srv_json, true);
-                update_post_meta($offer_id, "_ups_offer_services_json", is_array($dec) ? wp_json_encode($dec) : "");
-            } elseif (isset($_POST["offer_services_json"])) {
-                update_post_meta($offer_id, "_ups_offer_services_json", "");
+            $variant_keys = array_map("sanitize_key", (array) ($_POST["ups_offer_variant_key"] ?? []));
+            $variant_labels = array_map("sanitize_text_field", (array) ($_POST["ups_offer_variant_label"] ?? []));
+            $variant_prices = array_map("sanitize_text_field", (array) ($_POST["ups_offer_variant_price"] ?? []));
+            $services = [];
+            $variant_count = max(count($variant_keys), count($variant_labels), count($variant_prices));
+            for ($i = 0; $i < $variant_count && $i < 6; $i++) {
+                $key = (string) ($variant_keys[$i] ?? "");
+                $label = (string) ($variant_labels[$i] ?? "");
+                $price_hint = (string) ($variant_prices[$i] ?? "");
+                if ($key === "" && $label === "" && $price_hint === "") {
+                    continue;
+                }
+                if ($key === "" && $label !== "") {
+                    $key = sanitize_key(substr($label, 0, 20));
+                }
+                if ($key === "") {
+                    continue;
+                }
+                $services[] = [
+                    "key" => $key,
+                    "label" => $label,
+                    "price_hint" => $price_hint,
+                ];
             }
+            update_post_meta($offer_id, "_ups_offer_services_json", !empty($services) ? wp_json_encode(array_values($services)) : "");
             update_post_meta($offer_id, "_ups_offer_include_lines", isset($_POST["offer_include_lines"]) ? sanitize_textarea_field(wp_unslash($_POST["offer_include_lines"])) : "");
             update_post_meta($offer_id, "_ups_offer_option_lines", isset($_POST["offer_option_lines"]) ? sanitize_textarea_field(wp_unslash($_POST["offer_option_lines"])) : "");
             update_post_meta($offer_id, "_ups_offer_scope_extra_html", isset($_POST["offer_scope_extra_html"]) ? wp_kses_post(wp_unslash($_POST["offer_scope_extra_html"])) : "");
@@ -956,7 +974,7 @@ function upsellio_crm_app_handle_post_actions()
                 update_option("ups_sales_fit_ideal_budget_min_pln", max(0, (float) wp_unslash($_POST["ups_sales_fit_ideal_budget_min_pln"])), false);
             }
 
-            if ($settings_tab_save === "mailbox" && $is_admin) {
+            if (in_array($settings_tab_save, ["mailbox", "email"], true) && $is_admin) {
                 if (isset($_POST["ups_followup_from_name"])) {
                     update_option("ups_followup_from_name", sanitize_text_field(wp_unslash($_POST["ups_followup_from_name"])));
                 }
@@ -1148,6 +1166,19 @@ function upsellio_crm_app_handle_post_actions()
     $redirect_task = isset($_POST["task_id"]) ? (int) wp_unslash($_POST["task_id"]) : 0;
     $redirect_url = add_query_arg(["view" => $redirect_view], home_url("/crm-app/"));
     $redirect_settings_tab = isset($_POST["settings_tab"]) ? sanitize_key(wp_unslash($_POST["settings_tab"])) : "";
+    $redirect_settings_legacy = [
+        "mailbox" => "email",
+        "scoring" => "pipeline",
+        "automation" => "pipeline",
+        "offer-template" => "templates",
+        "contract-template" => "templates",
+        "users" => "general",
+        "integrations" => "general",
+        "notifications" => "general",
+    ];
+    if (isset($redirect_settings_legacy[$redirect_settings_tab])) {
+        $redirect_settings_tab = $redirect_settings_legacy[$redirect_settings_tab];
+    }
     if ($redirect_view === "settings" && $redirect_settings_tab !== "") {
         $redirect_url = add_query_arg(["settings_tab" => $redirect_settings_tab], $redirect_url);
     }
@@ -1680,6 +1711,11 @@ function upsellio_inbox_apply_action_single(int $offer_id, string $action, array
         return false;
     }
     $action = sanitize_key($action);
+    if (function_exists("upsellio_inbox_action_rate_limited") && in_array($action, ["archive", "unarchive", "snooze"], true)) {
+        if (upsellio_inbox_action_rate_limited($offer_id, $action)) {
+            return false;
+        }
+    }
     if ($action === "archive") {
         update_post_meta($offer_id, "_ups_offer_archived", "1");
         return true;
@@ -1730,6 +1766,21 @@ function upsellio_inbox_apply_action_single(int $offer_id, string $action, array
         }
         return false;
     }
+    return false;
+}
+
+function upsellio_inbox_action_rate_limited(int $offer_id, string $action): bool
+{
+    $offer_id = (int) $offer_id;
+    if ($offer_id <= 0) {
+        return true;
+    }
+    $user_id = (int) get_current_user_id();
+    $key = "ups_rl_" . sanitize_key($action) . "_" . $offer_id . "_" . $user_id;
+    if (get_transient($key)) {
+        return true;
+    }
+    set_transient($key, 1, 5);
     return false;
 }
 

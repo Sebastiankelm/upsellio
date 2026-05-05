@@ -19,9 +19,8 @@ function upsellio_site_analytics_page_slug(): string
  */
 function upsellio_site_analytics_admin_url(array $extra = []): string
 {
-    $query = array_merge(["page" => upsellio_site_analytics_page_slug()], $extra);
-
-    return add_query_arg($query, admin_url("admin.php"));
+    $query = array_merge(["view" => "analytics", "atab" => "today"], $extra);
+    return add_query_arg($query, home_url("/crm-app/"));
 }
 
 /**
@@ -59,26 +58,25 @@ function upsellio_site_analytics_redirect_from_wp_settings(): void
 
 function upsellio_site_analytics_menu(): void
 {
-    add_menu_page(
-        __("Analityka SEO i konwersji", "upsellio"),
-        __("Analityka SEO", "upsellio"),
-        "edit_posts",
-        upsellio_site_analytics_page_slug(),
-        "upsellio_render_site_analytics_page",
-        "dashicons-chart-area",
-        59
-    );
-
-    add_submenu_page(
-        "options-general.php",
-        __("Analityka SEO (GSC, GA4, konwersje)", "upsellio"),
-        __("Analityka SEO", "upsellio"),
-        "edit_posts",
-        "upsellio-analytics-from-settings",
-        "upsellio_site_analytics_redirect_from_wp_settings"
-    );
+    // Deprecated: analytics moved to CRM app.
+    add_action("admin_init", "upsellio_site_analytics_redirect_to_crm_app");
 }
 add_action("admin_menu", "upsellio_site_analytics_menu");
+
+function upsellio_site_analytics_redirect_to_crm_app(): void
+{
+    if (!is_admin() || !current_user_can("edit_posts")) {
+        return;
+    }
+    if (!isset($_GET["page"]) || (string) wp_unslash($_GET["page"]) !== upsellio_site_analytics_page_slug()) {
+        return;
+    }
+    $old_section = isset($_GET["section"]) ? sanitize_key((string) wp_unslash($_GET["section"])) : "overview";
+    $tab_map = ["overview" => "today", "seo" => "seo", "ads" => "paid", "sales" => "sales"];
+    $atab = isset($tab_map[$old_section]) ? $tab_map[$old_section] : "today";
+    wp_safe_redirect(add_query_arg(["view" => "analytics", "atab" => $atab], home_url("/crm-app/")));
+    exit;
+}
 
 function upsellio_is_trackable_content_view()
 {
@@ -2323,6 +2321,32 @@ function upsellio_get_keyword_metrics_for_url($url, $rows)
 
 function upsellio_build_page_recommendations($row)
 {
+    $post_id = (int) ($row["post_id"] ?? 0);
+    $ai_suggestions = get_option("ups_ai_page_perf_suggestions", []);
+    if ($post_id > 0 && is_array($ai_suggestions) && !empty($ai_suggestions)) {
+        if (isset($ai_suggestions[$post_id]) && is_array($ai_suggestions[$post_id])) {
+            $actions = isset($ai_suggestions[$post_id]["actions"]) && is_array($ai_suggestions[$post_id]["actions"])
+                ? $ai_suggestions[$post_id]["actions"]
+                : [];
+            if (!empty($actions)) {
+                return array_slice(array_map("strval", $actions), 0, 3);
+            }
+        }
+        foreach ($ai_suggestions as $ai_row) {
+            if (!is_array($ai_row)) {
+                continue;
+            }
+            if ((int) ($ai_row["post_id"] ?? 0) !== $post_id) {
+                continue;
+            }
+            $actions = isset($ai_row["actions"]) && is_array($ai_row["actions"]) ? $ai_row["actions"] : [];
+            if (!empty($actions)) {
+                return array_slice(array_map("strval", $actions), 0, 3);
+            }
+            break;
+        }
+    }
+
     $tips = [];
     if ((float) $row["avg_position"] > 10 && (float) $row["avg_position"] <= 20 && (int) $row["impressions"] >= 100) {
         $tips[] = "Pozycje 11-20: rozbuduj sekcje H2/H3 i dodaj linkowanie wewnętrzne do tej strony.";
@@ -2412,6 +2436,15 @@ function upsellio_is_anomaly_delta($delta_pct)
 
 function upsellio_build_query_to_lead_value_rows(array $keyword_rows, string $from_date): array
 {
+    if (function_exists("upsellio_analytics_query_lead_value")) {
+        $days = 30;
+        $from_ts = strtotime($from_date);
+        if ($from_ts !== false) {
+            $days = max(1, (int) floor((time() - $from_ts) / DAY_IN_SECONDS));
+        }
+        $data = upsellio_analytics_query_lead_value($days, 1200);
+        return (array) ($data["rows"] ?? []);
+    }
     $lead_ids = get_posts([
         "post_type" => "lead",
         "post_status" => "publish",
@@ -3048,6 +3081,21 @@ function upsellio_render_site_analytics_page()
             <?php endif; ?>
           </span>
         </div>
+        <?php
+        $sa_weekly_brief = function_exists("upsellio_get_latest_weekly_brief") ? upsellio_get_latest_weekly_brief() : ["html" => "", "at" => 0];
+        $sa_wb_html = (string) ($sa_weekly_brief["html"] ?? "");
+        $sa_wb_at = (int) ($sa_weekly_brief["at"] ?? 0);
+        ?>
+        <?php if ($sa_wb_html !== "" && $sa_wb_at > 0 && (time() - $sa_wb_at) < (5 * DAY_IN_SECONDS)) : ?>
+          <?php $sa_wb_age = max(0, (int) floor((time() - $sa_wb_at) / DAY_IN_SECONDS)); ?>
+          <section class="ups-analytics-card" style="background:linear-gradient(135deg,#fff7ed,#fff);border-left:4px solid #f97316;">
+            <div style="font-size:11px;font-weight:800;color:#9a3412;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">
+              🎯 Brief AI · <?php echo $sa_wb_age === 0 ? esc_html__("dzisiaj", "upsellio") : esc_html(sprintf(__("%d dni temu", "upsellio"), $sa_wb_age)); ?>
+            </div>
+            <h3 style="margin:0 0 8px;font-size:18px;"><?php esc_html_e("Twój brief sprzedażowy", "upsellio"); ?></h3>
+            <div class="ups-weekly-brief-content" style="font-size:14px;line-height:1.55;"><?php echo wp_kses_post($sa_wb_html); ?></div>
+          </section>
+        <?php endif; ?>
 
         <form method="get" action="<?php echo esc_url(admin_url("admin.php")); ?>">
           <input type="hidden" name="page" value="<?php echo esc_attr(upsellio_site_analytics_page_slug()); ?>" />
@@ -3089,6 +3137,42 @@ function upsellio_render_site_analytics_page()
             wygrane <?php echo esc_html((string) ($days_left > 0 && $goal_target_won > $goal_current_won ? ceil(($goal_target_won - $goal_current_won) / $days_left) : 0)); ?>,
             przychód <?php echo esc_html(number_format_i18n($days_left > 0 && $goal_target_revenue > $goal_current_revenue ? (($goal_target_revenue - $goal_current_revenue) / $days_left) : 0, 2)); ?> zł.
           </p>
+          <?php
+          $days_in_month = (int) wp_date("t");
+          $day_of_month = (int) wp_date("j");
+          $expected_pct = $days_in_month > 0 ? ($day_of_month / $days_in_month) * 100 : 0;
+          $goal_rows = [
+              ["label" => "Leady", "current" => (float) $goal_current_leads, "target" => (float) $goal_target_leads, "unit" => ""],
+              ["label" => "Wygrane", "current" => (float) $goal_current_won, "target" => (float) $goal_target_won, "unit" => ""],
+              ["label" => "Przychód", "current" => (float) $goal_current_revenue, "target" => (float) $goal_target_revenue, "unit" => "zł"],
+          ];
+          ?>
+          <?php foreach ($goal_rows as $gr) : ?>
+            <?php
+            $pct = $gr["target"] > 0 ? min(110, ($gr["current"] / $gr["target"]) * 100) : 0;
+            $on_track = $pct >= ($expected_pct - 5);
+            $bar_color = $pct >= 100 ? "#15803d" : ($on_track ? "#0d9488" : ($pct > ($expected_pct - 20) ? "#f97316" : "#d94c4c"));
+            $left_days = max(1, $days_in_month - $day_of_month);
+            $needed_per_day = $gr["target"] > $gr["current"] ? ceil(($gr["target"] - $gr["current"]) / $left_days) : 0;
+            ?>
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+                <strong><?php echo esc_html((string) $gr["label"]); ?></strong>
+                <span><?php echo esc_html(number_format_i18n($gr["current"], 0)); ?> / <?php echo esc_html(number_format_i18n($gr["target"], 0)); ?> <?php echo esc_html((string) $gr["unit"]); ?> (<?php echo esc_html(number_format_i18n($pct, 1)); ?>%)</span>
+              </div>
+              <div style="position:relative;height:14px;background:#e5e7eb;border-radius:7px;overflow:hidden;">
+                <div style="position:absolute;left:<?php echo esc_attr((string) $expected_pct); ?>%;top:-2px;bottom:-2px;width:2px;background:#666;z-index:2"></div>
+                <div style="height:100%;width:<?php echo esc_attr((string) $pct); ?>%;background:<?php echo esc_attr($bar_color); ?>;transition:width .3s"></div>
+              </div>
+              <small style="color:var(--text-2);font-size:11px;">
+                <?php if ($needed_per_day > 0) : ?>
+                  <?php echo esc_html(sprintf(__("Tempo wymagane: %d/dzień", "upsellio"), (int) $needed_per_day)); ?>
+                <?php else : ?>
+                  <?php esc_html_e("✓ Cel osiągnięty", "upsellio"); ?>
+                <?php endif; ?>
+              </small>
+            </div>
+          <?php endforeach; ?>
         </div>
 
         <?php if (!empty($anomalies)) : ?>
@@ -3112,6 +3196,11 @@ function upsellio_render_site_analytics_page()
                     <p><strong>Dlaczego:</strong> <?php echo esc_html((string) ($aiexpl["why"] ?? "")); ?></p>
                     <p><strong>Akcja:</strong> <?php echo esc_html((string) ($aiexpl["action"] ?? "")); ?></p>
                   </div>
+                <?php else : ?>
+                  <button type="button" class="button button-secondary" style="margin-top:8px"
+                          onclick="upsellioExplainAnomaly('<?php echo esc_js($aikey); ?>', this)">
+                    🤖 <?php esc_html_e("Wygeneruj wyjaśnienie AI", "upsellio"); ?>
+                  </button>
                 <?php endif; ?>
               </li>
             <?php endforeach; ?>
@@ -3290,6 +3379,7 @@ function upsellio_render_site_analytics_page()
 
         <div class="ups-analytics-card">
           <h2 style="margin-top:0;">Strony do optymalizacji</h2>
+          <?php $page_perf_suggestions = get_option("ups_ai_page_perf_suggestions", []); ?>
           <table class="ups-analytics-table">
             <thead>
               <tr>
@@ -3309,11 +3399,27 @@ function upsellio_render_site_analytics_page()
                 } elseif ((int) $row["trend_delta"] < 0) {
                     $trend_class = "down";
                 }
+                $row_post_id = (int) ($row["post_id"] ?? 0);
+                $row_perf_class = "";
+                if ($row_post_id > 0 && is_array($page_perf_suggestions) && isset($page_perf_suggestions[$row_post_id]) && is_array($page_perf_suggestions[$row_post_id])) {
+                    $row_perf_class = sanitize_key((string) ($page_perf_suggestions[$row_post_id]["classification"] ?? ""));
+                } elseif (is_array($page_perf_suggestions)) {
+                    foreach ($page_perf_suggestions as $pp_item) {
+                        if (!is_array($pp_item) || (int) ($pp_item["post_id"] ?? 0) !== $row_post_id) {
+                            continue;
+                        }
+                        $row_perf_class = sanitize_key((string) ($pp_item["classification"] ?? ""));
+                        break;
+                    }
+                }
                 ?>
                 <tr>
                   <td>
                     <strong><?php echo esc_html($row["title"]); ?></strong><br />
                     <a href="<?php echo esc_url($row["url"]); ?>" target="_blank" rel="noopener" class="ups-mono"><?php echo esc_html((string) wp_parse_url($row["url"], PHP_URL_PATH)); ?></a>
+                    <?php if ($row_perf_class !== "") : ?>
+                      <div style="margin-top:6px"><span class="ups-chip flat"><?php echo esc_html(strtoupper($row_perf_class)); ?></span></div>
+                    <?php endif; ?>
                   </td>
                   <td>
                     <?php echo esc_html((string) $row["views_30d"]); ?> wyświetleń<br />
@@ -3977,6 +4083,35 @@ function upsellio_render_site_analytics_page()
         </div>
         <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
         <script>
+          function upsellioExplainAnomaly(key, btn) {
+            if (!key || typeof ajaxurl === "undefined") return;
+            if (btn) {
+              btn.disabled = true;
+              btn.textContent = "Generuję...";
+            }
+            var body = new URLSearchParams({
+              action: "ups_explain_anomaly",
+              key: key,
+              _wpnonce: <?php echo wp_json_encode(wp_create_nonce("ups_explain_anomaly_action")); ?>
+            });
+            fetch(ajaxurl, {
+              method: "POST",
+              headers: {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"},
+              body: body.toString()
+            }).then(function (r) { return r.json(); }).then(function (d) {
+              if (d && d.success) {
+                window.location.reload();
+              } else if (btn) {
+                btn.disabled = false;
+                btn.textContent = "Spróbuj ponownie";
+              }
+            }).catch(function () {
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = "Spróbuj ponownie";
+              }
+            });
+          }
           (function(){
             if (typeof window.ApexCharts !== "function") return;
             var labels = <?php echo wp_json_encode(array_values($dates)); ?>;

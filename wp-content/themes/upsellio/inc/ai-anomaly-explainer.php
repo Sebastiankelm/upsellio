@@ -132,3 +132,12 @@ add_action("init", function () {
         wp_schedule_event($start, "daily", "upsellio_ai_anomaly_cron");
     }
 });
+
+add_action("wp_ajax_ups_explain_anomaly", function () {
+    check_ajax_referer("ups_explain_anomaly_action");
+    if (!current_user_can("edit_posts")) {
+        wp_send_json_error(["message" => "forbidden"], 403);
+    }
+    upsellio_ai_explain_anomalies();
+    wp_send_json_success(["ok" => true]);
+});

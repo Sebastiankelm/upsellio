@@ -258,6 +258,10 @@ function upsellio_offer_render_lines_as_checklist($lines, $use_optional_icon = f
 {
     $lines = trim((string) $lines);
     if ($lines === "") {
+        $msg = $use_optional_icon
+            ? "Brak dodatkowych opcji w tej propozycji."
+            : "Doprecyzowujemy zakres — szczegóły omówimy na rozmowie.";
+        echo '<div class="incl-empty"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>' . esc_html($msg) . "</span></div>";
         return;
     }
     foreach (preg_split("/\r\n|\r|\n/", $lines) as $line) {
@@ -280,6 +284,7 @@ function upsellio_offer_render_public_landing($offer)
         return;
     }
     $offer_id = (int) $offer->ID;
+    $is_preview_mode = isset($_GET["preview_mode"]) && current_user_can("edit_post", $offer_id);
     $slug = (string) get_post_meta($offer_id, "_ups_offer_public_slug", true);
     $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
     $person_id = (string) get_post_meta($offer_id, "_ups_offer_person_id", true);
@@ -336,7 +341,8 @@ function upsellio_offer_render_public_landing($offer)
             $services[$si]["price_hint"] = upsellio_offer_normalize_ai_display_text((string) $svc_row["price_hint"]);
         }
     }
-    $show_proof = !empty($payload["show_proof"]);
+    $proof_lines_arr = array_values(array_filter(array_map("trim", preg_split("/\r\n|\r|\n/", (string) ($payload["proof_lines"] ?? "")))));
+    $show_proof = isset($payload["show_proof"]) ? !empty($payload["show_proof"]) : count($proof_lines_arr) >= 2;
     $ajax_url = admin_url("admin-ajax.php");
     $gtm = upsellio_get_site_gtm_container_id();
     $upsellio_offer_track_public = !function_exists("upsellio_should_load_public_tracking_tags") || upsellio_should_load_public_tracking_tags();
@@ -430,6 +436,8 @@ a{text-decoration:none;color:inherit}
 .proof-logos{display:flex;flex-wrap:wrap;gap:8px}
 .proof-logo{padding:5px 12px;background:var(--bg);border:1px solid var(--border);border-radius:999px;font-size:12px;font-weight:600;color:var(--muted)}
 .sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:24px;position:sticky;top:112px;box-shadow:0 8px 32px rgba(0,0,0,.07),0 2px 8px rgba(0,0,0,.04)}
+.sc-minimal strong{display:block;font-family:var(--font-d);font-size:20px;letter-spacing:-.4px;margin-bottom:8px}
+.sc-minimal p{font-size:14px;color:var(--muted);margin-bottom:14px;line-height:1.6}
 .sc-for{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
 .sc-cli{font-family:var(--font-d);font-size:18px;font-weight:700;letter-spacing:-.3px;margin-bottom:18px}
 .sc-rows{border-top:1px solid var(--border)}
@@ -445,6 +453,8 @@ a{text-decoration:none;color:inherit}
 .sc-commit{margin-bottom:14px}
 .sc-commit-label{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
 .commit-opts{display:grid;gap:6px}
+.commit-opts--required{animation:shake .4s ease-in-out;box-shadow:0 0 0 3px rgba(217,76,76,.25);border-radius:12px}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .commit-opt{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;transition:all .18s;background:var(--bg)}
 .commit-opt:hover{border-color:var(--teall);background:var(--teals)}
 .commit-opt.sel{border-color:var(--teal);background:var(--teals);color:var(--teald);font-weight:700}
@@ -453,7 +463,9 @@ a{text-decoration:none;color:inherit}
 .sc-note{display:flex;gap:9px;align-items:flex-start;margin-top:12px;font-size:12px;color:var(--muted);line-height:1.55}
 .sc-shield{width:28px;height:28px;border-radius:50%;background:var(--teals);display:grid;place-items:center;flex-shrink:0}
 .sc-shield svg{width:12px;height:12px;stroke:var(--teald);fill:none;stroke-width:1.8}
-.scope{border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.scope{border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;min-height:280px;position:relative}
+.scope-empty{text-align:center;padding:48px 24px;color:var(--muted)}
+.scope-empty strong{display:block;font-size:16px;color:var(--ink);margin-bottom:8px}
 .scope-head{display:grid;grid-template-columns:1fr 150px 110px;padding:10px 20px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);gap:12px}
 .scope-row{display:grid;grid-template-columns:1fr 150px 110px;padding:16px 20px;border-bottom:1px solid var(--border);gap:12px;align-items:start;transition:background .15s}
 .scope-row:last-child{border-bottom:none}
@@ -494,6 +506,7 @@ a{text-decoration:none;color:inherit}
 .q-num{width:28px;height:28px;border-radius:50%;background:var(--teals);border:1.5px solid var(--teall);display:grid;place-items:center;font-family:var(--font-d);font-weight:800;font-size:12px;color:var(--teald);flex-shrink:0;margin-top:1px}
 .q-text{font-size:15px;color:var(--ink2);line-height:1.6}
 .q-note{font-size:13px;color:var(--muted);margin-top:4px}
+.q-item textarea{width:100%;margin-top:8px;padding:8px;border:1px solid #e2e8f0;border-radius:6px;font-size:14px}
 .q-reply-hint{display:flex;align-items:center;gap:8px;margin-top:20px;padding:12px 16px;background:var(--teals);border:1px solid var(--teall);border-radius:var(--r);font-size:13px;color:var(--teald);font-weight:600}
 .pbox{border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
 .ptop{padding:28px 32px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
@@ -502,8 +515,14 @@ a{text-decoration:none;color:inherit}
 .pamount{font-family:var(--font-d);font-size:46px;font-weight:700;letter-spacing:-2px;color:var(--teal);line-height:1}
 .pperiod{font-size:15px;color:var(--muted);margin-top:4px}
 .pbody{padding:28px 32px;display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.pbody-empty{display:block;padding:32px}
+.pbody-empty-msg{text-align:center;max-width:540px;margin:0 auto}
+.pbody-empty-msg strong{font-size:16px;display:block;margin-bottom:8px}
+.pbody-empty-msg p{color:var(--muted);margin:0;font-size:14px}
 .incl-title{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
 .incl{display:grid;gap:10px}
+.incl-empty{display:flex;align-items:center;gap:8px;padding:14px 16px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;color:#64748b;font-size:13px;font-style:italic}
+.incl-empty svg{flex-shrink:0;opacity:.7}
 .ii{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--ink2);line-height:1.5}
 .ick{width:18px;height:18px;border-radius:50%;background:var(--teals);display:grid;place-items:center;flex-shrink:0;margin-top:1px}
 .ick svg{width:9px;height:9px;stroke:var(--teald);fill:none;stroke-width:2.5}
@@ -560,11 +579,22 @@ a{text-decoration:none;color:inherit}
 .foot{background:var(--surface);border-top:1px solid var(--border);padding:18px 24px}
 .foot-in{max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:12px;color:var(--muted);flex-wrap:wrap}
 .foot-logo{display:flex;align-items:center;gap:8px;color:var(--ink);font-weight:700;font-size:13px}
-@media(max-width:860px){.hero-grid{grid-template-columns:1fr}.sc{position:static;top:0}.scope-head,.scope-row{grid-template-columns:1fr 100px}.scope-head>*:nth-child(2),.scope-row>*:nth-child(2){display:none}.pbody{grid-template-columns:1fr}}
+@media(max-width:1024px){.hero-grid{grid-template-columns:1fr 280px;gap:28px}.sc{padding:22px}}
+@media(max-width:860px){.scope-head,.scope-row{grid-template-columns:1fr 100px}.scope-head>*:nth-child(2),.scope-row>*:nth-child(2){display:none}.pbody{grid-template-columns:1fr}}
+@media(max-width:768px){.hero-grid{grid-template-columns:1fr;gap:24px}.sc{position:static;top:0;width:100%;max-width:none}.commit-opts{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px}.commit-opt{flex:1 1 calc(50% - 4px)}}
+@media(max-width:640px){.hero-grid{gap:20px}.commit-opt{flex:1 1 100%}.ptop{flex-direction:column;align-items:flex-start}.pamount{font-size:28px}}
 @media(max-width:580px){.w{padding:0 18px}.nav-for{display:none}.step{grid-template-columns:40px 1fr;gap:14px}.ptop{flex-direction:column;gap:12px}.snav-link{padding:11px 12px;font-size:12px}.cta-acts--stack .btn-ol{order:unset}}
+@media(max-width:480px){.h1{font-size:28px!important}.hero-lead{font-size:15px}.w{padding:0 16px}.sc-row{padding:8px 0}}
 </style>
 </head>
 <body>
+<?php if ($is_preview_mode) : ?>
+<div style="position:fixed;top:0;left:0;right:0;background:#f97316;color:#fff;padding:8px;text-align:center;z-index:9999;font-weight:700;">
+  🔍 PODGLĄD — klient zobaczy tę stronę. Tracking wyłączony.
+  <a href="<?php echo esc_url(get_edit_post_link($offer_id)); ?>" style="color:#fff;text-decoration:underline;margin-left:12px;">Zamknij i wróć do edycji</a>
+</div>
+<style>body{padding-top:40px}</style>
+<?php endif; ?>
 <?php if ($gtm !== "" && $upsellio_offer_track_public) : ?>
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=<?php echo esc_attr($gtm); ?>" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <?php endif; ?>
@@ -626,16 +656,13 @@ a{text-decoration:none;color:inherit}
         <a class="btn btn-p" href="#sec-cennik" onclick="cta('hero_primary')">Przejdź do ceny →</a>
         <a class="acts-link" href="#sec-zakres" onclick="cta('hero_scope')">Zobacz pełny zakres</a>
       </div>
-      <?php if ($show_proof) : ?>
+      <?php if ($show_proof && count($proof_lines_arr) >= 2) : ?>
       <div class="proof-strip">
         <div class="proof-strip-label">Pracuję m.in. z firmami z Twojej branży</div>
         <div class="proof-logos">
           <?php
-          foreach (preg_split("/\r\n|\r|\n/", (string) ($payload["proof_lines"] ?? "")) as $pl) {
-              $pl = trim((string) $pl);
-              if ($pl !== "") {
-                  echo '<span class="proof-logo">' . esc_html($pl) . '</span>';
-              }
+          foreach ($proof_lines_arr as $pl) {
+              echo '<span class="proof-logo">' . esc_html($pl) . "</span>";
           }
           ?>
         </div>
@@ -643,7 +670,19 @@ a{text-decoration:none;color:inherit}
       <?php endif; ?>
     </div>
 
+    <?php
+    $price_set = trim((string) $price) !== "";
+    $has_variants = !empty($services) && count($services) > 1;
+    ?>
     <div class="sc">
+      <?php if (!$price_set && !$has_variants) : ?>
+      <div class="sc-minimal">
+        <strong>30-min rozmowa</strong>
+        <p>Zaplanujmy diagnozę zanim ustalimy cenę. Bez zobowiązań.</p>
+        <a href="#sec-cennik" class="btn btn-p" style="width:100%;justify-content:center;padding:13px;" onclick="cta('sum_card_minimal')">Umów rozmowę →</a>
+        <a href="tel:+48575522595" class="acts-link" style="display:inline-block;margin-top:10px">+48 575 522 595</a>
+      </div>
+      <?php else : ?>
       <div class="sc-for">Oferta dla</div>
       <div class="sc-cli"><?php echo esc_html($client_name); ?></div>
       <div class="sc-rows">
@@ -684,6 +723,7 @@ a{text-decoration:none;color:inherit}
         <div class="sc-shield"><svg viewBox="0 0 20 20"><path d="M10 2L3 5v5c0 4.4 3.1 8.1 7 9 3.9-.9 7-4.6 7-9V5l-7-3Z"/></svg></div>
         Bez zobowiązań do podpisania umowy. Konsultacja wdrożeniowa gratis.
       </div>
+      <?php endif; ?>
     </div>
   </div>
 </div>
@@ -696,7 +736,14 @@ a{text-decoration:none;color:inherit}
   <div class="lbl">Zakres działania</div>
   <h2 class="h2">Co dokładnie wchodzi w ofertę</h2>
   <p class="sub">Pełna lista elementów — co jest w cenie, co opcjonalne, a co dostępne jako rozszerzenie.</p>
+  <?php $any_scope = !empty($payload["has_google"]) || !empty($payload["has_meta"]) || !empty($payload["has_web"]); ?>
   <div class="scope">
+    <?php if (!$any_scope) : ?>
+    <div class="scope-empty">
+      <strong>Zakres skonsultujemy podczas rozmowy</strong>
+      <p>Po analizie sytuacji wybierzemy razem optymalny mix usług — Google Ads, Meta, strona lub kombinacja.</p>
+    </div>
+    <?php else : ?>
     <div class="scope-head"><span>Element zakresu</span><span>Kiedy / jak często</span><span>Status</span></div>
     <?php if (!empty($payload["has_google"])) : ?>
     <div class="scope-group"><div class="scope-group-dot"></div>Google Ads</div>
@@ -728,6 +775,7 @@ a{text-decoration:none;color:inherit}
         echo wp_kses_post($extra_scope);
     }
     ?>
+    <?php endif; ?>
   </div>
 </div>
 </div>
@@ -783,21 +831,28 @@ a{text-decoration:none;color:inherit}
 <div class="sec r" data-offer-section="pytania">
   <div class="lbl">Pytania do Ciebie</div>
   <h2 class="h2">Potrzebuję kilku informacji</h2>
-  <p class="sub">Krótka lista — ułatwi start i jakość wdrożenia.</p>
+  <p class="sub">Możesz odpowiedzieć tutaj, mailem albo na rozmowie. Jeśli teraz nie wiesz — zostaw puste.</p>
   <div class="questions-sec">
-    <?php foreach ($questions as $qi => $q) : ?>
-    <div class="q-item">
-      <div class="q-num"><?php echo esc_html((string) ($qi + 1)); ?></div>
-      <div>
-        <div class="q-text"><?php echo esc_html((string) ($q["text"] ?? "")); ?></div>
-        <?php if (!empty($q["note"])) : ?><div class="q-note"><?php echo esc_html((string) $q["note"]); ?></div><?php endif; ?>
+    <form id="qaForm">
+      <input type="hidden" name="action" value="upsellio_offer_qa_submit" />
+      <input type="hidden" name="nonce" value="<?php echo esc_attr($public_nonce); ?>" />
+      <input type="hidden" name="offer_id" value="<?php echo (int) $offer_id; ?>" />
+      <?php foreach ($questions as $qi => $q) : ?>
+      <div class="q-item">
+        <div class="q-num"><?php echo esc_html((string) ($qi + 1)); ?></div>
+        <div style="flex:1">
+          <div class="q-text"><?php echo esc_html((string) ($q["text"] ?? "")); ?></div>
+          <?php if (!empty($q["note"])) : ?><div class="q-note"><?php echo esc_html((string) $q["note"]); ?></div><?php endif; ?>
+          <textarea name="answer_<?php echo (int) $qi; ?>" rows="2" placeholder="Odpowiedź (opcjonalna)..."></textarea>
+        </div>
       </div>
-    </div>
-    <?php endforeach; ?>
-    <div class="q-reply-hint">
-      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h16v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4Z"/><path d="m2 4 8 7 8-7"/></svg>
-      Użyj przycisku <strong>„Mam pytanie”</strong> w sekcji Cennik — dostaniesz potwierdzenie na maila. Możesz też napisać na <strong><?php echo esc_html($owner_email); ?></strong>.
-    </div>
+      <?php endforeach; ?>
+      <div style="margin-top:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <input type="email" name="qa_email" placeholder="Twój email (do wysyłki)" required style="flex:1;padding:10px;border:1px solid #e2e8f0;border-radius:6px;" />
+        <button type="button" class="btn btn-p" onclick="submitQA()">Wyślij odpowiedzi →</button>
+      </div>
+      <div id="qaStatus" style="margin-top:8px;font-size:13px;"></div>
+    </form>
   </div>
 </div>
 </div>
@@ -821,7 +876,17 @@ a{text-decoration:none;color:inherit}
         <div class="pperiod"><?php echo esc_html((string) ($payload["price_note"] ?? "")); ?></div>
       </div>
     </div>
-    <div class="pbody">
+    <?php
+    $has_include = trim((string) ($payload["include_lines"] ?? "")) !== "";
+    $has_option = trim((string) ($payload["option_lines"] ?? "")) !== "";
+    ?>
+    <div class="pbody<?php echo (!$has_include && !$has_option) ? " pbody-empty" : ""; ?>">
+      <?php if (!$has_include && !$has_option) : ?>
+      <div class="pbody-empty-msg">
+        <strong>Pełen zakres ustalimy podczas wstępnej rozmowy.</strong>
+        <p>Powyższa cena to widełki wstępne — ostateczna oferta zależy od audytu sytuacji.</p>
+      </div>
+      <?php else : ?>
       <div>
         <div class="incl-title">Zawarte w abonamencie</div>
         <div class="incl"><?php upsellio_offer_render_lines_as_checklist((string) ($payload["include_lines"] ?? ""), false); ?></div>
@@ -830,6 +895,7 @@ a{text-decoration:none;color:inherit}
         <div class="incl-title">Opcjonalne rozszerzenia</div>
         <div class="incl"><?php upsellio_offer_render_lines_as_checklist((string) ($payload["option_lines"] ?? ""), true); ?></div>
       </div>
+      <?php endif; ?>
     </div>
     <div class="pfoot pfoot--stack" id="pricing-accept-anchor">
       <div class="pfoot-primary">
@@ -948,6 +1014,7 @@ var clientId=<?php echo (int) $client_id; ?>;
 var personId=<?php echo wp_json_encode((string) $person_id); ?>;
 var ajaxUrl=<?php echo wp_json_encode((string) $ajax_url); ?>;
 var __upsTrackPublic=<?php echo $upsellio_offer_track_public ? "true" : "false"; ?>;
+var __upsPreviewMode=<?php echo $is_preview_mode ? "true" : "false"; ?>;
 var hasClientEmail=<?php echo $client_email_ok ? "true" : "false"; ?>;
 var publicNonce=<?php echo wp_json_encode((string) $public_nonce); ?>;
 var q=new URLSearchParams(window.location.search||'');
@@ -979,7 +1046,7 @@ function jumpTo(id){
 var ro=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting)x.target.classList.add('in');});},{threshold:.1});
 document.querySelectorAll('.r').forEach(function(el){ro.observe(el);});
 function trackEvent(eventName,extra){
-  if(!__upsTrackPublic)return;
+  if(!__upsTrackPublic||__upsPreviewMode)return;
   extra=extra||{};
   var body=new URLSearchParams();
   body.append('action','upsellio_offer_track_event');
@@ -996,8 +1063,8 @@ function trackEvent(eventName,extra){
   if(navigator.sendBeacon)navigator.sendBeacon(ajaxUrl,body);
   else fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString(),credentials:'same-origin',keepalive:true}).catch(function(){});
 }
-function pushDl(ev,ex){if(!__upsTrackPublic)return;window.dataLayer=window.dataLayer||[];dataLayer.push(Object.assign({event:ev,offer_id:String(offerId),person_id:String(personId||'')},ex||{}));}
-trackEvent('offer_view',{});
+function pushDl(ev,ex){if(!__upsTrackPublic||__upsPreviewMode)return;window.dataLayer=window.dataLayer||[];dataLayer.push(Object.assign({event:ev,offer_id:String(offerId),person_id:String(personId||'')},ex||{}));}
+if(!__upsPreviewMode){trackEvent('offer_view',{});}
 var so=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting&&!x.target._tsv){x.target._tsv=true;var sid=x.target.getAttribute('data-offer-section')||'';if(sid)trackEvent('offer_section_view',{section_id:sid});}});},{threshold:0.4});
 document.querySelectorAll('[data-offer-section]').forEach(function(el){so.observe(el);});
 var pEl=document.getElementById('pricing-section-element'),pStart=null,pTick=null,sent={};
@@ -1082,6 +1149,18 @@ function runAccept(source){
 }
 function onAcceptClick(source){
   cta(source==='pricing'?'pricing_accept_ajax':'footer_accept_ajax');
+  var hasVariants=document.querySelectorAll('input[name="commit"]').length>0;
+  var commit=getCommit();
+  if(hasVariants&&!commit.key){
+    var opts=document.getElementById('commitOpts');
+    if(opts){
+      opts.scrollIntoView({behavior:'smooth',block:'center'});
+      opts.classList.add('commit-opts--required');
+      setTimeout(function(){opts.classList.remove('commit-opts--required');},2000);
+    }
+    showToast('Wybierz najpierw pakiet, którym jesteś zainteresowany.',true);
+    return;
+  }
   window.__pendingContactEmail=null;
   if(!hasClientEmail){
     window.__pendingSource=source;
@@ -1162,6 +1241,37 @@ if(elQs)elQs.addEventListener('click',function(){
     }
   }).catch(function(){showToast('Błąd sieci.',true);});
 });
+window.submitQA=function(){
+  var form=document.getElementById('qaForm');
+  var status=document.getElementById('qaStatus');
+  if(!form||!status){return;}
+  var fd=new FormData(form);
+  var answers=[];
+  fd.forEach(function(v,k){
+    if(String(k).indexOf('answer_')===0&&String(v).trim().length>3){answers.push(String(v));}
+  });
+  if(answers.length===0){
+    status.textContent='⚠️ Odpowiedz na minimum 1 pytanie albo użyj przycisku „Mam pytanie”.';
+    status.style.color='#d94c4c';
+    return;
+  }
+  status.textContent='Wysyłam...';
+  status.style.color='var(--muted)';
+  var body=new URLSearchParams();
+  fd.forEach(function(v,k){body.append(k,String(v));});
+  fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString(),credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){
+    if(data&&data.success){
+      form.innerHTML='<div style="text-align:center;padding:24px;background:#f0fdfa;border-radius:12px;">✓ Dziękuję za odpowiedzi. Przygotuję się do rozmowy.</div>';
+      pushDl('offer_public_qa_submitted',{answered_count:answers.length});
+    }else{
+      status.textContent='❌ '+((data&&data.data&&data.data.message)?data.data.message:'Błąd');
+      status.style.color='#d94c4c';
+    }
+  }).catch(function(){
+    status.textContent='❌ Błąd sieci';
+    status.style.color='#d94c4c';
+  });
+};
 document.querySelectorAll('[data-ups-close]').forEach(function(el){
   el.addEventListener('click',closeModals);
 });
@@ -1322,3 +1432,47 @@ function upsellio_offer_public_messaging_ajax()
 }
 add_action("wp_ajax_upsellio_offer_public_messaging", "upsellio_offer_public_messaging_ajax");
 add_action("wp_ajax_nopriv_upsellio_offer_public_messaging", "upsellio_offer_public_messaging_ajax");
+
+function upsellio_offer_qa_submit_handler()
+{
+    $offer_id = isset($_POST["offer_id"]) ? (int) $_POST["offer_id"] : 0;
+    if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
+        wp_send_json_error(["message" => "Nieprawidłowa oferta."]);
+    }
+    if (!isset($_POST["nonce"]) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["nonce"])), "ups_offer_public_" . $offer_id)) {
+        wp_send_json_error(["message" => "Sesja wygasła. Odśwież stronę."]);
+    }
+    $email = isset($_POST["qa_email"]) ? sanitize_email(wp_unslash($_POST["qa_email"])) : "";
+    if (!is_email($email)) {
+        wp_send_json_error(["message" => "Email niepoprawny."]);
+    }
+    $answers = [];
+    foreach ($_POST as $k => $v) {
+        if (strpos((string) $k, "answer_") === 0) {
+            $ans = sanitize_textarea_field((string) wp_unslash($v));
+            if (trim($ans) !== "") {
+                $answers[] = $ans;
+            }
+        }
+    }
+    if (empty($answers)) {
+        wp_send_json_error(["message" => "Brak odpowiedzi."]);
+    }
+    update_post_meta($offer_id, "_ups_offer_qa_responses", [
+        "email" => $email,
+        "answers" => $answers,
+        "submitted_at" => current_time("mysql"),
+    ]);
+    if (function_exists("upsellio_inbox_append_message")) {
+        upsellio_inbox_append_message($offer_id, [
+            "direction" => "in",
+            "from" => $email,
+            "subject" => "Odpowiedzi na pytania z oferty",
+            "body_plain" => "Klient odpowiedział na pytania:\n\n" . implode("\n\n---\n\n", $answers),
+            "source" => "offer_qa_form",
+        ]);
+    }
+    wp_send_json_success(["ok" => true]);
+}
+add_action("wp_ajax_upsellio_offer_qa_submit", "upsellio_offer_qa_submit_handler");
+add_action("wp_ajax_nopriv_upsellio_offer_qa_submit", "upsellio_offer_qa_submit_handler");

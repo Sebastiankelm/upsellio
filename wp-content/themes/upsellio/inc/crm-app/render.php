@@ -4,6 +4,11 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
+function upsellio_help_tooltip(string $text): string
+{
+    return '<span class="ups-tip" tabindex="0" data-tip="' . esc_attr($text) . '">ⓘ</span>';
+}
+
 function upsellio_crm_app_template_redirect()
 {
     if (!upsellio_crm_app_is_crm_app_view()) {
@@ -15,15 +20,37 @@ function upsellio_crm_app_template_redirect()
     upsellio_crm_app_handle_post_actions();
 
     $view = isset($_GET["view"]) ? sanitize_key((string) wp_unslash($_GET["view"])) : "dashboard";
-    if (!in_array($view, ["dashboard", "leads", "account-360", "clients", "client-edit", "contacts", "offers", "deals", "offer_analytics", "template-studio", "services", "pipeline", "contracts", "contract-detail", "followups", "tasks", "calendar", "prospecting", "inbox", "alerts", "analytics", "research", "suggestions", "engine", "settings", "contact-queue", "search"], true)) {
+    if (!in_array($view, ["dashboard", "leads", "account-360", "clients", "client-edit", "contacts", "offers", "deals", "offer_analytics", "template-studio", "services", "pipeline", "contracts", "contract-detail", "followups", "tasks", "calendar", "prospecting", "inbox", "alerts", "analytics", "insights", "research", "suggestions", "engine", "settings", "contact-queue", "search"], true)) {
         $view = "dashboard";
     }
     $template_studio_tab = isset($_GET["tab"]) ? sanitize_key((string) wp_unslash($_GET["tab"])) : "offer";
     if (!in_array($template_studio_tab, ["offer", "contract"], true)) {
         $template_studio_tab = "offer";
     }
+    $settings_tabs = [
+        "general" => __("Główne", "upsellio"),
+        "email" => __("Poczta", "upsellio"),
+        "ai" => __("AI", "upsellio"),
+        "pipeline" => __("Pipeline", "upsellio"),
+        "templates" => __("Szablony", "upsellio"),
+    ];
+    $legacy_redirects = [
+        "mailbox" => "email",
+        "scoring" => "pipeline",
+        "automation" => "pipeline",
+        "offer-template" => "templates",
+        "contract-template" => "templates",
+        "users" => "general",
+        "integrations" => "general",
+        "notifications" => "general",
+        "offer_template" => "templates",
+        "contract_template" => "templates",
+    ];
     $settings_tab = isset($_GET["settings_tab"]) ? sanitize_key((string) wp_unslash($_GET["settings_tab"])) : "general";
-    if (!in_array($settings_tab, ["general", "mailbox", "scoring", "offer-template", "contract-template", "automation", "users", "integrations", "notifications", "ai"], true)) {
+    if (isset($legacy_redirects[$settings_tab])) {
+        $settings_tab = $legacy_redirects[$settings_tab];
+    }
+    if (!isset($settings_tabs[$settings_tab])) {
         $settings_tab = "general";
     }
     $task_tab = isset($_GET["task_tab"]) ? sanitize_key((string) wp_unslash($_GET["task_tab"])) : "all";
@@ -43,7 +70,7 @@ function upsellio_crm_app_template_redirect()
         $pipeline_mode = "kanban";
     }
     $analytics_tab = isset($_GET["analytics_tab"]) ? sanitize_key((string) wp_unslash($_GET["analytics_tab"])) : "sales";
-    if (!in_array($analytics_tab, ["sales", "leads", "sources", "offers", "site", "followups"], true)) {
+    if (!in_array($analytics_tab, ["insights", "sales", "leads", "sources", "offers", "site", "followups"], true)) {
         $analytics_tab = "sales";
     }
     $suggestions_tab = isset($_GET["suggestions_tab"]) ? sanitize_key((string) wp_unslash($_GET["suggestions_tab"])) : "seo";
@@ -310,6 +337,10 @@ function upsellio_crm_app_template_redirect()
         .side-link.active{background:rgba(13,148,136,.18);color:#5eead4;border-color:rgba(13,148,136,.22)}
         .side-icon{font-size:14px;width:16px;text-align:center;flex-shrink:0;opacity:.7}
         .side-link:hover .side-icon,.side-link.active .side-icon{opacity:1}
+        .side-subnav{padding-left:32px;margin-bottom:8px}
+        .side-sublink{display:block;padding:4px 8px;font-size:12px;color:#94a3b8;text-decoration:none;border-radius:4px}
+        .side-sublink:hover{color:#cbd5e1;background:rgba(255,255,255,.06)}
+        .side-sublink.is-active{color:#0d9488;font-weight:700;background:rgba(13,148,136,.12)}
         .main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
         .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;flex-shrink:0;z-index:40}
         .topbar-zone--title{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
@@ -607,16 +638,11 @@ function upsellio_crm_app_template_redirect()
       ];
       $current_view_title = isset($view_titles[$view]) ? (string) $view_titles[$view] : "CRM App";
       $crm_settings_tab_labels = [
-          "general" => "Ogólne",
-          "mailbox" => "Mail / skrzynki",
-          "scoring" => "Scoring",
-          "offer-template" => "Szablon oferty",
-          "contract-template" => "Szablon umowy",
-          "automation" => "Automatyzacje",
-          "users" => "Użytkownicy",
-          "integrations" => "Integracje",
-          "notifications" => "Powiadomienia",
-          "ai" => "AI / Anthropic",
+          "general" => "Główne",
+          "email" => "Poczta",
+          "ai" => "AI",
+          "pipeline" => "Pipeline",
+          "templates" => "Szablony",
       ];
       $crm_topbar_title = $current_view_title;
       if ($view === "settings") {
@@ -679,7 +705,30 @@ function upsellio_crm_app_template_redirect()
             <a class="side-link <?php echo in_array($view, ["offers", "deals", "offer_analytics"], true) ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "offers"], home_url("/crm-app/"))); ?>"><span class="side-icon" aria-hidden="true">◈</span> <?php esc_html_e("Oferty", "upsellio"); ?></a>
             <a class="side-link <?php echo $view === "clients" || $view === "client-edit" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "clients"], home_url("/crm-app/"))); ?>"><span class="side-icon" aria-hidden="true">◎</span> <?php esc_html_e("Klienci", "upsellio"); ?></a>
             <div class="side-section" style="margin-top:8px"><?php esc_html_e("Dane", "upsellio"); ?></div>
-            <a class="side-link <?php echo $view === "analytics" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "analytics"], home_url("/crm-app/"))); ?>"><span class="side-icon" aria-hidden="true">↗</span> <?php esc_html_e("Analityka", "upsellio"); ?></a>
+            <?php
+            $current_atab = isset($_GET["atab"]) ? sanitize_key((string) wp_unslash($_GET["atab"])) : "today";
+            $is_analytics_section = $view === "analytics";
+            ?>
+            <a class="side-link <?php echo $is_analytics_section ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "analytics", "atab" => "today"], home_url("/crm-app/"))); ?>"><span class="side-icon" aria-hidden="true">↗</span> <?php esc_html_e("Analityka", "upsellio"); ?></a>
+            <?php if ($is_analytics_section) : ?>
+              <div class="side-subnav">
+                <?php
+                $atabs = [
+                    "today" => "📅 Dziś",
+                    "traffic" => "🌐 Ruch",
+                    "seo" => "🔎 SEO",
+                    "paid" => "💰 Płatne",
+                    "sales" => "🎯 Sprzedaż",
+                ];
+                foreach ($atabs as $key => $label) :
+                    $url = add_query_arg(["view" => "analytics", "atab" => $key], home_url("/crm-app/"));
+                    $active = $current_atab === $key ? "is-active" : "";
+                    ?>
+                    <a class="side-sublink <?php echo esc_attr($active); ?>" href="<?php echo esc_url($url); ?>"><?php echo esc_html($label); ?></a>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+            <a class="side-link <?php echo $view === "insights" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "insights"], home_url("/crm-app/"))); ?>"><span class="side-icon" aria-hidden="true">✨</span> <?php esc_html_e("Insights AI", "upsellio"); ?></a>
             <a class="side-link <?php echo $view === "research" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "research", "research_tab" => "keywords"], home_url("/crm-app/"))); ?>"><span class="side-icon" aria-hidden="true">🔬</span> <?php esc_html_e("Research", "upsellio"); ?></a>
             <a class="side-link <?php echo $view === "suggestions" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "suggestions", "suggestions_tab" => "seo"], home_url("/crm-app/"))); ?>"><span class="side-icon" aria-hidden="true">✨</span> <?php esc_html_e("Sugestie AI", "upsellio"); ?></a>
             <div class="side-section" style="margin-top:8px"><?php esc_html_e("System", "upsellio"); ?></div>
@@ -960,6 +1009,83 @@ function upsellio_crm_app_template_redirect()
                     </div>
                   </div>
                 </div>
+                <?php
+                $dash_weekly_brief = function_exists("upsellio_get_latest_weekly_brief") ? upsellio_get_latest_weekly_brief() : ["html" => "", "at" => 0];
+                $dash_wb_html = (string) ($dash_weekly_brief["html"] ?? "");
+                $dash_wb_at = (int) ($dash_weekly_brief["at"] ?? 0);
+                ?>
+                <?php if ($dash_wb_html !== "" && $dash_wb_at > 0 && (time() - $dash_wb_at) < (5 * DAY_IN_SECONDS)) : ?>
+                  <?php $dash_wb_age = max(0, (int) floor((time() - $dash_wb_at) / DAY_IN_SECONDS)); ?>
+                  <section class="card" style="grid-column:1/-1;background:linear-gradient(135deg,#fff7ed,#fff);border-left:4px solid #f97316;padding:18px 22px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;">
+                      <div>
+                        <div style="font-size:11px;font-weight:800;color:#9a3412;letter-spacing:.5px;text-transform:uppercase;">
+                          🎯 <?php esc_html_e("Brief AI", "upsellio"); ?> · <?php echo $dash_wb_age === 0 ? esc_html__("dzisiaj", "upsellio") : esc_html(sprintf(__("%d dni temu", "upsellio"), $dash_wb_age)); ?>
+                        </div>
+                        <h3 style="margin:4px 0 0;font-size:18px;"><?php esc_html_e("Twój brief sprzedażowy", "upsellio"); ?></h3>
+                      </div>
+                    </div>
+                    <div class="ups-weekly-brief-content" style="font-size:14px;line-height:1.55;color:var(--text);">
+                      <?php echo wp_kses_post($dash_wb_html); ?>
+                    </div>
+                  </section>
+                <?php endif; ?>
+                <?php
+                $dashboard_priority_leads = [];
+                foreach ($leads as $lead_dash_item) {
+                    if (!($lead_dash_item instanceof WP_Post)) {
+                        continue;
+                    }
+                    $lead_dash_id = (int) $lead_dash_item->ID;
+                    $lead_dash_status = (string) get_post_meta($lead_dash_id, "_ups_lead_qualification_status", true);
+                    if (in_array($lead_dash_status, ["rejected", "converted"], true)) {
+                        continue;
+                    }
+                    $lead_dash_score = (int) get_post_meta($lead_dash_id, "_upsellio_lead_score", true);
+                    if ($lead_dash_score <= 0) {
+                        $lead_dash_score = (int) get_post_meta($lead_dash_id, "_ups_lead_score_0_100", true);
+                    }
+                    if ($lead_dash_score < 60) {
+                        continue;
+                    }
+                    $dashboard_priority_leads[] = ["post" => $lead_dash_item, "score" => $lead_dash_score];
+                }
+                usort($dashboard_priority_leads, static function ($a, $b) {
+                    return (int) ($b["score"] ?? 0) <=> (int) ($a["score"] ?? 0);
+                });
+                ?>
+                <?php if (!empty($dashboard_priority_leads)) : ?>
+                  <section class="card" style="grid-column:1/-1;background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;padding:20px;">
+                    <h3 style="margin:0 0 12px;font-size:16px;">🔥 <?php esc_html_e("Top 3 leady do oddzwonienia dziś", "upsellio"); ?></h3>
+                    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
+                      <?php foreach (array_slice($dashboard_priority_leads, 0, 3) as $lead_row) : ?>
+                        <?php
+                        $lead_obj = $lead_row["post"];
+                        $lead_id = (int) $lead_obj->ID;
+                        $lead_score = (int) ($lead_row["score"] ?? 0);
+                        $lead_reason = (string) get_post_meta($lead_id, "_upsellio_lead_score_reason", true);
+                        $lead_phone = (string) get_post_meta($lead_id, "_ups_lead_phone", true);
+                        $lead_industry = (string) get_post_meta($lead_id, "_upsellio_lead_quiz_industry", true);
+                        $lead_age_h = max(0, (int) floor((time() - get_post_time("U", false, $lead_id)) / HOUR_IN_SECONDS));
+                        ?>
+                        <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:12px;">
+                          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;">
+                            <strong style="font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?php echo esc_html(get_the_title($lead_id)); ?></strong>
+                            <span style="font-size:11px;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:99px;font-weight:800;flex-shrink:0;"><?php echo esc_html((string) $lead_score); ?>/100</span>
+                          </div>
+                          <div style="font-size:11px;opacity:.85;margin-bottom:8px;"><?php echo esc_html(wp_trim_words($lead_reason, 12)); ?></div>
+                          <div style="font-size:11px;opacity:.7;margin-bottom:10px;"><?php echo $lead_industry !== "" ? esc_html($lead_industry) . " · " : ""; ?><?php echo esc_html((string) $lead_age_h); ?>h <?php esc_html_e("temu", "upsellio"); ?></div>
+                          <div style="display:flex;gap:6px;">
+                            <?php if ($lead_phone !== "") : ?>
+                              <a href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $lead_phone)); ?>" style="flex:1;background:#fff;color:#0f766e;padding:6px 12px;border-radius:6px;text-align:center;font-weight:800;font-size:12px;text-decoration:none;">📞 <?php esc_html_e("Zadzwoń", "upsellio"); ?></a>
+                            <?php endif; ?>
+                            <a href="<?php echo esc_url(add_query_arg(["view" => "leads", "lead_id" => $lead_id], home_url("/crm-app/"))); ?>" style="flex:1;background:rgba(255,255,255,.2);color:#fff;padding:6px 12px;border-radius:6px;text-align:center;font-weight:700;font-size:12px;text-decoration:none;">📋 <?php esc_html_e("Brief", "upsellio"); ?></a>
+                          </div>
+                        </div>
+                      <?php endforeach; ?>
+                    </div>
+                  </section>
+                <?php endif; ?>
                 <div class="crm-dash-actions card" style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;align-items:center">
                   <span class="muted" style="font-size:12px;margin-right:8px"><?php esc_html_e("Szybkie akcje:", "upsellio"); ?></span>
                   <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "leads"], home_url("/crm-app/"))); ?>"><?php esc_html_e("+ Lead", "upsellio"); ?></a>
@@ -1016,28 +1142,26 @@ function upsellio_crm_app_template_redirect()
                 </div>
                 <?php endif; ?>
 
-                <section class="card kpi <?php echo esc_attr($kpi_lead_class); ?>">
+                <a class="card kpi <?php echo esc_attr($kpi_lead_class); ?>" style="text-decoration:none;color:inherit;transition:transform .15s, box-shadow .15s;" href="<?php echo esc_url(add_query_arg(["view" => "leads", "lead_tab" => "new"], home_url("/crm-app/"))); ?>">
                   <span class="muted"><?php esc_html_e("Nowe leady", "upsellio"); ?></span>
                   <b><?php echo esc_html((string) (int) ($kpi["new_leads"] ?? 0)); ?></b>
                   <span class="muted" style="font-size:12px"><?php echo esc_html(sprintf(/* translators: 1: percent */ __("vs poprzedni okres: %+d%%", "upsellio"), $k_new_delta)); ?></span>
-                </section>
-                <section class="card kpi">
+                </a>
+                <a class="card kpi" style="text-decoration:none;color:inherit;transition:transform .15s, box-shadow .15s;" href="<?php echo esc_url(add_query_arg(["view" => "leads", "lead_tab" => "contact"], home_url("/crm-app/"))); ?>">
                   <span class="muted"><?php esc_html_e("Leady do kontaktu", "upsellio"); ?></span>
                   <b><?php echo esc_html((string) (int) ($kpi["need_contact"] ?? 0)); ?></b>
                   <span class="muted" style="font-size:12px"><?php echo esc_html(sprintf(/* translators: %d overdue */ __("%d zaległych (>48h)", "upsellio"), (int) ($kpi["need_contact_overdue"] ?? 0))); ?></span>
-                  <div style="margin-top:8px"><a class="btn alt" style="font-size:12px;padding:6px 12px" href="<?php echo esc_url(add_query_arg(["view" => "leads", "lead_tab" => "contact"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Otwórz leady", "upsellio"); ?></a></div>
-                </section>
-                <section class="card kpi">
+                </a>
+                <a class="card kpi" style="text-decoration:none;color:inherit;transition:transform .15s, box-shadow .15s;" href="<?php echo esc_url(add_query_arg(["view" => "pipeline"], home_url("/crm-app/"))); ?>">
                   <span class="muted"><?php esc_html_e("Oferty do follow-upu", "upsellio"); ?></span>
                   <b><?php echo esc_html((string) (int) ($kpi["offers_followup"] ?? 0)); ?></b>
                   <span class="muted" style="font-size:12px"><?php echo esc_html(sprintf(/* translators: %d stale */ __("%d bez aktywności >3 dni", "upsellio"), (int) ($kpi["offers_followup_stale"] ?? 0))); ?></span>
-                  <div style="margin-top:8px"><a class="btn alt" style="font-size:12px;padding:6px 12px" href="<?php echo esc_url(add_query_arg(["view" => "pipeline"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Pipeline", "upsellio"); ?></a></div>
-                </section>
-                <section class="card kpi">
+                </a>
+                <a class="card kpi" style="text-decoration:none;color:inherit;transition:transform .15s, box-shadow .15s;" href="<?php echo esc_url(add_query_arg(["view" => "pipeline"], home_url("/crm-app/"))); ?>">
                   <span class="muted"><?php esc_html_e("Wartość otwartego pipeline", "upsellio"); ?></span>
                   <b><?php echo esc_html(number_format((float) ($kpi["pipeline_open_value"] ?? 0), 0, ",", " ")); ?> PLN</b>
                   <span class="muted" style="font-size:12px"><?php echo esc_html(sprintf(/* translators: amount PLN */ __("Najbliżej wygranej (ważone): %s PLN", "upsellio"), number_format((float) ($kpi["nearest_win_value"] ?? 0), 0, ",", " "))); ?></span>
-                </section>
+                </a>
                 <?php
                 $all_clients_ch = get_posts(["post_type" => "crm_client", "post_status" => "publish", "posts_per_page" => 200, "fields" => "ids"]);
                 $cancelled_90d = 0;
@@ -1353,7 +1477,7 @@ function upsellio_crm_app_template_redirect()
                 })();
                 </script>
                 <table>
-                  <thead><tr><th><?php esc_html_e("Lead", "upsellio"); ?></th><th><?php esc_html_e("Firma / potrzeba", "upsellio"); ?></th><th><?php esc_html_e("Źródło", "upsellio"); ?></th><th><?php esc_html_e("Wiek", "upsellio"); ?></th><th><?php esc_html_e("Typ", "upsellio"); ?></th><th><?php esc_html_e("Status", "upsellio"); ?></th><th>Score</th><th><?php esc_html_e("Prawd.", "upsellio"); ?></th><th><?php esc_html_e("Temp.", "upsellio"); ?></th><th><?php esc_html_e("Budżet", "upsellio"); ?></th><th><?php esc_html_e("Decyzja", "upsellio"); ?></th><th><?php esc_html_e("Akcja", "upsellio"); ?></th></tr></thead>
+                  <thead><tr><th><?php esc_html_e("Lead", "upsellio"); ?></th><th><?php esc_html_e("Firma / potrzeba", "upsellio"); ?></th><th><?php esc_html_e("Źródło", "upsellio"); ?></th><th><?php esc_html_e("Branża (quiz)", "upsellio"); ?></th><th><?php esc_html_e("Problem (quiz)", "upsellio"); ?></th><th><?php esc_html_e("Query GSC", "upsellio"); ?></th><th><?php esc_html_e("Wiek", "upsellio"); ?></th><th><?php esc_html_e("Status", "upsellio"); ?></th><th>Score</th><th><?php esc_html_e("Prawd.", "upsellio"); ?></th><th><?php esc_html_e("Budżet", "upsellio"); ?></th><th><?php esc_html_e("Decyzja", "upsellio"); ?></th><th><?php esc_html_e("Akcja", "upsellio"); ?></th></tr></thead>
                   <tbody>
                     <?php foreach ($leads as $lead) : $lid = (int) $lead->ID; ?>
                       <?php
@@ -1384,6 +1508,9 @@ function upsellio_crm_app_template_redirect()
                         <td><?php echo esc_html((string) $lead->post_title); ?><br/><small><?php echo esc_html((string) get_post_meta($lid, "_ups_lead_email", true)); ?></small></td>
                         <td><small><?php echo esc_html(wp_trim_words((string) get_post_meta($lid, "_ups_lead_need", true), 14)); ?></small></td>
                         <td><small><?php echo esc_html((string) get_post_meta($lid, "_ups_lead_source", true)); ?></small></td>
+                        <td><small><?php echo esc_html((string) get_post_meta($lid, "_upsellio_lead_quiz_industry", true)); ?></small></td>
+                        <td><small><?php echo esc_html((string) get_post_meta($lid, "_upsellio_lead_quiz_problem", true)); ?></small></td>
+                        <td><small><?php echo esc_html((string) get_post_meta($lid, "_upsellio_lead_gsc_likely_query", true)); ?></small></td>
                         <?php
                         $l_created_raw = (string) $lead->post_date_gmt;
                         if ($l_created_raw === "" || $l_created_raw === "0000-00-00 00:00:00") {
@@ -1403,7 +1530,6 @@ function upsellio_crm_app_template_redirect()
                             <br/><small style="color:#ef4444"><?php esc_html_e("Przekroczono 24h!", "upsellio"); ?></small>
                           <?php endif; ?>
                         </td>
-                        <td><?php echo esc_html((string) get_post_meta($lid, "_ups_lead_type", true)); ?></td>
                         <td><?php echo esc_html((string) get_post_meta($lid, "_ups_lead_qualification_status", true)); ?></td>
                         <?php
                         $l_score = (int) get_post_meta($lid, "_ups_lead_score_0_100", true);
@@ -1426,7 +1552,6 @@ function upsellio_crm_app_template_redirect()
                           <?php endif; ?>
                         </td>
                         <td><?php echo esc_html((string) (int) get_post_meta($lid, "_ups_lead_deal_probability_0_100", true)); ?>%</td>
-                        <td><?php echo esc_html((string) get_post_meta($lid, "_ups_lead_temperature", true)); ?></td>
                         <td><?php echo esc_html(number_format((float) get_post_meta($lid, "_ups_lead_budget", true), 2, ",", " ")); ?></td>
                         <td><?php echo esc_html((string) get_post_meta($lid, "_ups_lead_decision_date", true)); ?></td>
                         <td>
@@ -1441,7 +1566,7 @@ function upsellio_crm_app_template_redirect()
                         </td>
                       </tr>
                     <?php endforeach; ?>
-                    <?php if (empty($leads)) : ?><tr><td colspan="12"><?php esc_html_e("Brak leadów.", "upsellio"); ?></td></tr><?php endif; ?>
+                    <?php if (empty($leads)) : ?><tr><td colspan="13"><?php esc_html_e("Brak leadów.", "upsellio"); ?></td></tr><?php endif; ?>
                   </tbody>
                 </table>
               </section>
@@ -1497,6 +1622,22 @@ function upsellio_crm_app_template_redirect()
                         $a360_events = get_post_meta($a360_oid, "_ups_offer_events", true);
                         $a360_ev_count = is_array($a360_events) ? count($a360_events) : 0;
                         $a360_cta_clicks = 0;
+                        $a360_lead_id = 0;
+                        if (post_type_exists("crm_lead")) {
+                            $a360_leads_found = get_posts([
+                                "post_type" => "crm_lead",
+                                "post_status" => ["publish", "private", "draft"],
+                                "posts_per_page" => 1,
+                                "fields" => "ids",
+                                "meta_query" => [["key" => "_ups_lead_converted_offer_id", "value" => $a360_oid]],
+                            ]);
+                            $a360_lead_id = !empty($a360_leads_found) ? (int) $a360_leads_found[0] : 0;
+                        }
+                        $a360_brief = $a360_lead_id > 0 ? (string) get_post_meta($a360_lead_id, "_upsellio_pre_call_brief", true) : "";
+                        $a360_playbook = $a360_lead_id > 0 ? get_post_meta($a360_lead_id, "_upsellio_sales_playbook", true) : [];
+                        if (!is_array($a360_playbook)) {
+                            $a360_playbook = [];
+                        }
                         if (is_array($a360_events)) {
                             foreach ($a360_events as $a360_ev) {
                                 if (($a360_ev["event"] ?? "") === "offer_cta_click") {
@@ -1518,6 +1659,17 @@ function upsellio_crm_app_template_redirect()
                             · <?php echo (int) $a360_ev_count; ?> <?php esc_html_e("zdarzeń", "upsellio"); ?>
                             <?php if ($a360_cta_clicks > 0) : ?> · <?php echo (int) $a360_cta_clicks; ?>× CTA<?php endif; ?>
                           </div>
+                          <?php if ($a360_brief !== "") : ?>
+                            <div style="font-size:11px;color:var(--text-2);margin-top:6px;line-height:1.35">
+                              <strong><?php esc_html_e("Pre-call brief:", "upsellio"); ?></strong>
+                              <?php echo esc_html(function_exists("wp_strip_all_tags") ? wp_trim_words(wp_strip_all_tags($a360_brief), 20) : wp_trim_words($a360_brief, 20)); ?>
+                            </div>
+                          <?php endif; ?>
+                          <?php if (!empty($a360_playbook["summary"])) : ?>
+                            <div style="font-size:11px;color:#0f766e;margin-top:4px;line-height:1.35">
+                              <strong><?php esc_html_e("Playbook:", "upsellio"); ?></strong> <?php echo esc_html(wp_trim_words((string) $a360_playbook["summary"], 14)); ?>
+                            </div>
+                          <?php endif; ?>
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
                           <div style="font-size:13px;font-weight:800;color:<?php echo $a360_score >= 70 ? "#0f766e" : ($a360_score >= 40 ? "#d97706" : "var(--text-3)"); ?>">
@@ -1754,6 +1906,18 @@ function upsellio_crm_app_template_redirect()
                   <a class="crm-tab-link is-active" href="<?php echo esc_url(add_query_arg($oa_an_q, home_url("/crm-app/"))); ?>"><?php esc_html_e("Analityka oferty", "upsellio"); ?></a>
                   <a class="crm-tab-link" href="<?php echo esc_url(add_query_arg(["view" => "inbox", "inbox_offer" => $oa_offer_id], home_url("/crm-app/"))); ?>"><?php esc_html_e("Inbox wątku", "upsellio"); ?></a>
                 </div>
+                <?php
+                $oa_action_recommendation = (string) get_post_meta($oa_offer_id, "_ups_offer_action_recommendation", true);
+                if ($oa_action_recommendation === "") {
+                    $oa_action_recommendation = (string) get_post_meta($oa_offer_id, "_ups_offer_score_reason", true);
+                }
+                ?>
+                <?php if ($oa_action_recommendation !== "") : ?>
+                  <section class="card" style="grid-column:span 12;background:#f0fdfa;border-left:4px solid #0d9488">
+                    <div style="font-size:11px;font-weight:700;color:#0f766e;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px"><?php esc_html_e("AI Next Action", "upsellio"); ?></div>
+                    <div style="font-size:15px;font-weight:700;color:var(--text);line-height:1.4"><?php echo esc_html(wp_trim_words($oa_action_recommendation, 40)); ?></div>
+                  </section>
+                <?php endif; ?>
                 <section class="card" style="padding:0;overflow:hidden">
                   <div style="padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;flex-wrap:wrap">
                     <div>
@@ -2056,6 +2220,10 @@ function upsellio_crm_app_template_redirect()
                         <div style="grid-column:1/-1;margin-top:4px;display:flex;flex-wrap:wrap;align-items:center;gap:10px">
                           <button type="button" class="btn alt" id="ups-offer-ai-fill"><?php esc_html_e("✨ Wypełnij AI na podstawie danych klienta", "upsellio"); ?></button>
                           <span id="ups-offer-ai-fill-status" style="font-size:12px;color:var(--text-3)"></span>
+                          <?php if ($oe_id > 0) : ?>
+                            <?php $preview_url = get_permalink($oe_id) ?: home_url("/oferta-personalna/?id=" . $oe_id); ?>
+                            <a href="<?php echo esc_url($preview_url); ?>?preview_mode=1" target="_blank" class="btn alt" id="ups-offer-preview-btn">👁 Podgląd jak klient</a>
+                          <?php endif; ?>
                         </div>
                         <div>
                           <label><strong>Cena / inwestycja</strong></label>
@@ -2066,7 +2234,7 @@ function upsellio_crm_app_template_redirect()
                           <input type="text" name="offer_timeline" id="fld_offer_timeline" value="<?php echo esc_attr($oe_id > 0 ? (string) get_post_meta($oe_id, "_ups_offer_timeline", true) : ""); ?>" />
                         </div>
                         <div>
-                          <label><strong>Planowana data decyzji klienta</strong></label>
+                          <label><strong>Planowana data decyzji klienta</strong> <?php echo upsellio_help_tooltip("Przybliżona data decyzji klienta. Używana do priorytetyzacji follow-upów i scoringu timing."); ?></label>
                           <input type="date" name="offer_decision_date" id="fld_offer_decision_date" value="<?php echo esc_attr($oe_id > 0 ? (string) get_post_meta($oe_id, "_ups_offer_decision_date", true) : ""); ?>" />
                           <span class="odlg-hint">Używana do timing score (np. gdy brak powiązanego leada).</span>
                         </div>
@@ -2161,9 +2329,42 @@ function upsellio_crm_app_template_redirect()
                           <textarea name="offer_proof_lines" id="fld_offer_proof_lines" rows="3"><?php echo esc_textarea($oe_id > 0 ? (string) get_post_meta($oe_id, "_ups_offer_proof_lines", true) : ""); ?></textarea>
                         </div>
                         <div style="grid-column:1/-1">
-                          <label><strong>Warianty zainteresowania (JSON)</strong></label>
-                          <textarea name="offer_services_json" id="fld_offer_services_json" rows="4" class="code"><?php echo esc_textarea($oe_id > 0 ? (string) get_post_meta($oe_id, "_ups_offer_services_json", true) : ""); ?></textarea>
-                          <span class="odlg-hint">Np. [{"key":"all","label":"Cały pakiet","price_hint":"od 4 900 PLN"}]</span>
+                          <label><strong>Warianty cenowe</strong></label>
+                          <p class="odlg-hint">Klient zobaczy je jako wybór pakietu. Pierwszy niepusty wariant traktowany jest jako domyślny.</p>
+                          <?php
+                          $services_json = $oe_id > 0 ? (string) get_post_meta($oe_id, "_ups_offer_services_json", true) : "";
+                          $services_rows = json_decode($services_json, true);
+                          if (!is_array($services_rows)) {
+                              $services_rows = [];
+                          }
+                          $services_rows = array_slice($services_rows, 0, 6);
+                          for ($srv_i = count($services_rows); $srv_i < 6; $srv_i++) {
+                              $services_rows[] = ["key" => "", "label" => "", "price_hint" => ""];
+                          }
+                          ?>
+                          <table class="widefat striped" style="margin-top:8px">
+                            <thead>
+                              <tr>
+                                <th style="width:40px">#</th>
+                                <th>Klucz</th>
+                                <th>Label</th>
+                                <th>Cena / hint</th>
+                                <th style="width:40px"></th>
+                              </tr>
+                            </thead>
+                            <tbody id="ups-variants-rows">
+                              <?php foreach ($services_rows as $srv_i => $v) : ?>
+                                <tr class="variant-row" data-idx="<?php echo (int) $srv_i; ?>">
+                                  <td><?php echo (int) ($srv_i + 1); ?></td>
+                                  <td><input type="text" name="ups_offer_variant_key[]" value="<?php echo esc_attr((string) ($v["key"] ?? "")); ?>" placeholder="basic / pro" pattern="[a-z0-9_-]*" style="width:100%;font-family:monospace" /></td>
+                                  <td><input type="text" name="ups_offer_variant_label[]" value="<?php echo esc_attr((string) ($v["label"] ?? "")); ?>" placeholder="Pakiet Basic" style="width:100%" /></td>
+                                  <td><input type="text" name="ups_offer_variant_price[]" value="<?php echo esc_attr((string) ($v["price_hint"] ?? "")); ?>" placeholder="2 990 zł / mc" style="width:100%" /></td>
+                                  <td><button type="button" class="button-link variant-clear">×</button></td>
+                                </tr>
+                              <?php endforeach; ?>
+                            </tbody>
+                          </table>
+                          <small class="muted">Maks 6 wariantów. Puste wiersze są ignorowane przy zapisie.</small>
                         </div>
                         <div style="grid-column:1/-1">
                           <label><strong>Pytania do klienta (linia = pytanie, opcjonalnie „pytanie|notka”)</strong></label>
@@ -2263,15 +2464,21 @@ function upsellio_crm_app_template_redirect()
                     var offerId=oidEl&&oidEl.value?String(oidEl.value):"0";
                     var clientId=cidEl&&cidEl.value?String(cidEl.value):"0";
                     if(!clientId||clientId==="0"){if(st)st.textContent="<?php echo esc_js(__("Wybierz klienta.", "upsellio")); ?>";return;}
-                    aiFillBtn.disabled=true;if(st)st.textContent="⏳ …";
+                    aiFillBtn.disabled=true;aiFillBtn.textContent="✨ Generuję...";
+                    var dots=0;
+                    var timer=setInterval(function(){
+                      dots=(dots+1)%4;
+                      if(st){st.textContent="⏳ Claude pisze ofertę"+".".repeat(dots)+" (zwykle 30-60s)";}
+                    },600);
                     var body=new FormData();
                     body.append("action","upsellio_offer_ai_fill");
                     body.append("nonce",offerAiNonce);
                     body.append("offer_id",offerId);
                     body.append("client_id",clientId);
                     fetch(offerAiAjax,{method:"POST",body:body}).then(function(r){return r.json();}).then(function(data){
-                      aiFillBtn.disabled=false;
-                      if(!data||!data.success){if(st)st.textContent="✗ "+(data&&data.data&&data.data.message?String(data.data.message):"<?php echo esc_js(__("Błąd", "upsellio")); ?>");return;}
+                      clearInterval(timer);
+                      aiFillBtn.disabled=false;aiFillBtn.textContent="<?php echo esc_js(__("✨ Wypełnij AI na podstawie danych klienta", "upsellio")); ?>";
+                      if(!data||!data.success){if(st){st.textContent="❌ "+(data&&data.data&&data.data.message?String(data.data.message):"<?php echo esc_js(__("Błąd", "upsellio")); ?>");st.style.color="#d94c4c";}return;}
                       var d=data.data||{};
                       var aiMap={
                         title:"fld_offer_title",
@@ -2283,7 +2490,6 @@ function upsellio_crm_app_template_redirect()
                         billing:"fld_offer_billing",
                         price_note:"fld_offer_price_note",
                         proof_lines:"fld_offer_proof_lines",
-                        services_json:"fld_offer_services_json",
                         questions_raw:"fld_offer_questions_raw",
                         include_lines:"fld_offer_include_lines",
                         option_lines:"fld_offer_option_lines",
@@ -2301,20 +2507,45 @@ function upsellio_crm_app_template_redirect()
                         if(typeof v==="string"&&v.trim()==="")return;
                         if(typeof v==="string"||typeof v==="number")el.value=String(v);
                       });
+                      if(typeof d.services_json==="string"&&d.services_json.trim()!==""){
+                        try{
+                          var parsed=JSON.parse(d.services_json);
+                          if(Array.isArray(parsed)){
+                            var rows=document.querySelectorAll("#ups-variants-rows tr");
+                            rows.forEach(function(row,idx){
+                              var item=parsed[idx]||{};
+                              var k=row.querySelector('input[name="ups_offer_variant_key[]"]');
+                              var l=row.querySelector('input[name="ups_offer_variant_label[]"]');
+                              var p=row.querySelector('input[name="ups_offer_variant_price[]"]');
+                              if(k)k.value=String(item.key||"");
+                              if(l)l.value=String(item.label||"");
+                              if(p)p.value=String(item.price_hint||"");
+                            });
+                          }
+                        }catch(e){}
+                      }
                       var g=document.querySelector("#pane-p-scope input[name=offer_has_google]");
                       var m=document.querySelector("#pane-p-scope input[name=offer_has_meta]");
                       var w=document.querySelector("#pane-p-scope input[name=offer_has_web]");
                       if(g&&typeof d.has_google==="boolean")g.checked=!!d.has_google;
                       if(m&&typeof d.has_meta==="boolean")m.checked=!!d.has_meta;
                       if(w&&typeof d.has_web==="boolean")w.checked=!!d.has_web;
-                      if(st)st.textContent="<?php echo esc_js(__("✓ Pola wypełnione — sprawdź zakładki i zapisz ofertę.", "upsellio")); ?>";
+                      if(st){st.textContent="<?php echo esc_js(__("✅ Pola wypełnione — sprawdź zakładki i zapisz ofertę.", "upsellio")); ?>";st.style.color="#15803d";}
                       if(window.UpsellioCrmDirty){UpsellioCrmDirty.sync(form);}
                     }).catch(function(){
-                      aiFillBtn.disabled=false;
+                      clearInterval(timer);
+                      aiFillBtn.disabled=false;aiFillBtn.textContent="<?php echo esc_js(__("✨ Wypełnij AI na podstawie danych klienta", "upsellio")); ?>";
                       var stE=document.getElementById("ups-offer-ai-fill-status");
-                      if(stE)stE.textContent="✗ <?php echo esc_js(__("Błąd sieci", "upsellio")); ?>";
+                      if(stE){stE.textContent="❌ <?php echo esc_js(__("Błąd sieci", "upsellio")); ?>";stE.style.color="#d94c4c";}
                     });
                   });}
+                  document.querySelectorAll(".variant-clear").forEach(function(btn){
+                    btn.addEventListener("click",function(e){
+                      var row=e.target.closest("tr");
+                      if(!row)return;
+                      row.querySelectorAll("input").forEach(function(i){i.value="";});
+                    });
+                  });
                   document.getElementById("ups-fill-from-client").addEventListener("click",function(){
                     var c=clientById(document.getElementById("fld_offer_client_id").value);
                     if(!c)return;
@@ -2777,9 +3008,27 @@ function upsellio_crm_app_template_redirect()
                           $sla_h = ($sla_stage !== "" && isset($sla_defs[$sla_stage])) ? (int) ($sla_defs[$sla_stage]["hours"] ?? 24) : 24;
                           $sla_elapsed_h = $sla_entered > 0 ? max(0, (int) floor((time() - $sla_entered) / HOUR_IN_SECONDS)) : 0;
                           $sla_alert = (string) get_post_meta($offer_id, "_ups_offer_sla_active_alert", true) === "1";
+                          $pipeline_offer_score = (int) get_post_meta($offer_id, "_ups_offer_score", true);
+                          $pipeline_offer_intent = (int) get_post_meta($offer_id, "_ups_offer_intent_score", true);
+                          $pipeline_action_recommendation = (string) get_post_meta($offer_id, "_ups_offer_action_recommendation", true);
+                          $pipeline_score_color = $pipeline_offer_score >= 70 ? "#0f766e" : ($pipeline_offer_score >= 40 ? "#b45309" : "#6b7280");
                           ?>
                           <article class="pipeline-card" draggable="true" data-offer-id="<?php echo esc_attr((string) $offer_id); ?>">
                             <strong>Deal #<?php echo esc_html((string) $offer_id); ?> - <?php echo esc_html((string) $offer->post_title); ?></strong>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+                              <span class="badge" style="background:rgba(15,118,110,.12);color:<?php echo esc_attr($pipeline_score_color); ?>">
+                                <?php echo esc_html__("Score", "upsellio"); ?>: <?php echo esc_html((string) $pipeline_offer_score); ?>/100
+                              </span>
+                              <span class="badge" style="background:#eff6ff;color:#1d4ed8">
+                                <?php echo esc_html__("Intent", "upsellio"); ?>: <?php echo esc_html((string) $pipeline_offer_intent); ?>/100
+                              </span>
+                            </div>
+                            <?php if ($pipeline_action_recommendation !== "") : ?>
+                              <div class="muted" style="margin-top:6px;line-height:1.35">
+                                <strong><?php esc_html_e("Next action:", "upsellio"); ?></strong>
+                                <?php echo esc_html(wp_trim_words($pipeline_action_recommendation, 18)); ?>
+                              </div>
+                            <?php endif; ?>
                             <div class="muted">Status: <?php echo esc_html($offer_status !== "" ? $offer_status : "otwarty"); ?></div>
                             <div class="muted">Utworzony: <?php echo esc_html($deal_created_label); ?> (<?php echo esc_html((string) $deal_age_days); ?> dni)</div>
                             <div class="muted">W etapie: <?php echo esc_html((string) $stage_age_days); ?> dni</div>
@@ -2940,8 +3189,28 @@ function upsellio_crm_app_template_redirect()
               <?php endif; ?>
             <?php endif; ?>
             <?php if ($view === "contracts") : ?>
+              <?php
+              $contracts_ai_notice = "";
+              if (
+                  isset($_POST["ups_contract_ai_followup"], $_POST["contract_id"], $_POST["ups_crm_app_nonce"]) &&
+                  wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["ups_crm_app_nonce"])), "ups_crm_app_action")
+              ) {
+                  $ai_contract_id = (int) wp_unslash($_POST["contract_id"]);
+                  if ($ai_contract_id > 0 && current_user_can("edit_post", $ai_contract_id) && function_exists("upsellio_ai_draft_contract_followup")) {
+                      $ai_resp = upsellio_ai_draft_contract_followup($ai_contract_id);
+                      if ($ai_resp) {
+                          $contracts_ai_notice = (string) __("Draft follow-up AI wygenerowany.", "upsellio");
+                      } else {
+                          $contracts_ai_notice = (string) __("Nie udało się wygenerować draftu AI.", "upsellio");
+                      }
+                  }
+              }
+              ?>
               <section class="card">
                 <h2>Umowy</h2>
+                <?php if ($contracts_ai_notice !== "") : ?>
+                  <p class="muted" style="margin-top:-6px;margin-bottom:10px"><?php echo esc_html($contracts_ai_notice); ?></p>
+                <?php endif; ?>
                 <form method="post" class="grid2" style="margin:0 0 12px">
                   <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
                   <input type="hidden" name="ups_action" value="save_contract" />
@@ -2974,19 +3243,33 @@ function upsellio_crm_app_template_redirect()
                   <button class="btn" type="submit">Dodaj umowę</button>
                 </form>
                 <table>
-                  <thead><tr><th>Klient</th><th>Umowa</th><th>Status</th><th>Wersja</th><th>Link</th><th></th></tr></thead>
+                  <thead><tr><th>Klient</th><th>Umowa</th><th>Status</th><th>Wersja</th><th>Follow-up AI</th><th>Link</th><th></th></tr></thead>
                   <tbody>
                   <?php foreach ($contracts as $contract) : ?>
                     <?php
                     $contract_id = (int) $contract->ID;
                     $contract_client_id = (int) get_post_meta($contract_id, "_ups_contract_client_id", true);
                     $contract_url = function_exists("upsellio_contracts_get_public_url") ? (string) upsellio_contracts_get_public_url($contract_id) : "";
+                    $contract_ai_fu = get_post_meta($contract_id, "_ups_contract_ai_fu_draft", true);
+                    $contract_ai_fu_subject = is_array($contract_ai_fu) ? (string) ($contract_ai_fu["subject"] ?? "") : "";
                     ?>
                     <tr>
                       <td><?php echo esc_html($contract_client_id > 0 ? (string) get_the_title($contract_client_id) : "—"); ?></td>
                       <td><?php echo esc_html((string) $contract->post_title); ?></td>
                       <td><span class="badge warn"><?php echo esc_html($pl_label((string) get_post_meta($contract_id, "_ups_contract_status", true), "contract_status")); ?></span></td>
                       <td>v<?php echo esc_html((string) max(1, (int) get_post_meta($contract_id, "_ups_contract_version", true))); ?></td>
+                      <td>
+                        <form method="post" style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap">
+                          <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
+                          <input type="hidden" name="view" value="contracts" />
+                          <input type="hidden" name="contract_id" value="<?php echo esc_attr((string) $contract_id); ?>" />
+                          <input type="hidden" name="ups_contract_ai_followup" value="1" />
+                          <button class="btn alt" type="submit"><?php esc_html_e("📋 Generuj follow-up AI", "upsellio"); ?></button>
+                          <?php if ($contract_ai_fu_subject !== "") : ?>
+                            <small class="muted"><?php echo esc_html(wp_trim_words($contract_ai_fu_subject, 8)); ?></small>
+                          <?php endif; ?>
+                        </form>
+                      </td>
                       <td><?php if ($contract_url !== "") : ?><a class="btn alt" href="<?php echo esc_url($contract_url); ?>" target="_blank" rel="noopener noreferrer">Podgląd</a><?php endif; ?></td>
                       <td><a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "contract-detail", "contract_id" => $contract_id], home_url("/crm-app/"))); ?>">Szczegóły</a></td>
                     </tr>
@@ -3308,7 +3591,7 @@ function upsellio_crm_app_template_redirect()
                 <?php endif; ?>
                 <?php if ($task_tab !== "week") : ?>
                 <table>
-                  <thead><tr><th>Prio</th><th>Task</th><th>Deal</th><th>Kontekst oferty</th><th>Owner</th><th>Termin</th><th>Czas</th><th>Status</th><th>Akcje</th></tr></thead>
+                  <thead><tr><th>Prio</th><th>Task</th><th>Deal</th><th>Kontekst oferty</th><th>Impact</th><th>Close %</th><th>Notatka</th><th>Owner</th><th>Termin</th><th>Czas</th><th>Status</th><th>Akcje</th></tr></thead>
                   <tbody>
                     <?php foreach ($tasks_filtered as $task) : ?>
                       <?php
@@ -3322,6 +3605,9 @@ function upsellio_crm_app_template_redirect()
                       }
                       $owner_name = get_the_author_meta("display_name", (int) $task->post_author);
                       $prio = (int) get_post_meta($tid, "_upsellio_task_priority_score", true);
+                      $task_impact_score = (int) get_post_meta($tid, "_upsellio_task_impact_score", true);
+                      $task_close_probability = (int) get_post_meta($tid, "_upsellio_task_close_probability", true);
+                      $task_note_preview = (string) get_post_meta($tid, "_upsellio_task_note", true);
                       $task_brief_html = $task_offer_id > 0 && function_exists("upsellio_sales_engine_format_offer_task_brief_html") ? upsellio_sales_engine_format_offer_task_brief_html($task_offer_id) : "";
                       ?>
                       <tr>
@@ -3329,6 +3615,11 @@ function upsellio_crm_app_template_redirect()
                         <td><?php echo esc_html((string) $task->post_title); ?></td>
                         <td><?php echo $task_offer_id > 0 ? esc_html((string) get_the_title($task_offer_id)) : "—"; ?></td>
                         <td><?php echo $task_brief_html !== "" ? $task_brief_html : '<span class="muted">—</span>'; ?></td>
+                        <td><?php echo $task_impact_score > 0 ? esc_html((string) $task_impact_score) : "—"; ?></td>
+                        <td><?php echo $task_close_probability > 0 ? esc_html((string) $task_close_probability) . "%" : "—"; ?></td>
+                        <td title="<?php echo esc_attr($task_note_preview); ?>" style="max-width:220px;font-size:12px">
+                          <?php echo $task_note_preview !== "" ? esc_html(wp_trim_words($task_note_preview, 10)) : "—"; ?>
+                        </td>
                         <td><?php echo esc_html((string) $owner_name); ?></td>
                         <td><?php echo $task_due_at > 0 ? esc_html((string) wp_date("Y-m-d H:i", $task_due_at)) : "—"; ?></td>
                         <td><?php echo esc_html((string) $task_duration); ?> min</td>
@@ -3843,7 +4134,7 @@ function upsellio_crm_app_template_redirect()
                   $inbox_mailbox_last_poll !== "" && strtotime($inbox_mailbox_last_poll)
                       ? wp_date("d.m.Y H:i", strtotime($inbox_mailbox_last_poll))
                       : "—";
-              $inbox_settings_mail_url = esc_url(add_query_arg(["view" => "settings", "settings_tab" => "mailbox"], home_url("/crm-app/")));
+              $inbox_settings_mail_url = esc_url(add_query_arg(["view" => "settings", "settings_tab" => "email"], home_url("/crm-app/")));
               $inbox_kpis = function_exists("upsellio_inbox_aggregate_kpis")
                   ? upsellio_inbox_aggregate_kpis([
                       "folder" => $inbox_folder_sel,
@@ -4835,6 +5126,7 @@ function upsellio_crm_app_template_redirect()
                             <div class="crm-inbox-side-action-row">
                               <button type="button" class="btn alt" onclick="inboxSnooze(<?php echo (int) $inbox_offer_id; ?>, 'tomorrow_9')">💤 <?php esc_html_e("Snooze jutro 9:00", "upsellio"); ?></button>
                               <button type="button" class="btn alt" onclick="inboxSnooze(<?php echo (int) $inbox_offer_id; ?>, 'plus7d')">🗓 <?php esc_html_e("Snooze +7 dni", "upsellio"); ?></button>
+                              <button type="button" class="btn alt" onclick="inboxSnoozeCustom(<?php echo (int) $inbox_offer_id; ?>)">⏱ <?php esc_html_e("Niestandardowo", "upsellio"); ?></button>
                               <button type="button" class="btn alt" onclick="inboxArchive(<?php echo (int) $inbox_offer_id; ?>, 'archive')">📦 <?php esc_html_e("Archiwizuj", "upsellio"); ?></button>
                               <button type="button" class="btn alt" onclick="inboxArchive(<?php echo (int) $inbox_offer_id; ?>, 'unarchive')"><?php esc_html_e("Przywroc", "upsellio"); ?></button>
                             </div>
@@ -4961,6 +5253,44 @@ function upsellio_crm_app_template_redirect()
             <?php endif; ?>
             <?php if ($view === "analytics") : ?>
               <?php
+              $use_new_analytics = true;
+              if ($use_new_analytics) :
+                  $atab = isset($_GET["atab"]) ? sanitize_key((string) wp_unslash($_GET["atab"])) : "today";
+                  $allowed_atabs = ["today", "traffic", "seo", "paid", "sales"];
+                  if (!in_array($atab, $allowed_atabs, true)) {
+                      $atab = "today";
+                  }
+                  $range_days = isset($_GET["range"]) ? (int) wp_unslash($_GET["range"]) : 30;
+                  if (!in_array($range_days, [7, 14, 30, 60, 90, 365], true)) {
+                      $range_days = 30;
+                  }
+                  ?>
+                  <section class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                      <h2 style="margin:0">Analityka</h2>
+                      <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <input type="hidden" name="view" value="analytics" />
+                        <input type="hidden" name="atab" value="<?php echo esc_attr($atab); ?>" />
+                        <label>Okres:
+                          <select name="range" onchange="this.form.submit()">
+                            <?php foreach ([7, 14, 30, 60, 90, 365] as $rng) : ?>
+                              <option value="<?php echo (int) $rng; ?>" <?php selected($range_days, $rng); ?>><?php echo esc_html((string) $rng); ?> dni</option>
+                            <?php endforeach; ?>
+                          </select>
+                        </label>
+                      </form>
+                    </div>
+                  </section>
+                  <?php
+                  $view_file = __DIR__ . "/views/analytics-" . $atab . ".php";
+                  if (file_exists($view_file)) {
+                      require $view_file;
+                  } else {
+                      echo '<section class="card"><p>Widok niedostępny.</p></section>';
+                  }
+              else :
+              ?>
+              <?php
               $status_counts = ["open" => 0, "won" => 0, "lost" => 0];
               $stage_counts = ["awareness" => 0, "consideration" => 0, "decision" => 0];
               $monthly_revenue = [];
@@ -5077,6 +5407,7 @@ function upsellio_crm_app_template_redirect()
                 <div class="crm-view-tabs">
                   <?php
                   $analytics_tab_links = [
+                      "insights" => __("Insights AI", "upsellio"),
                       "sales" => __("Sprzedaż i lejek", "upsellio"),
                       "leads" => __("Leady", "upsellio"),
                       "sources" => __("Źródła i ROAS", "upsellio"),
@@ -5090,6 +5421,80 @@ function upsellio_crm_app_template_redirect()
                   <?php endforeach; ?>
                 </div>
               </section>
+              <?php if ($analytics_tab === "insights") : ?>
+              <?php
+              $ins_weekly_brief = function_exists("upsellio_get_latest_weekly_brief") ? upsellio_get_latest_weekly_brief() : ["html" => "", "at" => 0];
+              $ins_anomaly_exp = get_option("ups_ai_anomaly_explanations", []);
+              $ins_icp_report = (string) get_option("ups_ai_icp_report", "");
+              $ins_page_perf = get_option("ups_ai_page_perf_suggestions", []);
+              $ins_form_ab = get_option("ups_ai_form_ab_suggestions", []);
+              $ins_ads_review = get_option("ups_ai_ads_review", []);
+              ?>
+              <section class="card" style="grid-column:span 12;">
+                <h2><?php esc_html_e("Insights AI", "upsellio"); ?></h2>
+                <div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px;">
+                  <?php if (!empty($ins_weekly_brief["html"])) : ?>
+                    <section class="card" style="grid-column:span 12;background:#fff7ed;border-left:4px solid #f97316;padding:18px;">
+                      <h3 style="margin:0 0 10px;font-size:16px;">🎯 <?php esc_html_e("Brief tygodniowy AI", "upsellio"); ?></h3>
+                      <div style="font-size:14px;line-height:1.55;"><?php echo wp_kses_post((string) $ins_weekly_brief["html"]); ?></div>
+                    </section>
+                  <?php endif; ?>
+                  <?php if (!empty($ins_anomaly_exp) && is_array($ins_anomaly_exp)) : ?>
+                    <section class="card" style="grid-column:span 6;padding:18px;">
+                      <h3 style="margin:0 0 10px;font-size:16px;">⚠️ <?php esc_html_e("Anomalie i wyjaśnienia", "upsellio"); ?></h3>
+                      <?php foreach (array_slice(array_values($ins_anomaly_exp), 0, 3) as $ins_a) : ?>
+                        <?php if (!is_array($ins_a)) { continue; } ?>
+                        <div style="border-left:3px solid #d94c4c;padding:8px 12px;margin-bottom:10px;background:#fff;">
+                          <strong><?php echo esc_html((string) ($ins_a["channel"] ?? "—")); ?>: <?php echo esc_html((string) ($ins_a["metric"] ?? "")); ?> <?php echo ((float) ($ins_a["pct"] ?? 0)) >= 0 ? "+" : ""; ?><?php echo esc_html((string) ($ins_a["pct"] ?? 0)); ?>%</strong>
+                          <p style="margin:4px 0 0;font-size:13px;color:var(--text-2)"><?php echo esc_html((string) ($ins_a["why"] ?? "")); ?></p>
+                          <p style="margin:4px 0 0;font-size:13px;font-weight:700;color:#0f766e">→ <?php echo esc_html((string) ($ins_a["action"] ?? "")); ?></p>
+                        </div>
+                      <?php endforeach; ?>
+                    </section>
+                  <?php endif; ?>
+                  <?php if ($ins_icp_report !== "") : ?>
+                    <section class="card" style="grid-column:span 6;padding:18px;">
+                      <h3 style="margin:0 0 10px;font-size:16px;">👤 <?php esc_html_e("Twój ICP — najlepsi klienci", "upsellio"); ?></h3>
+                      <div style="font-size:13px;line-height:1.5;max-height:240px;overflow:auto;"><?php echo esc_html(wp_trim_words(wp_strip_all_tags($ins_icp_report), 80)); ?></div>
+                    </section>
+                  <?php endif; ?>
+                  <?php if (!empty($ins_page_perf) && is_array($ins_page_perf)) : ?>
+                    <section class="card" style="grid-column:span 6;padding:18px;">
+                      <h3 style="margin:0 0 10px;font-size:16px;">📄 <?php esc_html_e("Strony do akcji", "upsellio"); ?></h3>
+                      <?php foreach (array_slice($ins_page_perf, 0, 5) as $ins_sug) : ?>
+                        <?php if (!is_array($ins_sug)) { continue; } ?>
+                        <?php $ins_class = (string) ($ins_sug["classification"] ?? "monitor"); ?>
+                        <?php $ins_color = $ins_class === "retire" ? "#d94c4c" : ($ins_class === "refresh_cta" ? "#f97316" : ($ins_class === "deepen" ? "#15803d" : "#666")); ?>
+                        <div style="padding:8px 12px;margin-bottom:8px;border-left:3px solid <?php echo esc_attr($ins_color); ?>;">
+                          <strong><?php echo esc_html((string) ($ins_sug["title"] ?? "—")); ?></strong>
+                          <span style="text-transform:uppercase;font-size:10px;font-weight:800;color:<?php echo esc_attr($ins_color); ?>;margin-left:8px;"><?php echo esc_html(strtoupper($ins_class)); ?></span>
+                          <p style="margin:4px 0 0;font-size:12px;color:var(--text-2)"><?php echo esc_html((string) ($ins_sug["summary"] ?? "")); ?></p>
+                        </div>
+                      <?php endforeach; ?>
+                    </section>
+                  <?php endif; ?>
+                  <?php if (is_array($ins_form_ab) && !empty($ins_form_ab["suggestions"])) : ?>
+                    <section class="card" style="grid-column:span 6;padding:18px;">
+                      <h3 style="margin:0 0 10px;font-size:16px;">📋 <?php esc_html_e("Sugestie formularzy", "upsellio"); ?></h3>
+                      <?php foreach (array_slice((array) $ins_form_ab["suggestions"], 0, 3) as $ins_f) : ?>
+                        <?php if (!is_array($ins_f)) { continue; } ?>
+                        <div style="padding:8px 12px;margin-bottom:8px;background:#f8fafc;border-radius:8px;">
+                          <strong><?php echo esc_html((string) ($ins_f["landing"] ?? "")); ?></strong>
+                          <p style="margin:4px 0 0;font-size:12px;color:var(--text-2)"><?php echo esc_html((string) ($ins_f["issue"] ?? "")); ?></p>
+                          <p style="margin:4px 0 0;font-size:12px;font-weight:700;color:#0f766e">→ <?php echo esc_html((string) ($ins_f["suggested_test"] ?? "")); ?></p>
+                        </div>
+                      <?php endforeach; ?>
+                    </section>
+                  <?php endif; ?>
+                  <?php if (!empty($ins_ads_review) && is_array($ins_ads_review)) : ?>
+                    <section class="card" style="grid-column:span 12;padding:18px;background:#f8fafc;">
+                      <h3 style="margin:0 0 10px;font-size:16px;">💰 <?php esc_html_e("Review wydatków Google Ads", "upsellio"); ?></h3>
+                      <p style="font-size:13px;color:var(--text-2)"><?php echo esc_html((string) ($ins_ads_review["summary"] ?? "")); ?></p>
+                    </section>
+                  <?php endif; ?>
+                </div>
+              </section>
+              <?php endif; ?>
               <?php if ($analytics_tab === "sales") : ?>
               <section class="card kpi"><span class="muted">Oferty</span><b><?php echo esc_html((string) count($offers)); ?></b></section>
               <section class="card kpi"><span class="muted">Umowy</span><b><?php echo esc_html((string) count($contracts)); ?></b></section>
@@ -5356,6 +5761,17 @@ function upsellio_crm_app_template_redirect()
                 </table>
               </section>
               <?php endif; ?>
+              <?php endif; ?>
+            <?php endif; ?>
+            <?php if ($view === "insights") : ?>
+              <?php
+              $insights_file = __DIR__ . "/views/insights-hub.php";
+              if (file_exists($insights_file)) {
+                  require $insights_file;
+              } else {
+                  echo '<section class="card"><p>Widok Insights AI niedostępny.</p></section>';
+              }
+              ?>
             <?php endif; ?>
             <?php if ($view === "research") : ?>
               <?php require get_template_directory() . "/inc/crm-app/research-view.php"; ?>
@@ -5371,16 +5787,11 @@ function upsellio_crm_app_template_redirect()
               <section class="card">
                 <h2>Zakładki ustawień</h2>
                 <p style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-                  <a class="btn <?php echo $settings_tab === "general" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "general"], home_url("/crm-app/"))); ?>">Ogólne</a>
-                  <a class="btn <?php echo $settings_tab === "mailbox" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "mailbox"], home_url("/crm-app/"))); ?>">Mail / Skrzynki</a>
-                  <a class="btn <?php echo $settings_tab === "scoring" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "scoring"], home_url("/crm-app/"))); ?>">Scoring</a>
-                  <a class="btn <?php echo $settings_tab === "automation" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "automation"], home_url("/crm-app/"))); ?>">Automatyzacje</a>
-                  <a class="btn <?php echo $settings_tab === "offer-template" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "offer-template"], home_url("/crm-app/"))); ?>">Szablon oferty</a>
-                  <a class="btn <?php echo $settings_tab === "contract-template" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "contract-template"], home_url("/crm-app/"))); ?>">Szablon umowy</a>
-                  <a class="btn <?php echo $settings_tab === "users" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "users"], home_url("/crm-app/"))); ?>">Użytkownicy</a>
-                  <a class="btn <?php echo $settings_tab === "integrations" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "integrations"], home_url("/crm-app/"))); ?>">Integracje</a>
-                  <a class="btn <?php echo $settings_tab === "notifications" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "notifications"], home_url("/crm-app/"))); ?>">Powiadomienia</a>
-                  <a class="btn <?php echo $settings_tab === "ai" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "ai"], home_url("/crm-app/"))); ?>">AI / Anthropic</a>
+                  <a class="btn <?php echo $settings_tab === "general" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "general"], home_url("/crm-app/"))); ?>">Główne</a>
+                  <a class="btn <?php echo $settings_tab === "email" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "email"], home_url("/crm-app/"))); ?>">Poczta</a>
+                  <a class="btn <?php echo $settings_tab === "ai" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "ai"], home_url("/crm-app/"))); ?>">AI</a>
+                  <a class="btn <?php echo $settings_tab === "pipeline" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "pipeline"], home_url("/crm-app/"))); ?>">Pipeline</a>
+                  <a class="btn <?php echo $settings_tab === "templates" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "templates"], home_url("/crm-app/"))); ?>">Szablony</a>
                   <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "engine"], home_url("/crm-app/"))); ?>">Silnik sprzedaży</a>
                   <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "template-studio"], home_url("/crm-app/"))); ?>">Szablony ofert/umów</a>
                 </p>
@@ -5389,6 +5800,25 @@ function upsellio_crm_app_template_redirect()
               <?php if ($settings_tab === "general") : ?>
                 <section class="card">
                   <h2>Ustawienia ogólne CRM</h2>
+                  <?php
+                  if (!function_exists("upsellio_check_ai_dependencies")) {
+                      function upsellio_check_ai_dependencies(): array
+                      {
+                          $issues = [];
+                          if ((string) get_option("ups_anthropic_api_key", "") === "") {
+                              $issues[] = ["icon" => "⚠️", "msg" => "Brakuje klucza API Anthropic — toggle AI nic nie zrobią."];
+                          }
+                          if ((string) get_option("ups_anthropic_inbox_auto_followup_enabled", "0") === "1" && (string) get_option("ups_followup_smtp_enabled", "0") !== "1") {
+                              $issues[] = ["icon" => "⚠️", "msg" => "Auto follow-up wymaga SMTP — skonfiguruj w zakładce Poczta."];
+                          }
+                          return $issues;
+                      }
+                  }
+                  $deps = upsellio_check_ai_dependencies();
+                  foreach ($deps as $d) {
+                      echo '<div class="notice notice-warning" style="margin:10px 0;padding:10px;">' . esc_html(((string) ($d["icon"] ?? "")) . " " . ((string) ($d["msg"] ?? ""))) . "</div>";
+                  }
+                  ?>
                   <form method="post" class="grid2">
                     <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
                     <input type="hidden" name="ups_action" value="save_quick_settings" />
@@ -5723,14 +6153,14 @@ function upsellio_crm_app_template_redirect()
                 ?>
               <?php endif; ?>
 
-              <?php if ($settings_tab === "mailbox") : ?>
+              <?php if ($settings_tab === "email") : ?>
                 <section class="card">
                   <h2>Mail / Skrzynki / Lejek</h2>
                   <form method="post" class="grid2">
                     <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
                     <input type="hidden" name="ups_action" value="save_quick_settings" />
                     <input type="hidden" name="crm_view" value="settings" />
-                    <input type="hidden" name="settings_tab" value="mailbox" />
+                    <input type="hidden" name="settings_tab" value="email" />
                     <label>From name</label>
                     <input type="text" name="ups_followup_from_name" value="<?php echo esc_attr((string) get_option("ups_followup_from_name", get_bloginfo("name"))); ?>" />
                     <label>From email</label>
@@ -5816,14 +6246,14 @@ function upsellio_crm_app_template_redirect()
                 </section>
               <?php endif; ?>
 
-              <?php if ($settings_tab === "scoring") : ?>
+              <?php if ($settings_tab === "pipeline") : ?>
                 <section class="card">
                   <h2>Scoring ofert</h2>
                   <form method="post" class="grid2">
                     <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
                     <input type="hidden" name="ups_action" value="save_quick_settings" />
                     <input type="hidden" name="crm_view" value="settings" />
-                    <input type="hidden" name="settings_tab" value="scoring" />
+                    <input type="hidden" name="settings_tab" value="pipeline" />
                     <label>Views for consideration</label>
                     <input type="number" min="1" name="ups_offer_stage_consideration_views" value="<?php echo esc_attr((string) get_option("ups_offer_stage_consideration_views", 2)); ?>" />
                     <label>Views for decision</label>
@@ -5860,14 +6290,14 @@ function upsellio_crm_app_template_redirect()
                 </section>
               <?php endif; ?>
 
-              <?php if ($settings_tab === "automation") : ?>
+              <?php if ($settings_tab === "pipeline") : ?>
                 <section class="card">
                   <h2>Automatyzacje SLA / A/B / Alerting / Prospecting</h2>
                   <form method="post" class="grid2">
                     <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
                     <input type="hidden" name="ups_action" value="save_quick_settings" />
                     <input type="hidden" name="crm_view" value="settings" />
-                    <input type="hidden" name="settings_tab" value="automation" />
+                    <input type="hidden" name="settings_tab" value="pipeline" />
                     <label>SLA consideration (dni)</label>
                     <input type="number" min="1" name="ups_automation_sla_consideration_days" value="<?php echo esc_attr((string) get_option("ups_automation_sla_consideration_days", 7)); ?>" />
                     <label>Alert spadku win-rate (p.p.)</label>
@@ -5920,7 +6350,7 @@ function upsellio_crm_app_template_redirect()
                 </section>
               <?php endif; ?>
 
-              <?php if ($settings_tab === "offer-template") : ?>
+              <?php if ($settings_tab === "templates") : ?>
                 <section class="card">
                   <h2>Szablon oferty (dynamiczne pola)</h2>
                   <p class="muted">Strony publiczne ofert korzystają teraz z <a href="<?php echo esc_url(add_query_arg(["view" => "template-studio"], home_url("/crm-app/"))); ?>"><strong>Generatora szablonów</strong></a> i budowniczka na widoku Oferty. Poniższy HTML jest używany tylko przy opcji „Regeneruj z legacy szablonu” lub starych integracjach.</p>
@@ -5928,7 +6358,7 @@ function upsellio_crm_app_template_redirect()
                     <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
                     <input type="hidden" name="ups_action" value="save_offer_template" />
                     <input type="hidden" name="crm_view" value="settings" />
-                    <input type="hidden" name="settings_tab" value="offer-template" />
+                    <input type="hidden" name="settings_tab" value="templates" />
                     <label>HTML szablonu oferty</label>
                     <textarea name="offer_template_html"><?php echo esc_textarea((string) get_option("ups_offer_template_html", function_exists("upsellio_offer_get_default_template_html") ? (string) upsellio_offer_get_default_template_html() : "")); ?></textarea>
                     <label>CSS szablonu oferty</label>
@@ -5939,7 +6369,7 @@ function upsellio_crm_app_template_redirect()
                 </section>
               <?php endif; ?>
 
-              <?php if ($settings_tab === "contract-template") : ?>
+              <?php if ($settings_tab === "templates") : ?>
                 <section class="card">
                   <h2>Szablon umowy (dynamiczne pola)</h2>
                   <p class="muted">Biblioteka wielu szablonów umów: <a href="<?php echo esc_url(add_query_arg(["view" => "template-studio", "tab" => "contract"], home_url("/crm-app/"))); ?>">Generator szablonów → Umowy</a>. Ten formularz to domyślny fallback, gdy nie wybierzesz szablonu z biblioteki.</p>
@@ -5947,7 +6377,7 @@ function upsellio_crm_app_template_redirect()
                     <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
                     <input type="hidden" name="ups_action" value="save_contract_template" />
                     <input type="hidden" name="crm_view" value="settings" />
-                    <input type="hidden" name="settings_tab" value="contract-template" />
+                    <input type="hidden" name="settings_tab" value="templates" />
                     <label>HTML szablonu umowy</label>
                     <textarea name="contract_template_html"><?php echo esc_textarea((string) get_option("ups_contract_template_html", $contract_template_html)); ?></textarea>
                     <label>CSS szablonu umowy</label>
@@ -5958,33 +6388,6 @@ function upsellio_crm_app_template_redirect()
                 </section>
               <?php endif; ?>
 
-              <?php if ($settings_tab === "users") : ?>
-                <section class="card">
-                  <h2>Użytkownicy i dostęp</h2>
-                  <p class="muted">Role i konta są zarządzane przez WordPress. Tutaj szybki skrót do panelu administracyjnego.</p>
-                  <p style="margin-top:12px"><a class="btn" href="<?php echo esc_url(admin_url("users.php")); ?>">Lista użytkowników (WP Admin)</a></p>
-                </section>
-              <?php endif; ?>
-
-              <?php if ($settings_tab === "integrations") : ?>
-                <section class="card">
-                  <h2>Integracje</h2>
-                  <p class="muted">Konfiguracja techniczna (poczta, automatyzacje, silnik sprzedaży) jest rozproszona po dedykowanych zakładkach — poniżej skróty.</p>
-                  <ul style="margin:12px 0 0;padding-left:18px;line-height:1.65;font-size:14px">
-                    <li><a href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "mailbox"], home_url("/crm-app/"))); ?>">Mail / SMTP / IMAP</a></li>
-                    <li><a href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "automation"], home_url("/crm-app/"))); ?>">Automatyzacje (SLA, GA4, prospecting)</a></li>
-                    <li><a href="<?php echo esc_url(add_query_arg(["view" => "engine"], home_url("/crm-app/"))); ?>">Silnik sprzedaży</a></li>
-                  </ul>
-                </section>
-              <?php endif; ?>
-
-              <?php if ($settings_tab === "notifications") : ?>
-                <section class="card">
-                  <h2>Powiadomienia</h2>
-                  <p class="muted">Powiadomienia operacyjne CRM (np. niedostarczone maile) zbierane są w widoku Alerty. Wysyłka e-maili korzysta z ustawień skrzynki.</p>
-                  <p style="margin-top:12px"><a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "alerts"], home_url("/crm-app/"))); ?>">Otwórz alerty</a></p>
-                </section>
-              <?php endif; ?>
             <?php endif; ?>
           </div></div>
         </div>
@@ -6311,7 +6714,7 @@ function upsellio_crm_app_template_redirect()
           }
         });
       }
-      function inboxResolveSnoozePreset(preset) {
+      function inboxResolveSnoozePreset(preset, opts) {
         var now = new Date();
         if (preset === "tomorrow_9") {
           var t = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 9, 0, 0, 0);
@@ -6320,10 +6723,16 @@ function upsellio_crm_app_template_redirect()
         if (preset === "plus7d") {
           return Math.floor(now.getTime() / 1000) + (7 * 24 * 3600);
         }
+        if (preset === "custom" && opts && opts.until) {
+          var customUntil = parseInt(opts.until, 10) || 0;
+          if (customUntil > Math.floor(now.getTime() / 1000)) {
+            return customUntil;
+          }
+        }
         return 0;
       }
-      function inboxSnooze(offerId, preset) {
-        var until = inboxResolveSnoozePreset(preset);
+      function inboxSnooze(offerId, preset, opts) {
+        var until = inboxResolveSnoozePreset(preset, opts || null);
         if (!until) {
           return;
         }
@@ -6347,6 +6756,24 @@ function upsellio_crm_app_template_redirect()
         }).catch(function () {
           inboxToast("Blad sieci (snooze).", "error");
         });
+      }
+      function inboxSnoozeCustom(offerId) {
+        var raw = window.prompt("Snooze do (YYYY-MM-DD HH:MM)");
+        if (!raw) {
+          return;
+        }
+        var normalized = String(raw).trim().replace(" ", "T");
+        var date = new Date(normalized);
+        if (!date || isNaN(date.getTime())) {
+          inboxToast("Nieprawidlowa data.", "error");
+          return;
+        }
+        var until = Math.floor(date.getTime() / 1000);
+        if (until <= Math.floor(Date.now() / 1000)) {
+          inboxToast("Data musi byc w przyszlosci.", "error");
+          return;
+        }
+        inboxSnooze(offerId, "custom", { until: until });
       }
       function inboxArchive(offerId, mode) {
         fetch(upsCrmAjax, {
@@ -6852,6 +7279,14 @@ function upsellio_crm_app_template_redirect()
         var bulkApply = document.getElementById("inbox-bulk-apply");
         var bulkAction = document.getElementById("inbox-bulk-action");
         var bulkCbs = Array.prototype.slice.call(document.querySelectorAll(".inbox-bulk-cb"));
+        function inboxBulkRowsForIds(ids) {
+          return bulkCbs.filter(function (cb) {
+            var id = parseInt(cb.getAttribute("data-offer-id") || "0", 10);
+            return ids.indexOf(id) !== -1;
+          }).map(function (cb) {
+            return cb.closest(".crm-inbox-thread-row");
+          }).filter(Boolean);
+        }
         function inboxBulkSelectedIds() {
           return bulkCbs.filter(function (cb) { return cb.checked; }).map(function (cb) { return parseInt(cb.getAttribute("data-offer-id") || "0", 10); }).filter(Boolean);
         }
@@ -6890,17 +7325,30 @@ function upsellio_crm_app_template_redirect()
             if (action === "snooze") {
               body.append("until", String(inboxResolveSnoozePreset("tomorrow_9")));
             }
+            var loadingRows = inboxBulkRowsForIds(ids);
+            loadingRows.forEach(function (row) { row.classList.add("is-loading"); });
+            if (bulkApply) {
+              bulkApply.disabled = true;
+            }
             fetch(upsCrmAjax, { method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: body })
               .then(function (r) { return r.json(); })
               .then(function (data) {
                 if (data && data.success) {
                   inboxToast("Akcja masowa wykonana.", "success");
+                  if (bulkAction) {
+                    bulkAction.value = "";
+                  }
                   setTimeout(function () { window.location.reload(); }, 500);
                 } else {
                   inboxToast("Akcja masowa nieudana.", "error");
                 }
               }).catch(function () {
                 inboxToast("Blad sieci (bulk).", "error");
+              }).finally(function () {
+                loadingRows.forEach(function (row) { row.classList.remove("is-loading"); });
+                if (bulkApply) {
+                  bulkApply.disabled = false;
+                }
               });
           });
         }
@@ -7013,7 +7461,7 @@ function upsellio_crm_app_template_redirect()
       })();
       </script>
       <?php endif; ?>
-      <?php if ($view === "settings" && isset($settings_tab) && $settings_tab === "mailbox") : ?>
+      <?php if ($view === "settings" && isset($settings_tab) && $settings_tab === "email") : ?>
       <script>
       (function () {
         var ajax = <?php echo wp_json_encode(admin_url("admin-ajax.php")); ?>;
