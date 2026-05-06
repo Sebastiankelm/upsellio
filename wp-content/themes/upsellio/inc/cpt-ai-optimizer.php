@@ -65,25 +65,25 @@ WYMAGANIA SEO — niespełnienie = błąd:
 4. primary_query pojawia się minimum 3× w post_content
 5. 1 link zewnętrzny do authority source w post_content (think.withgoogle.com lub semrush.com)
 
-Zwróć JSON:
+Zwróć JSON (w przykładach poniżej [MIASTO] = wstaw rzeczywistą nazwę miasta z kontekstu; nie zwracaj dosłownego tekstu „[MIASTO]” ani „{city_name}”):
 {
-  "post_title": "Marketing {city_name} — Google Ads, Meta Ads, strony B2B",
+  "post_title": "Marketing [MIASTO] — Google Ads, Meta Ads, strony B2B",
   "post_content": "<TYLKO treść artykułu: H2/H3/p/ul. BEZ H1. BEZ sekcji FAQ. BEZ CTA aside. Min 700 słów. Fraza kluczowa w pierwszym zdaniu i w H2. 2-4 linki wewnętrzne [anchor](url) z katalogu. 1 link zewnętrzny.>",
   "post_excerpt": "<1-2 zdania: fraza kluczowa + korzyść dla firm z miasta>",
   "seo_title": "<45-60 znaków — primary_query na początku>",
   "meta_description": "<140-160 znaków — musi zawierać primary_query i nazwę miasta>",
-  "primary_query": "<max 40 znaków np. 'Google Ads {city_name}' lub 'marketing {city_name}'>",
+  "primary_query": "<max 40 znaków np. 'Google Ads [MIASTO]' lub 'marketing [MIASTO]'>",
   "query_cluster": "<8 fraz powiązanych, przecinkami>",
   "market_angle": "<3-5 słów — dominująca branża np. 'producenci i eksporterzy B2B'>",
   "service_focus": "<3-5 słów — usługa np. 'kampanie Google Ads i strony B2B'>",
-  "local_challenge": "<1 zdanie — główna bolączka firm szukających marketingu w {city_name}>",
-  "local_advantage": "<1 zdanie — lokalny atut rynku {city_name}>",
-  "seasonality_angle": "<1 zdanie — sezonowość popytu w {city_name}>",
-  "cta": "<1 zdanie — tekst przycisku w sidebarze, np. 'Chcesz więcej zapytań z {city_name}? Zacznijmy od audytu.'>",
+  "local_challenge": "<1 zdanie — główna bolączka firm szukających marketingu w [MIASTO]>",
+  "local_advantage": "<1 zdanie — lokalny atut rynku [MIASTO]>",
+  "seasonality_angle": "<1 zdanie — sezonowość popytu w [MIASTO]>",
+  "cta": "<1 zdanie — tekst przycisku w sidebarze, np. 'Chcesz więcej zapytań z [MIASTO]? Zacznijmy od audytu.'>",
   "faq": [
-    {"q": "Ile kosztuje kampania Google Ads dla firmy z {city_name}?", "a": "<konkretna odpowiedź 2-3 zdania>"},
-    {"q": "Jak długo czekać na efekty kampanii w {city_name}?", "a": "<konkretna odpowiedź 2-3 zdania>"},
-    {"q": "<trzecie pytanie specyficzne dla branży w {city_name}?>", "a": "<odpowiedź>"}
+    {"q": "Ile kosztuje kampania Google Ads dla firmy z [MIASTO]?", "a": "<konkretna odpowiedź 2-3 zdania>"},
+    {"q": "Jak długo czekać na efekty kampanii w [MIASTO]?", "a": "<konkretna odpowiedź 2-3 zdania>"},
+    {"q": "<trzecie pytanie specyficzne dla branży w [MIASTO]?>", "a": "<odpowiedź>"}
   ]
 }
 DFLT,
@@ -140,6 +140,7 @@ Kontekst firmy: {company_ctx}
 
 Istniejące dane projektu:
 Typ: {type}
+Meta projekt: {meta_project}
 Problem: {problem}
 Zakres: {scope}
 Wynik: {result}
@@ -153,7 +154,7 @@ Bieżąca treść HTML:
 KATALOG LINKÓW WEWNĘTRZNYCH (tylko te URL):
 {catalog}
 
-Zwróć JSON (WYPEŁNIJ WSZYSTKIE POLA — puste = błąd). Mapowanie: type→_ups_port_type, meta_project→_ups_port_meta, badge→_ups_port_badge, cta→_ups_port_cta, problem→_ups_port_problem, scope→_ups_port_scope, result→_ups_port_result, metrics→_ups_port_metrics, client_quote→_ups_port_client_quote.
+Zwróć JSON (WYPEŁNIJ WSZYSTKIE POLA — puste = błąd). Mapowanie: type→_ups_port_type, meta_project→_ups_port_meta, badge→_ups_port_badge, cta→_ups_port_cta, problem→_ups_port_problem, scope→_ups_port_scope, result→_ups_port_result, metrics→_ups_port_metrics, client_quote→_ups_port_client_quote, technologies→_ups_port_technologies.
 {
   "post_title": "<tytuł case study — problem klienta lub wynik np. '+42% leadów B2B — redesign strony firmowej'>",
   "post_content": "<HTML 600-900 słów: intro z wynikiem, H2 Problem, H2 Co zrobiliśmy, H2 Efekty, FAQ 2 pytania, 2-3 linki wewnętrzne [anchor](url), 1 link zewnętrzny>",
@@ -167,6 +168,7 @@ Zwróć JSON (WYPEŁNIJ WSZYSTKIE POLA — puste = błąd). Mapowanie: type→_u
   "result": "<2-3 zdania — konkretny wynik>",
   "metrics": "<jedna metryka per linia np. +42% zapytań\n-31% CPL>",
   "client_quote": "<cytat jeśli dostępny, inaczej pusty string>",
+  "technologies": "<lista technologii oddzielona przecinkami np. 'WordPress, WooCommerce, ACF'>",
   "seo_title": "<45-60 znaków>",
   "meta_description": "<140-160 znaków z frazą kluczową>",
   "primary_query": "<fraza SEO np. 'strona firmowa B2B case study'>",
@@ -181,7 +183,28 @@ DFLT,
 Jesteś asystentem SEO i copywriterem Sebastiana Kelma — konsultanta Google Ads i Meta Ads B2B.
 Tworzysz case studies kampanii reklamowych. Skupiasz się na mierzalnych wynikach: CPL, ROAS, konwersje.
 Styl: bezpośredni, partnerski, zero korporacyjnego języka. Liczby są ważniejsze niż słowa.
-Zwracaj WYŁĄCZNIE jeden obiekt JSON bez markdown.
+
+SEO — Rank Math wymaga tego dokładnie:
+- primary_query: max 40 znaków, MUSI być frazą która naturalnie pada w treści
+  np. "kampania Meta Ads B2B" lub "Google Ads dla firm B2B" — NIE "Meta Ads case study"
+- post_content pierwsze zdanie: MUSI zawierać primary_query dosłownie
+- primary_query pojawia się MIN. 3× w post_content (gęstość min. 0.5%)
+- MIN. jeden H2 zawiera primary_query dosłownie
+- seo_title: ZACZNIJ od primary_query — np. "Kampania Meta Ads B2B — redukcja CPL o połowę"
+- seo_title: BEZ liczb z % lub zł na początku — liczby mogą być w dalszej części
+- meta_description i seo_description: 140-160 znaków, MUSI zawierać primary_query dosłownie
+- post_content: MIN. 650 słów
+- 1 link zewnętrzny dofollow w post_content (think.withgoogle.com lub semrush.com) — OBOWIĄZKOWO
+  Link MUSI mieć rel="noopener" ale NIE rel="nofollow" — ma być dofollow
+
+HTML i JSON:
+- post_content: wyłącznie HTML (p, ul/li, h2, h3) — zero Markdown
+- Cudzysłowy w href zastąp &quot; — inaczej JSON jest niepoprawny
+- Linki wewnętrzne wyłącznie z dostarczonego katalogu URL w formacie [anchor](url)
+- Pole kpis: każdy KPI w osobnej linii, format label|przed|po|zmiana|opis
+
+Zwracaj WYŁĄCZNIE jeden obiekt JSON bez markdown i bez komentarzy.
+Jeśli pole jest puste — zostaw pusty string "", nigdy nie wymyślaj danych.
 DFLT,
             "user" => <<<'DFLT'
 Uzupełnij i zoptymalizuj case study kampanii marketingowej.
@@ -189,12 +212,13 @@ Kontekst firmy: {company_ctx}
 
 Istniejące dane:
 Typ kampanii: {type}
+Meta projekt: {meta_project}
 Sektor klienta: {sector}
 Problem: {problem}
 Rozwiązanie: {solution}
 Wynik: {result}
 KPI (format label|przed|po|zmiana|opis): {kpis}
-Tagi (linie): {tags}
+Tagi: {tags}
 
 Bieżąca treść HTML:
 {post_content}
@@ -202,10 +226,21 @@ Bieżąca treść HTML:
 KATALOG LINKÓW WEWNĘTRZNYCH (tylko te URL):
 {catalog}
 
-Zwróć JSON (WYPEŁNIJ WSZYSTKIE POLA — puste = błąd). Mapowanie: type→_ups_mport_type, meta_project→_ups_mport_meta, sector→_ups_mport_sector, badge→_ups_mport_badge, cta→_ups_mport_cta, problem→_ups_mport_problem, solution→_ups_mport_solution, result→_ups_mport_result, kpis→_ups_mport_kpis, tags→_ups_mport_tags (linie lub jeden string), seo_title→_ups_mport_seo_title, seo_description→_ups_mport_seo_description.
+WYMAGANIA — niespełnienie któregokolwiek = błąd:
+1. primary_query: fraza która NATURALNIE PADA W TREŚCI — typ kampanii np. "kampania Meta Ads B2B"
+   NIE pisz "Meta Ads case study" ani "case study kampanii" — to nie pada naturalnie
+2. post_content: PIERWSZE zdanie zawiera primary_query dosłownie
+3. post_content: MIN. jeden H2 zawiera primary_query dosłownie
+4. post_content: primary_query MIN. 3× łącznie w treści
+5. post_content: MIN. 650 słów
+6. seo_title: ZACZNIJ od primary_query, BEZ liczb z % na początku
+7. meta_description i seo_description: zawierają primary_query dosłownie
+8. link zewnętrzny: MUSI być dofollow — NIE dodawaj rel="nofollow"
+
+Zwróć JSON (WYPEŁNIJ WSZYSTKIE POLA — puste = błąd):
 {
-  "post_title": "<tytuł z wynikiem np. 'Meta Ads B2B: -52% CPL w 4 miesiące — firma usługowa'>",
-  "post_content": "<HTML 700-1000 słów: wynik w intro, H2 Sytuacja wyjściowa, H2 Co zmieniliśmy, H2 Wyniki po X miesiącach, FAQ 2 pytania, 2-3 linki wewnętrzne [anchor](url), 1 link zewnętrzny>",
+  "post_title": "<tytuł z wynikiem np. 'Meta Ads B2B — redukcja CPL o połowę w 4 miesiące'>",
+  "post_content": "<HTML MIN. 650 słów: PIERWSZE zdanie zawiera primary_query. H2 z primary_query. primary_query min. 3× w treści. H2 Sytuacja wyjściowa, H2 Co zmieniliśmy, H2 Wyniki, FAQ 2 pytania jako h3. 2-3 linki [anchor](url) z katalogu. 1 link zewnętrzny dofollow bez rel=nofollow. Cudzysłowy w href zastąp &quot;>",
   "post_excerpt": "<2 zdania: typ kampanii + kluczowy wynik>",
   "type": "<np. Meta Ads>",
   "meta_project": "<np. Lead generation · B2B · Q1 2024>",
@@ -215,11 +250,12 @@ Zwróć JSON (WYPEŁNIJ WSZYSTKIE POLA — puste = błąd). Mapowanie: type→_u
   "problem": "<2-3 zdania — sytuacja przed współpracą>",
   "solution": "<2-4 zdania — co zmieniono w kampaniach>",
   "result": "<2-3 zdania — konkretne wyniki z liczbami>",
-  "kpis": "<KPI rows: label|przed|po|zmiana|opis, jedna linia = jeden KPI>",
-  "tags": "<tagi per linia lub tablica stringów>",
-  "seo_title": "<45-60 znaków z typem kampanii i wynikiem>",
-  "seo_description": "<140-160 znaków>",
-  "primary_query": "<fraza SEO np. 'Meta Ads B2B case study'>",
+  "kpis": "<każdy KPI w osobnej linii: CPL|120 zł|58 zł|-52%|koszt pozyskania leada>",
+  "tags": "<tagi per linia>",
+  "seo_title": "<45-60 znaków: ZACZNIJ od primary_query, BEZ liczb % na początku>",
+  "seo_description": "<140-160 znaków zawierające primary_query dosłownie>",
+  "meta_description": "<identyczne co seo_description — 140-160 znaków z primary_query>",
+  "primary_query": "<max 40 znaków — fraza naturalnie padająca w treści np. 'kampania Meta Ads B2B'>",
   "query_cluster": "<8 fraz, przecinkami>"
 }
 DFLT,
@@ -257,6 +293,7 @@ DFLT,
             ],
             "read_content" => false,
             "json_keys" => [
+                "post_title",
                 "post_content",
                 "post_excerpt",
                 "seo_title",
@@ -300,7 +337,7 @@ DFLT,
             "label" => "Portfolio",
             "read_meta" => [
                 "type" => "_ups_port_type",
-                "meta" => "_ups_port_meta",
+                "meta_project" => "_ups_port_meta",
                 "problem" => "_ups_port_problem",
                 "scope" => "_ups_port_scope",
                 "result" => "_ups_port_result",
@@ -312,6 +349,7 @@ DFLT,
             ],
             "read_content" => true,
             "json_keys" => [
+                "post_title",
                 "post_content",
                 "post_excerpt",
                 "type",
@@ -323,6 +361,7 @@ DFLT,
                 "result",
                 "metrics",
                 "client_quote",
+                "technologies",
                 "seo_title",
                 "meta_description",
                 "primary_query",
@@ -335,7 +374,7 @@ DFLT,
             "label" => "Case study marketingowe",
             "read_meta" => [
                 "type" => "_ups_mport_type",
-                "meta" => "_ups_mport_meta",
+                "meta_project" => "_ups_mport_meta",
                 "sector" => "_ups_mport_sector",
                 "problem" => "_ups_mport_problem",
                 "solution" => "_ups_mport_solution",
@@ -349,6 +388,7 @@ DFLT,
             ],
             "read_content" => true,
             "json_keys" => [
+                "post_title",
                 "post_content",
                 "post_excerpt",
                 "type",
@@ -363,6 +403,7 @@ DFLT,
                 "tags",
                 "seo_title",
                 "seo_description",
+                "meta_description",
                 "primary_query",
                 "query_cluster",
             ],
@@ -392,8 +433,16 @@ function upsellio_cpt_ai_build_prompt(int $post_id, array $config, string $notes
 
     $company_ctx = (string) get_option("ups_ai_company_context", "");
 
+    $catalog_keyword = get_the_title($post_id);
+    if ($post->post_type === "miasto") {
+        $city_name_for_catalog = trim((string) get_post_meta($post_id, "_upsellio_city_name", true));
+        if ($city_name_for_catalog !== "") {
+            $catalog_keyword = $city_name_for_catalog;
+        }
+    }
+
     $internal_catalog = function_exists("upsellio_blog_bot_catalog_for_keyword")
-        ? upsellio_blog_bot_catalog_for_keyword(get_the_title($post_id), 24)
+        ? upsellio_blog_bot_catalog_for_keyword($catalog_keyword, 24)
         : [];
     $catalog = implode(
         "\n",
@@ -417,8 +466,16 @@ function upsellio_cpt_ai_build_prompt(int $post_id, array $config, string $notes
         $city_name_direct = (string) preg_replace("/^Marketing i strony WWW\s+/i", "", $city_name_direct);
         $vars["city_name"] = $city_name_direct;
     }
-    if (($vars["term"] ?? "") === "" && $post->post_type === "definicja") {
-        $vars["term"] = get_the_title($post_id);
+    if ($post->post_type === "definicja") {
+        if (($vars["term"] ?? "") === "") {
+            $vars["term"] = get_the_title($post_id);
+        }
+        if (($vars["category"] ?? "") === "") {
+            $terms = get_the_terms($post_id, "category");
+            if (!is_wp_error($terms) && is_array($terms) && isset($terms[0])) {
+                $vars["category"] = (string) $terms[0]->name;
+            }
+        }
     }
 
     foreach ($vars as $var => $val) {
@@ -491,8 +548,14 @@ function upsellio_cpt_ai_run(int $post_id, string $notes = "")
         ? upsellio_ai_model_for("cpt_ai_optimize")
         : "claude-sonnet-4-5";
 
-    /* Definicja: więcej pól + długi post_content w odpowiedzi — wyższy limit tokenów. */
-    $max_tokens_for_type = $post_type === "definicja" ? 6000 : 4096;
+    /* Długie JSON + HTML: wyższe limity niż domyślne 4096. */
+    if ($post_type === "definicja" || $post_type === "marketing_portfolio") {
+        $max_tokens_for_type = 6000;
+    } elseif ($post_type === "portfolio") {
+        $max_tokens_for_type = 5000;
+    } else {
+        $max_tokens_for_type = 4096;
+    }
 
     $user_prompt = upsellio_cpt_ai_build_prompt($post_id, $config, $notes);
     $system_prompt = (string) $config["prompt_system"];
@@ -738,11 +801,7 @@ function upsellio_cpt_ai_apply_miasto(int $post_id, array $data): void
         $city_name = (string) get_post_meta($post_id, "_upsellio_city_name", true);
         $pq_for_slug = $city_name !== "" ? "marketing-" . $city_name : "";
     }
-    $post_status = get_post_status($post_id);
-    if (
-        $pq_for_slug !== ""
-        && ($post_status === "draft" || $post_status === "auto-draft")
-    ) {
+    if ($pq_for_slug !== "") {
         $new_slug = sanitize_title($pq_for_slug);
         if (strlen($new_slug) > 60) {
             $head = substr($new_slug, 0, 60);
@@ -784,6 +843,20 @@ function upsellio_cpt_ai_apply_definicja(int $post_id, array $data): void
     if (!empty($links)) {
         update_post_meta($post_id, "_upsellio_definition_service_links", $links);
     }
+
+    // Aktualizuj slug z primary_query — zawsze, nie tylko dla draftów
+    $pq = trim((string) ($data["primary_query"] ?? ""));
+    if ($pq !== "") {
+        $new_slug = sanitize_title($pq);
+        if (strlen($new_slug) > 60) {
+            $cut = substr($new_slug, 0, 60);
+            $last = strrpos($cut, "-");
+            $new_slug = $last > 0 ? substr($cut, 0, $last) : $cut;
+        }
+        if ($new_slug !== "") {
+            wp_update_post(["ID" => $post_id, "post_name" => $new_slug]);
+        }
+    }
 }
 
 function upsellio_cpt_ai_apply_portfolio(int $post_id, array $data): void
@@ -817,10 +890,31 @@ function upsellio_cpt_ai_apply_portfolio(int $post_id, array $data): void
             }
         }
     }
+
+    // Aktualizuj slug z primary_query
+    $pq_slug = trim((string) ($data["primary_query"] ?? ""));
+    if ($pq_slug !== "") {
+        $new_slug = sanitize_title($pq_slug);
+        if (strlen($new_slug) > 60) {
+            $cut = substr($new_slug, 0, 60);
+            $last = strrpos($cut, "-");
+            $new_slug = $last > 0 ? substr($cut, 0, $last) : $cut;
+        }
+        if ($new_slug !== "") {
+            wp_update_post(["ID" => $post_id, "post_name" => $new_slug]);
+        }
+    }
 }
 
 function upsellio_cpt_ai_apply_marketing_portfolio(int $post_id, array $data): void
 {
+    // Upewnij się że meta_description trafia do Rank Math (fallback z seo_description)
+    $meta_desc = trim((string) ($data["meta_description"] ?? $data["seo_description"] ?? ""));
+    if ($meta_desc !== "") {
+        update_post_meta($post_id, "rank_math_description", sanitize_textarea_field($meta_desc));
+        update_post_meta($post_id, "_yoast_wpseo_metadesc", sanitize_textarea_field($meta_desc));
+    }
+
     $map = [
         "_ups_mport_type" => "type",
         "_ups_mport_meta" => "meta_project",
@@ -851,6 +945,20 @@ function upsellio_cpt_ai_apply_marketing_portfolio(int $post_id, array $data): v
         }
         if ($tags_str !== "") {
             update_post_meta($post_id, "_ups_mport_tags", $tags_str);
+        }
+    }
+
+    // Aktualizuj slug z primary_query
+    $pq_slug = trim((string) ($data["primary_query"] ?? ""));
+    if ($pq_slug !== "") {
+        $new_slug = sanitize_title($pq_slug);
+        if (strlen($new_slug) > 60) {
+            $cut = substr($new_slug, 0, 60);
+            $last = strrpos($cut, "-");
+            $new_slug = $last > 0 ? substr($cut, 0, $last) : $cut;
+        }
+        if ($new_slug !== "") {
+            wp_update_post(["ID" => $post_id, "post_name" => $new_slug]);
         }
     }
 }
