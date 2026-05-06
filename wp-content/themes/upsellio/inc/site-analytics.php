@@ -524,6 +524,7 @@ function upsellio_gsc_get_access_token($credentials, $trace_id = "")
 
     $response = wp_remote_post("https://oauth2.googleapis.com/token", [
         "timeout" => 25,
+        "sslverify" => true,
         "body" => [
             "client_id" => $client_id,
             "client_secret" => $client_secret,
@@ -759,6 +760,7 @@ function upsellio_gsc_fetch_rows($credentials, $days = 30, $trace_id = "")
             ], $trace_id);
             $response = wp_remote_post($endpoint, [
                 "timeout" => 35,
+                "sslverify" => true,
                 "headers" => [
                     "Authorization" => "Bearer " . $access_token,
                     "Content-Type" => "application/json",
@@ -1547,6 +1549,7 @@ function upsellio_google_oauth_handle_callback()
 
     $response = wp_remote_post("https://oauth2.googleapis.com/token", [
         "timeout" => 25,
+        "sslverify" => true,
         "body" => [
             "code" => $code,
             "client_id" => $client_id,
@@ -2056,6 +2059,7 @@ function upsellio_ga4_data_api_fetch_aggregates($property_numeric_id, $sync_days
             ], $trace_id);
             $response = wp_remote_post($endpoint, [
                 "timeout" => 45,
+                "sslverify" => true,
                 "headers" => [
                     "Authorization" => "Bearer " . $access_token,
                     "Content-Type" => "application/json",
@@ -2455,6 +2459,9 @@ function upsellio_build_query_to_lead_value_rows(array $keyword_rows, string $fr
         ]],
         "fields" => "ids",
     ]);
+    if (!empty($lead_ids)) {
+        update_meta_cache("post", array_map("intval", $lead_ids));
+    }
 
     $keyword_index = [];
     foreach (array_slice($keyword_rows, 0, 1200) as $row) {
@@ -2525,6 +2532,11 @@ function upsellio_build_query_to_lead_value_rows(array $keyword_rows, string $fr
 
 function upsellio_build_channel_ltv_rows(array $ga4_rows, string $from_date): array
 {
+    $cache_key = "ups_channel_ltv_rows_" . md5($from_date . "|" . count($ga4_rows));
+    $cached = get_transient($cache_key);
+    if ($cached !== false && is_array($cached)) {
+        return $cached;
+    }
     $channels = [];
     foreach ($ga4_rows as $row) {
         if (!is_array($row)) {
@@ -2558,6 +2570,9 @@ function upsellio_build_channel_ltv_rows(array $ga4_rows, string $from_date): ar
         ]],
         "fields" => "ids",
     ]);
+    if (!empty($lead_ids)) {
+        update_meta_cache("post", array_map("intval", $lead_ids));
+    }
     foreach ($lead_ids as $lead_id) {
         $lead_id = (int) $lead_id;
         $source = sanitize_text_field((string) get_post_meta($lead_id, "_upsellio_lead_utm_source", true));
@@ -2599,8 +2614,9 @@ function upsellio_build_channel_ltv_rows(array $ga4_rows, string $from_date): ar
         return (($b["value"] ?? 0) <=> ($a["value"] ?? 0))
             ?: (($b["leads"] ?? 0) <=> ($a["leads"] ?? 0));
     });
-
-    return array_slice($rows, 0, 30);
+    $result = array_slice($rows, 0, 30);
+    set_transient($cache_key, $result, DAY_IN_SECONDS);
+    return $result;
 }
 
 function upsellio_build_landing_funnel_rows(array $report_rows, string $from_date): array
@@ -4224,6 +4240,7 @@ function upsellio_google_ads_gaql_search_stream(string $query)
 
     $response = wp_remote_post($url, [
         "timeout" => 45,
+        "sslverify" => true,
         "headers" => array_merge(
             upsellio_google_ads_request_headers((string) $token),
             ["Content-Type" => "application/json"]
@@ -4726,6 +4743,7 @@ function upsellio_ga4_run_report_raw(string $property_numeric_id, array $body, s
     $endpoint = "https://analyticsdata.googleapis.com/v1beta/properties/" . $property_numeric_id . ":runReport";
     $response = wp_remote_post($endpoint, [
         "timeout" => 45,
+        "sslverify" => true,
         "headers" => [
             "Authorization" => "Bearer " . $access_token,
             "Content-Type" => "application/json",
@@ -4786,6 +4804,7 @@ function upsellio_analytics_health_daily_job(): void
                 foreach (array_slice(array_keys($pages), 0, 20) as $page_url) {
                     $inspect_response = wp_remote_post("https://searchconsole.googleapis.com/v1/urlInspection/index:inspect", [
                         "timeout" => 25,
+                        "sslverify" => true,
                         "headers" => [
                             "Authorization" => "Bearer " . $access_token,
                             "Content-Type" => "application/json",

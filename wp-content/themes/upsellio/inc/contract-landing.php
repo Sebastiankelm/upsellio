@@ -110,8 +110,9 @@ function upsellio_contract_render_public_landing(WP_Post $contract)
 <meta name="robots" content="noindex,nofollow"/>
 <title><?php echo esc_html($contract_title); ?> — Upsellio</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&amp;family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="91229b76-132c-42e8-9021-9542287ad319" data-blockingmode="auto" type="text/javascript"></script>
 <?php if ($gtm !== "" && $upsellio_contract_track_public) : ?>
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','<?php echo esc_js($gtm); ?>');</script>
+<script type="text/plain" data-cookieconsent="marketing">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer","<?php echo esc_js($gtm); ?>");</script>
 <?php endif; ?>
 <script>
 window.dataLayer=window.dataLayer||[];
@@ -122,10 +123,12 @@ window.UPS={
   offer_id:'<?php echo esc_js((string) $offer_id); ?>',
   person_id:'<?php echo esc_js($person_id); ?>'
 };
-<?php if ($upsellio_contract_track_public) : ?>
-dataLayer.push({event:'contract_view',contract_id:UPS.contract_id,contract_title:UPS.contract_title,person_id:UPS.person_id,offer_id:UPS.offer_id});
-<?php endif; ?>
 </script>
+<?php if ($upsellio_contract_track_public) : ?>
+<script type="text/plain" data-cookieconsent="marketing">
+dataLayer.push({event:"contract_view",contract_id:UPS.contract_id,contract_title:UPS.contract_title,person_id:UPS.person_id,offer_id:UPS.offer_id});
+</script>
+<?php endif; ?>
 <style>
 :root{
   --bg:#fafaf7;--surface:#fff;--ink:#0a1410;--ink2:#2e2e2a;--muted:#6b6b63;
@@ -277,7 +280,7 @@ a{text-decoration:none;color:inherit}
 </head>
 <body>
 <?php if ($gtm !== "" && $upsellio_contract_track_public) : ?>
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=<?php echo esc_attr($gtm); ?>" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<noscript data-cookieconsent="marketing"><iframe src="https://www.googletagmanager.com/ns.html?id=<?php echo esc_attr($gtm); ?>" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <?php endif; ?>
 <div id="bar"></div>
 

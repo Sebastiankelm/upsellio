@@ -9,7 +9,7 @@ if (!$blog_index_url) {
     $blog_index_url = home_url("/");
 }
 $is_homepage_context = function_exists("upsellio_is_homepage_request") ? (bool) upsellio_is_homepage_request() : is_front_page();
-$is_blog_context = !$is_homepage_context && (is_home() || is_singular("post") || is_category() || is_tag() || is_search() || is_page_template("page-blog.php"));
+$is_blog_context = !$is_homepage_context && (is_home() || is_singular("post") || is_category() || is_tag() || is_search() || is_page_template("ups-blog-core.php"));
 $is_definitions_context = is_post_type_archive("definicja") || is_singular("definicja");
 $is_cities_context = is_post_type_archive("miasto") || is_singular("miasto");
 $is_portfolio_context = function_exists("upsellio_is_portfolio_page_context")
@@ -62,48 +62,59 @@ foreach ((array) $primary_navigation_links as $nav_link) {
 <html <?php language_attributes(); ?>>
 <head>
   <?php if ($upsellio_load_public_tracking) : ?>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-R37SMGVBNC"></script>
-  <?php if (defined("UPSELLIO_GOOGLE_ADS_ID") && (string) UPSELLIO_GOOGLE_ADS_ID !== "") : ?>
-  <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo esc_attr((string) UPSELLIO_GOOGLE_ADS_ID); ?>"></script>
-  <?php endif; ?>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-R37SMGVBNC');
-    <?php if (defined("UPSELLIO_GOOGLE_ADS_ID") && (string) UPSELLIO_GOOGLE_ADS_ID !== "") : ?>
-    gtag('config', <?php echo wp_json_encode((string) UPSELLIO_GOOGLE_ADS_ID); ?>);
-    <?php endif; ?>
-  </script>
   <?php
   $upsellio_clarity_project_id = defined("UPSELLIO_CLARITY_PROJECT_ID") && (string) UPSELLIO_CLARITY_PROJECT_ID !== ""
       ? (string) UPSELLIO_CLARITY_PROJECT_ID
       : "wm94kd7gyw";
   ?>
+  <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="91229b76-132c-42e8-9021-9542287ad319" data-blockingmode="auto" type="text/javascript"></script>
+  <script type="text/plain" data-cookieconsent="marketing">
+    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":
+    new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src=
+    "https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,"script","dataLayer","GTM-KM9J5XC2");
+  </script>
+  <script type="text/plain" data-cookieconsent="statistics" src="https://www.googletagmanager.com/gtag/js?id=G-R37SMGVBNC"></script>
+  <script type="text/plain" data-cookieconsent="statistics">
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag("js", new Date());
+    gtag("config", "G-R37SMGVBNC");
+  </script>
+  <?php if (defined("UPSELLIO_GOOGLE_ADS_ID") && (string) UPSELLIO_GOOGLE_ADS_ID !== "") : ?>
+  <script type="text/plain" data-cookieconsent="marketing" src="https://www.googletagmanager.com/gtag/js?id=<?php echo esc_attr((string) UPSELLIO_GOOGLE_ADS_ID); ?>"></script>
+  <script type="text/plain" data-cookieconsent="marketing">
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag("js", new Date());
+    gtag("config", <?php echo wp_json_encode((string) UPSELLIO_GOOGLE_ADS_ID); ?>);
+  </script>
+  <?php endif; ?>
+  <script type="text/plain" data-cookieconsent="marketing">
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,"script",
+    "https://connect.facebook.net/en_US/fbevents.js");
+    fbq("init", "1281722377419475");
+    fbq("track", "PageView");
+  </script>
   <?php if ($upsellio_clarity_project_id !== "") : ?>
-  <!-- Microsoft Clarity -->
-  <script>
+  <script type="text/plain" data-cookieconsent="statistics">
     (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window, document, "clarity", "script", <?php echo wp_json_encode($upsellio_clarity_project_id); ?>);
   </script>
   <?php endif; ?>
   <?php endif; ?>
   <meta charset="<?php bloginfo("charset"); ?>">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <?php if ($upsellio_load_public_tracking) : ?>
-  <!-- Google Tag Manager -->
-  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-KM9J5XC2');</script>
-  <!-- End Google Tag Manager -->
-  <?php endif; ?>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <?php wp_head(); ?>
@@ -111,10 +122,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
 <?php if ($upsellio_load_public_tracking) : ?>
-<!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KM9J5XC2"
-height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
+<noscript data-cookieconsent="marketing"><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KM9J5XC2" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<noscript data-cookieconsent="marketing"><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1281722377419475&ev=PageView&noscript=1" alt="" /></noscript>
 <?php endif; ?>
 <a class="skip-link" href="#main-content">Przejdź do treści</a>
 <header class="nav site-nav">

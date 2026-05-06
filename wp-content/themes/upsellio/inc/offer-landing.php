@@ -429,17 +429,20 @@ function upsellio_offer_render_public_landing($offer)
 <meta name="robots" content="noindex,nofollow"/>
 <title><?php echo esc_html($offer_title); ?> — Upsellio</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&amp;family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet"/>
+<script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="91229b76-132c-42e8-9021-9542287ad319" data-blockingmode="auto" type="text/javascript"></script>
 <?php if ($gtm !== "" && $upsellio_offer_track_public) : ?>
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','<?php echo esc_js($gtm); ?>');</script>
+<script type="text/plain" data-cookieconsent="marketing">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer","<?php echo esc_js($gtm); ?>");</script>
 <?php endif; ?>
 <script>
 window.dataLayer=window.dataLayer||[];
 window.UPS={offer_id:'<?php echo esc_js((string) $offer_id); ?>',offer_slug:'<?php echo esc_js($slug); ?>',offer_title:'<?php echo esc_js($offer_title); ?>',person_id:'<?php echo esc_js($person_id); ?>',utm_source:'',utm_campaign:'',gclid:''};
 (function(){var q=new URLSearchParams(window.location.search||'');UPS.utm_source=q.get('utm_source')||'';UPS.utm_campaign=q.get('utm_campaign')||'';UPS.gclid=q.get('gclid')||'';})();
-<?php if ($upsellio_offer_track_public) : ?>
-dataLayer.push({event:'offer_view',offer_id:UPS.offer_id,offer_title:UPS.offer_title,person_id:UPS.person_id,utm_source:UPS.utm_source,utm_campaign:UPS.utm_campaign,gclid:UPS.gclid});
-<?php endif; ?>
 </script>
+<?php if ($upsellio_offer_track_public) : ?>
+<script type="text/plain" data-cookieconsent="marketing">
+dataLayer.push({event:"offer_view",offer_id:UPS.offer_id,offer_title:UPS.offer_title,person_id:UPS.person_id,utm_source:UPS.utm_source,utm_campaign:UPS.utm_campaign,gclid:UPS.gclid});
+</script>
+<?php endif; ?>
 <style>
 :root{
   --bg:#fafaf7;--surface:#fff;--ink:#0a1410;--ink2:#2e2e2a;--muted:#6b6b63;
@@ -710,7 +713,7 @@ a{text-decoration:none;color:inherit}
 <style>body{padding-top:40px}</style>
 <?php endif; ?>
 <?php if ($gtm !== "" && $upsellio_offer_track_public) : ?>
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=<?php echo esc_attr($gtm); ?>" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<noscript data-cookieconsent="marketing"><iframe src="https://www.googletagmanager.com/ns.html?id=<?php echo esc_attr($gtm); ?>" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <?php endif; ?>
 <div id="bar"></div>
 

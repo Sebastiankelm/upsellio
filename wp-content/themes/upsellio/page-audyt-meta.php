@@ -96,26 +96,23 @@ $upsellio_css_version = file_exists($upsellio_css_path) ? (string) filemtime($up
 <html <?php language_attributes(); ?>>
 <head>
   <?php if ($upsellio_load_public_tracking) : ?>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-R37SMGVBNC"></script>
-  <script>
+  <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="91229b76-132c-42e8-9021-9542287ad319" data-blockingmode="auto" type="text/javascript"></script>
+  <script type="text/plain" data-cookieconsent="statistics" src="https://www.googletagmanager.com/gtag/js?id=G-R37SMGVBNC"></script>
+  <script type="text/plain" data-cookieconsent="statistics">
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-R37SMGVBNC');
+    gtag("js", new Date());
+    gtag("config", "G-R37SMGVBNC");
   </script>
   <?php endif; ?>
   <meta charset="<?php bloginfo("charset"); ?>" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <?php if ($upsellio_load_public_tracking) : ?>
-  <!-- Google Tag Manager -->
-  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-KM9J5XC2');</script>
-  <!-- End Google Tag Manager -->
+  <script type="text/plain" data-cookieconsent="marketing">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":
+new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src=
+"https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,"script","dataLayer","GTM-KM9J5XC2");</script>
   <?php endif; ?>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -942,7 +939,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   <?php wp_body_open(); ?>
   <?php if ($upsellio_load_public_tracking) : ?>
   <!-- Google Tag Manager (noscript) -->
-  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KM9J5XC2"
+  <noscript data-cookieconsent="marketing"><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KM9J5XC2"
   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
   <?php endif; ?>

@@ -47,7 +47,10 @@ function upsellio_upsert_page_with_template($slug, $title, $template_file)
     }
 
     if ($page_id > 0 && $template_file !== "") {
-        if ((string) get_post_meta($page_id, "_wp_page_template", true) !== $template_file) {
+        $current_template = (string) get_post_meta($page_id, "_wp_page_template", true);
+        // Do not overwrite manual template choice from editor/Quick Edit.
+        // Only seed template when page has no explicit template yet.
+        if ($current_template === "" || $current_template === "default") {
             update_post_meta($page_id, "_wp_page_template", $template_file);
         }
     }
@@ -105,6 +108,67 @@ require_once get_template_directory() . "/inc/technical-seo.php";
 require_once get_template_directory() . "/inc/admin-tools.php";
 require_once get_template_directory() . "/inc/home-media.php";
 require_once get_template_directory() . "/inc/template-assets.php";
+
+function upsellio_get_forced_page_templates()
+{
+    return [
+        "front-page.php" => "Upsellio - Strona Glowna v2 (Core)",
+        "ups-blog-core.php" => "Upsellio - Blog v4 (Core)",
+        "page-kontakt.php" => "Upsellio - Kontakt v5 (Core)",
+        "template-home-v2.php" => "Upsellio - Strona Glowna v2 (Selectable)",
+        "template-blog-v4.php" => "Upsellio - Blog v4 (Classic)",
+        "template-blog-v4-alt.php" => "Upsellio - Blog v4 (Alt)",
+        "template-kontakt-v5.php" => "Upsellio - Kontakt v5 (Selectable)",
+    ];
+}
+
+function upsellio_register_forced_page_templates($post_templates, $theme = null, $post = null, $post_type = null)
+{
+    $resolved_post_type = is_string($post_type) && $post_type !== ""
+        ? $post_type
+        : ($post instanceof WP_Post ? (string) $post->post_type : "page");
+
+    if ($resolved_post_type !== "page") {
+        return $post_templates;
+    }
+
+    $clean_templates = [];
+    foreach ((array) $post_templates as $template_file => $template_label) {
+        $template_file = (string) $template_file;
+        if ($template_file === "") {
+            continue;
+        }
+
+        // Ignore developer worktree/template artifacts from hidden folders.
+        if (strpos($template_file, ".claude/") !== false || strpos($template_file, ".claude\\") !== false) {
+            continue;
+        }
+
+        $clean_templates[$template_file] = $template_label;
+    }
+
+    return array_merge($clean_templates, upsellio_get_forced_page_templates());
+}
+add_filter("theme_page_templates", "upsellio_register_forced_page_templates", 20, 4);
+
+function upsellio_flush_template_cache_once()
+{
+    if (!is_admin()) {
+        return;
+    }
+
+    $cache_key = "upsellio_templates_cache_flushed_v1";
+    if (get_option($cache_key) === "1") {
+        return;
+    }
+
+    if (function_exists("wp_clean_themes_cache")) {
+        wp_clean_themes_cache();
+    }
+
+    update_option($cache_key, "1", false);
+}
+add_action("admin_init", "upsellio_flush_template_cache_once");
 
 function upsellio_is_strict_custom_embed_mode()
 {
@@ -255,7 +319,7 @@ function upsellio_ensure_blog_page_exists()
         return;
     }
 
-    $blog_page_id = upsellio_upsert_page_with_template("blog", "Blog", "page-blog.php");
+    $blog_page_id = upsellio_upsert_page_with_template("blog", "Blog", "ups-blog-core.php");
     if ($blog_page_id > 0 && (int) get_option("page_for_posts") <= 0) {
         update_option("page_for_posts", (int) $blog_page_id);
     }
@@ -1195,10 +1259,12 @@ require_once get_template_directory() . "/inc/crm.php";
 require_once get_template_directory() . "/inc/analytics-internal-exclude.php";
 require_once get_template_directory() . "/inc/seo-automation.php";
 require_once get_template_directory() . "/inc/data-schema.php";
+require_once get_template_directory() . "/inc/batch-api.php";
 require_once get_template_directory() . "/inc/site-analytics.php";
 require_once get_template_directory() . "/inc/server-side-tracking.php";
 require_once get_template_directory() . "/inc/gsc-keyword-analysis.php";
 require_once get_template_directory() . "/inc/google-oauth-managed.php";
+require_once get_template_directory() . "/inc/client-audit.php";
 require_once get_template_directory() . "/inc/breadcrumbs.php";
 require_once get_template_directory() . "/inc/advanced-tests.php";
 require_once get_template_directory() . "/inc/portfolio-seed.php";
@@ -1292,12 +1358,24 @@ function upsellio_get_facebook_pixel_id()
     return $pixel_id !== "" ? $pixel_id : "";
 }
 
+function upsellio_has_tracking_consent(): bool
+{
+    $consent = isset($_COOKIE["ups_consent"]) ? sanitize_text_field(wp_unslash($_COOKIE["ups_consent"])) : "";
+    return $consent === "granted";
+}
+
 function upsellio_print_tracking_scripts_head()
 {
+    // Tracking scripts are managed centrally in header.php with Cookiebot consent categories.
+    return;
+
     if (is_admin()) {
         return;
     }
     if (function_exists("upsellio_should_load_public_tracking_tags") && !upsellio_should_load_public_tracking_tags()) {
+        return;
+    }
+    if (!upsellio_has_tracking_consent()) {
         return;
     }
 
@@ -1325,10 +1403,16 @@ add_action("wp_head", "upsellio_print_tracking_scripts_head", 6);
 
 function upsellio_print_tracking_scripts_body()
 {
+    // Tracking scripts are managed centrally in header.php with Cookiebot consent categories.
+    return;
+
     if (is_admin()) {
         return;
     }
     if (function_exists("upsellio_should_load_public_tracking_tags") && !upsellio_should_load_public_tracking_tags()) {
+        return;
+    }
+    if (!upsellio_has_tracking_consent()) {
         return;
     }
 
@@ -1838,7 +1922,7 @@ function upsellio_render_admin_content_tools_screen()
       <table class="widefat striped" style="max-width:1100px;">
         <thead><tr><th>Strona</th><th>Szablon</th><th>URL</th></tr></thead>
         <tbody>
-          <tr><td>Blog</td><td><code>page-blog.php</code></td><td><a href="<?php echo esc_url(upsellio_get_blog_index_url()); ?>" target="_blank" rel="noopener noreferrer">Otwórz</a></td></tr>
+          <tr><td>Blog</td><td><code>ups-blog-core.php</code></td><td><a href="<?php echo esc_url(upsellio_get_blog_index_url()); ?>" target="_blank" rel="noopener noreferrer">Otwórz</a></td></tr>
           <tr><td>Portfolio stron</td><td><code>page-portfolio.php</code></td><td><a href="<?php echo esc_url($portfolio_url); ?>" target="_blank" rel="noopener noreferrer">Otwórz</a></td></tr>
           <tr><td>Portfolio marketingowe</td><td><code>page-portfolio-marketingowe.php</code></td><td><a href="<?php echo esc_url($marketing_portfolio_url); ?>" target="_blank" rel="noopener noreferrer">Otwórz</a></td></tr>
           <tr><td>Lead magnety</td><td><code>page-lead-magnety.php</code></td><td><a href="<?php echo esc_url($lead_magnets_url); ?>" target="_blank" rel="noopener noreferrer">Otwórz</a></td></tr>
@@ -2341,7 +2425,7 @@ function upsellio_get_blog_page_id()
     $template_pages = get_pages([
         "post_status" => "publish",
         "meta_key" => "_wp_page_template",
-        "meta_value" => "page-blog.php",
+        "meta_value" => "ups-blog-core.php",
         "number" => 1,
     ]);
     if (!empty($template_pages)) {
@@ -2414,7 +2498,7 @@ function upsellio_runtime_bootstrap_site_structure()
     upsellio_upsert_page_with_template("polityka-prywatnosci", "Polityka prywatnosci", "");
 
     if ((int) get_option("page_for_posts") <= 0) {
-        $blog_page_id = upsellio_upsert_page_with_template("blog", "Blog", "page-blog.php");
+        $blog_page_id = upsellio_upsert_page_with_template("blog", "Blog", "ups-blog-core.php");
         if ($blog_page_id > 0) {
             update_option("page_for_posts", (int) $blog_page_id);
         }

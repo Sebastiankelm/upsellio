@@ -54,6 +54,7 @@ function upsellio_server_send_lead_conversion(int $lead_id, array $payload): voi
         wp_remote_post($ga4Url, [
             "timeout" => 4,
             "blocking" => false,
+            "sslverify" => true,
             "headers" => ["Content-Type" => "application/json"],
             "body" => wp_json_encode([
                 "client_id" => $clientId,
@@ -105,6 +106,7 @@ function upsellio_server_send_lead_conversion(int $lead_id, array $payload): voi
         wp_remote_post($capiUrl, [
             "timeout" => 4,
             "blocking" => false,
+            "sslverify" => true,
             "headers" => ["Content-Type" => "application/json"],
             "body" => wp_json_encode($capiBody),
         ]);
@@ -161,6 +163,7 @@ function upsellio_server_send_closed_won_conversion(int $lead_id): void
         wp_remote_post($ga4Url, [
             "timeout" => 4,
             "blocking" => false,
+            "sslverify" => true,
             "headers" => ["Content-Type" => "application/json"],
             "body" => wp_json_encode([
                 "client_id" => $clientId,
@@ -211,6 +214,7 @@ function upsellio_server_send_closed_won_conversion(int $lead_id): void
         wp_remote_post($capiUrl, [
             "timeout" => 4,
             "blocking" => false,
+            "sslverify" => true,
             "headers" => ["Content-Type" => "application/json"],
             "body" => wp_json_encode($capiBody),
         ]);
