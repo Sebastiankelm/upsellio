@@ -84,12 +84,7 @@ function upsellio_offer_layout_get_default_payload()
         "has_meta" => true,
         "has_web" => false,
         "questions_raw" => "Jaki jest Twój miesięczny budżet reklamowy (bez fee)?|Pomoże to zaplanować strukturę kampanii.\nKiedy chcesz startować z działaniami?",
-        "services_json" => wp_json_encode([
-            ["key" => "all", "label" => "Cały pakiet (Google + Meta)", "price_hint" => ""],
-            ["key" => "google", "label" => "Tylko Google Ads", "price_hint" => ""],
-            ["key" => "meta", "label" => "Tylko Meta Ads", "price_hint" => ""],
-            ["key" => "web", "label" => "Strona / landing", "price_hint" => "wycena osobna"],
-        ]),
+        "services_json" => wp_json_encode([]),
         "include_lines" => "Audyt i strategia (PDF)\nKonfiguracja kampanii i śledzenia\nCotygodniowy raport i optymalizacja\nRozmowa strategiczna 1× / mies.",
         "option_lines" => "Performance Max / Shopping — dopłata\nProdukcja wideo — wycena osobna\nOpieka nad stroną — pakiet dodatkowy",
     ];
@@ -554,16 +549,6 @@ a{text-decoration:none;color:inherit}
 .sc-exp{display:flex;align-items:center;gap:7px;padding:9px 12px;background:var(--teals);border:1px solid var(--teall);border-radius:var(--r);font-size:12px;font-weight:600;color:var(--teald);margin-bottom:14px}
 .sc-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);animation:pulse 2s infinite;flex-shrink:0}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(13,148,136,.4)}50%{box-shadow:0 0 0 5px rgba(13,148,136,0)}}
-.sc-commit{margin-bottom:14px}
-.sc-commit-label{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-.commit-opts{display:grid;gap:6px}
-.commit-opts--required{animation:shake .4s ease-in-out;box-shadow:0 0 0 3px rgba(217,76,76,.25);border-radius:12px}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-.commit-opt{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;transition:all .18s;background:var(--bg)}
-.commit-opt:hover{border-color:var(--teall);background:var(--teals)}
-.commit-opt.sel{border-color:var(--teal);background:var(--teals);color:var(--teald);font-weight:700}
-.commit-opt input{width:15px;height:15px;accent-color:var(--teal);flex-shrink:0;cursor:pointer}
-.commit-opt span{font-size:11px;color:var(--muted);font-weight:400;margin-left:auto}
 .sc-note{display:flex;gap:9px;align-items:flex-start;margin-top:12px;font-size:12px;color:var(--muted);line-height:1.55}
 .sc-shield{width:28px;height:28px;border-radius:50%;background:var(--teals);display:grid;place-items:center;flex-shrink:0}
 .sc-shield svg{width:12px;height:12px;stroke:var(--teald);fill:none;stroke-width:1.8}
@@ -578,14 +563,6 @@ a{text-decoration:none;color:inherit}
 .scope-group-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0}
 .scope-group.is-meta .scope-group-dot{background:#db2777}
 .scope-group.is-web .scope-group-dot{background:#4338ca}
-.pfoot-commit{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)}
-.pfoot-commit-label{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-.commit-opt--pricing{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;transition:all .18s;background:var(--bg)}
-.commit-opt--pricing:hover{border-color:var(--teall);background:var(--teals)}
-.commit-opt--pricing.sel{border-color:var(--teal);background:var(--teals);color:var(--teald);font-weight:700}
-.commit-opt--pricing input{width:15px;height:15px;accent-color:var(--teal);flex-shrink:0;cursor:pointer}
-.commit-opt--pricing .commit-label{flex:1;font-weight:600}
-.commit-opt--pricing .commit-hint{margin-left:auto;font-size:11px;color:var(--muted);font-weight:400;text-align:right}
 .scope-empty{padding:24px;background:var(--bg);border-radius:var(--r);color:var(--muted);text-align:center;line-height:1.55}
 .hero-name{font-size:14px;color:var(--muted);margin-bottom:8px;font-weight:500}
 .hero-name strong{color:var(--ink);font-weight:700}
@@ -706,8 +683,8 @@ a{text-decoration:none;color:inherit}
 .foot-logo{display:flex;align-items:center;gap:8px;color:var(--ink);font-weight:700;font-size:13px}
 @media(max-width:1024px){.hero-grid{grid-template-columns:1fr 280px;gap:28px}.sc{padding:22px}}
 @media(max-width:860px){.hero-grid{grid-template-columns:1fr}.sc{position:static;top:0}.scope-head,.scope-row{grid-template-columns:1fr 100px}.scope-head>*:nth-child(2),.scope-row>*:nth-child(2){display:none}.pbody{grid-template-columns:1fr}.process-steps{grid-template-columns:repeat(2,1fr);gap:14px 10px}}
-@media(max-width:768px){.hero-grid{grid-template-columns:1fr;gap:24px}.sc{position:static;top:0;width:100%;max-width:none}.commit-opts{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px}.commit-opt{flex:1 1 calc(50% - 4px)}}
-@media(max-width:640px){.hero-grid{gap:20px}.commit-opt{flex:1 1 100%}.ptop{flex-direction:column;align-items:flex-start}.pamount{font-size:28px}}
+@media(max-width:768px){.hero-grid{grid-template-columns:1fr;gap:24px}.sc{position:static;top:0;width:100%;max-width:none}}
+@media(max-width:640px){.hero-grid{gap:20px}.ptop{flex-direction:column;align-items:flex-start}.pamount{font-size:28px}}
 @media(max-width:580px){.w{padding:0 18px}.nav-for{display:none}.step{grid-template-columns:40px 1fr;gap:14px}.ptop{flex-direction:column;gap:12px}.snav-link{padding:11px 12px;font-size:12px}.cta-acts--stack .btn-ol{order:unset}.process-step-desc{font-size:10.5px}}
 @media(max-width:480px){.h1{font-size:28px!important}.hero-lead{font-size:15px}.w{padding:0 16px}.sc-row{padding:8px 0}}
 </style>
@@ -1045,25 +1022,6 @@ a{text-decoration:none;color:inherit}
       <?php endif; ?>
     </div>
     <div class="pfoot pfoot--stack" id="pricing-accept-anchor">
-      <div class="pfoot-commit">
-        <div class="pfoot-commit-label">Co bierzesz?</div>
-        <div class="commit-opts" id="commitOpts">
-          <?php if (!empty($services)) : ?>
-            <?php foreach ($services as $svc) : ?>
-              <?php if (!is_array($svc)) {
-                  continue;
-              } ?>
-              <label class="commit-opt commit-opt--pricing" onclick="commitSelect(this)">
-                <input type="radio" name="commit" value="<?php echo esc_attr(sanitize_key((string) ($svc["key"] ?? ""))); ?>"/>
-                <span class="commit-label"><?php echo esc_html((string) ($svc["label"] ?? "")); ?></span>
-                <?php if (!empty($svc["price_hint"])) : ?><span class="commit-hint"><?php echo esc_html((string) $svc["price_hint"]); ?></span><?php endif; ?>
-              </label>
-            <?php endforeach; ?>
-          <?php else : ?>
-            <label class="commit-opt commit-opt--pricing" onclick="commitSelect(this)"><input type="radio" name="commit" value="all"/><span class="commit-label">Cały zakres</span></label>
-          <?php endif; ?>
-        </div>
-      </div>
       <div class="pfoot-primary">
         <button type="button" class="btn btn-p" id="btn-offer-accept-pricing"><?php echo esc_html($cta_text); ?></button>
       </div>
