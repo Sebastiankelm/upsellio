@@ -794,7 +794,7 @@ function upsellio_crm_is_endpoint_rate_limited(): bool
 
     $transient_key = "ups_lead_rl_ip_" . md5($ip_hash);
     $attempts = (int) get_transient($transient_key);
-    if ($attempts >= 5) {
+    if ($attempts >= 25) {
         return true;
     }
 
@@ -919,7 +919,7 @@ function upsellio_crm_handle_lead_submission()
         : home_url("/");
 
     if (upsellio_crm_is_endpoint_rate_limited()) {
-        wp_die("Zbyt wiele prób. Spróbuj ponownie za godzinę.", "Rate limited", ["response" => 429]);
+        upsellio_crm_redirect_lead_form_error($redirectUrl, "rate");
     }
 
     if (!isset($_POST["upsellio_lead_form_nonce"]) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["upsellio_lead_form_nonce"])), "upsellio_unified_lead_form")) {
@@ -1025,6 +1025,15 @@ function upsellio_crm_handle_lead_submission()
 }
 add_action("admin_post_upsellio_submit_lead", "upsellio_crm_handle_lead_submission");
 add_action("admin_post_nopriv_upsellio_submit_lead", "upsellio_crm_handle_lead_submission");
+
+function upsellio_crm_refresh_lead_form_nonce_ajax()
+{
+    wp_send_json_success([
+        "nonce" => wp_create_nonce("upsellio_unified_lead_form"),
+    ]);
+}
+add_action("wp_ajax_upsellio_refresh_lead_form_nonce", "upsellio_crm_refresh_lead_form_nonce_ajax");
+add_action("wp_ajax_nopriv_upsellio_refresh_lead_form_nonce", "upsellio_crm_refresh_lead_form_nonce_ajax");
 
 function upsellio_crm_followup_reminder($lead_id)
 {

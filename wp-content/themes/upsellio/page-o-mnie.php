@@ -26,11 +26,23 @@ $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? u
 $founder = function_exists("upsellio_get_trust_seo_section") ? upsellio_get_trust_seo_section("founder") : [];
 $founder_name = (string) ($founder["name"] ?? "Sebastian Kelm");
 $founder_role = (string) ($founder["role"] ?? "Konsultant marketingu i sprzedaży B2B");
-$founder_photo = (string) ($founder["photo_url"] ?? "");
-if ($founder_photo === "" && function_exists("upsellio_render_home_media_image")) {
-    $founder_photo = "";
+$founder_photo = "";
+$hero_portrait_slot = function_exists("upsellio_get_home_media_slot") ? upsellio_get_home_media_slot("hero_portrait") : [];
+if (is_array($hero_portrait_slot) && !empty($hero_portrait_slot["attachment_id"])) {
+    $founder_photo = (string) wp_get_attachment_image_url((int) $hero_portrait_slot["attachment_id"], "large");
+}
+if ($founder_photo === "") {
+    $founder_photo = (string) ($founder["photo_url"] ?? "");
 }
 $linkedin_url = trim((string) ($founder["linkedin_url"] ?? "https://www.linkedin.com/in/sebastiankelm/"));
+$service_options = [
+    "Google Ads",
+    "Meta Ads",
+    "Strona internetowa / landing",
+    "Pakiet kompletny (kampanie + strona)",
+    "Audyt obecnych działań",
+    "Nie wiem — chcę porozmawiać",
+];
 
 add_action("wp_head", static function () use ($about_url, $founder_name, $founder_role, $contact_email, $linkedin_url, $site_name) {
     $schema = [
@@ -80,6 +92,11 @@ get_header();
   .am-hero-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .am-photo-stripes{position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(13,148,136,.12) 0 12px,transparent 12px 24px)}
   .am-photo-label{position:absolute;inset:0;display:grid;place-items:center;font-family:ui-monospace,monospace;color:#0f766e;font-size:12px;letter-spacing:.8px;text-align:center;padding:0 16px}
+  .am-mini-dash{position:absolute;right:14px;bottom:14px;width:min(230px,80%);background:rgba(10,20,16,.9);color:#fff;border:1px solid rgba(94,234,212,.25);border-radius:14px;padding:12px;backdrop-filter:blur(4px)}
+  .am-mini-dash strong{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:#5eead4;margin-bottom:8px}
+  .am-mini-dash ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .am-mini-dash li{display:flex;justify-content:space-between;gap:10px;font-size:12px;line-height:1.35;color:rgba(255,255,255,.9)}
+  .am-mini-dash li span:last-child{font-weight:700;color:#fff}
   .am-proof{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
   .am-proof div{background:#fff;border:1px solid #e7e7e1;border-radius:16px;padding:18px}
   .am-proof strong{display:block;font-family:"Bricolage Grotesque",sans-serif;color:#0d9488;font-size:30px;line-height:1}
@@ -102,7 +119,20 @@ get_header();
   .am-cta-inner{position:relative;display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center}
   .am-cta .am-h2{color:#fff;max-width:16ch}
   .am-cta p{color:rgba(255,255,255,.72);max-width:64ch}
+  .am-contact-form{padding:84px 0;background:#fafaf7}
+  .am-contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:34px;align-items:start}
+  .am-contact-card{background:#fff;border:1px solid #e7e7e1;border-radius:20px;padding:24px}
+  .am-contact-card h3{margin:0 0 8px;font-family:"Bricolage Grotesque",sans-serif;font-size:28px;line-height:1.1;letter-spacing:-.8px}
+  .am-contact-card p{margin:0 0 18px;color:#4b5563}
+  .am-contact-form .ups-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  .am-contact-form .ups-form select,
+  .am-contact-form .ups-form textarea{width:100%;min-height:46px;background:#fff;border:1px solid #d1d5db;border-radius:10px;padding:11px 14px;font-size:14px}
+  .am-contact-form .ups-form textarea{min-height:96px}
+  .am-contact-form .ups-form__submit{width:100%;min-height:50px;border-radius:999px;background:#0a1410;color:#fff;border:0;font-weight:700}
+  .am-contact-form .ups-form__consent{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#6b7280}
+  .am-contact-form .ups-form__consent input[type="checkbox"]{margin-top:3px}
   @media(max-width:980px){.am-hero-grid,.am-grid-3,.am-cta-inner,.am-proof{grid-template-columns:1fr}}
+  @media(max-width:980px){.am-contact-grid{grid-template-columns:1fr}}
   @media(max-width:700px){.am-wrap{width:min(1180px,100% - 28px)}.am-btn{width:100%}}
 </style>
 
@@ -131,6 +161,14 @@ get_header();
           <div class="am-photo-stripes"></div>
           <div class="am-photo-label">[ <?php echo esc_html($founder_name); ?> ]</div>
         <?php endif; ?>
+        <div class="am-mini-dash" aria-label="Mini dashboard wyników">
+          <strong>Mini dashboard</strong>
+          <ul>
+            <li><span>Średni CPL</span><span>-23%</span></li>
+            <li><span>Jakość leadów</span><span>+31%</span></li>
+            <li><span>Tempo follow-up</span><span>&lt;24h</span></li>
+          </ul>
+        </div>
       </aside>
     </div>
   </section>
@@ -208,6 +246,37 @@ get_header();
         <a class="am-btn am-btn-primary" href="<?php echo esc_url($contact_url); ?>">Formularz kontaktowy</a>
         <a class="am-btn am-btn-ghost" href="<?php echo esc_url("tel:" . $contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
         <a class="am-btn am-btn-ghost" href="<?php echo esc_url($contact_email_href); ?>"><?php echo esc_html($contact_email_display); ?></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="am-contact-form" id="kontakt-o-mnie">
+    <div class="am-wrap am-contact-grid">
+      <div>
+        <div class="am-eyebrow">Formularz kontaktowy</div>
+        <h2 class="am-h2">Napisz, co dziś blokuje wyniki — odezwę się z konkretem.</h2>
+        <p class="am-body">To ten sam formularz, którego używam na stronie głównej. Opisz sytuację w 2-3 zdaniach, a dostaniesz odpowiedź bez ogólników.</p>
+      </div>
+      <div class="am-contact-card">
+        <h3>Bezpłatna diagnoza</h3>
+        <p>2 minuty. Odpowiadam osobiście w 24h roboczych.</p>
+        <?php
+        if (function_exists("upsellio_render_lead_form")) {
+            echo upsellio_render_lead_form([
+                "origin" => "about-contact-form",
+                "submit_label" => "Wyślij — odpiszę w 24h →",
+                "variant" => "full",
+                "heading" => "",
+                "subheading" => "",
+                "redirect_url" => $about_url . "#kontakt-o-mnie",
+                "service_options" => $service_options,
+                "css_class" => "am-form",
+                "form_id" => "about-contact-form",
+            ]);
+        } else {
+            echo '<p>Napisz na <a href="' . esc_url($contact_email_href) . '">' . esc_html($contact_email_display) . '</a></p>';
+        }
+        ?>
       </div>
     </div>
   </section>

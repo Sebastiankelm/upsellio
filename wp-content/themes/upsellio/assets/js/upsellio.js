@@ -1167,6 +1167,50 @@
     }
   }
 
+  function upsellioMessageForHttpStatus(statusCode) {
+    if (statusCode === 429) {
+      return "Zbyt wiele prób z tej sieci lub adresu e-mail. Spróbuj ponownie za około godzinę albo napisz na kontakt@upsellio.pl.";
+    }
+    return null;
+  }
+
+  function upsellioLeadFormErrorReasonFromUrl(finalUrl) {
+    if (!finalUrl) return "";
+    try {
+      var u = new URL(finalUrl, window.location.origin);
+      if (u.searchParams.get("ups_lead_status") !== "error") return "";
+      return u.searchParams.get("ups_lead_reason") || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  async function upsellioRefreshLeadFormNonce(formEl) {
+    if (!formEl) return false;
+    var nonceInput = formEl.querySelector("input[name='upsellio_lead_form_nonce']");
+    if (!nonceInput) return false;
+    try {
+      var ajaxUrl =
+        (window.upsellioData && window.upsellioData.ajaxUrl) || "/wp-admin/admin-ajax.php";
+      var body = new URLSearchParams();
+      body.append("action", "upsellio_refresh_lead_form_nonce");
+      var response = await fetch(ajaxUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        body: body.toString(),
+        credentials: "same-origin",
+      });
+      if (!response.ok) return false;
+      var data = await response.json();
+      var freshNonce = data && data.success && data.data ? data.data.nonce : "";
+      if (!freshNonce) return false;
+      nonceInput.value = freshNonce;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /**
    * URL wysyłki formularza. Nie używać form.action — przy <input name="action"> (admin-post)
    * właściwość form.action w JS wskazuje na ten input, a fetch() dostaje [object HTMLInputElement] → 404.
@@ -1221,14 +1265,29 @@
         feedback.classList.remove("is-success", "is-error");
 
         try {
-          const response = await fetch(resolveFormActionUrl(serverForm), {
+          let response = await fetch(resolveFormActionUrl(serverForm), {
             method: resolveFormMethod(serverForm),
             body: new FormData(serverForm),
             credentials: "same-origin",
             redirect: "follow",
           });
-          if (!response.ok || (response.url && response.url.includes("ups_lead_status=error"))) {
+          let reason = upsellioLeadFormErrorReasonFromUrl(response.url);
+          if ((!response.ok || reason) && reason === "nonce") {
+            const refreshed = await upsellioRefreshLeadFormNonce(serverForm);
+            if (refreshed) {
+              response = await fetch(resolveFormActionUrl(serverForm), {
+                method: resolveFormMethod(serverForm),
+                body: new FormData(serverForm),
+                credentials: "same-origin",
+                redirect: "follow",
+              });
+              reason = upsellioLeadFormErrorReasonFromUrl(response.url);
+            }
+          }
+          if (!response.ok || reason) {
             var msg = upsellioMessageForLeadFormResponse(response.url, response.ok);
+            var statusMsg = upsellioMessageForHttpStatus(response.status);
+            if (statusMsg) msg = statusMsg;
             throw new Error(msg || "Nie udało się wysłać formularza. Odśwież stronę i spróbuj ponownie.");
           }
 
@@ -1247,6 +1306,17 @@
           serverForm.reset();
           applyAttributionToLeadForms(attribution);
         } catch (error) {
+          var blockedByClient =
+            error &&
+            typeof error.message === "string" &&
+            (error.message.indexOf("Failed to fetch") !== -1 ||
+              error.message.indexOf("NetworkError") !== -1);
+          if (blockedByClient && serverForm.dataset.upsellioNativeRetry !== "1") {
+            // Fallback: if browser extension blocks fetch/XHR, try native form submit.
+            serverForm.dataset.upsellioNativeRetry = "1";
+            serverForm.submit();
+            return;
+          }
           feedback.textContent = error.message || "Błąd wysyłki. Spróbuj ponownie.";
           feedback.classList.add("is-error");
         } finally {
@@ -1304,14 +1374,29 @@
         feedback.style.display = "none";
 
         try {
-          const response = await fetch(resolveFormActionUrl(form), {
+          let response = await fetch(resolveFormActionUrl(form), {
             method: resolveFormMethod(form),
             body: new FormData(form),
             credentials: "same-origin",
             redirect: "follow",
           });
-          if (!response.ok || (response.url && response.url.includes("ups_lead_status=error"))) {
+          let reason = upsellioLeadFormErrorReasonFromUrl(response.url);
+          if ((!response.ok || reason) && reason === "nonce") {
+            const refreshed = await upsellioRefreshLeadFormNonce(form);
+            if (refreshed) {
+              response = await fetch(resolveFormActionUrl(form), {
+                method: resolveFormMethod(form),
+                body: new FormData(form),
+                credentials: "same-origin",
+                redirect: "follow",
+              });
+              reason = upsellioLeadFormErrorReasonFromUrl(response.url);
+            }
+          }
+          if (!response.ok || reason) {
             var msgOffer = upsellioMessageForLeadFormResponse(response.url, response.ok);
+            var statusMsgOffer = upsellioMessageForHttpStatus(response.status);
+            if (statusMsgOffer) msgOffer = statusMsgOffer;
             throw new Error(msgOffer || "Nie udało się wysłać formularza. Odśwież stronę i spróbuj ponownie.");
           }
 
@@ -1338,6 +1423,16 @@
             applyAttributionToLeadForms(attribution);
           }, 2800);
         } catch (error) {
+          var blockedByClient2 =
+            error &&
+            typeof error.message === "string" &&
+            (error.message.indexOf("Failed to fetch") !== -1 ||
+              error.message.indexOf("NetworkError") !== -1);
+          if (blockedByClient2 && form.dataset.upsellioNativeRetry !== "1") {
+            form.dataset.upsellioNativeRetry = "1";
+            form.submit();
+            return;
+          }
           feedback.textContent = error.message || "Błąd wysyłki. Spróbuj ponownie.";
           feedback.style.display = "block";
           feedback.style.border = "1px solid #edcccc";
