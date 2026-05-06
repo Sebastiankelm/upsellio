@@ -2854,10 +2854,6 @@ function upsellio_render_site_analytics_page()
     $ads_campaign_rows = get_option("ups_ads_campaigns_data", []);
     $ads_search_term_rows = get_option("ups_ads_search_terms_data", []);
     $ads_auction_rows = get_option("ups_ads_auction_data", []);
-    $gsc_sitemaps_rows = get_option("ups_gsc_sitemaps_data", []);
-    $gsc_sitemaps_last = (string) get_option("ups_gsc_sitemaps_last_sync", "");
-    $gsc_url_inspection_rows = get_option("ups_gsc_url_inspection_rows", []);
-    $gsc_url_inspection_last = (string) get_option("ups_gsc_url_inspection_last_sync", "");
     $ga4_funnel_snapshot = get_option("ups_ga4_funnel_snapshot", []);
     $ga4_funnel_last = (string) get_option("ups_ga4_funnel_last_sync", "");
     $ga4_cohort_snapshot = get_option("ups_ga4_cohort_snapshot", []);
@@ -2870,12 +2866,6 @@ function upsellio_render_site_analytics_page()
     }
     if (!is_array($ads_auction_rows)) {
         $ads_auction_rows = [];
-    }
-    if (!is_array($gsc_sitemaps_rows)) {
-        $gsc_sitemaps_rows = [];
-    }
-    if (!is_array($gsc_url_inspection_rows)) {
-        $gsc_url_inspection_rows = [];
     }
     if (!is_array($ga4_funnel_snapshot)) {
         $ga4_funnel_snapshot = [];
@@ -3272,63 +3262,246 @@ function upsellio_render_site_analytics_page()
           </table>
         </div>
 
-        <div class="ups-analytics-card" style="margin-top:14px;">
-          <h2 style="margin-top:0;">GSC URL Inspection Health</h2>
-          <p class="ups-analytics-sub">Last sync: <?php echo $gsc_url_inspection_last !== "" ? esc_html($gsc_url_inspection_last) : "brak"; ?></p>
+        <?php
+        $idx_summary = get_option("ups_gsc_indexation_summary", []);
+        $idx_pages = get_option("ups_gsc_indexation_pages", []);
+        $idx_stats = get_option("ups_gsc_indexation_batch_stats", []);
+        $idx_last = (string) get_option("ups_gsc_indexation_last_sync", "");
+        $idx_nonce = wp_create_nonce("upsellio_gsc_indexation_nonce");
+        if (!is_array($idx_pages)) {
+            $idx_pages = [];
+        }
+        if (!is_array($idx_summary)) {
+            $idx_summary = [];
+        }
+        if (!is_array($idx_stats)) {
+            $idx_stats = [];
+        }
+
+        $pages_indexed = 0;
+        $pages_not_indexed = 0;
+        $pages_unknown = 0;
+        $problems = [];
+
+        foreach ($idx_pages as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $v = (string) ($row["verdict"] ?? "");
+            if ($v === "PASS") {
+                $pages_indexed++;
+            } elseif ($v === "") {
+                $pages_unknown++;
+            } else {
+                $pages_not_indexed++;
+                $problems[] = $row;
+            }
+        }
+
+        usort(
+            $problems,
+            static function ($a, $b) {
+                return strcmp((string) ($b["verdict"] ?? ""), (string) ($a["verdict"] ?? ""));
+            }
+        );
+
+        $idx_submitted = (int) ($idx_summary["submitted"] ?? 0);
+        $idx_indexed = (int) ($idx_summary["indexed"] ?? 0);
+        $idx_ratio = $idx_submitted > 0 ? (int) round($idx_indexed / $idx_submitted * 100) : 0;
+        $idx_color = $idx_ratio >= 90 ? "#15803d" : ($idx_ratio >= 70 ? "#d97706" : "#d94c4c");
+        ?>
+        <div class="ups-analytics-card" style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+            <div>
+              <h2 style="margin:0">Status indeksacji GSC</h2>
+              <p class="ups-analytics-sub" style="margin:4px 0 0">
+                Sync: <?php echo $idx_last !== "" ? esc_html($idx_last) : "brak — uruchom cron lub odśwież ręcznie"; ?>
+                <?php if (!empty($idx_stats["queue_remaining"])) : ?>
+                  · Kolejka: <?php echo (int) $idx_stats["queue_remaining"]; ?> URLi do sprawdzenia
+                <?php endif; ?>
+              </p>
+            </div>
+            <button type="button" id="ups-gsc-refresh-idx" class="button button-secondary"
+                    data-nonce="<?php echo esc_attr($idx_nonce); ?>">
+              ↻ Odśwież indeksację (batch 50)
+            </button>
+          </div>
+          <div id="ups-gsc-idx-msg" style="display:none;margin-bottom:12px;font-size:13px;padding:8px 12px;border-radius:6px;background:#f0fdf4;color:#15803d"></div>
+
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+            <div style="background:#f8f9fa;border-radius:8px;padding:14px;text-align:center">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#666;text-transform:uppercase">Przesłanych (sitemap)</div>
+              <div style="font-size:28px;font-weight:800;color:#111;margin-top:4px"><?php echo $idx_submitted > 0 ? number_format($idx_submitted) : "—"; ?></div>
+            </div>
+            <div style="background:#f8f9fa;border-radius:8px;padding:14px;text-align:center">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#666;text-transform:uppercase">Zaindeksowanych</div>
+              <div style="font-size:28px;font-weight:800;color:<?php echo esc_attr($idx_color); ?>;margin-top:4px"><?php echo $idx_indexed > 0 ? number_format($idx_indexed) : "—"; ?></div>
+            </div>
+            <div style="background:#f8f9fa;border-radius:8px;padding:14px;text-align:center">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#666;text-transform:uppercase">Wskaźnik indeksacji</div>
+              <div style="font-size:28px;font-weight:800;color:<?php echo esc_attr($idx_color); ?>;margin-top:4px"><?php echo $idx_submitted > 0 ? $idx_ratio . "%" : "—"; ?></div>
+            </div>
+            <div style="background:#fff3cd;border-radius:8px;padding:14px;text-align:center">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#92400e;text-transform:uppercase">Problemy (inspekcja)</div>
+              <div style="font-size:28px;font-weight:800;color:<?php echo $pages_not_indexed > 0 ? "#d94c4c" : "#15803d"; ?>;margin-top:4px"><?php echo (int) $pages_not_indexed; ?></div>
+            </div>
+          </div>
+
+          <?php if ($idx_submitted > 0) : ?>
+          <div style="background:#eee;border-radius:4px;height:8px;margin-bottom:16px">
+            <div style="background:<?php echo esc_attr($idx_color); ?>;border-radius:4px;height:8px;width:<?php echo esc_attr((string) $idx_ratio); ?>%;transition:.3s"></div>
+          </div>
+          <?php endif; ?>
+
+          <?php if (!empty($idx_pages)) : ?>
+          <?php
+            $by_type = [];
+            foreach ($idx_pages as $r) {
+                if (!is_array($r)) {
+                    continue;
+                }
+                $pt = (string) ($r["post_type"] ?? "other");
+                if (!isset($by_type[$pt])) {
+                    $by_type[$pt] = ["indexed" => 0, "not_indexed" => 0, "unknown" => 0, "total" => 0];
+                }
+                $by_type[$pt]["total"]++;
+                $v = (string) ($r["verdict"] ?? "");
+                if ($v === "PASS") {
+                    $by_type[$pt]["indexed"]++;
+                } elseif ($v === "") {
+                    $by_type[$pt]["unknown"]++;
+                } else {
+                    $by_type[$pt]["not_indexed"]++;
+                }
+            }
+            ?>
+          <h3 style="font-size:13px;margin:0 0 8px">Sprawdzone URL per typ (łącznie <?php echo count($idx_pages); ?> z <?php echo (int) ($idx_stats["total_stored"] ?? count($idx_pages)); ?> zapisanych)</h3>
+          <table class="ups-analytics-table" style="margin-bottom:16px">
+            <thead><tr><th>Typ wpisu</th><th>Zaindeksowane</th><th>Problemy</th><th>Nieznane</th><th>Razem</th></tr></thead>
+            <tbody>
+            <?php foreach ($by_type as $pt => $counts) : ?>
+            <tr>
+              <td><code><?php echo esc_html($pt); ?></code></td>
+              <td style="color:#15803d;font-weight:600"><?php echo (int) $counts["indexed"]; ?></td>
+              <td style="color:<?php echo $counts["not_indexed"] > 0 ? "#d94c4c" : "#15803d"; ?>;font-weight:600"><?php echo (int) $counts["not_indexed"]; ?></td>
+              <td style="color:#888"><?php echo (int) $counts["unknown"]; ?></td>
+              <td><?php echo (int) $counts["total"]; ?></td>
+            </tr>
+            <?php endforeach; ?>
+            </tbody>
+          </table>
+          <?php endif; ?>
+        </div>
+
+        <?php if (!empty($problems)) : ?>
+        <div class="ups-analytics-card" style="margin-top:14px;border-left:3px solid #d94c4c">
+          <h2 style="margin-top:0;color:#d94c4c">Strony niezaindeksowane — <?php echo count($problems); ?> problemów</h2>
+          <p class="ups-analytics-sub">Strony sprawdzone przez URL Inspection API. Verdict FAIL lub NEUTRAL oznacza problem z indeksacją.</p>
+          <div style="overflow-x:auto">
           <table class="ups-analytics-table">
             <thead>
               <tr>
                 <th>URL</th>
-                <th>Verdict</th>
-                <th>Coverage state</th>
-                <th>Last crawl</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php if (empty($gsc_url_inspection_rows)) : ?>
-                <tr><td colspan="4"><em>Brak danych URL Inspection.</em></td></tr>
-              <?php else : ?>
-                <?php foreach (array_slice($gsc_url_inspection_rows, 0, 20) as $inspection_row) : ?>
-                  <tr>
-                    <td><?php echo esc_html((string) wp_parse_url((string) ($inspection_row["url"] ?? ""), PHP_URL_PATH)); ?></td>
-                    <td><?php echo esc_html((string) ($inspection_row["verdict"] ?? "—")); ?></td>
-                    <td><?php echo esc_html((string) ($inspection_row["coverage_state"] ?? "—")); ?></td>
-                    <td><?php echo esc_html((string) ($inspection_row["last_crawl_time"] ?? "—")); ?></td>
-                  </tr>
-                <?php endforeach; ?>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="ups-analytics-card" style="margin-top:14px;">
-          <h2 style="margin-top:0;">GSC Sitemap Monitoring</h2>
-          <p class="ups-analytics-sub">Last sync: <?php echo $gsc_sitemaps_last !== "" ? esc_html($gsc_sitemaps_last) : "brak"; ?></p>
-          <table class="ups-analytics-table">
-            <thead>
-              <tr>
-                <th>Sitemap</th>
                 <th>Typ</th>
-                <th>Ostatnio przesłana</th>
-                <th>Pobrana</th>
+                <th>Problem</th>
+                <th>Coverage state</th>
+                <th>Ostatni crawl</th>
+                <th>Akcja</th>
               </tr>
             </thead>
             <tbody>
-              <?php if (empty($gsc_sitemaps_rows)) : ?>
-                <tr><td colspan="4"><em>Brak danych sitemap.</em></td></tr>
-              <?php else : ?>
-                <?php foreach (array_slice($gsc_sitemaps_rows, 0, 20) as $sitemap_row) : ?>
-                  <tr>
-                    <td><?php echo esc_html((string) ($sitemap_row["path"] ?? "—")); ?></td>
-                    <td><?php echo esc_html((string) ($sitemap_row["type"] ?? "—")); ?></td>
-                    <td><?php echo esc_html((string) ($sitemap_row["lastSubmitted"] ?? "—")); ?></td>
-                    <td><?php echo esc_html((string) ($sitemap_row["lastDownloaded"] ?? "—")); ?></td>
-                  </tr>
-                <?php endforeach; ?>
-              <?php endif; ?>
+            <?php foreach (array_slice($problems, 0, 100) as $pr) : ?>
+              <?php
+                $url_path = wp_parse_url((string) ($pr["url"] ?? ""), PHP_URL_PATH);
+                $verdict = (string) ($pr["verdict"] ?? "");
+                $v_color = $verdict === "FAIL" ? "#d94c4c" : "#d97706";
+                $crawl = (string) ($pr["last_crawl_time"] ?? "");
+                $crawl_d = "—";
+                if ($crawl !== "") {
+                    $ts_crawl = strtotime($crawl);
+                    if ($ts_crawl !== false) {
+                        $crawl_d = wp_date("d.m.Y", $ts_crawl);
+                    }
+                }
+                $edit_url = !empty($pr["post_id"]) ? get_edit_post_link((int) $pr["post_id"], "raw") : "";
+                $problem_txt = (string) ($pr["problem"] ?? "");
+                if ($problem_txt === "") {
+                    $problem_txt = $verdict !== "" ? $verdict : ((string) ($pr["coverage_state"] ?? ""));
+                }
+                ?>
+            <tr>
+              <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                <a href="<?php echo esc_url((string) ($pr["url"] ?? "")); ?>" target="_blank" rel="noopener noreferrer">
+                  <?php echo esc_html($url_path ?: (string) ($pr["url"] ?? "")); ?>
+                </a>
+              </td>
+              <td><code style="font-size:11px"><?php echo esc_html((string) ($pr["post_type"] ?? "")); ?></code></td>
+              <td>
+                <span style="display:inline-flex;align-items:center;gap:5px;color:<?php echo esc_attr($v_color); ?>;font-weight:600;font-size:12px">
+                  <span style="width:8px;height:8px;border-radius:50%;background:<?php echo esc_attr($v_color); ?>;flex-shrink:0"></span>
+                  <?php echo esc_html($problem_txt !== "" ? $problem_txt : "—"); ?>
+                </span>
+              </td>
+              <td style="font-size:12px;color:#555"><?php echo esc_html((string) ($pr["coverage_state"] ?? "—")); ?></td>
+              <td style="font-size:12px;color:#888"><?php echo esc_html($crawl_d); ?></td>
+              <td>
+                <?php if ($edit_url) : ?>
+                <a href="<?php echo esc_url($edit_url); ?>" class="button button-small" target="_blank" rel="noopener noreferrer">Edytuj</a>
+                <?php endif; ?>
+              </td>
+            </tr>
+            <?php endforeach; ?>
             </tbody>
           </table>
+          </div>
+          <?php if (count($problems) > 100) : ?>
+          <p style="font-size:12px;color:#888;margin-top:8px">Pokazano 100 z <?php echo count($problems); ?> problemów.</p>
+          <?php endif; ?>
         </div>
+        <?php endif; ?>
+
+        <script>
+        (function(){
+          var btn = document.getElementById("ups-gsc-refresh-idx");
+          var msg = document.getElementById("ups-gsc-idx-msg");
+          if (!btn || !msg) return;
+          btn.addEventListener("click", function(){
+            btn.disabled = true;
+            btn.textContent = "Sprawdzam…";
+            msg.style.display = "none";
+            var body = new FormData();
+            body.append("action", "upsellio_gsc_refresh_indexation");
+            body.append("nonce", btn.getAttribute("data-nonce") || "");
+            fetch(<?php echo wp_json_encode(admin_url("admin-ajax.php")); ?>, {method:"POST", body: body})
+              .then(function(r){ return r.json(); })
+              .then(function(d){
+                btn.disabled = false;
+                btn.textContent = "↻ Odśwież indeksację (batch 50)";
+                msg.style.display = "block";
+                if (d.success) {
+                  msg.style.background = "#f0fdf4";
+                  msg.style.color = "#15803d";
+                  msg.textContent = "✓ " + d.data.message
+                    + (d.data.queue_remaining > 0 ? " Pozostało w kolejce: " + d.data.queue_remaining + " URLi." : " Wszystkie sprawdzone.")
+                    + " Zaindeksowanych: " + d.data.indexed + "/" + d.data.submitted + ".";
+                } else {
+                  msg.style.background = "#fef2f2";
+                  msg.style.color = "#d94c4c";
+                  msg.textContent = "✗ " + (d.data && d.data.message ? d.data.message : "Błąd");
+                }
+                setTimeout(function(){ window.location.reload(); }, 3000);
+              })
+              .catch(function(){
+                btn.disabled = false;
+                btn.textContent = "↻ Odśwież indeksację (batch 50)";
+                msg.style.display = "block";
+                msg.style.background = "#fef2f2";
+                msg.style.color = "#d94c4c";
+                msg.textContent = "✗ Błąd sieci";
+              });
+          });
+        })();
+        </script>
 
         <div class="ups-trend-grid">
           <div class="ups-trend-card">
@@ -4680,6 +4853,7 @@ function upsellio_analytics_build_weekly_digest_text(): string
         $prompt = "Przygotuj zwięzły tygodniowy executive digest (PL) dla właściciela firmy B2B.\n"
             . "Dane:\n{$fallback}\n"
             . "Wymagane: 1 kluczowy insight, 3 ryzyka/anomalie, 2 szanse do skalowania, 3 konkretne akcje.";
+        $GLOBALS["upsellio_ai_current_task"] = "site_analytics";
         $ai = upsellio_anthropic_crm_send_user_prompt($prompt, 900, 45, null);
         if (is_string($ai) && trim($ai) !== "") {
             return trim($ai);
@@ -4761,6 +4935,322 @@ function upsellio_ga4_run_report_raw(string $property_numeric_id, array $body, s
     return is_array($decoded) ? $decoded : new WP_Error("upsellio_ga4_report_invalid", "Nieprawidłowa odpowiedź GA4.");
 }
 
+/**
+ * Agreguje submitted/indexed ze Sitemaps API (contents[]) do opcji ups_gsc_indexation_summary.
+ *
+ * @param array<int, mixed> $entries Tablica wpisów z pola "sitemap" odpowiedzi API.
+ */
+function upsellio_gsc_save_indexation_summary_from_sitemap_entries(array $entries): void
+{
+    $total_submitted = 0;
+    $total_indexed = 0;
+    $sitemap_errors = 0;
+    $sitemap_warnings = 0;
+    foreach ($entries as $sm) {
+        if (!is_array($sm)) {
+            continue;
+        }
+        $sitemap_errors += (int) ($sm["errors"] ?? 0);
+        $sitemap_warnings += (int) ($sm["warnings"] ?? 0);
+        foreach ((array) ($sm["contents"] ?? []) as $content) {
+            if (!is_array($content)) {
+                continue;
+            }
+            $total_submitted += (int) ($content["submitted"] ?? 0);
+            $total_indexed += (int) ($content["indexed"] ?? 0);
+        }
+    }
+    update_option("ups_gsc_indexation_summary", [
+        "submitted" => $total_submitted,
+        "indexed" => $total_indexed,
+        "not_indexed" => max(0, $total_submitted - $total_indexed),
+        "errors" => $sitemap_errors,
+        "warnings" => $sitemap_warnings,
+        "updated_at" => wp_date("Y-m-d H:i:s"),
+    ], false);
+}
+
+/**
+ * Buduje listę URLi WordPress do sprawdzenia w URL Inspection API.
+ * Priorytet: brak danych inspekcji, potem wpisy starsze niż 7 dni.
+ *
+ * @param int $batch_size Max liczba URLi (0 = bez limitu, do liczenia kolejki).
+ * @return array<int, array<string, mixed>>
+ */
+function upsellio_gsc_build_inspection_queue(int $batch_size = 50): array
+{
+    $existing = get_option("ups_gsc_indexation_pages", []);
+    if (!is_array($existing)) {
+        $existing = [];
+    }
+
+    $existing_index = [];
+    foreach ($existing as $row) {
+        if (!is_array($row) || empty($row["url"])) {
+            continue;
+        }
+        $existing_index[(string) $row["url"]] = (string) ($row["updated_at"] ?? "");
+    }
+
+    $post_types = apply_filters(
+        "upsellio_gsc_inspection_post_types",
+        ["post", "page", "miasto", "definicja", "portfolio", "marketing_portfolio"]
+    );
+    $ids = get_posts([
+        "post_type" => $post_types,
+        "post_status" => "publish",
+        "posts_per_page" => -1,
+        "fields" => "ids",
+        "orderby" => "ID",
+        "order" => "ASC",
+    ]);
+
+    $stale_threshold = strtotime("-7 days");
+    $queue = [];
+
+    foreach ($ids as $id) {
+        $url = (string) get_permalink((int) $id);
+        if ($url === "") {
+            continue;
+        }
+
+        $last = $existing_index[$url] ?? "";
+        $last_ts = $last !== "" ? (int) strtotime($last) : 0;
+
+        if ($last_ts === 0 || $last_ts < $stale_threshold) {
+            $queue[] = [
+                "url" => $url,
+                "post_id" => (int) $id,
+                "post_type" => (string) get_post_type((int) $id),
+                "priority" => $last_ts === 0 ? 2 : 1,
+                "last_ts" => $last_ts,
+            ];
+        }
+    }
+
+    usort(
+        $queue,
+        static function ($a, $b) {
+            $pr = ((int) ($b["priority"] ?? 0)) <=> ((int) ($a["priority"] ?? 0));
+            if ($pr !== 0) {
+                return $pr;
+            }
+            return ((int) ($a["last_ts"] ?? 0)) <=> ((int) ($b["last_ts"] ?? 0));
+        }
+    );
+
+    if ($batch_size <= 0) {
+        return $queue;
+    }
+
+    return array_slice($queue, 0, $batch_size);
+}
+
+/**
+ * Klasyfikuje problem indeksacji po polsku na podstawie pól URL Inspection API.
+ */
+function upsellio_gsc_classify_indexation_problem(
+    string $verdict,
+    string $coverage_state,
+    string $robots_state,
+    string $indexing_state
+): string {
+    if ($verdict === "PASS") {
+        return "";
+    }
+
+    if ($robots_state === "BLOCKED") {
+        return "Zablokowane przez robots.txt";
+    }
+
+    if ($indexing_state === "INDEXING_NOT_ALLOWED") {
+        return "Znacznik noindex";
+    }
+
+    $map = [
+        "Submitted and indexed" => "",
+        "Crawled - currently not indexed" => "Zaindeksowana przez Google, ale wykluczona z indeksu",
+        "Discovered - currently not indexed" => "Odkryta, ale jeszcze nieindeksowana (brak zasobów crawlera)",
+        "Page with redirect" => "Przekierowanie — sprawdź URL docelowy",
+        "URL is unknown to Google" => "Google nie zna tej strony — brak linków prowadzących",
+        "Excluded by 'noindex' tag" => "Znacznik noindex",
+        "Blocked due to access forbidden (403)" => "Błąd 403 — brak dostępu",
+        "Blocked due to other 4xx issue" => "Błąd 4xx — sprawdź URL",
+        "Server error (5xx)" => "Błąd serwera 5xx",
+        "Soft 404" => "Miękkie 404 — strona wygląda jak błąd",
+        "Not found (404)" => "Błąd 404 — strona nie istnieje",
+        "Alternate page with proper canonical tag" => "Kanonizacja — inna strona jest główną",
+        "Duplicate without user-selected canonical" => "Duplikat bez kanonicznego",
+        "Duplicate, Google chose different canonical than user" => "Duplikat — Google wybrał inny kanoniczny",
+    ];
+
+    if ($coverage_state !== "" && array_key_exists($coverage_state, $map)) {
+        $mapped = (string) $map[$coverage_state];
+        if ($mapped !== "") {
+            return $mapped;
+        }
+    }
+
+    return $coverage_state !== ""
+        ? $coverage_state
+        : "Problem nieznany (verdict: " . $verdict . ")";
+}
+
+/**
+ * Sprawdza batch URLi przez URL Inspection API (throttling 1 req/s) i zapisuje wyniki.
+ *
+ * @return array{checked: int, errors: int}
+ */
+function upsellio_gsc_run_inspection_batch(): array
+{
+    $credentials = upsellio_get_gsc_credentials();
+    if (
+        (string) ($credentials["client_id"] ?? "") === "" ||
+        (string) ($credentials["client_secret"] ?? "") === "" ||
+        (string) ($credentials["refresh_token"] ?? "") === "" ||
+        (string) ($credentials["property"] ?? "") === ""
+    ) {
+        return ["checked" => 0, "errors" => 0];
+    }
+
+    $trace_id = upsellio_gsc_debug_trace_id();
+    $access_token = upsellio_gsc_get_access_token($credentials, $trace_id);
+    if (is_wp_error($access_token)) {
+        return ["checked" => 0, "errors" => 0];
+    }
+
+    $property = (string) $credentials["property"];
+    $queue = upsellio_gsc_build_inspection_queue(50);
+
+    if (empty($queue)) {
+        $stored = get_option("ups_gsc_indexation_pages", []);
+        $total_stored_cnt = is_array($stored) ? count($stored) : 0;
+        update_option("ups_gsc_indexation_last_sync", wp_date("Y-m-d H:i:s"), false);
+        update_option("ups_gsc_indexation_batch_stats", [
+            "last_checked" => 0,
+            "last_errors" => 0,
+            "queue_remaining" => 0,
+            "total_stored" => $total_stored_cnt,
+            "updated_at" => wp_date("Y-m-d H:i:s"),
+        ], false);
+        return ["checked" => 0, "errors" => 0];
+    }
+
+    $existing = get_option("ups_gsc_indexation_pages", []);
+    if (!is_array($existing)) {
+        $existing = [];
+    }
+
+    $index = [];
+    foreach ($existing as $k => $row) {
+        if (!is_array($row) || empty($row["url"])) {
+            continue;
+        }
+        $index[(string) $row["url"]] = $k;
+    }
+
+    $checked = 0;
+    $errors = 0;
+
+    foreach ($queue as $idx => $item) {
+        if ($idx > 0) {
+            sleep(1);
+        }
+
+        $url = (string) $item["url"];
+
+        $response = wp_remote_post(
+            "https://searchconsole.googleapis.com/v1/urlInspection/index:inspect",
+            [
+                "timeout" => 20,
+                "sslverify" => true,
+                "headers" => [
+                    "Authorization" => "Bearer " . $access_token,
+                    "Content-Type" => "application/json",
+                ],
+                "body" => wp_json_encode([
+                    "inspectionUrl" => $url,
+                    "siteUrl" => $property,
+                    "languageCode" => "pl-PL",
+                ]),
+            ]
+        );
+
+        if (is_wp_error($response) || (int) wp_remote_retrieve_response_code($response) >= 400) {
+            $errors++;
+            continue;
+        }
+
+        $payload = json_decode((string) wp_remote_retrieve_body($response), true);
+        $result = is_array($payload) ? (array) ($payload["inspectionResult"] ?? []) : [];
+        $index_r = (array) ($result["indexStatusResult"] ?? []);
+
+        $verdict = (string) ($index_r["verdict"] ?? "");
+        $coverage_state = (string) ($index_r["coverageState"] ?? "");
+        $robots_state = (string) ($index_r["robotsTxtState"] ?? "");
+        $indexing_state = (string) ($index_r["indexingState"] ?? "");
+        $last_crawl = (string) ($index_r["lastCrawlTime"] ?? "");
+
+        $problem = upsellio_gsc_classify_indexation_problem(
+            $verdict,
+            $coverage_state,
+            $robots_state,
+            $indexing_state
+        );
+
+        $row_data = [
+            "url" => $url,
+            "post_id" => (int) ($item["post_id"] ?? 0),
+            "post_type" => (string) ($item["post_type"] ?? ""),
+            "verdict" => $verdict,
+            "coverage_state" => $coverage_state,
+            "robots_state" => $robots_state,
+            "indexing_state" => $indexing_state,
+            "last_crawl_time" => $last_crawl,
+            "problem" => $problem,
+            "is_indexed" => ($verdict === "PASS"),
+            "updated_at" => wp_date("Y-m-d H:i:s"),
+        ];
+
+        if (isset($index[$url])) {
+            $existing[$index[$url]] = $row_data;
+        } else {
+            $existing[] = $row_data;
+            $index[$url] = count($existing) - 1;
+        }
+
+        $checked++;
+    }
+
+    if (count($existing) > 2000) {
+        usort(
+            $existing,
+            static function ($a, $b) {
+                return strcmp(
+                    (string) (($a["updated_at"] ?? "")),
+                    (string) (($b["updated_at"] ?? ""))
+                );
+            }
+        );
+        $existing = array_slice($existing, -2000);
+    }
+
+    update_option("ups_gsc_indexation_pages", $existing, false);
+    update_option("ups_gsc_indexation_last_sync", wp_date("Y-m-d H:i:s"), false);
+
+    $queue_remaining = count(upsellio_gsc_build_inspection_queue(0));
+
+    update_option("ups_gsc_indexation_batch_stats", [
+        "last_checked" => $checked,
+        "last_errors" => $errors,
+        "queue_remaining" => $queue_remaining,
+        "total_stored" => count($existing),
+        "updated_at" => wp_date("Y-m-d H:i:s"),
+    ], false);
+
+    return ["checked" => $checked, "errors" => $errors];
+}
+
 function upsellio_analytics_health_daily_job(): void
 {
     $trace_id = upsellio_gsc_debug_trace_id();
@@ -4782,6 +5272,7 @@ function upsellio_analytics_health_daily_job(): void
             if (!is_wp_error($sitemaps_response) && (int) wp_remote_retrieve_response_code($sitemaps_response) < 400) {
                 $payload = json_decode((string) wp_remote_retrieve_body($sitemaps_response), true);
                 $entries = isset($payload["sitemap"]) && is_array($payload["sitemap"]) ? $payload["sitemap"] : [];
+                upsellio_gsc_save_indexation_summary_from_sitemap_entries($entries);
                 update_option("ups_gsc_sitemaps_data", $entries, false);
                 update_option("ups_gsc_sitemaps_last_sync", wp_date("Y-m-d H:i:s"), false);
             }
@@ -4834,6 +5325,8 @@ function upsellio_analytics_health_daily_job(): void
                     update_option("ups_gsc_url_inspection_last_sync", wp_date("Y-m-d H:i:s"), false);
                 }
             }
+
+            upsellio_gsc_run_inspection_batch();
         }
     }
 
@@ -4945,4 +5438,62 @@ function upsellio_ajax_ads_sync_campaigns(): void
     ]);
 }
 add_action("wp_ajax_upsellio_ads_sync_campaigns", "upsellio_ajax_ads_sync_campaigns");
+
+/**
+ * AJAX: ręczne odświeżenie podsumowania sitemap i batch URL Inspection (50 URLi).
+ */
+add_action("wp_ajax_upsellio_gsc_refresh_indexation", static function (): void {
+    if (!current_user_can("manage_options")) {
+        wp_send_json_error(["message" => "Brak uprawnień."], 403);
+    }
+    check_ajax_referer("upsellio_gsc_indexation_nonce", "nonce");
+
+    $credentials = upsellio_get_gsc_credentials();
+    $trace_id = upsellio_gsc_debug_trace_id();
+    if (
+        (string) ($credentials["refresh_token"] ?? "") !== "" &&
+        (string) ($credentials["property"] ?? "") !== ""
+    ) {
+        $token = upsellio_gsc_get_access_token($credentials, $trace_id);
+        if (!is_wp_error($token)) {
+            $property = (string) $credentials["property"];
+            $sm_resp = wp_remote_get(
+                "https://searchconsole.googleapis.com/webmasters/v3/sites/"
+                    . rawurlencode($property) . "/sitemaps",
+                ["timeout" => 20, "headers" => ["Authorization" => "Bearer " . $token]]
+            );
+            if (!is_wp_error($sm_resp) && (int) wp_remote_retrieve_response_code($sm_resp) < 400) {
+                $pl = json_decode((string) wp_remote_retrieve_body($sm_resp), true);
+                $entries = isset($pl["sitemap"]) && is_array($pl["sitemap"]) ? $pl["sitemap"] : [];
+                upsellio_gsc_save_indexation_summary_from_sitemap_entries($entries);
+                update_option("ups_gsc_sitemaps_data", $entries, false);
+                update_option("ups_gsc_sitemaps_last_sync", wp_date("Y-m-d H:i:s"), false);
+            }
+        }
+    }
+
+    $result = upsellio_gsc_run_inspection_batch();
+    $stats = get_option("ups_gsc_indexation_batch_stats", []);
+    $summary = get_option("ups_gsc_indexation_summary", []);
+    if (!is_array($stats)) {
+        $stats = [];
+    }
+    if (!is_array($summary)) {
+        $summary = [];
+    }
+
+    wp_send_json_success([
+        "message" => sprintf(
+            "Sprawdzono %d URLi. Błędów: %d.",
+            (int) $result["checked"],
+            (int) $result["errors"]
+        ),
+        "checked" => (int) $result["checked"],
+        "errors" => (int) $result["errors"],
+        "queue_remaining" => (int) ($stats["queue_remaining"] ?? 0),
+        "total_stored" => (int) ($stats["total_stored"] ?? 0),
+        "indexed" => (int) ($summary["indexed"] ?? 0),
+        "submitted" => (int) ($summary["submitted"] ?? 0),
+    ]);
+});
 
