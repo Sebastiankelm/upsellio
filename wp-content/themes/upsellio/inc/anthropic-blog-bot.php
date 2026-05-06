@@ -1001,7 +1001,7 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null,
             $catalog = array_slice($catalog, 0, 14);
         }
     } elseif ($catalog === null) {
-        $cat_limit = (int) apply_filters("upsellio_blog_bot_catalog_limit", 32);
+        $cat_limit = (int) apply_filters("upsellio_blog_bot_catalog_limit", 20);
         $catalog = upsellio_blog_bot_catalog_for_keyword($keyword, max(12, min(80, $cat_limit)));
     }
     $catalog_block = upsellio_blog_bot_format_catalog_for_prompt($catalog);
@@ -1383,7 +1383,7 @@ function upsellio_blog_bot_generate_and_save(): void
         }
     }
 
-    $cat_lim = (int) apply_filters("upsellio_blog_bot_catalog_limit", 32);
+    $cat_lim = (int) apply_filters("upsellio_blog_bot_catalog_limit", 20);
     $catalog = upsellio_blog_bot_catalog_for_keyword($keyword, max(12, min(80, $cat_lim)));
     $full_prompt = upsellio_blog_bot_build_prompt($keyword, $catalog);
     $cache_split = upsellio_blog_bot_prompt_cache_split($full_prompt);
@@ -1402,6 +1402,7 @@ function upsellio_blog_bot_generate_and_save(): void
         : (int) apply_filters("upsellio_blog_bot_api_timeout", $safe_timeout);
     $api_timeout = max(60, min(600, $api_timeout));
     $max_out = upsellio_blog_bot_resolve_max_output_tokens(4096);
+    $GLOBALS["upsellio_ai_current_task"] = "blog_bot";
     $raw = upsellio_anthropic_crm_send_user_prompt($full_prompt, $max_out, $api_timeout, $model, $cache_split);
     if ($raw === null) {
         $api_detail = function_exists("upsellio_anthropic_crm_get_last_send_error")
@@ -1419,6 +1420,7 @@ function upsellio_blog_bot_generate_and_save(): void
     if (!is_array($data) && apply_filters("upsellio_blog_bot_retry_on_bad_json", true)) {
         $catalog_slim = array_slice($catalog, 0, 14);
         $slim_prompt = upsellio_blog_bot_build_prompt($keyword, $catalog_slim, "slim_retry");
+        $GLOBALS["upsellio_ai_current_task"] = "blog_bot";
         $raw_retry = upsellio_anthropic_crm_send_user_prompt($slim_prompt, $max_out, $api_timeout, $model, null);
         if ($raw_retry !== null) {
             $data = upsellio_anthropic_crm_parse_json_object($raw_retry);
