@@ -658,6 +658,7 @@ function ups_audit_generate_monthly_report($client_id)
     $ctx = function_exists("upsellio_ai_master_context") ? (string) upsellio_ai_master_context("client_audit", $client_id) : "";
     $prompt = ups_audit_build_monthly_report_prompt($cur, $prev, $client, $ctx);
     $model = ups_audit_ai_model_from_option("ups_audit_anthropic_model_reports", "sonnet");
+    $GLOBALS["upsellio_ai_current_task"] = "client_audit";
     $result = function_exists("upsellio_anthropic_crm_send_user_prompt")
         ? upsellio_anthropic_crm_send_user_prompt($prompt, 4000, 90, $model)
         : null;
@@ -679,6 +680,7 @@ function ups_audit_generate_monthly_report($client_id)
 function ups_audit_generate_with_ai($prompt, $max_tokens, $timeout, $model_option, $fallback_html)
 {
     $model = ups_audit_ai_model_from_option($model_option, "sonnet");
+    $GLOBALS["upsellio_ai_current_task"] = "client_audit";
     $result = function_exists("upsellio_anthropic_crm_send_user_prompt")
         ? upsellio_anthropic_crm_send_user_prompt((string) $prompt, (int) $max_tokens, (int) $timeout, $model)
         : null;
