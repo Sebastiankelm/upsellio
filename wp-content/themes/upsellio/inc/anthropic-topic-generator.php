@@ -428,6 +428,7 @@ function upsellio_topicgen_run(int $count = 10, bool $structured = false): array
     }
 
     $max_out = $structured ? 4000 : 1200;
+    $GLOBALS["upsellio_ai_current_task"] = "topic_generator";
     $raw = upsellio_anthropic_crm_send_user_prompt($prompt, $max_out, 45, $model);
     if ($raw === null) {
         return ["ok" => false, "message" => "Brak odpowiedzi z API. Sprawdź klucz API i limity."];
