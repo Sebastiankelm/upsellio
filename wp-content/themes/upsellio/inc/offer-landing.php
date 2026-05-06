@@ -431,11 +431,19 @@ function upsellio_offer_render_public_landing($offer)
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&amp;family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&amp;display=swap" rel="stylesheet"/>
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="91229b76-132c-42e8-9021-9542287ad319" data-blockingmode="auto" type="text/javascript"></script>
 <?php if ($gtm !== "" && $upsellio_offer_track_public) : ?>
-<script type="text/plain" data-cookieconsent="marketing">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer","<?php echo esc_js($gtm); ?>");</script>
+<script type="text/plain" data-cookieconsent="marketing">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer",<?php echo wp_json_encode((string) $gtm); ?>);</script>
 <?php endif; ?>
 <script>
 window.dataLayer=window.dataLayer||[];
-window.UPS={offer_id:'<?php echo esc_js((string) $offer_id); ?>',offer_slug:'<?php echo esc_js($slug); ?>',offer_title:'<?php echo esc_js($offer_title); ?>',person_id:'<?php echo esc_js($person_id); ?>',utm_source:'',utm_campaign:'',gclid:''};
+window.UPS=<?php echo wp_json_encode([
+    "offer_id" => (string) $offer_id,
+    "offer_slug" => (string) $slug,
+    "offer_title" => (string) $offer_title,
+    "person_id" => (string) $person_id,
+    "utm_source" => "",
+    "utm_campaign" => "",
+    "gclid" => "",
+], JSON_UNESCAPED_UNICODE); ?>;
 (function(){var q=new URLSearchParams(window.location.search||'');UPS.utm_source=q.get('utm_source')||'';UPS.utm_campaign=q.get('utm_campaign')||'';UPS.gclid=q.get('gclid')||'';})();
 </script>
 <?php if ($upsellio_offer_track_public) : ?>
@@ -1277,6 +1285,7 @@ function jumpTo(id){
   if(window.history&&history.replaceState)history.replaceState(null,'','#'+id);
   trackEvent('offer_section_click',{section_id:id.replace('sec-','')});
 }
+window.jumpTo=jumpTo;
 var ro=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting)x.target.classList.add('in');});},{threshold:.1});
 document.querySelectorAll('.r').forEach(function(el){ro.observe(el);});
 function trackEvent(eventName,extra){
@@ -1486,7 +1495,7 @@ if(elCs)elCs.addEventListener('click',function(){
   body.append('concerns',((document.getElementById('accept_concerns')||{}).value||'').trim());
   body.append('commit_key',((document.getElementById('acceptCommitKey')||{}).value||'').trim());
   body.append('commit_label',((document.getElementById('acceptCommitLabel')||{}).value||'').trim());
-  body.append('cta_source',((document.getElementById('acceptCtaSource')||{}).value||'pricing');
+  body.append('cta_source',((document.getElementById('acceptCtaSource')||{}).value||'pricing'));
   fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'},credentials:'same-origin',body:body.toString()})
     .then(function(r){return r.json();})
     .then(function(res){
