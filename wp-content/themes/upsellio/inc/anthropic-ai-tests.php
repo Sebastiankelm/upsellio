@@ -476,8 +476,14 @@ function upsellio_blog_bot_prepare_manual_run(): array
 /**
  * Wysyła natychmiast odpowiedź JSON (jak wp_send_json_success), zamyka połączenie HTTP (PHP-FPM:
  * fastcgi_finish_request), po czym kontynuuje upsellio_blog_bot_generate_and_save() w tym samym procesie.
- * Bufory wyjściowe WordPressa są czyszczone przed echo — inaczej JSON ginie albo po nim dokleja się śmieć.
- * Kończy przez exit(0), nie wp_die() — WP przy AJAX potrafi dopisać „0” po odpowiedzi (parse error w fetch).
+ * Bufory wyjściowe są czyszczone przed nagłówkami.
+ *
+ * Celowo bez Content-Length: przy włączonym output_buffering w php.ini (np. Cyberfolks) bufor
+ * systemowy może dopisać bajty przed JSON — wtedy nagłówek z długością tylko payloadu przesuwa
+ * offset i fetch() widzi „Unexpected non-whitespace character after JSON”.
+ * Bez Content-Length klient czyta body do końca połączenia.
+ *
+ * Kończy przez exit(0), nie wp_die() — WP przy AJAX potrafi dopisać „0” po odpowiedzi (JS: upsParseAjaxJson).
  *
  * @param array<string, mixed> $data Pole "data" w odpowiedzi AJAX.
  */
@@ -491,17 +497,15 @@ function upsellio_blog_bot_flush_ajax_success_and_run_generate(array $data): voi
         $payload = '{"success":false,"data":{"message":"encode_error"}}';
     }
 
-    if (!headers_sent()) {
-        header("Content-Type: application/json; charset=UTF-8");
-        header("Connection: close");
-    }
-
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
 
     if (!headers_sent()) {
-        header("Content-Length: " . strlen((string) $payload));
+        header("Content-Type: application/json; charset=UTF-8");
+        header("Connection: close");
+        header("X-Accel-Buffering: no");
+        header("X-Content-Type-Options: nosniff");
     }
 
     echo $payload;
@@ -872,6 +876,33 @@ function upsellio_ai_tests_render_page(): void {
 
         function escH(str){ const d=document.createElement('div'); d.textContent=str||''; return d.innerHTML; }
 
+        /** WP AJAX czasem dokleja śmieć po JSON (np. „0”) — parsuj pierwszy kompletny obiekt. */
+        function upsParseAjaxJson(raw){
+            const t = String(raw || '').trim();
+            function tryParse(s){
+                try { return JSON.parse(s); } catch (e) { return null; }
+            }
+            let p = tryParse(t);
+            if (p) return p;
+            p = tryParse(t.replace(/(\})\s*0\s*$/, '$1').trim());
+            if (p) return p;
+            const start = t.indexOf('{');
+            if (start < 0) throw new Error('Brak JSON w odpowiedzi');
+            let depth = 0;
+            for (let i = start; i < t.length; i++) {
+                const c = t.charAt(i);
+                if (c === '{') depth++;
+                else if (c === '}') {
+                    depth--;
+                    if (depth === 0) {
+                        p = tryParse(t.slice(start, i + 1));
+                        if (p) return p;
+                    }
+                }
+            }
+            throw new Error('Nie da się odczytać JSON');
+        }
+
         // Blog Bot: fastcgi_finish_request + polling (bez loopback cron / spawn_cron)
         document.getElementById('ups-at-run-blogbot').addEventListener('click', function(){
             const btn     = this;
@@ -886,18 +917,26 @@ function upsellio_ai_tests_render_page(): void {
             body.append('action', 'upsellio_ai_tests_run_blog_bot');
             body.append('nonce', nonce);
 
-            fetch(ajaxUrl, { method:'POST', body })
-                .then(r => r.json())
-                .then(data => {
+            fetch(ajaxUrl, { method:'POST', body, credentials: 'same-origin' })
+                .then(function(r){ return r.text().then(function(txt){ return txt; }); })
+                .then(function(txt){
+                    var data;
+                    try { data = upsParseAjaxJson(txt); } catch (e) {
+                        btn.disabled = false;
+                        loading.style.display = 'none';
+                        result.className = 'ups-at-blogbot-result err';
+                        result.textContent = 'Błąd odpowiedzi: ' + e.message + (txt ? ' — ' + txt.slice(0, 400) : '');
+                        return;
+                    }
                     if (!data.success) {
                         btn.disabled = false;
                         loading.style.display = 'none';
                         result.className = 'ups-at-blogbot-result err';
-                        result.textContent = '✗ ' + (data.data?.message || 'Nieznany błąd');
+                        result.textContent = '✗ ' + (data.data && data.data.message ? data.data.message : 'Nieznany błąd');
                         return;
                     }
                     result.className = 'ups-at-blogbot-result';
-                    loading.textContent = data.data.message + ' Sprawdzam co 8 sek…';
+                    loading.textContent = (data.data && data.data.message ? data.data.message : '') + ' Sprawdzam co 8 sek…';
                     let attempts = 0;
                     const maxAttempts = 38; // ~5 min przy odpytywaniu co 8 s
                     const pollBody = new FormData();
@@ -906,9 +945,11 @@ function upsellio_ai_tests_render_page(): void {
 
                     const poll = setInterval(function(){
                         attempts++;
-                        fetch(ajaxUrl, { method:'POST', body: pollBody })
-                            .then(r => r.json())
-                            .then(pd => {
+                        fetch(ajaxUrl, { method:'POST', body: pollBody, credentials: 'same-origin' })
+                            .then(function(r){ return r.text().then(function(txt){ return txt; }); })
+                            .then(function(txt){
+                                let pd;
+                                try { pd = upsParseAjaxJson(txt); } catch (e) { return; }
                                 if (!pd.success) { return; }
                                 const d = pd.data;
                                 if (d.done) {
