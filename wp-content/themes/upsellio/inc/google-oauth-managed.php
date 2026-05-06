@@ -202,6 +202,7 @@ function upsellio_handle_google_managed_oauth_handoff_rest(WP_REST_Request $requ
     $client_id = isset($body["client_id"]) ? trim((string) $body["client_id"]) : "";
     $client_secret = isset($body["client_secret"]) ? trim((string) $body["client_secret"]) : "";
     $wp_user_id = isset($body["wp_user_id"]) ? (int) $body["wp_user_id"] : 0;
+    $refresh_expires_in = isset($body["refresh_token_expires_in"]) ? (int) $body["refresh_token_expires_in"] : 0;
 
     if ($state_in === "" || $refresh === "" || $client_id === "" || $client_secret === "") {
         return new WP_Error("upsellio_managed_oauth_missing_fields", "Brak state / refresh_token / client_id / client_secret.", ["status" => 400]);
@@ -216,7 +217,48 @@ function upsellio_handle_google_managed_oauth_handoff_rest(WP_REST_Request $requ
         return new WP_Error("upsellio_managed_oauth_bad_state", "Nieprawidłowy stan OAuth.", ["status" => 400]);
     }
 
+    $pending_raw = get_transient(upsellio_google_oauth_transient_key($wp_user_id));
+    $conn_type = is_array($pending_raw) ? sanitize_key((string) ($pending_raw["conn_type"] ?? "main")) : "main";
+    $conn_label = is_array($pending_raw) ? sanitize_text_field((string) ($pending_raw["label"] ?? "")) : "";
+
     delete_transient(upsellio_google_oauth_transient_key($wp_user_id));
+
+    if ($conn_type === "audit") {
+        $email = function_exists("ups_audit_fetch_email_from_token")
+            ? ups_audit_fetch_email_from_token($refresh, $client_id, $client_secret)
+            : "";
+        $title = $email !== "" ? $email : "Konto " . substr(md5($refresh), 0, 8);
+        $account_id = wp_insert_post([
+            "post_type" => "crm_google_account",
+            "post_title" => $title,
+            "post_status" => "publish",
+        ]);
+        if ($account_id <= 0) {
+            return new WP_Error("upsellio_managed_oauth_audit_create_failed", "Nie udało się utworzyć konta audytowego.", ["status" => 500]);
+        }
+        update_post_meta($account_id, "_ups_gacc_email", $email);
+        update_post_meta($account_id, "_ups_gacc_label", $conn_label);
+        update_post_meta($account_id, "_ups_gacc_oauth_client_id", $client_id);
+        update_post_meta($account_id, "_ups_gacc_oauth_client_secret", function_exists("ups_audit_encrypt") ? ups_audit_encrypt($client_secret) : $client_secret);
+        update_post_meta($account_id, "_ups_gacc_oauth_refresh_token", function_exists("ups_audit_encrypt") ? ups_audit_encrypt($refresh) : $refresh);
+        $expires_at_ts = $refresh_expires_in > 0 ? (time() + $refresh_expires_in) : (time() + (180 * DAY_IN_SECONDS));
+        update_post_meta($account_id, "_ups_gacc_token_expires_at", gmdate("Y-m-d H:i:s", $expires_at_ts));
+        update_post_meta($account_id, "_ups_gacc_last_sync_at", current_time("mysql"));
+        $access_probe_audit = upsellio_gsc_get_access_token([
+            "client_id" => $client_id,
+            "client_secret" => $client_secret,
+            "refresh_token" => $refresh,
+        ]);
+        if (is_string($access_probe_audit) && $access_probe_audit !== "") {
+            $scopes = function_exists("ups_audit_fetch_scopes") ? ups_audit_fetch_scopes($access_probe_audit) : [];
+            update_post_meta($account_id, "_ups_gacc_scopes", is_array($scopes) ? $scopes : []);
+        }
+        upsellio_gsc_log("google.oauth.managed_handoff.audit.success", [
+            "user_id" => $wp_user_id,
+            "account_id" => (int) $account_id,
+        ], upsellio_gsc_debug_trace_id());
+        return new WP_REST_Response(["ok" => true, "account_id" => (int) $account_id], 200);
+    }
 
     $gsc_property = $pending["gsc_property"] !== ""
         ? sanitize_text_field($pending["gsc_property"])

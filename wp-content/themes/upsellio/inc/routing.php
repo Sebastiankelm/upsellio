@@ -134,6 +134,31 @@ function upsellio_force_homepage_template_on_root($template)
 }
 add_filter("template_include", "upsellio_force_homepage_template_on_root", 1);
 
+function upsellio_honour_page_template_over_slug($template)
+{
+    if (!is_page()) {
+        return $template;
+    }
+
+    $post_id = (int) get_queried_object_id();
+    if ($post_id <= 0) {
+        return $template;
+    }
+
+    $chosen_template = (string) get_post_meta($post_id, "_wp_page_template", true);
+    if ($chosen_template === "" || $chosen_template === "default") {
+        return $template;
+    }
+
+    $template_path = get_template_directory() . "/" . ltrim($chosen_template, "/");
+    if (file_exists($template_path)) {
+        return $template_path;
+    }
+
+    return $template;
+}
+add_filter("template_include", "upsellio_honour_page_template_over_slug", 5);
+
 function upsellio_is_secure_request()
 {
     if (is_ssl()) {

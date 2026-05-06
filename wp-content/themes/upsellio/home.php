@@ -17,13 +17,13 @@ $blog_index_url = upsellio_get_blog_index_url();
 $categories = get_categories(["hide_empty" => true]);
 $tags = get_tags(["hide_empty" => true]);
 add_filter("pre_get_document_title", static function ($title) {
-    return is_home() || is_page_template("page-blog.php")
+    return is_home() || is_page_template("ups-blog-core.php")
         ? "Blog o marketingu B2B | Meta Ads, Google Ads, strony | Upsellio"
         : $title;
 });
 
 add_action("wp_head", static function () use ($blog_index_url, $paged) {
-    if (!(is_home() || is_page_template("page-blog.php"))) return;
+    if (!(is_home() || is_page_template("ups-blog-core.php"))) return;
 
     echo '<meta name="description" content="Blog o Meta Ads, Google Ads, tworzeniu stron i pozyskiwaniu klientów dla firm B2B. Konkrety zamiast teorii — artykuły pisane przez praktyka.">' . "\n";
     echo '<meta property="og:title" content="Blog o marketingu B2B | Meta Ads, Google Ads, strony | Upsellio">' . "\n";

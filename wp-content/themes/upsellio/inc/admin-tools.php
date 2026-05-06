@@ -31,6 +31,7 @@ function upsellio_admin_url($page)
         "upsellio-server-files" => "themes.php?page=upsellio-server-files",
         "upsellio-advanced-tests" => "tools.php?page=upsellio-advanced-tests",
         "upsellio-error-logs" => "tools.php?page=upsellio-error-logs",
+        "upsellio-lead-sync-debug" => "tools.php?page=upsellio-lead-sync-debug",
     ];
 
     if (isset($routes[$page])) {
@@ -361,3 +362,100 @@ function upsellio_handle_remove_static_seo_files()
     upsellio_server_files_redirect("removed_static");
 }
 add_action("admin_post_upsellio_remove_static_seo_files", "upsellio_handle_remove_static_seo_files");
+
+function upsellio_register_lead_sync_debug_menu()
+{
+    add_submenu_page(
+        "tools.php",
+        "Upsellio - Lead sync debug",
+        "Lead sync debug",
+        "manage_options",
+        "upsellio-lead-sync-debug",
+        "upsellio_render_lead_sync_debug_screen"
+    );
+}
+add_action("admin_menu", "upsellio_register_lead_sync_debug_menu");
+
+function upsellio_render_lead_sync_debug_screen()
+{
+    if (!current_user_can("manage_options")) {
+        return;
+    }
+
+    $query = new WP_Query([
+        "post_type" => "lead",
+        "post_status" => ["publish", "private", "draft", "pending"],
+        "posts_per_page" => 20,
+        "orderby" => "date",
+        "order" => "DESC",
+        "fields" => "ids",
+        "no_found_rows" => true,
+        "update_post_meta_cache" => true,
+        "update_post_term_cache" => false,
+    ]);
+
+    $leadIds = array_map("intval", (array) $query->posts);
+    ?>
+    <div class="wrap">
+      <h1>Lead sync debug</h1>
+      <p>Ostatnie 20 submitów formularza i ich mapowanie do modułów CRM/Inbox.</p>
+
+      <table class="widefat striped">
+        <thead>
+          <tr>
+            <th>created_at</th>
+            <th>lead_id</th>
+            <th>crm_lead_id</th>
+            <th>crm_offer_id</th>
+            <th>origin</th>
+            <th>email</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php if (empty($leadIds)) : ?>
+            <tr>
+              <td colspan="6">Brak leadów do wyświetlenia.</td>
+            </tr>
+          <?php else : ?>
+            <?php foreach ($leadIds as $leadId) : ?>
+              <?php
+              $crmLeadId = (int) get_post_meta($leadId, "_upsellio_synced_crm_lead_id", true);
+              $crmOfferId = (int) get_post_meta($leadId, "_upsellio_synced_inbox_offer_id", true);
+              $origin = (string) get_post_meta($leadId, "_upsellio_lead_form_origin", true);
+              $email = (string) get_post_meta($leadId, "_upsellio_lead_email", true);
+              ?>
+              <tr>
+                <td><?php echo esc_html((string) get_the_date("Y-m-d H:i:s", $leadId)); ?></td>
+                <td>
+                  <a href="<?php echo esc_url(admin_url("post.php?post=" . $leadId . "&action=edit")); ?>">
+                    <?php echo (int) $leadId; ?>
+                  </a>
+                </td>
+                <td>
+                  <?php if ($crmLeadId > 0) : ?>
+                    <a href="<?php echo esc_url(admin_url("post.php?post=" . $crmLeadId . "&action=edit")); ?>">
+                      <?php echo (int) $crmLeadId; ?>
+                    </a>
+                  <?php else : ?>
+                    <span style="color:#b32d2e;">missing</span>
+                  <?php endif; ?>
+                </td>
+                <td>
+                  <?php if ($crmOfferId > 0) : ?>
+                    <a href="<?php echo esc_url(admin_url("post.php?post=" . $crmOfferId . "&action=edit")); ?>">
+                      <?php echo (int) $crmOfferId; ?>
+                    </a>
+                  <?php else : ?>
+                    <span style="color:#b32d2e;">missing</span>
+                  <?php endif; ?>
+                </td>
+                <td><?php echo esc_html($origin !== "" ? $origin : "n/a"); ?></td>
+                <td><?php echo esc_html($email !== "" ? $email : "n/a"); ?></td>
+              </tr>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </tbody>
+      </table>
+    </div>
+    <?php
+}

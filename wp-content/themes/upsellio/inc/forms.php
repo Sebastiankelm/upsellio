@@ -6,6 +6,17 @@ if (!defined("ABSPATH")) {
 function upsellio_submit_contact_form()
 {
     check_ajax_referer("upsellio_contact_click", "nonce");
+    $ip_hash = function_exists("upsellio_crm_get_request_ip_hash") ? upsellio_crm_get_request_ip_hash() : "";
+    if ($ip_hash !== "") {
+        $rl_key = "ups_contact_rl_" . md5($ip_hash);
+        $attempts = (int) get_transient($rl_key);
+        if ($attempts >= 8) {
+            wp_send_json_error([
+                "message" => "Zbyt wiele prób. Spróbuj ponownie za godzinę.",
+            ], 429);
+        }
+        set_transient($rl_key, $attempts + 1, HOUR_IN_SECONDS);
+    }
 
     $name = isset($_POST["name"]) ? sanitize_text_field(wp_unslash($_POST["name"])) : "";
     $email = isset($_POST["email"]) ? sanitize_email(wp_unslash($_POST["email"])) : "";
