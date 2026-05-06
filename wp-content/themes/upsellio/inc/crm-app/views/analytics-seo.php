@@ -30,3 +30,9 @@ $pages_to_optimize = (array) get_option("ups_ai_page_perf_suggestions", []);
   <h4 style="margin-top:12px;">Pages to optimize (AI)</h4>
   <ul><?php foreach (array_slice($pages_to_optimize, 0, 8) as $p) { if (!is_array($p)) { continue; } echo "<li>" . esc_html((string) ($p["title"] ?? "—")) . "</li>"; } ?></ul>
 </section>
+
+<?php if (function_exists("upsellio_render_gsc_indexation_panel")) : ?>
+<section class="card" style="margin-top:14px">
+  <?php upsellio_render_gsc_indexation_panel(); ?>
+</section>
+<?php endif; ?>
