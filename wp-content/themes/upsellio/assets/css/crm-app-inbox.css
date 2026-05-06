@@ -1332,6 +1332,13 @@ textarea#inbox-compose-body:focus {
   flex-wrap: wrap;
 }
 
+.crm-inbox-imap-line .crm-inbox-imap-sync-btn {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 4px 10px;
+  line-height: 1.2;
+}
+
 /* ── FOLDER TREE — inline (bez nakładki na listę) ── */
 .crm-inbox-folder-section {
   border-bottom: 1px solid var(--border);

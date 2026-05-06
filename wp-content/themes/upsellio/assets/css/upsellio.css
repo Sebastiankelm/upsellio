@@ -9121,6 +9121,13 @@ textarea#inbox-compose-body:focus {
   flex-wrap: wrap;
 }
 
+.crm-inbox-imap-line .crm-inbox-imap-sync-btn {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 4px 10px;
+  line-height: 1.2;
+}
+
 /* ── FOLDER TREE — przeprojektowany jako sidebar sekcja ── */
 .crm-inbox-folder-section {
   flex-shrink: 0;

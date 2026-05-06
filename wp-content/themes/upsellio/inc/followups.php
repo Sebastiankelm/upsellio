@@ -674,6 +674,18 @@ function upsellio_followup_imap_format_error_message(string $detail_raw): string
         " Połączenie jest zestawiane z serwera WWW (WordPress), nie z Twojego komputera. Powtarzający się timeout na porcie 993 i 143 oznacza zwykle blokadę ruchu wychodzącego do hosta poczty przez hosting albo izolację sieci — poproś administratora o odblokowanie lub użyj webhooka inbound zamiast IMAP.";
 }
 
+/**
+ * Czy komunikat imap_open wskazuje na timeout sieci (np. firewall wychodzący na hostingu).
+ */
+function upsellio_followup_imap_detail_looks_like_connection_timeout(string $detail_raw): bool
+{
+    $lower = strtolower(trim((string) $detail_raw));
+
+    return strpos($lower, "timed out") !== false
+        || strpos($lower, "timeout") !== false
+        || strpos($lower, "operation timed out") !== false;
+}
+
 function upsellio_followup_test_mailbox_connection()
 {
     $settings = upsellio_followup_get_sender_settings();
@@ -1622,25 +1634,57 @@ function upsellio_followup_run_mailbox_poll(): array
     $enc = (string) $settings["mailbox_encryption"];
     $flags = upsellio_followup_imap_connection_flags($enc, !empty($settings["mailbox_ssl_novalidate"]));
     $mailbox = "{" . $host . ":" . $port . $flags . "}" . $folder;
-    if (function_exists("upsellio_mailbox_log")) {
+    $now_ts = time();
+    $silent_until = (int) get_option("ups_followup_imap_timeout_silent_until", 0);
+    $imap_log_quiet = $silent_until > $now_ts;
+    if (!$imap_log_quiet && function_exists("upsellio_mailbox_log")) {
         upsellio_mailbox_log("imap", "info", "Łączenie z IMAP…", "Mailbox string: {" . $host . ":" . $port . $flags . "}" . $folder . " · user: " . $username);
     }
     $imap = @imap_open($mailbox, $username, $password);
     if (!$imap) {
         $errs = imap_errors();
         $detail = is_array($errs) && $errs !== [] ? (string) end($errs) : "nie udało się połączyć";
+        $is_timeout = upsellio_followup_imap_detail_looks_like_connection_timeout($detail);
 
         $out["message"] = upsellio_followup_imap_format_error_message($detail);
-        if (function_exists("upsellio_mailbox_log")) {
-            upsellio_mailbox_log("imap", "error", "imap_open nie powiodło się.", $detail);
+        if (!$imap_log_quiet || !$is_timeout) {
+            if (function_exists("upsellio_mailbox_log")) {
+                upsellio_mailbox_log("imap", "error", "imap_open nie powiodło się.", $detail);
+            }
+        } elseif (function_exists("upsellio_mailbox_log") && function_exists("upsellio_mailbox_log_verbose_enabled") && upsellio_mailbox_log_verbose_enabled()) {
+            upsellio_mailbox_log("imap", "debug", "imap_open timeout (log wyciszony do końca okna — filtr upsellio_imap_timeout_log_quiet_seconds).", $detail);
+        }
+        if ($is_timeout) {
+            $quiet_sec = max(0, (int) apply_filters("upsellio_imap_timeout_log_quiet_seconds", HOUR_IN_SECONDS));
+            if ($quiet_sec > 0) {
+                update_option("ups_followup_imap_timeout_silent_until", $now_ts + $quiet_sec, false);
+            }
+        } else {
+            delete_option("ups_followup_imap_timeout_silent_until");
         }
 
         return $out;
     }
+    delete_option("ups_followup_imap_timeout_silent_until");
     if (function_exists("imap_errors")) {
         imap_errors();
     }
+    // Retry imap_search raz po 2s — serwer może nie skończyć indeksowania flag (Dovecot/Courier).
     $messages = @imap_search($imap, "UNSEEN");
+    if ($messages === false) {
+        sleep(2);
+        if (function_exists("imap_errors")) {
+            imap_errors();
+        }
+        $messages = @imap_search($imap, "UNSEEN");
+        if ($messages !== false && function_exists("upsellio_mailbox_log")) {
+            upsellio_mailbox_log(
+                "imap",
+                "info",
+                "imap_search(UNSEEN): ponowna próba po 2 s powiodła się (często przejściowy stan indeksu flag po stronie serwera)."
+            );
+        }
+    }
     if ($messages === false) {
         $detail = function_exists("imap_last_error") ? (string) imap_last_error() : "imap_search nie powiodło się";
         imap_close($imap);

@@ -4982,6 +4982,7 @@ function upsellio_crm_app_template_redirect()
                     <div class="crm-inbox-imap-line">
                       <span><?php esc_html_e("Ostatnie IMAP:", "upsellio"); ?> <strong><?php echo esc_html($inbox_mailbox_last_disp); ?></strong></span>
                       <span id="inbox-sync-mailbox-status"></span>
+                      <button type="button" class="btn alt crm-inbox-imap-sync-btn" title="<?php esc_attr_e("Ręcznie pobierz nieprzeczytane wiadomości z serwera IMAP (do 25 na raz).", "upsellio"); ?>" onclick="inboxSyncMailbox(this)"><?php esc_html_e("↻ Pobierz z IMAP", "upsellio"); ?></button>
                     </div>
                     <?php endif; ?>
                     <div class="crm-inbox-folder-section" id="inbox-folder-section">
