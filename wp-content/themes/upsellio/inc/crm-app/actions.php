@@ -2260,3 +2260,47 @@ function upsellio_kw_cluster_ai_alias_ajax(): void
     wp_send_json_error(["message" => "missing_keyword_cluster"], 500);
 }
 add_action("wp_ajax_upsellio_kw_cluster_ai", "upsellio_kw_cluster_ai_alias_ajax");
+
+add_action("wp_ajax_upsellio_crm_ai_query", static function (): void {
+    if (!function_exists("upsellio_crm_app_user_can_access") || !upsellio_crm_app_user_can_access()) {
+        wp_send_json_error(["message" => "Brak uprawnień."], 403);
+    }
+    check_ajax_referer("ups_crm_app_action", "nonce");
+
+    $prompt = sanitize_text_field(wp_unslash($_POST["prompt"] ?? ""));
+
+    if (strpos($prompt, "Blog Bot teraz") !== false) {
+        if (!function_exists("upsellio_blog_bot_generate_and_save")) {
+            wp_send_json_error(["message" => "Blog Bot niedostępny."]);
+        }
+        ignore_user_abort(true);
+        if (function_exists("set_time_limit")) {
+            @set_time_limit(360);
+        }
+        $keyword = function_exists("upsellio_blog_bot_peek_keyword")
+            ? (string) upsellio_blog_bot_peek_keyword()
+            : "";
+        if ($keyword === "") {
+            wp_send_json_success(["response" => "Kolejka tematów jest pusta — dodaj tematy w Ustawienia → AI."]);
+        }
+        $before = (int) get_option("ups_blog_bot_last_draft_id", 0);
+        upsellio_blog_bot_generate_and_save();
+        $after = (int) get_option("ups_blog_bot_last_draft_id", 0);
+        if ($after > 0 && $after !== $before) {
+            $post = get_post($after);
+            $title = $post instanceof WP_Post ? sanitize_text_field($post->post_title) : "";
+            wp_send_json_success([
+                "response" => 'Draft utworzony: "' . $title . '" (fraza: ' . $keyword . ")",
+            ]);
+        }
+        $err = get_option("ups_blog_bot_last_error", []);
+        $detail = is_array($err) && !empty($err["detail"]) ? (string) $err["detail"] : "Sprawdź logi.";
+        wp_send_json_success([
+            "response" => "Bot uruchomiony, draft nie powstał. " . $detail,
+        ]);
+    }
+
+    wp_send_json_success([
+        "response" => "Akcja CRM AI: " . $prompt . " — brak handlera dla tego promptu.",
+    ]);
+});
