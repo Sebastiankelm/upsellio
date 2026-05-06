@@ -436,9 +436,9 @@ function upsellio_ai_test_group_crm(): array {
 }
 
 // ─────────────────────────────────────────────
-// RĘCZNE URUCHOMIENIE BLOG BOTA
-// Domyślnie: wp_remote_post(non-blocking) → REST POST /upsellio/v1/blog-bot-run (nowy proces PHP, własny limit czasu).
-// Fallback bez sekretu REST: fastcgi_flush + ten sam proces (ograniczenia max_execution_time na hostingu).
+// RĘCZNE URUCHOMIENIE BLOG BOTA (fastcgi_finish_request — bez loopback HTTP)
+// Loopback (REST/wp_remote_post do localhost) bywa blokowany na shared hostingu — jedyna ścieżka: ten sam proces po zamknięciu połączenia.
+// Zapas: pojedynczy WP-Cron za ~90 s (jeśli pierwszy proces padnie, kolejna wizyta / prawdziwy cron może odpalić `upsellio_blog_bot_cron_run`).
 // ─────────────────────────────────────────────
 
 /**
@@ -463,6 +463,9 @@ function upsellio_blog_bot_prepare_manual_run(): array
         ];
     }
 
+    // Stary lock z ubitego procesu PHP blokował kolejne uruchomienia (already_running) bez sensownego last_error.
+    delete_transient("ups_blog_bot_running");
+
     $before_id = (int) get_option("ups_blog_bot_last_draft_id", 0);
     update_option("ups_blog_bot_manual_run_before_id", $before_id, false);
     update_option("ups_blog_bot_manual_run_started_at", time(), false);
@@ -486,8 +489,6 @@ function upsellio_blog_bot_prepare_manual_run(): array
  * Bez Content-Length klient czyta body do końca połączenia.
  *
  * Kończy przez exit(0), nie wp_die() — WP przy AJAX potrafi dopisać „0” po odpowiedzi (JS: upsParseAjaxJson).
- *
- * Używane wyłącznie gdy brak ups_followup_inbound_secret — wtedy nie da się wywołać osobnego REST.
  *
  * @param array<string, mixed> $data Pole "data" w odpowiedzi AJAX.
  */
@@ -518,11 +519,14 @@ function upsellio_blog_bot_flush_ajax_success_and_run_generate(array $data): voi
         session_write_close();
     }
 
+    // Jeśli poprzedni run został ubity przez hosting przed finally{} w generatorze — transient zostaje i blokuje bot (already_running).
+    delete_transient("ups_blog_bot_running");
+
     if (function_exists("fastcgi_finish_request")) {
         fastcgi_finish_request();
         ignore_user_abort(true);
         if (function_exists("set_time_limit")) {
-            @set_time_limit(300);
+            @set_time_limit(360);
         }
         if (function_exists("upsellio_blog_bot_generate_and_save")) {
             upsellio_blog_bot_generate_and_save();
@@ -530,53 +534,23 @@ function upsellio_blog_bot_flush_ajax_success_and_run_generate(array $data): voi
         exit(0);
     }
 
-    flush();
+    // Bez FastCGI (część instalacji Apache mod_php): pojedynczy flush() często nie zamyka połączenia — wyczyść kolejne warstwy i wymuś wysyłkę.
     ignore_user_abort(true);
     if (function_exists("set_time_limit")) {
-        @set_time_limit(300);
+        @set_time_limit(360);
     }
+    for ($i = 0; $i < 8 && ob_get_level() > 0; $i++) {
+        @ob_end_flush();
+    }
+    @flush();
+    @flush();
     if (function_exists("upsellio_blog_bot_generate_and_save")) {
         upsellio_blog_bot_generate_and_save();
     }
     exit(0);
 }
 
-/**
- * REST: osobny request HTTP = osobny proces PHP (shared hosting — własny licznik max_execution_time).
- */
-function upsellio_ai_tests_rest_blog_bot_permission(\WP_REST_Request $req): bool
-{
-    $secret = (string) get_option("ups_followup_inbound_secret", "");
-    $token  = (string) $req->get_header("x-upsellio-secret");
-
-    return $secret !== "" && hash_equals($secret, $token);
-}
-
-/**
- * @return \WP_REST_Response
- */
-function upsellio_ai_tests_rest_blog_bot_run(\WP_REST_Request $req)
-{
-    if (function_exists("set_time_limit")) {
-        @set_time_limit(300);
-    }
-    ignore_user_abort(true);
-    if (function_exists("upsellio_blog_bot_generate_and_save")) {
-        upsellio_blog_bot_generate_and_save();
-    }
-
-    return new \WP_REST_Response(["ok" => true], 200);
-}
-
-add_action("rest_api_init", function (): void {
-    register_rest_route("upsellio/v1", "/blog-bot-run", [
-        "methods"             => "POST",
-        "permission_callback" => "upsellio_ai_tests_rest_blog_bot_permission",
-        "callback"            => "upsellio_ai_tests_rest_blog_bot_run",
-    ]);
-});
-
-// Krok 1: AJAX — natychmiast JSON; generowanie w osobnym procesie (REST) albo fallback flush
+// Krok 1: AJAX — odpowiedź JSON od razu; generowanie w tle (fastcgi_finish_request lub fallback flush)
 function upsellio_ai_tests_run_blog_bot_ajax(): void
 {
     if (!current_user_can("manage_options")) {
@@ -589,37 +563,17 @@ function upsellio_ai_tests_run_blog_bot_ajax(): void
         wp_send_json_error(["message" => $prep["message"]]);
     }
 
-    $secret = (string) get_option("ups_followup_inbound_secret", "");
-    if ($secret !== "") {
-        $loopback_url = rest_url("upsellio/v1/blog-bot-run");
-        $sslverify = (bool) apply_filters("upsellio_ai_tests_blog_bot_loopback_sslverify", false);
-        wp_remote_post(
-            $loopback_url,
-            [
-                "timeout"   => 1,
-                "blocking"  => false,
-                "sslverify" => $sslverify,
-                "headers"   => [
-                    "x-upsellio-secret" => $secret,
-                    "Content-Type"      => "application/json",
-                ],
-                "body"      => "{}",
-                "cookies"   => [],
-            ]
-        );
-        wp_send_json_success([
-            "queued"  => true,
-            "keyword" => $prep["keyword"],
-            "message" => $prep["message"],
-        ]);
+    $has_fastcgi = function_exists("fastcgi_finish_request");
+    update_option("ups_blog_bot_last_trigger_method", $has_fastcgi ? "fastcgi" : "flush", false);
+    update_option("ups_blog_bot_last_trigger_at", time(), false);
 
-        return;
-    }
+    // Zapasowy harmonogram WP-Cron — jeśli ten proces umrze w połowie, kolejna wizyta strony / prawdziwy cron może uruchomić `upsellio_blog_bot_cron_run`.
+    wp_schedule_single_event(time() + 90, "upsellio_blog_bot_cron_run");
 
     upsellio_blog_bot_flush_ajax_success_and_run_generate([
         "queued"  => true,
         "keyword" => $prep["keyword"],
-        "message" => $prep["message"],
+        "message" => $prep["message"] . ($has_fastcgi ? "" : " (tryb fallback: brak fastcgi_finish_request)"),
     ]);
 }
 add_action("wp_ajax_upsellio_ai_tests_run_blog_bot", "upsellio_ai_tests_run_blog_bot_ajax");
@@ -650,24 +604,29 @@ function upsellio_ai_tests_blog_bot_poll_ajax(): void
     }
 
     if ($elapsed > 300) {
-        $diag = get_option("ups_blog_bot_last_error", null);
+        $diag   = get_option("ups_blog_bot_last_error", null);
+        $method = (string) get_option("ups_blog_bot_last_trigger_method", "nieznana");
         $labels = [
-            "disabled" => "Blog Bot wyłączony w ustawieniach",
-            "no_api_key" => "Brak klucza Anthropic API",
-            "empty_queue" => "Pusta kolejka tematów",
-            "api_null" => "Błąd połączenia z API Anthropic",
-            "bad_json" => "Niepoprawny JSON z modelu — sprawdź prompt",
-            "empty_fields" => "Brak title/content w JSON — sprawdź prompt",
+            "disabled"         => "Blog Bot wyłączony w ustawieniach (włącz w CRM → Ustawienia → AI)",
+            "no_api_key"       => "Brak klucza Anthropic API",
+            "empty_queue"      => "Pusta kolejka tematów",
+            "api_null"         => "Błąd wywołania API Anthropic (sprawdź klucz i limity)",
+            "bad_json"         => "Niepoprawny JSON z modelu",
+            "empty_fields"     => "Brak title/content w JSON",
             "wp_insert_failed" => "Błąd zapisu wpisu w WordPressie",
-            "already_running" => "Bot już działał — poczekaj chwilę",
+            "already_running"  => "Bot był już uruchomiony — transient lock (poczekaj 5 min lub wyczyść transient ups_blog_bot_running)",
         ];
-        $msg = "Timeout — draft nie powstał po 5 minutach.";
         if (is_array($diag) && !empty($diag["code"])) {
             $code = (string) $diag["code"];
-            $msg = $labels[$code] ?? $code;
+            $msg  = $labels[$code] ?? $code;
             if (!empty($diag["detail"])) {
                 $msg .= ": " . $diag["detail"];
             }
+        } else {
+            $has_fastcgi = function_exists("fastcgi_finish_request");
+            $msg = "Timeout — bot nie uruchomił się lub nie zdążył (metoda: {$method}, fastcgi: "
+                . ($has_fastcgi ? "dostępne" : "niedostępne")
+                . "). Sprawdź PHP error_log. Możliwe: bardzo krótki max_execution_time na hostingu — ustaw zewnętrzny cron na wp-cron.php lub polegaj na harmonogramie Blog Bota.";
         }
         wp_send_json_success(["done" => false, "timeout" => true, "message" => $msg]);
     }
