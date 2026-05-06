@@ -39,7 +39,7 @@ function upsellio_setting(string $key, $fallback = null)
             "ups_automation_ab_min_sample" => 20,
             "ups_automation_ab_min_lift_pct" => 5,
             "ups_blog_bot_target_length" => 1200,
-            "ups_blog_bot_http_timeout" => 240,
+            "ups_blog_bot_http_timeout" => 300,
             "ups_ai_blog_seo_temperature" => 0.7,
             "ups_ai_blog_seo_max_tokens" => 3500,
         ];

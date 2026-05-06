@@ -6884,7 +6884,7 @@ function upsellio_crm_app_template_redirect()
                     <label>Docelowa liczba słów</label>
                     <input type="number" min="400" step="50" name="ups_blog_bot_target_length" value="<?php echo esc_attr((string) max(400, (int) get_option("ups_blog_bot_target_length", 1200))); ?>" />
                     <label>Timeout HTTP (API Anthropic, sekundy)</label>
-                    <input type="number" min="0" max="600" step="30" name="ups_blog_bot_http_timeout" value="<?php echo esc_attr((string) max(0, (int) get_option("ups_blog_bot_http_timeout", 0))); ?>" placeholder="0 = 240 s" />
+                    <input type="number" min="0" max="600" step="30" name="ups_blog_bot_http_timeout" value="<?php echo esc_attr((string) max(0, (int) get_option("ups_blog_bot_http_timeout", 0))); ?>" placeholder="0 = auto do 300 s · zalecane 300" />
                     <p class="muted" style="grid-column:1/-1;margin:-8px 0 4px;font-size:11px;line-height:1.45">Wpisz <strong>0</strong>, aby użyć domyślnych <strong>240 s</strong> (wcześniejsze stałe 90 s kończyły się <code>cURL error 28</code> przy długiej odpowiedzi JSON). Na wolnym hostingu ustaw np. 300–420. Górny limit techniczny: 600.</p>
                     <label>Domyślna miniatura draftu (ID załącznika)</label>
                     <input type="number" min="0" name="ups_blog_bot_default_thumbnail_id" value="<?php echo esc_attr((string) max(0, (int) get_option("ups_blog_bot_default_thumbnail_id", 0))); ?>" placeholder="0 = brak" />

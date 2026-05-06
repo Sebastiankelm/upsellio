@@ -439,6 +439,10 @@ function upsellio_ai_test_group_crm(): array {
 // ─────────────────────────────────────────────
 
 function upsellio_ai_tests_run_blog_bot_ajax(): void {
+    ignore_user_abort(true);
+    if (function_exists('set_time_limit')) {
+        @set_time_limit(360);
+    }
     if (!current_user_can('manage_options')) {
         wp_send_json_error(['message' => 'forbidden'], 403);
     }

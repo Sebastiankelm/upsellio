@@ -1311,7 +1311,7 @@ function upsellio_blog_bot_generate_and_save(): void
     upsellio_blog_bot_set_last_error(null);
 
     if (function_exists("set_time_limit")) {
-        $tl = (int) apply_filters("upsellio_blog_bot_time_limit", 300);
+        $tl = (int) apply_filters("upsellio_blog_bot_time_limit", 360);
         @set_time_limit(max(120, min(900, $tl)));
     }
 
@@ -1388,20 +1388,20 @@ function upsellio_blog_bot_generate_and_save(): void
     $full_prompt = upsellio_blog_bot_build_prompt($keyword, $catalog);
     $cache_split = upsellio_blog_bot_prompt_cache_split($full_prompt);
     // Pełny wpis w jednym obiekcie JSON — mały limit obcina odpowiedź w połowie i psuje parsowanie.
-    // HTTP: domyślnie 240 s (wcześniej 90 s — częsty cURL 28 przy dużym max_tokens / wolnym API).
+    // HTTP: przy opcji 0 — automatyczny limit (do ~300 s); ustawienie CRM „Timeout HTTP” nadpisuje (zalecane 300).
     $stored_to = (int) get_option("ups_blog_bot_http_timeout", 0);
     $php_limit = (int) ini_get("max_execution_time");
     if ($php_limit <= 0) {
         $safe_timeout = 180;
     } else {
-        $safe_timeout = $php_limit > 30 ? min($php_limit - 20, 180) : 120;
+        $safe_timeout = $php_limit > 30 ? min($php_limit - 20, 300) : 120;
     }
     $safe_timeout = max(60, min(300, $safe_timeout));
     $api_timeout = $stored_to > 0
         ? max(60, min(600, $stored_to))
         : (int) apply_filters("upsellio_blog_bot_api_timeout", $safe_timeout);
     $api_timeout = max(60, min(600, $api_timeout));
-    $max_out = upsellio_blog_bot_resolve_max_output_tokens(8192);
+    $max_out = upsellio_blog_bot_resolve_max_output_tokens(4096);
     $raw = upsellio_anthropic_crm_send_user_prompt($full_prompt, $max_out, $api_timeout, $model, $cache_split);
     if ($raw === null) {
         $api_detail = function_exists("upsellio_anthropic_crm_get_last_send_error")
