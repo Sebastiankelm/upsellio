@@ -92,11 +92,6 @@ get_header();
   .am-hero-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .am-photo-stripes{position:absolute;inset:0;background-image:repeating-linear-gradient(135deg,rgba(13,148,136,.12) 0 12px,transparent 12px 24px)}
   .am-photo-label{position:absolute;inset:0;display:grid;place-items:center;font-family:ui-monospace,monospace;color:#0f766e;font-size:12px;letter-spacing:.8px;text-align:center;padding:0 16px}
-  .am-mini-dash{position:absolute;right:14px;bottom:14px;width:min(230px,80%);background:rgba(10,20,16,.9);color:#fff;border:1px solid rgba(94,234,212,.25);border-radius:14px;padding:12px;backdrop-filter:blur(4px)}
-  .am-mini-dash strong{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:#5eead4;margin-bottom:8px}
-  .am-mini-dash ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
-  .am-mini-dash li{display:flex;justify-content:space-between;gap:10px;font-size:12px;line-height:1.35;color:rgba(255,255,255,.9)}
-  .am-mini-dash li span:last-child{font-weight:700;color:#fff}
   .am-proof{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
   .am-proof div{background:#fff;border:1px solid #e7e7e1;border-radius:16px;padding:18px}
   .am-proof strong{display:block;font-family:"Bricolage Grotesque",sans-serif;color:#0d9488;font-size:30px;line-height:1}
@@ -161,14 +156,6 @@ get_header();
           <div class="am-photo-stripes"></div>
           <div class="am-photo-label">[ <?php echo esc_html($founder_name); ?> ]</div>
         <?php endif; ?>
-        <div class="am-mini-dash" aria-label="Mini dashboard wyników">
-          <strong>Mini dashboard</strong>
-          <ul>
-            <li><span>Średni CPL</span><span>-23%</span></li>
-            <li><span>Jakość leadów</span><span>+31%</span></li>
-            <li><span>Tempo follow-up</span><span>&lt;24h</span></li>
-          </ul>
-        </div>
       </aside>
     </div>
   </section>
