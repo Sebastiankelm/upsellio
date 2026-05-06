@@ -405,9 +405,11 @@ function upsellio_offer_ai_fill_ajax(): void
         : (defined("UPSELLIO_ANTHROPIC_DEFAULT_MODEL")
             ? (string) UPSELLIO_ANTHROPIC_DEFAULT_MODEL
             : "claude-haiku-4-5-20251001");
-    /* Duży max_tokens — odpowiedź z API bywa >42 s; krótszy timeout dawał cURL 28 w WordPressie. */
+    /* max_tokens 2500 — wypełnia krótkie pola oferty (lead, billing, questions).
+     * Poprzedni limit 4096 był nadmiarowy. Timeout 180s zostawiamy — sieć jest wolna. */
+    $GLOBALS["upsellio_ai_current_task"] = "offer_ai_fill";
     $raw = function_exists("upsellio_anthropic_crm_send_user_prompt")
-        ? upsellio_anthropic_crm_send_user_prompt($prompt, 4096, 180, $model)
+        ? upsellio_anthropic_crm_send_user_prompt($prompt, 2500, 180, $model)
         : null;
     if ($raw === null) {
         $err = function_exists("upsellio_anthropic_crm_get_last_send_error") ? upsellio_anthropic_crm_get_last_send_error() : "";
