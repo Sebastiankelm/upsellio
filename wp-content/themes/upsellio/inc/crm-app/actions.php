@@ -2270,33 +2270,15 @@ add_action("wp_ajax_upsellio_crm_ai_query", static function (): void {
     $prompt = sanitize_text_field(wp_unslash($_POST["prompt"] ?? ""));
 
     if (strpos($prompt, "Blog Bot teraz") !== false) {
-        if (!function_exists("upsellio_blog_bot_generate_and_save")) {
+        if (!function_exists("upsellio_blog_bot_queue_manual_run")) {
             wp_send_json_error(["message" => "Blog Bot niedostępny."]);
         }
-        ignore_user_abort(true);
-        if (function_exists("set_time_limit")) {
-            @set_time_limit(360);
+        $out = upsellio_blog_bot_queue_manual_run();
+        if (!$out["ok"]) {
+            wp_send_json_success(["response" => $out["message"]]);
         }
-        $keyword = function_exists("upsellio_blog_bot_peek_keyword")
-            ? (string) upsellio_blog_bot_peek_keyword()
-            : "";
-        if ($keyword === "") {
-            wp_send_json_success(["response" => "Kolejka tematów jest pusta — dodaj tematy w Ustawienia → AI."]);
-        }
-        $before = (int) get_option("ups_blog_bot_last_draft_id", 0);
-        upsellio_blog_bot_generate_and_save();
-        $after = (int) get_option("ups_blog_bot_last_draft_id", 0);
-        if ($after > 0 && $after !== $before) {
-            $post = get_post($after);
-            $title = $post instanceof WP_Post ? sanitize_text_field($post->post_title) : "";
-            wp_send_json_success([
-                "response" => 'Draft utworzony: "' . $title . '" (fraza: ' . $keyword . ")",
-            ]);
-        }
-        $err = get_option("ups_blog_bot_last_error", []);
-        $detail = is_array($err) && !empty($err["detail"]) ? (string) $err["detail"] : "Sprawdź logi.";
         wp_send_json_success([
-            "response" => "Bot uruchomiony, draft nie powstał. " . $detail,
+            "response" => $out["message"] . " Draft pojawi się za ok. 30–90 s — sprawdź Wpisy → Szkice lub odśwież za chwilę.",
         ]);
     }
 
