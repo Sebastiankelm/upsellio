@@ -108,8 +108,8 @@ EOT;
         ];
         $resp = upsellio_anthropic_crm_send_user_prompt(
             "",
-            500,
-            20,
+            1000,
+            30,
             function_exists("upsellio_ai_model_for") ? upsellio_ai_model_for("anomaly_explainer") : null,
             $cache_split
         );
