@@ -490,12 +490,19 @@ function upsellio_cpt_ai_build_prompt(int $post_id, array $config, string $notes
      * Portfolio / marketing_portfolio: 3000 znaków wystarczy jako kontekst stylu — niższy koszt inputu.
      * Miasto: read_content=false — limit nie ma znaczenia.
      */
-    $content_limit = match ($post->post_type) {
-        "definicja" => 2000,
-        "portfolio" => 3000,
-        "marketing_portfolio" => 3000,
-        default => 4000,
-    };
+    switch ($post->post_type) {
+        case "definicja":
+            $content_limit = 2000;
+            break;
+        case "portfolio":
+            $content_limit = 3000;
+            break;
+        case "marketing_portfolio":
+            $content_limit = 3000;
+            break;
+        default:
+            $content_limit = 4000;
+    }
     if (function_exists("mb_substr")) {
         $content_raw = mb_substr($content_raw, 0, $content_limit, "UTF-8");
     } else {
@@ -525,6 +532,13 @@ function upsellio_cpt_ai_build_prompt(int $post_id, array $config, string $notes
  */
 function upsellio_cpt_ai_parse_json_from_text(string $text)
 {
+    if (function_exists("upsellio_anthropic_crm_parse_json_object")) {
+        $parsed = upsellio_anthropic_crm_parse_json_object($text);
+        if (is_array($parsed)) {
+            return $parsed;
+        }
+    }
+
     $text = trim($text);
     if (preg_match("/```(?:json)?\\s*([\\s\\S]*?)```/i", $text, $fence)) {
         $text = trim($fence[1]);
@@ -572,11 +586,15 @@ function upsellio_cpt_ai_run(int $post_id, string $notes = "")
     }
     $model = (string) apply_filters("upsellio_cpt_ai_model_{$post_type}", $model);
 
+    /*
+     * max_tokens: musi przewyższać szacowany output — ucięcie = niekompletny JSON (Haiku).
+     * Miasto ~700 słów HTML + pola; definicja ~550 słów; portfolio / marketing_portfolio większe case studies.
+     */
     $max_tokens_map = [
-        "miasto" => 2500,
-        "definicja" => 2000,
-        "portfolio" => 2500,
-        "marketing_portfolio" => 2500,
+        "miasto"              => 3000,
+        "definicja"           => 2500,
+        "portfolio"           => 3000,
+        "marketing_portfolio" => 3500,
     ];
     $max_tokens_for_type = (int) apply_filters(
         "upsellio_cpt_ai_max_tokens_{$post_type}",
@@ -629,6 +647,8 @@ function upsellio_cpt_ai_run(int $post_id, string $notes = "")
         return new WP_Error("empty_response", "Pusta odpowiedź modelu.");
     }
 
+    $stop_reason = is_array($body) ? (string) ($body["stop_reason"] ?? "") : "";
+
     $parsed = null;
     if (function_exists("upsellio_anthropic_crm_parse_json_object")) {
         $parsed = upsellio_anthropic_crm_parse_json_object($text);
@@ -636,10 +656,22 @@ function upsellio_cpt_ai_run(int $post_id, string $notes = "")
     if (!is_array($parsed)) {
         $fallback = upsellio_cpt_ai_parse_json_from_text($text);
         if (is_wp_error($fallback)) {
+            if ($stop_reason === "max_tokens") {
+                return new WP_Error(
+                    "parse_error",
+                    "Model uciął odpowiedź (stop_reason: max_tokens) — JSON jest niekompletny. "
+                    . "Zwiększ max_tokens dla tego typu wpisu lub skróć wymagany post_content."
+                );
+            }
+
             return $fallback;
         }
         if (!is_array($fallback)) {
-            return new WP_Error("parse_error", "Model nie zwrócił poprawnego JSON.");
+            return new WP_Error(
+                "parse_error",
+                "Model nie zwrócił poprawnego JSON."
+                . ($stop_reason !== "" ? " (stop_reason: {$stop_reason})" : "")
+            );
         }
         $parsed = $fallback;
     }
