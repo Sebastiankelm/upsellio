@@ -2270,15 +2270,18 @@ add_action("wp_ajax_upsellio_crm_ai_query", static function (): void {
     $prompt = sanitize_text_field(wp_unslash($_POST["prompt"] ?? ""));
 
     if (strpos($prompt, "Blog Bot teraz") !== false) {
-        if (!function_exists("upsellio_blog_bot_queue_manual_run")) {
+        if (
+            !function_exists("upsellio_blog_bot_prepare_manual_run")
+            || !function_exists("upsellio_blog_bot_flush_ajax_success_and_run_generate")
+        ) {
             wp_send_json_error(["message" => "Blog Bot niedostępny."]);
         }
-        $out = upsellio_blog_bot_queue_manual_run();
-        if (!$out["ok"]) {
-            wp_send_json_success(["response" => $out["message"]]);
+        $prep = upsellio_blog_bot_prepare_manual_run();
+        if (!$prep["ok"]) {
+            wp_send_json_success(["response" => $prep["message"]]);
         }
-        wp_send_json_success([
-            "response" => $out["message"] . " Draft pojawi się za ok. 30–90 s — sprawdź Wpisy → Szkice lub odśwież za chwilę.",
+        upsellio_blog_bot_flush_ajax_success_and_run_generate([
+            "response" => $prep["message"] . " Draft pojawi się za ok. 30–90 s — sprawdź Wpisy → Szkice lub odśwież za chwilę.",
         ]);
     }
 
