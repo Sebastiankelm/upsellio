@@ -55,4 +55,8 @@ $anomalies = (array) get_option("ups_ai_anomaly_explanations", []);
       </div>
     <?php endforeach; ?>
   <?php endif; ?>
+
+  <?php if (function_exists("upsellio_render_gsc_indexation_teaser")) : ?>
+    <?php upsellio_render_gsc_indexation_teaser(); ?>
+  <?php endif; ?>
 </section>
