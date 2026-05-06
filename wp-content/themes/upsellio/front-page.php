@@ -48,7 +48,7 @@ $service_options = [
    ============================================================ */
 $seo_title = trim((string) ($seo["title"] ?? "Marketing B2B oparty o sprzedaż | Google Ads, Meta Ads, strony WWW — Upsellio"));
 $seo_description = trim((string) ($seo["description"] ?? "Marketing B2B nastawiony na leady i sprzedaż, nie kliknięcia. Google Ads, Meta Ads i strony internetowe dla firm. 10 lat sprzedaży B2B. Bezpłatna 30-min diagnoza."));
-$seo_og_title = trim((string) ($seo["og_title"] ?? "Upsellio — marketing który generuje klientów, nie kliknięcia"));
+$seo_og_title = trim((string) ($seo["og_title"] ?? "Upsellio — marketing, który generuje klientów, nie kliknięcia"));
 $seo_og_description = trim((string) ($seo["og_description"] ?? "Google Ads, Meta Ads i strony WWW dla firm B2B. Reklama + strona + lejek jako jeden system, prowadzony przez handlowca z 10-letnim doświadczeniem."));
 $seo_og_image = function_exists("upsellio_get_default_og_image_url") ? upsellio_get_default_og_image_url() : (function_exists("get_template_directory_uri") ? get_template_directory_uri() . "/assets/images/upsellio-og.jpg" : "");
 
@@ -85,7 +85,7 @@ add_action("wp_head", static function () use ($seo_description, $seo_og_title, $
 $home_faqs = [
     [
         "q" => "Ile kosztuje kampania Google Ads lub Meta Ads dla firmy B2B?",
-        "a" => "Budżet reklamowy ustalamy wspólnie przed startem — minimum to zwykle 2 000-3 000 zł netto/mies. na platformę. Wynagrodzenie za prowadzenie kampanii: od 1 800 zł netto/mies., zależy od zakresu. Bez prowizji od budżetu reklamowego. Konkretne widełki dla Twojej sytuacji omówimy na bezpłatnej rozmowie.",
+        "a" => "Koszt zależy od branży, konkurencji, celu kampanii i tego, na jakim etapie jest dziś Twoja firma. Dlatego nie podaję „uniwersalnych pakietów”, które później i tak nie mają sensu w praktyce.\n\nPodczas bezpłatnej rozmowy analizuję Twoją sytuację i pokazuję, jaki budżet ma realną szansę przełożyć się na wyniki — bez przepalania pieniędzy na źle dobrane działania.",
     ],
     [
         "q" => "Po jakim czasie widać efekty kampanii B2B?",
@@ -93,10 +93,10 @@ $home_faqs = [
     ],
     [
         "q" => "Czy sama reklama wystarczy, żeby pozyskiwać klientów B2B?",
-        "a" => "Zazwyczaj nie. Jeśli strona ma słaby przekaz lub nie prowadzi odwiedzającego do decyzji, nawet dobra kampania będzie przeciekać. Patrzę na całość: reklama + strona + oferta + formularz. To system, nie pojedynczy kanał.",
+        "a" => "Najczęściej sama reklama to za mało. Jeśli strona nie buduje zaufania, oferta jest niejasna albo klient nie wie, co ma zrobić dalej, nawet dobrze ustawiona kampania będzie tracić potencjalnych klientów.\n\nDlatego patrzę na cały proces: od reklamy, przez stronę i komunikację, aż po formularz kontaktowy i sposób pozyskiwania leadów.",
     ],
     [
-        "q" => "Czy obsługujesz tylko reklamy, czy tez tworzenie stron internetowych?",
+        "q" => "Czy obsługujesz tylko reklamy, czy też tworzenie stron internetowych?",
         "a" => "Oba obszary: kampanie Google Ads i Meta Ads oraz projektowanie stron WWW i landing page. Najlepsze wyniki daje połączenie tych elementów w jednym procesie — reklama prowadzi na stronę, a strona konwertuje ruch w leady.",
     ],
     [
@@ -104,7 +104,7 @@ $home_faqs = [
         "a" => "Głównie firmy B2B (usługi, produkcja, IT, SaaS), e-commerce B2B i firmy usługowe z ambicją wzrostu. Kluczowe: realny produkt lub usługa, określona grupa klientów i gotowość do rozmowy o wynikach, nie tylko o kliknięciach.",
     ],
     [
-        "q" => "Czy pracujęsz jako agencja, czy samodzielnie?",
+        "q" => "Czy pracujesz jako agencja, czy samodzielnie?",
         "a" => "Samodzielnie. Bez juniorów, bez rotującego zespołu. Twoje kampanie prowadzę ja — Sebastian — od początku do końca. Wada: ograniczona przepustowość (5-7 klientów naraz). Zaleta: stały kontakt z jedną osobą, która zna Twój projekt.",
     ],
     [
@@ -213,7 +213,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
 .hr-hero-stat strong em{font-style:normal;color:var(--hr-teal)}
 .hr-hero-stat span{font-size:12.5px;color:var(--hr-muted);line-height:1.45;font-weight:500}
 
-/* Telefon dla klientów z natychmiastowa intencja */
+/* Telefon dla klientów z natychmiastową intencją */
 .hr-hero-call{margin-top:24px;padding-top:20px;border-top:1px solid var(--hr-line);font-size:14px;color:var(--hr-muted);display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .hr-hero-call a{color:var(--hr-ink);font-weight:700;text-decoration:none;font-family:var(--hr-fd);letter-spacing:-.015em;font-size:17px;border-bottom:1.5px solid var(--hr-teal);padding-bottom:1px}
 .hr-hero-call a:hover{color:var(--hr-tealh)}
@@ -238,7 +238,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
 .hr-form-card .ups-form__submit,.hr-form-card button[type="submit"]{width:100%;min-height:52px;border:0;border-radius:99px;background:var(--hr-ink);color:#fff;font-family:var(--hr-fb);font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;transition:background .15s,transform .15s;letter-spacing:-.01em}
 .hr-form-card .ups-form__submit:hover{background:var(--hr-teald);transform:translateY(-1px)}
 
-/* === UKRYCIE POL FORMULARZA — Firma + Twoja miesieczna sprzedaż === */
+/* === UKRYCIE PÓL FORMULARZA — Firma + Twoja miesięczna sprzedaż === */
 /* Pierwsze pole drugie w row-2: lead_company. Reszta zostaje. */
 .hr-form-card .ups-form__row-2:first-of-type{grid-template-columns:1fr !important}
 .hr-form-card .ups-form__row-2:first-of-type > div:nth-child(2){display:none !important}
@@ -352,9 +352,10 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
 .hr-faq-icn{width:26px;height:26px;border-radius:50%;background:var(--hr-soft);display:grid;place-items:center;font-size:18px;color:var(--hr-muted);flex:0 0 26px;transition:all .2s}
 .hr-faq-it[open] .hr-faq-icn{transform:rotate(45deg);background:var(--hr-tealss);color:var(--hr-tealh)}
 .hr-faq-it p{margin:0;padding:0 26px 24px;color:var(--hr-muted);font-size:15px;line-height:1.65}
+.hr-faq-it p+p{padding-top:4px}
 
 /* === KONTAKT === */
-.hr-kontakt{background:var(--hr-bg);padding:96px 0 120px;border-top:1px solid var(--hr-line)}
+.hr-kontakt{background:var(--hr-soft);padding:96px 0 120px;border-top:1px solid var(--hr-line)}
 .hr-kontakt-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start}
 .hr-kontakt-info h2{font-family:var(--hr-fd);font-weight:800;font-size:clamp(30px,3.6vw,44px);line-height:1.04;letter-spacing:-.03em;color:var(--hr-ink);margin:0 0 18px}
 .hr-kontakt-info p{margin:0 0 24px;color:var(--hr-muted);font-size:16px;line-height:1.6;max-width:54ch}
@@ -406,19 +407,17 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
   <div class="hr-wrap">
     <div class="hr-hero-grid">
       <div data-hr-anim>
-        <div class="hr-eyebrow">Dla firm którym reklama nie zamienia się w klientów</div>
+        <div class="hr-eyebrow">Dla firm, którym reklama nie zamienia się w klientów</div>
         <h1 class="hr-h1" id="hr-h1">
           Twoja reklama działa. <s>Klientów</s> jakoś brak. <em>Naprawmy to.</em>
         </h1>
         <p class="hr-lead">
-          Płacisz za kampanie, masz ruch na stronie, formularze są — ale sprzedaż nie nadąża
-          za budżetem reklamowym. Najczęściej nie chodzi o kanał. Chodzi o to co dzieje się
-          między kliknięciem a kontaktem.
+          Płacisz za reklamy, masz ruch na stronie, ale klientów dalej brakuje. Problem może zaczynać się już na etapie targetowania kampanii, albo później, gdy strona nie tłumaczy jasno, dlaczego klient ma wybrać właśnie Ciebie.
         </p>
         <ul class="hr-bullets">
           <li><span class="hr-bullets-icn">&#10003;</span><span>Więcej kwalifikowanych zapytań z tego samego budżetu reklamowego</span></li>
           <li><span class="hr-bullets-icn">&#10003;</span><span>Strona i kampania prowadzone wspólnie — nie tłumaczysz briefu trzem osobom</span></li>
-          <li><span class="hr-bullets-icn">&#10003;</span><span>Mierzalny lejek: wiesz koszt na lead, jakość i źródło, nie tylko CTR</span></li>
+          <li><span class="hr-bullets-icn">&#10003;</span><span>Mierzalny lejek: znasz koszt leada, jakość i źródło, nie tylko CTR</span></li>
           <li><span class="hr-bullets-icn">&#10003;</span><span>Konkretne odpowiedzi w 30 minut, bez slajdów i sales-talku</span></li>
         </ul>
         <div class="hr-hero-acts">
@@ -433,7 +432,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
             <span>do pierwszych leadów</span>
           </div>
           <div class="hr-hero-stat">
-            <strong>0 zl</strong>
+            <strong>0 zł</strong>
             <span>pierwsza rozmowa, 30 min</span>
           </div>
           <div class="hr-hero-stat">
@@ -442,7 +441,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
           </div>
         </div>
 
-        <!-- Konkretny CTA telefoniczny pod stats — dla klientów którzy juz wiedza ze chca rozmowy -->
+        <!-- Konkretny CTA telefoniczny pod stats — dla klientów, którzy już wiedzą, że chcą rozmowy -->
         <div class="hr-hero-call">
           Wolisz od razu zadzwońić?
           <a href="tel:<?php echo esc_attr($contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
@@ -454,7 +453,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
         <span class="hr-form-tag">&#9658; Zacznij tu</span>
         <h2>Bezpłatna 30-min diagnoza</h2>
         <p class="hr-form-sub">
-          Pokaż link do strony i opisz w 2 zdaniach co dziś nie działa. Odpowiadam w 24h roboczych.
+          Pokaż link do strony i opisz w 2 zdaniach, z czym dziś masz największy problem lub co chcesz poprawić. Odpowiadam w 24h roboczych.
         </p>
         <?php
         if (function_exists("upsellio_render_lead_form")) {
@@ -474,8 +473,8 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
         }
         ?>
         <div class="hr-form-after">
-          <strong>Co dalej po wyslaniu?</strong>
-          Do 24h dostaniesz odpowiedz z propozycją terminu. Telefon lub Google Meet — jak Ci wygodniej.
+          <strong>Co dalej po wysłaniu?</strong>
+          Do 24h dostaniesz odpowiedź z propozycją terminu. Telefon lub Google Meet — jak Ci wygodniej.
         </div>
       </aside>
     </div>
@@ -501,7 +500,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-5"/></svg>
         </div>
         <h3>Więcej leadów z tego samego budżetu</h3>
-        <p>Bez zwiększania wydatków na reklame. Pracujemy nad jakością kierowania ruchu i konwersja strony — tu jest najwięcej do wyciągnięcia.</p>
+        <p>Bez zwiększania wydatków na reklamę. Pracujemy nad jakością kierowania ruchu i konwersją strony — tu jest najwięcej do wyciągnięcia.</p>
       </article>
       <article class="hr-gain-card" data-hr-anim data-hr-delay="1">
         <div class="hr-gain-icn" aria-hidden="true">
@@ -515,7 +514,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>
         </div>
         <h3>Wiesz dokładnie co działa, a co nie</h3>
-        <p>Tracking end-to-end od reklamy do zapytańia w skrzynce. Wiesz koszt za lead, jakość i źródło. Możesz spokójnie inwestować więcej w to co działa.</p>
+        <p>Tracking end-to-end od reklamy do zapytań w skrzynce. Znasz koszt leada, jakość i źródło. Możesz spokojnie inwestować więcej w to, co działa.</p>
       </article>
       <article class="hr-gain-card" data-hr-anim data-hr-delay="3">
         <div class="hr-gain-icn" aria-hidden="true">
@@ -528,7 +527,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
 
     <!-- Wewnetrzny CTA prowadzacy do kolejnej sekcji -->
     <div class="hr-step-cta" data-hr-anim>
-      <p>Brzmi jak to czego szukasz? <a href="#problem">Sprawdź najpierw która sytuacja Cię dotyczy →</a></p>
+      <p>Brzmi jak to, czego szukasz? <a href="#problem">Sprawdź najpierw, która sytuacja Cię dotyczy →</a></p>
     </div>
   </div>
 </section>
@@ -541,24 +540,24 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
   <div class="hr-wrap">
     <header class="hr-sec-head" data-hr-anim>
       <span class="hr-eyebrow">Po co to wszystko</span>
-      <h2 id="hr-problem-h2">Trzy najczęstsze sytuacje firm które do mnie trafiają</h2>
+      <h2 id="hr-problem-h2">Trzy najczęstsze sytuacje firm, które do mnie trafiają</h2>
       <p>
-        Różne budżety, różne branże — ale wzorzec ten sam. Reklamy działają, ruch jest, a sprzedaż nie nadąża. To nie jest kwestia jednego kanału. To kwestia całego systemu.
+        Niezależnie od branży, schemat często wygląda tak samo: reklamy generują ruch, ale coś po drodze blokuje sprzedaż. Czasem problemem jest oferta, czasem komunikacja strony, a czasem brak spójności między reklamą, stroną i procesem kontaktu.
       </p>
     </header>
     <div class="hr-problems">
       <article class="hr-problem" data-hr-anim>
         <div class="hr-problem-num">SYTUACJA 01</div>
-        <h3>Wydajemy na reklamy, ale leady kuleją</h3>
+        <h3>Wydajemy na reklamy, ale klientów dalej jest za mało</h3>
         <p class="hr-problem-body">
-          Kampanie generują kliknięcia, czasem nawet zapytańia — ale jakość niska, sprzedaż nie zamyka tych leadów. Problem zwykle nie w reklamie, tylko w komunikacie strony i ofercie.
+          Kampanie generują ruch i zapytania, ale ich jakość nie przekłada się na sprzedaż. Najczęściej problem nie leży w samej reklamie, tylko w tym, jak oferta i strona komunikują wartość firmy po kliknięciu.
         </p>
       </article>
       <article class="hr-problem" data-hr-anim data-hr-delay="1">
         <div class="hr-problem-num">SYTUACJA 02</div>
         <h3>Ruch jest, ale formularz milczy</h3>
         <p class="hr-problem-body">
-          Bounce powyżej 60%, sesje krótkie, bardzo niski formularz. Strona po bożemu — ale klient nie wie czym sie zajmujesz, kto za firmą stoi i czemu ma zaufać akurat Tobie.
+          Ruch na stronie jest, ale użytkownicy szybko wychodzą i rzadko zostawiają kontakt. Strona wygląda poprawnie, jednak klient nie rozumie jasno, co oferujesz, dlaczego warto Ci zaufać i co wyróżnia Cię na tle konkurencji.
         </p>
       </article>
       <article class="hr-problem" data-hr-anim data-hr-delay="2">
@@ -587,7 +586,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
       <span class="hr-eyebrow">System Upsellio</span>
       <h2 id="hr-system-h2">Trzy elementy. Jeden system. Mierzalny od pierwszej kampanii.</h2>
       <p>
-        Nie sprzedaję usług osobno. Każda można wziąć pojedynczo, ale realne wyniki dają gdy współpracują. Wybierz to czego dziś najbardziej potrzebujesz — albo idź pakietem.
+        Nie sprzedaję usług osobno. Każdą można wziąć pojedynczo, ale realne wyniki dają, gdy współpracują. Wybierz to, czego dziś najbardziej potrzebujesz — albo idź pakietem.
       </p>
     </header>
 
@@ -601,7 +600,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
         <ul class="hr-svc-list">
           <li>Audyt obecnych kampanii lub analiza popytu w branży</li>
           <li>Search + Display + PMax + remarketing</li>
-          <li>GA4 + Tag Manager — pełen tracking konwersji</li>
+          <li>GA4 + Tag Manager — pełny tracking konwersji</li>
         </ul>
         <span class="hr-svc-arrow">Sprawdź jak Ci pomogę w Google →</span>
       </a>
@@ -637,7 +636,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
 
     <!-- Wewnetrzny CTA na koncu sekcji — prowadzi do Differentiator -->
     <div class="hr-step-cta" data-hr-anim>
-      <p>Nie wiesz która opcja Ci pasuje? <a href="#kontakt">Napisz w 2 zdaniach co Ci nie działa — doradzę →</a></p>
+      <p>Nie wiesz, która opcja Ci pasuje? <a href="#kontakt">Napisz w 2 zdaniach, co Ci nie działa — doradzę →</a></p>
     </div>
   </div>
 </section>
@@ -652,34 +651,34 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
       <div data-hr-anim>
         <span class="hr-eyebrow">Co rozwiązuję</span>
         <h2 id="hr-wyroznik-h2" style="font-family:var(--hr-fd);font-weight:800;font-size:clamp(28px,3.4vw,42px);line-height:1.04;letter-spacing:-1.2px;color:var(--hr-ink);margin:0 0 16px;">
-          Cztery typowe bóle — i jak je z Tobą przepracowuję
+          Cztery problemy, które najczęściej blokują sprzedaż
         </h2>
         <p style="color:#475569;font-size:16px;line-height:1.65;margin:0 0 26px;max-width:55ch">
-          Większość firm B2B z którymi rozmawiam ma te same cztery problemy. Poniżej dokładnie co robię, żeby każdy z nich rozwiązać. Bez magii, bez slajdów.
+          Większość firm, z którymi rozmawiam, trafia do mnie z bardzo podobnymi problemami. Poniżej pokazuję, gdzie najczęściej uciekają klienci i co konkretnie zmieniam, żeby to naprawić.
         </p>
-        <a href="#kontakt" class="hr-btn hr-btn-g">Powiedz mi co Cię blokuje →</a>
+        <a href="#kontakt" class="hr-btn hr-btn-g">Powiedz mi, co Cię blokuje →</a>
       </div>
 
       <div class="hr-diff-side" data-hr-anim data-hr-delay="1">
         <article class="hr-diff-card">
           <div class="hr-diff-card-num">BÓL 01</div>
-          <h3>"Reklamy generują kliknięcia, ale klientów mało"</h3>
-          <p>Sprawdźam co dzieje się po kliknięciu — jak strona tłumaczy ofertę, czy CTA jest jasne, czy formularz nie odstrasza. Najczęściej tu jest największy wyciek, nie w samej reklamie.</p>
+          <h3>„Reklamy generują ruch, ale sprzedaż się nie zwiększa”</h3>
+          <p>Analizuję cały proces po kliknięciu: stronę, komunikację, CTA i formularz kontaktowy. Największe straty najczęściej pojawiają się właśnie tutaj, nie w samej kampanii reklamowej.</p>
         </article>
         <article class="hr-diff-card">
           <div class="hr-diff-card-num">BÓL 02</div>
           <h3>"Briefuję 3 wykonawców, każdy mówi co innego"</h3>
-          <p>Reklama, strona i lejek prowadzone przez jedną osobę. Jeden brief, jeden punkt kontaktu, spójny komunikat od reklamy aż do skrzynki kontaktowej. Bez odzyskamy do Pana w piątek.</p>
+          <p>Reklama, strona i lejek prowadzone przez jedną osobę. Jeden brief, jeden punkt kontaktu, spójny komunikat od reklamy aż do skrzynki kontaktowej. Bez obietnic typu „oddzwonimy do Pana w piątek”.</p>
         </article>
         <article class="hr-diff-card">
           <div class="hr-diff-card-num">BÓL 03</div>
-          <h3>"Nie wiem która reklama mi przynosi klientów"</h3>
-          <p>Pełny tracking od reklamy do zapytańia. Wiesz ile kosztuje pozyskanie leada, z jakiego źródła, z jakiej kampanii. Możesz spokójnie inwestować więcej w to co działa — i wyłączyć to co nie.</p>
+          <h3>„Nie wiem, która reklama przynosi mi klientów”</h3>
+          <p>Pełny tracking od reklamy do zapytania. Wiesz, ile kosztuje pozyskanie leada, z jakiego źródła pochodzi i która kampania realnie generuje klientów. Możesz spokojnie inwestować więcej w to, co działa i wyłączyć to, co nie przynosi efektów.</p>
         </article>
         <article class="hr-diff-card">
           <div class="hr-diff-card-num">BÓL 04</div>
-          <h3>"Czuję, że ktoś chce żeby mój budżet rósł, nie moja sprzedaż"</h3>
-          <p>Bez prowizji od budżetu reklamowego. Twój budżet idźie bezpośrednio do Google i Mety, ja mam stały fee za prowadzenie. Decyzje o skalowaniu podejmujemy razem, na podstawie liczb, nie pokus.</p>
+          <h3>„Czuję, że ktoś chce, żeby mój budżet rósł, nie moja sprzedaż”</h3>
+          <p>Bez prowizji od budżetu reklamowego. Twój budżet trafia bezpośrednio do Google i Mety, a ja rozliczam się stałą miesięczną kwotą za prowadzenie kampanii. Dzięki temu decyzje o zwiększaniu budżetu podejmujemy na podstawie wyników, a nie dlatego, że ktoś zarabia więcej, gdy wydajesz więcej.</p>
         </article>
       </div>
     </div>
@@ -701,16 +700,16 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
       <span class="hr-eyebrow hr-eyebrow-light">Realizacje</span>
       <h2 id="hr-case-h2">Liczby, nie obietnice</h2>
       <p>
-        Nie obiecuję 10 razy więcej leadów w 30 dni. Pokażuję konkretne sytuacje z konkretnymi wynikami. Pełne portfolio z liczbami i komentarzami klientów dostępne pod linkiem.
+        Nie obiecuję 10 razy więcej leadów w 30 dni. Pokazuję konkretne sytuacje z konkretnymi wynikami. Pełne portfolio z liczbami i komentarzami klientów dostępne pod linkiem.
       </p>
     </header>
 
     <article class="hr-case" data-hr-anim>
       <div>
         <span class="hr-case-tag">Firma produkcyjna z Wielkopolski</span>
-        <h3>Z agencji która pokazywała raporty — do firmy która przynosi klientów</h3>
+        <h3>Z agencji, która pokazywała raporty — do firmy, która przynosi klientów</h3>
         <p>
-          Klient płacił reklamy od dwóch lat. Co miesiąc dostawał kolorowe wykresy. Klientów jakoś nie przybywało. Sprawdziłem stronę i kampanie, pokazałem co psuje sprzedaż, przebudowaliśmy razem najważniejsze rzeczy. Bez zwiększania budżetu reklamowego.
+          Klient płacił za reklamy od dwóch lat. Co miesiąc dostawał kolorowe wykresy. Klientów jakoś nie przybywało. Sprawdziłem stronę i kampanie, pokazałem, co psuje sprzedaż, przebudowaliśmy razem najważniejsze rzeczy. Bez zwiększania budżetu reklamowego.
         </p>
         <div class="hr-case-stats">
           <div class="hr-case-stat">
@@ -719,7 +718,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
           </div>
           <div class="hr-case-stat">
             <div class="hr-case-stat-val">-60%</div>
-            <div class="hr-case-stat-label">taniej za zapytańie</div>
+            <div class="hr-case-stat-label">taniej za zapytanie</div>
           </div>
           <div class="hr-case-stat">
             <div class="hr-case-stat-val">90 dni</div>
@@ -760,8 +759,8 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
     <div class="hr-process">
       <article class="hr-step" data-hr-anim>
         <h3>Diagnoza</h3>
-        <p>30-min rozmowa. Sprawdźam stronę, kampanie, ofertę, ścieżkę klienta. Wskazuję 3-5 punktów wycieku.</p>
-        <span class="hr-step-when">0 zl, 30 min</span>
+        <p>30-minutowa rozmowa. Sprawdzam stronę, kampanie, ofertę. Pokazuję, gdzie uciekają leady i co realnie warto poprawić.</p>
+        <span class="hr-step-when">0 zł, 30 min</span>
       </article>
       <article class="hr-step" data-hr-anim data-hr-delay="1">
         <h3>Strategia</h3>
@@ -775,75 +774,23 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
       </article>
       <article class="hr-step" data-hr-anim data-hr-delay="3">
         <h3>Optymalizacja</h3>
-        <p>Co tydzień analiza, co miesiąc raport. Iteracje pod jakość leadów, nie pod CTR czy CPC.</p>
+        <p>Kampanie są stale analizowane i optymalizowane na podstawie jakości zapytań oraz realnych wyników sprzedażowych, nie tylko statystyk typu kliknięcia czy zasięg.</p>
         <span class="hr-step-when">Stale</span>
-      </article>
-    </div>
-
-    <!-- Wewnetrzny CTA prowadzacy do "Dla kogo" -->
-    <div class="hr-step-cta" data-hr-anim>
-      <p>Zastanawiasz się, czy to działa u Ciebie? <a href="#dla-kogo">Sprawdź, czy Twoja firma pasuje →</a></p>
-    </div>
-  </div>
-</section>
-
-
-<!-- ====================================================================
-     SEKCJA 10 — DLA KOGO
-     ==================================================================== -->
-<section class="hr-section" id="dla-kogo" aria-labelledby="hr-targets-h2">
-  <div class="hr-wrap">
-    <header class="hr-sec-head" data-hr-anim>
-      <span class="hr-eyebrow">Dla kogo</span>
-      <h2 id="hr-targets-h2">Dla kogo ta współpraca działa najlepiej</h2>
-      <p>Nie pracuję z każdym. Poniżej trzy typy firm dla których mam realne wyniki.</p>
-    </header>
-
-    <div class="hr-targets">
-      <article class="hr-target" data-hr-anim>
-        <span class="hr-target-tag">Profil 01</span>
-        <h3>Firmy usługowe B2B</h3>
-        <ul class="hr-target-list">
-          <li>Konsulting, audyty, software house, agencje, prawnicy</li>
-          <li>Wartość kontraktu od 10 tys. zł rocznie</li>
-          <li>Cykl decyzyjny 1-6 miesięcy</li>
-          <li>Sprzedaż konsultacyjna, demo, audyt jako pierwszy krok</li>
-        </ul>
-      </article>
-      <article class="hr-target is-2" data-hr-anim data-hr-delay="1">
-        <span class="hr-target-tag">Profil 02</span>
-        <h3>Producenci i firmy techniczne</h3>
-        <ul class="hr-target-list">
-          <li>Producenci maszyn, części, komponentów dla firm</li>
-          <li>SaaS B2B, narzędzia dla branży</li>
-          <li>Wartość kontraktu od 50 tys. zł</li>
-          <li>Konkretne specyfikacje, długi cykl, multiple decision-makers</li>
-        </ul>
-      </article>
-      <article class="hr-target is-3" data-hr-anim data-hr-delay="2">
-        <span class="hr-target-tag">Profil 03</span>
-        <h3>E-commerce B2B</h3>
-        <ul class="hr-target-list">
-          <li>Sklepy hurtowe, dystrybucja, B2B portal</li>
-          <li>Średnia wartość zamówienia od 1 000 zł</li>
-          <li>Klient zarejestrowany, powtarzalne zamówienia</li>
-          <li>Lejek: ruch reklamowy → rejestracja → zamówienie powtarzalne</li>
-        </ul>
       </article>
     </div>
 
     <!-- Wewnetrzny CTA prowadzacy do FAQ -->
     <div class="hr-step-cta" data-hr-anim>
-      <p>Pasujesz do któregoś profilu? <a href="#faq">Sprawdź najczęstsze pytania →</a></p>
+      <p>Zastanawiasz się, czy to działa u Ciebie? <a href="#faq">Sprawdź najczęstsze pytania →</a></p>
     </div>
   </div>
 </section>
 
 
 <!-- ====================================================================
-     SEKCJA 11 — FAQ (schema.org FAQPage)
+     SEKCJA 10 — FAQ (schema.org FAQPage)
      ==================================================================== -->
-<section class="hr-section hr-section-soft" id="faq" aria-labelledby="hr-faq-h2">
+<section class="hr-section" id="faq" aria-labelledby="hr-faq-h2">
   <div class="hr-wrap">
     <header class="hr-sec-head" data-hr-anim>
       <span class="hr-eyebrow">FAQ</span>
@@ -858,14 +805,22 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
           <span><?php echo esc_html((string) $faq["q"]); ?></span>
           <span class="hr-faq-icn" aria-hidden="true">+</span>
         </summary>
-        <p><?php echo esc_html((string) $faq["a"]); ?></p>
+        <?php
+        $faq_answer = trim((string) $faq["a"]);
+        $faq_paragraphs = $faq_answer !== "" ? preg_split('/\n{2,}/', $faq_answer, -1, PREG_SPLIT_NO_EMPTY) : [];
+        foreach ($faq_paragraphs as $faq_p) :
+            ?>
+        <p><?php echo esc_html(trim((string) $faq_p)); ?></p>
+            <?php
+        endforeach;
+        ?>
       </details>
       <?php endforeach; ?>
     </div>
 
     <!-- Wewnetrzny CTA prowadzacy do kontaktu (final step lejka) -->
     <div class="hr-step-cta" data-hr-anim>
-      <p>Masz inne pytanie? <a href="#kontakt">Zadaj je w 2 minutowym formularzu →</a></p>
+      <p>Masz inne pytanie? <a href="#kontakt">Zadaj je w 2-minutowym formularzu →</a></p>
     </div>
   </div>
 </section>
@@ -879,28 +834,28 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
     <div class="hr-kontakt-grid">
       <div data-hr-anim>
         <span class="hr-eyebrow">Bezpłatna 30-min diagnoza</span>
-        <h2 id="hr-kontakt-h2">Pokaż link do strony, opisz w 2 zdaniach co nie działa</h2>
+        <h2 id="hr-kontakt-h2">Pokaż link do strony i opisz w 2 zdaniach, z czym dziś masz największy problem lub co chcesz poprawić.</h2>
         <p>
-          Odezwę się w ciągu 24 godzin roboczych z propozycją terminu. Bez prezentacji, bez „przyślę dodatkowe materiały”. Konkretne wnioski z 30 minut rozmowy.
+          W ciągu 24 godzin roboczych odezwę się z propozycją terminu. Bez prezentacji i sprzedażowych slajdów, 30 minut konkretnej analizy Twojej sytuacji.
         </p>
 
         <!-- Co konkretnie omówimy — wydluza lewa kolumne do wysokosci formularza -->
         <div style="margin-bottom:22px">
           <strong style="display:block;font-family:var(--hr-fd);font-weight:800;font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--hr-ink);margin-bottom:12px">Co konkretnie omówimy</strong>
           <ul class="hr-kontakt-info-list">
-            <li>Co teraz blokuje sprzedaż w Twoim lejku (3-5 punktów)</li>
-            <li>Który kanał przyniesie Ci najwięcej w pierwszych 60 dniach</li>
-            <li>Realny budżet który się zwróci, nie marketingowe widełki</li>
-            <li>Co możesz zrobić samemu, a gdzie warto zainwestować</li>
+            <li>gdzie dziś najczęściej uciekają potencjalni klienci,</li>
+            <li>który kanał ma największy potencjał w Twojej sytuacji,</li>
+            <li>jak powinien wyglądać rozsądny budżet startowy,</li>
+            <li>co warto poprawić samodzielnie, a co lepiej wdrożyć profesjonalnie.</li>
           </ul>
         </div>
 
         <div style="margin-bottom:22px">
-          <strong style="display:block;font-family:var(--hr-fd);font-weight:800;font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--hr-ink);margin-bottom:12px">Jak ta rozmowa wygląda</strong>
+          <strong style="display:block;font-family:var(--hr-fd);font-weight:800;font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--hr-ink);margin-bottom:12px">Jak wygląda rozmowa</strong>
           <ul class="hr-kontakt-info-list">
-            <li>Bezpłatnie, bez zobowiązań do współpracy</li>
-            <li>Konkretna mapa działania nawet jeśli nie zostaniesz klientem</li>
-            <li>Bez follow-upów, bez „a może jednak”</li>
+            <li>bezpłatnie i bez zobowiązań,</li>
+            <li>konkretne wnioski nawet jeśli nie zaczniemy współpracy,</li>
+            <li>bez nachalnej sprzedaży i wielotygodniowych follow-upów.</li>
           </ul>
         </div>
 
@@ -908,12 +863,12 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
           <strong>Albo bezpośrednio</strong>
           <div>Tel: <a href="tel:<?php echo esc_attr($contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a></div>
           <div>Email: <a href="mailto:<?php echo esc_attr($contact_email); ?>"><?php echo esc_html($contact_email); ?></a></div>
-          <div>LinkedIn: <a href="<?php echo esc_url($linkedin_url); ?>" target="_blank" rel="noopener noreferrer">Sebastian Kelm</a></div>
+          <div style="margin-top:14px">LinkedIn: <a href="<?php echo esc_url($linkedin_url); ?>" target="_blank" rel="noopener noreferrer">Sebastian Kelm</a></div>
         </div>
       </div>
 
       <div class="hr-form-card" data-hr-anim data-hr-delay="1">
-        <span class="hr-form-tag">&#9658; Wypelnij tu</span>
+        <span class="hr-form-tag">&#9658; Wypełnij tu</span>
         <h2>Umów bezpłatną diagnozę</h2>
         <p class="hr-form-sub">2 minuty. Odpowiadam osobiście w 24h roboczych.</p>
         <?php
@@ -1003,7 +958,7 @@ echo wp_json_encode([
             "name" => "Prowadzenie kampanii Meta Ads (Facebook + Instagram)",
             "provider" => ["@id" => $site_url . "#organization"],
             "url" => $meta_ads_url,
-            "description" => "Kampanie Conversions, Lead Ads, Catalog Sales na Facebook i Instagram. Pixel + Conversions API. Idealne dla firm które potrzebuja budowac popyt i robic remarketing.",
+            "description" => "Kampanie Conversions, Lead Ads, Catalog Sales na Facebook i Instagram. Pixel + Conversions API. Idealne dla firm, które potrzebują budować popyt i robić remarketing.",
             "areaServed" => "PL",
             "offers" => [
                 "@type" => "Offer",
@@ -1051,7 +1006,7 @@ echo wp_json_encode([
                 [
                     "@type" => "ListItem",
                     "position" => 1,
-                    "name" => "Strona glowna",
+                    "name" => "Strona główna",
                     "item" => $site_url,
                 ],
             ],
