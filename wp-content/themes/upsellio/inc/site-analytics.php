@@ -2672,6 +2672,294 @@ function upsellio_build_landing_funnel_rows(array $report_rows, string $from_dat
     return array_slice($rows, 0, 20);
 }
 
+/**
+ * Skrót indeksacji GSC na zakładce „Dziś” (CRM App).
+ */
+function upsellio_render_gsc_indexation_teaser(): void
+{
+    if (!current_user_can("edit_posts")) {
+        return;
+    }
+    $summary = get_option("ups_gsc_indexation_summary", []);
+    if (!is_array($summary)) {
+        $summary = [];
+    }
+    $sub = (int) ($summary["submitted"] ?? 0);
+    $idx = (int) ($summary["indexed"] ?? 0);
+    $ratio = $sub > 0 ? (int) round($idx / $sub * 100) : 0;
+    $seo_url = add_query_arg(
+        ["view" => "analytics", "atab" => "seo"],
+        home_url("/crm-app/")
+    );
+    ?>
+    <h4 style="margin-top:18px">Indeksacja Google (GSC)</h4>
+    <?php if ($sub <= 0 && $idx <= 0) : ?>
+      <p class="muted">Brak zagregowanych danych z Search Console (sitemap). Po pierwszym cronie lub po odświeżeniu w zakładce <a href="<?php echo esc_url($seo_url); ?>">SEO</a> pojawią się liczniki.</p>
+    <?php else : ?>
+      <p><strong><?php echo esc_html(number_format($idx)); ?></strong> / <?php echo esc_html(number_format($sub)); ?> zaindeksowanych (sitemap, <?php echo (int) $ratio; ?>%). <a href="<?php echo esc_url($seo_url); ?>">Pełny widok, tabele i lista problemów →</a></p>
+    <?php endif; ?>
+    <?php
+}
+
+
+function upsellio_render_gsc_indexation_panel(): void
+{
+    if (!current_user_can("edit_posts")) {
+        return;
+    }
+
+    $can_refresh = current_user_can("manage_options");
+
+    $idx_summary = get_option("ups_gsc_indexation_summary", []);
+    $idx_pages = get_option("ups_gsc_indexation_pages", []);
+    $idx_stats = get_option("ups_gsc_indexation_batch_stats", []);
+    $idx_last = (string) get_option("ups_gsc_indexation_last_sync", "");
+    $idx_nonce = wp_create_nonce("upsellio_gsc_indexation_nonce");
+    if (!is_array($idx_pages)) {
+        $idx_pages = [];
+    }
+    if (!is_array($idx_summary)) {
+        $idx_summary = [];
+    }
+    if (!is_array($idx_stats)) {
+        $idx_stats = [];
+    }
+
+    $pages_indexed = 0;
+    $pages_not_indexed = 0;
+    $pages_unknown = 0;
+    $problems = [];
+
+    foreach ($idx_pages as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $v = (string) ($row["verdict"] ?? "");
+        if ($v === "PASS") {
+            $pages_indexed++;
+        } elseif ($v === "") {
+            $pages_unknown++;
+        } else {
+            $pages_not_indexed++;
+            $problems[] = $row;
+        }
+    }
+
+    usort(
+        $problems,
+        static function ($a, $b) {
+            return strcmp((string) ($b["verdict"] ?? ""), (string) ($a["verdict"] ?? ""));
+        }
+    );
+
+    $idx_submitted = (int) ($idx_summary["submitted"] ?? 0);
+    $idx_indexed = (int) ($idx_summary["indexed"] ?? 0);
+    $idx_ratio = $idx_submitted > 0 ? (int) round($idx_indexed / $idx_submitted * 100) : 0;
+    $idx_color = $idx_ratio >= 90 ? "#15803d" : ($idx_ratio >= 70 ? "#d97706" : "#d94c4c");
+    ?>
+<div class="ups-analytics-card" style="margin-top:14px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+    <div>
+      <h2 style="margin:0">Status indeksacji GSC</h2>
+      <p class="ups-analytics-sub" style="margin:4px 0 0">
+        Sync: <?php echo $idx_last !== "" ? esc_html($idx_last) : "brak — uruchom cron lub odśwież ręcznie"; ?>
+        <?php if (!empty($idx_stats["queue_remaining"])) : ?>
+          · Kolejka: <?php echo (int) $idx_stats["queue_remaining"]; ?> URLi do sprawdzenia
+        <?php endif; ?>
+      </p>
+    </div>
+    <?php if ($can_refresh) : ?>
+    <button type="button" id="ups-gsc-refresh-idx" class="button button-secondary"
+            data-nonce="<?php echo esc_attr($idx_nonce); ?>">
+      ↻ Odśwież indeksację (batch 50)
+    </button>
+    <?php else : ?>
+    <span class="muted" style="font-size:12px;max-width:220px;text-align:right">Pełne odświeżenie wymaga roli administratora WP.</span>
+    <?php endif; ?>
+  </div>
+  <div id="ups-gsc-idx-msg" style="display:none;margin-bottom:12px;font-size:13px;padding:8px 12px;border-radius:6px;background:#f0fdf4;color:#15803d"></div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+    <div style="background:#f8f9fa;border-radius:8px;padding:14px;text-align:center">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#666;text-transform:uppercase">Przesłanych (sitemap)</div>
+      <div style="font-size:28px;font-weight:800;color:#111;margin-top:4px"><?php echo $idx_submitted > 0 ? number_format($idx_submitted) : "—"; ?></div>
+    </div>
+    <div style="background:#f8f9fa;border-radius:8px;padding:14px;text-align:center">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#666;text-transform:uppercase">Zaindeksowanych</div>
+      <div style="font-size:28px;font-weight:800;color:<?php echo esc_attr($idx_color); ?>;margin-top:4px"><?php echo $idx_indexed > 0 ? number_format($idx_indexed) : "—"; ?></div>
+    </div>
+    <div style="background:#f8f9fa;border-radius:8px;padding:14px;text-align:center">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#666;text-transform:uppercase">Wskaźnik indeksacji</div>
+      <div style="font-size:28px;font-weight:800;color:<?php echo esc_attr($idx_color); ?>;margin-top:4px"><?php echo $idx_submitted > 0 ? $idx_ratio . "%" : "—"; ?></div>
+    </div>
+    <div style="background:#fff3cd;border-radius:8px;padding:14px;text-align:center">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#92400e;text-transform:uppercase">Problemy (inspekcja)</div>
+      <div style="font-size:28px;font-weight:800;color:<?php echo $pages_not_indexed > 0 ? "#d94c4c" : "#15803d"; ?>;margin-top:4px"><?php echo (int) $pages_not_indexed; ?></div>
+    </div>
+  </div>
+
+  <?php if ($idx_submitted > 0) : ?>
+  <div style="background:#eee;border-radius:4px;height:8px;margin-bottom:16px">
+    <div style="background:<?php echo esc_attr($idx_color); ?>;border-radius:4px;height:8px;width:<?php echo esc_attr((string) $idx_ratio); ?>%;transition:.3s"></div>
+  </div>
+  <?php endif; ?>
+
+  <?php if (!empty($idx_pages)) : ?>
+  <?php
+    $by_type = [];
+    foreach ($idx_pages as $r) {
+        if (!is_array($r)) {
+            continue;
+        }
+        $pt = (string) ($r["post_type"] ?? "other");
+        if (!isset($by_type[$pt])) {
+            $by_type[$pt] = ["indexed" => 0, "not_indexed" => 0, "unknown" => 0, "total" => 0];
+        }
+        $by_type[$pt]["total"]++;
+        $v = (string) ($r["verdict"] ?? "");
+        if ($v === "PASS") {
+            $by_type[$pt]["indexed"]++;
+        } elseif ($v === "") {
+            $by_type[$pt]["unknown"]++;
+        } else {
+            $by_type[$pt]["not_indexed"]++;
+        }
+    }
+    ?>
+  <h3 style="font-size:13px;margin:0 0 8px">Sprawdzone URL per typ (łącznie <?php echo count($idx_pages); ?> z <?php echo (int) ($idx_stats["total_stored"] ?? count($idx_pages)); ?> zapisanych)</h3>
+  <table class="ups-analytics-table" style="margin-bottom:16px">
+    <thead><tr><th>Typ wpisu</th><th>Zaindeksowane</th><th>Problemy</th><th>Nieznane</th><th>Razem</th></tr></thead>
+    <tbody>
+    <?php foreach ($by_type as $pt => $counts) : ?>
+    <tr>
+      <td><code><?php echo esc_html($pt); ?></code></td>
+      <td style="color:#15803d;font-weight:600"><?php echo (int) $counts["indexed"]; ?></td>
+      <td style="color:<?php echo $counts["not_indexed"] > 0 ? "#d94c4c" : "#15803d"; ?>;font-weight:600"><?php echo (int) $counts["not_indexed"]; ?></td>
+      <td style="color:#888"><?php echo (int) $counts["unknown"]; ?></td>
+      <td><?php echo (int) $counts["total"]; ?></td>
+    </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table>
+  <?php endif; ?>
+</div>
+
+<?php if (!empty($problems)) : ?>
+<div class="ups-analytics-card" style="margin-top:14px;border-left:3px solid #d94c4c">
+  <h2 style="margin-top:0;color:#d94c4c">Strony niezaindeksowane — <?php echo count($problems); ?> problemów</h2>
+  <p class="ups-analytics-sub">Strony sprawdzone przez URL Inspection API. Verdict FAIL lub NEUTRAL oznacza problem z indeksacją.</p>
+  <div style="overflow-x:auto">
+  <table class="ups-analytics-table">
+    <thead>
+      <tr>
+        <th>URL</th>
+        <th>Typ</th>
+        <th>Problem</th>
+        <th>Coverage state</th>
+        <th>Ostatni crawl</th>
+        <th>Akcja</th>
+      </tr>
+    </thead>
+    <tbody>
+    <?php foreach (array_slice($problems, 0, 100) as $pr) : ?>
+      <?php
+        $url_path = wp_parse_url((string) ($pr["url"] ?? ""), PHP_URL_PATH);
+        $verdict = (string) ($pr["verdict"] ?? "");
+        $v_color = $verdict === "FAIL" ? "#d94c4c" : "#d97706";
+        $crawl = (string) ($pr["last_crawl_time"] ?? "");
+        $crawl_d = "—";
+        if ($crawl !== "") {
+            $ts_crawl = strtotime($crawl);
+            if ($ts_crawl !== false) {
+                $crawl_d = wp_date("d.m.Y", $ts_crawl);
+            }
+        }
+        $edit_url = !empty($pr["post_id"]) ? get_edit_post_link((int) $pr["post_id"], "raw") : "";
+        $problem_txt = (string) ($pr["problem"] ?? "");
+        if ($problem_txt === "") {
+            $problem_txt = $verdict !== "" ? $verdict : ((string) ($pr["coverage_state"] ?? ""));
+        }
+        ?>
+    <tr>
+      <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        <a href="<?php echo esc_url((string) ($pr["url"] ?? "")); ?>" target="_blank" rel="noopener noreferrer">
+          <?php echo esc_html($url_path ?: (string) ($pr["url"] ?? "")); ?>
+        </a>
+      </td>
+      <td><code style="font-size:11px"><?php echo esc_html((string) ($pr["post_type"] ?? "")); ?></code></td>
+      <td>
+        <span style="display:inline-flex;align-items:center;gap:5px;color:<?php echo esc_attr($v_color); ?>;font-weight:600;font-size:12px">
+          <span style="width:8px;height:8px;border-radius:50%;background:<?php echo esc_attr($v_color); ?>;flex-shrink:0"></span>
+          <?php echo esc_html($problem_txt !== "" ? $problem_txt : "—"); ?>
+        </span>
+      </td>
+      <td style="font-size:12px;color:#555"><?php echo esc_html((string) ($pr["coverage_state"] ?? "—")); ?></td>
+      <td style="font-size:12px;color:#888"><?php echo esc_html($crawl_d); ?></td>
+      <td>
+        <?php if ($edit_url) : ?>
+        <a href="<?php echo esc_url($edit_url); ?>" class="button button-small" target="_blank" rel="noopener noreferrer">Edytuj</a>
+        <?php endif; ?>
+      </td>
+    </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table>
+  </div>
+  <?php if (count($problems) > 100) : ?>
+  <p style="font-size:12px;color:#888;margin-top:8px">Pokazano 100 z <?php echo count($problems); ?> problemów.</p>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
+
+<?php if ($can_refresh) : ?>
+<script>
+(function(){
+  var btn = document.getElementById("ups-gsc-refresh-idx");
+  var msg = document.getElementById("ups-gsc-idx-msg");
+  if (!btn || !msg) return;
+  btn.addEventListener("click", function(){
+    btn.disabled = true;
+    btn.textContent = "Sprawdzam…";
+    msg.style.display = "none";
+    var body = new FormData();
+    body.append("action", "upsellio_gsc_refresh_indexation");
+    body.append("nonce", btn.getAttribute("data-nonce") || "");
+    fetch(<?php echo wp_json_encode(admin_url("admin-ajax.php")); ?>, {method:"POST", body: body})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        btn.disabled = false;
+        btn.textContent = "↻ Odśwież indeksację (batch 50)";
+        msg.style.display = "block";
+        if (d.success) {
+          msg.style.background = "#f0fdf4";
+          msg.style.color = "#15803d";
+          msg.textContent = "✓ " + d.data.message
+            + (d.data.queue_remaining > 0 ? " Pozostało w kolejce: " + d.data.queue_remaining + " URLi." : " Wszystkie sprawdzone.")
+            + " Zaindeksowanych: " + d.data.indexed + "/" + d.data.submitted + ".";
+        } else {
+          msg.style.background = "#fef2f2";
+          msg.style.color = "#d94c4c";
+          msg.textContent = "✗ " + (d.data && d.data.message ? d.data.message : "Błąd");
+        }
+        setTimeout(function(){ window.location.reload(); }, 3000);
+      })
+      .catch(function(){
+        btn.disabled = false;
+        btn.textContent = "↻ Odśwież indeksację (batch 50)";
+        msg.style.display = "block";
+        msg.style.background = "#fef2f2";
+        msg.style.color = "#d94c4c";
+        msg.textContent = "✗ Błąd sieci";
+      });
+  });
+})();
+</script>
+<?php endif; ?>
+<?php
+}
+
+
+
 function upsellio_render_site_analytics_page()
 {
     if (!current_user_can("edit_posts")) {
@@ -2775,12 +3063,6 @@ function upsellio_render_site_analytics_page()
     $leads_delta_pct = upsellio_calculate_period_delta_percent($total_leads, $prev_leads_total);
     $impressions_delta_pct = upsellio_calculate_period_delta_percent($total_impressions, $prev_impressions_total);
     $clicks_delta_pct = upsellio_calculate_period_delta_percent($total_clicks, $prev_clicks_total);
-
-    $keywords_view = $keyword_rows;
-    usort($keywords_view, function ($a, $b) {
-        return ((float) $a["position"]) <=> ((float) $b["position"]);
-    });
-    $keywords_view = array_slice($keywords_view, 0, 25);
 
     $daily_views_series = upsellio_get_daily_views_series($dates);
     $daily_leads_series = upsellio_get_daily_leads_series($dates);
@@ -3262,245 +3544,8 @@ function upsellio_render_site_analytics_page()
           </table>
         </div>
 
-        <?php
-        $idx_summary = get_option("ups_gsc_indexation_summary", []);
-        $idx_pages = get_option("ups_gsc_indexation_pages", []);
-        $idx_stats = get_option("ups_gsc_indexation_batch_stats", []);
-        $idx_last = (string) get_option("ups_gsc_indexation_last_sync", "");
-        $idx_nonce = wp_create_nonce("upsellio_gsc_indexation_nonce");
-        if (!is_array($idx_pages)) {
-            $idx_pages = [];
-        }
-        if (!is_array($idx_summary)) {
-            $idx_summary = [];
-        }
-        if (!is_array($idx_stats)) {
-            $idx_stats = [];
-        }
+        <?php upsellio_render_gsc_indexation_panel(); ?>
 
-        $pages_indexed = 0;
-        $pages_not_indexed = 0;
-        $pages_unknown = 0;
-        $problems = [];
-
-        foreach ($idx_pages as $row) {
-            if (!is_array($row)) {
-                continue;
-            }
-            $v = (string) ($row["verdict"] ?? "");
-            if ($v === "PASS") {
-                $pages_indexed++;
-            } elseif ($v === "") {
-                $pages_unknown++;
-            } else {
-                $pages_not_indexed++;
-                $problems[] = $row;
-            }
-        }
-
-        usort(
-            $problems,
-            static function ($a, $b) {
-                return strcmp((string) ($b["verdict"] ?? ""), (string) ($a["verdict"] ?? ""));
-            }
-        );
-
-        $idx_submitted = (int) ($idx_summary["submitted"] ?? 0);
-        $idx_indexed = (int) ($idx_summary["indexed"] ?? 0);
-        $idx_ratio = $idx_submitted > 0 ? (int) round($idx_indexed / $idx_submitted * 100) : 0;
-        $idx_color = $idx_ratio >= 90 ? "#15803d" : ($idx_ratio >= 70 ? "#d97706" : "#d94c4c");
-        ?>
-        <div class="ups-analytics-card" style="margin-top:14px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-            <div>
-              <h2 style="margin:0">Status indeksacji GSC</h2>
-              <p class="ups-analytics-sub" style="margin:4px 0 0">
-                Sync: <?php echo $idx_last !== "" ? esc_html($idx_last) : "brak — uruchom cron lub odśwież ręcznie"; ?>
-                <?php if (!empty($idx_stats["queue_remaining"])) : ?>
-                  · Kolejka: <?php echo (int) $idx_stats["queue_remaining"]; ?> URLi do sprawdzenia
-                <?php endif; ?>
-              </p>
-            </div>
-            <button type="button" id="ups-gsc-refresh-idx" class="button button-secondary"
-                    data-nonce="<?php echo esc_attr($idx_nonce); ?>">
-              ↻ Odśwież indeksację (batch 50)
-            </button>
-          </div>
-          <div id="ups-gsc-idx-msg" style="display:none;margin-bottom:12px;font-size:13px;padding:8px 12px;border-radius:6px;background:#f0fdf4;color:#15803d"></div>
-
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
-            <div style="background:#f8f9fa;border-radius:8px;padding:14px;text-align:center">
-              <div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#666;text-transform:uppercase">Przesłanych (sitemap)</div>
-              <div style="font-size:28px;font-weight:800;color:#111;margin-top:4px"><?php echo $idx_submitted > 0 ? number_format($idx_submitted) : "—"; ?></div>
-            </div>
-            <div style="background:#f8f9fa;border-radius:8px;padding:14px;text-align:center">
-              <div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#666;text-transform:uppercase">Zaindeksowanych</div>
-              <div style="font-size:28px;font-weight:800;color:<?php echo esc_attr($idx_color); ?>;margin-top:4px"><?php echo $idx_indexed > 0 ? number_format($idx_indexed) : "—"; ?></div>
-            </div>
-            <div style="background:#f8f9fa;border-radius:8px;padding:14px;text-align:center">
-              <div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#666;text-transform:uppercase">Wskaźnik indeksacji</div>
-              <div style="font-size:28px;font-weight:800;color:<?php echo esc_attr($idx_color); ?>;margin-top:4px"><?php echo $idx_submitted > 0 ? $idx_ratio . "%" : "—"; ?></div>
-            </div>
-            <div style="background:#fff3cd;border-radius:8px;padding:14px;text-align:center">
-              <div style="font-size:11px;font-weight:700;letter-spacing:.8px;color:#92400e;text-transform:uppercase">Problemy (inspekcja)</div>
-              <div style="font-size:28px;font-weight:800;color:<?php echo $pages_not_indexed > 0 ? "#d94c4c" : "#15803d"; ?>;margin-top:4px"><?php echo (int) $pages_not_indexed; ?></div>
-            </div>
-          </div>
-
-          <?php if ($idx_submitted > 0) : ?>
-          <div style="background:#eee;border-radius:4px;height:8px;margin-bottom:16px">
-            <div style="background:<?php echo esc_attr($idx_color); ?>;border-radius:4px;height:8px;width:<?php echo esc_attr((string) $idx_ratio); ?>%;transition:.3s"></div>
-          </div>
-          <?php endif; ?>
-
-          <?php if (!empty($idx_pages)) : ?>
-          <?php
-            $by_type = [];
-            foreach ($idx_pages as $r) {
-                if (!is_array($r)) {
-                    continue;
-                }
-                $pt = (string) ($r["post_type"] ?? "other");
-                if (!isset($by_type[$pt])) {
-                    $by_type[$pt] = ["indexed" => 0, "not_indexed" => 0, "unknown" => 0, "total" => 0];
-                }
-                $by_type[$pt]["total"]++;
-                $v = (string) ($r["verdict"] ?? "");
-                if ($v === "PASS") {
-                    $by_type[$pt]["indexed"]++;
-                } elseif ($v === "") {
-                    $by_type[$pt]["unknown"]++;
-                } else {
-                    $by_type[$pt]["not_indexed"]++;
-                }
-            }
-            ?>
-          <h3 style="font-size:13px;margin:0 0 8px">Sprawdzone URL per typ (łącznie <?php echo count($idx_pages); ?> z <?php echo (int) ($idx_stats["total_stored"] ?? count($idx_pages)); ?> zapisanych)</h3>
-          <table class="ups-analytics-table" style="margin-bottom:16px">
-            <thead><tr><th>Typ wpisu</th><th>Zaindeksowane</th><th>Problemy</th><th>Nieznane</th><th>Razem</th></tr></thead>
-            <tbody>
-            <?php foreach ($by_type as $pt => $counts) : ?>
-            <tr>
-              <td><code><?php echo esc_html($pt); ?></code></td>
-              <td style="color:#15803d;font-weight:600"><?php echo (int) $counts["indexed"]; ?></td>
-              <td style="color:<?php echo $counts["not_indexed"] > 0 ? "#d94c4c" : "#15803d"; ?>;font-weight:600"><?php echo (int) $counts["not_indexed"]; ?></td>
-              <td style="color:#888"><?php echo (int) $counts["unknown"]; ?></td>
-              <td><?php echo (int) $counts["total"]; ?></td>
-            </tr>
-            <?php endforeach; ?>
-            </tbody>
-          </table>
-          <?php endif; ?>
-        </div>
-
-        <?php if (!empty($problems)) : ?>
-        <div class="ups-analytics-card" style="margin-top:14px;border-left:3px solid #d94c4c">
-          <h2 style="margin-top:0;color:#d94c4c">Strony niezaindeksowane — <?php echo count($problems); ?> problemów</h2>
-          <p class="ups-analytics-sub">Strony sprawdzone przez URL Inspection API. Verdict FAIL lub NEUTRAL oznacza problem z indeksacją.</p>
-          <div style="overflow-x:auto">
-          <table class="ups-analytics-table">
-            <thead>
-              <tr>
-                <th>URL</th>
-                <th>Typ</th>
-                <th>Problem</th>
-                <th>Coverage state</th>
-                <th>Ostatni crawl</th>
-                <th>Akcja</th>
-              </tr>
-            </thead>
-            <tbody>
-            <?php foreach (array_slice($problems, 0, 100) as $pr) : ?>
-              <?php
-                $url_path = wp_parse_url((string) ($pr["url"] ?? ""), PHP_URL_PATH);
-                $verdict = (string) ($pr["verdict"] ?? "");
-                $v_color = $verdict === "FAIL" ? "#d94c4c" : "#d97706";
-                $crawl = (string) ($pr["last_crawl_time"] ?? "");
-                $crawl_d = "—";
-                if ($crawl !== "") {
-                    $ts_crawl = strtotime($crawl);
-                    if ($ts_crawl !== false) {
-                        $crawl_d = wp_date("d.m.Y", $ts_crawl);
-                    }
-                }
-                $edit_url = !empty($pr["post_id"]) ? get_edit_post_link((int) $pr["post_id"], "raw") : "";
-                $problem_txt = (string) ($pr["problem"] ?? "");
-                if ($problem_txt === "") {
-                    $problem_txt = $verdict !== "" ? $verdict : ((string) ($pr["coverage_state"] ?? ""));
-                }
-                ?>
-            <tr>
-              <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                <a href="<?php echo esc_url((string) ($pr["url"] ?? "")); ?>" target="_blank" rel="noopener noreferrer">
-                  <?php echo esc_html($url_path ?: (string) ($pr["url"] ?? "")); ?>
-                </a>
-              </td>
-              <td><code style="font-size:11px"><?php echo esc_html((string) ($pr["post_type"] ?? "")); ?></code></td>
-              <td>
-                <span style="display:inline-flex;align-items:center;gap:5px;color:<?php echo esc_attr($v_color); ?>;font-weight:600;font-size:12px">
-                  <span style="width:8px;height:8px;border-radius:50%;background:<?php echo esc_attr($v_color); ?>;flex-shrink:0"></span>
-                  <?php echo esc_html($problem_txt !== "" ? $problem_txt : "—"); ?>
-                </span>
-              </td>
-              <td style="font-size:12px;color:#555"><?php echo esc_html((string) ($pr["coverage_state"] ?? "—")); ?></td>
-              <td style="font-size:12px;color:#888"><?php echo esc_html($crawl_d); ?></td>
-              <td>
-                <?php if ($edit_url) : ?>
-                <a href="<?php echo esc_url($edit_url); ?>" class="button button-small" target="_blank" rel="noopener noreferrer">Edytuj</a>
-                <?php endif; ?>
-              </td>
-            </tr>
-            <?php endforeach; ?>
-            </tbody>
-          </table>
-          </div>
-          <?php if (count($problems) > 100) : ?>
-          <p style="font-size:12px;color:#888;margin-top:8px">Pokazano 100 z <?php echo count($problems); ?> problemów.</p>
-          <?php endif; ?>
-        </div>
-        <?php endif; ?>
-
-        <script>
-        (function(){
-          var btn = document.getElementById("ups-gsc-refresh-idx");
-          var msg = document.getElementById("ups-gsc-idx-msg");
-          if (!btn || !msg) return;
-          btn.addEventListener("click", function(){
-            btn.disabled = true;
-            btn.textContent = "Sprawdzam…";
-            msg.style.display = "none";
-            var body = new FormData();
-            body.append("action", "upsellio_gsc_refresh_indexation");
-            body.append("nonce", btn.getAttribute("data-nonce") || "");
-            fetch(<?php echo wp_json_encode(admin_url("admin-ajax.php")); ?>, {method:"POST", body: body})
-              .then(function(r){ return r.json(); })
-              .then(function(d){
-                btn.disabled = false;
-                btn.textContent = "↻ Odśwież indeksację (batch 50)";
-                msg.style.display = "block";
-                if (d.success) {
-                  msg.style.background = "#f0fdf4";
-                  msg.style.color = "#15803d";
-                  msg.textContent = "✓ " + d.data.message
-                    + (d.data.queue_remaining > 0 ? " Pozostało w kolejce: " + d.data.queue_remaining + " URLi." : " Wszystkie sprawdzone.")
-                    + " Zaindeksowanych: " + d.data.indexed + "/" + d.data.submitted + ".";
-                } else {
-                  msg.style.background = "#fef2f2";
-                  msg.style.color = "#d94c4c";
-                  msg.textContent = "✗ " + (d.data && d.data.message ? d.data.message : "Błąd");
-                }
-                setTimeout(function(){ window.location.reload(); }, 3000);
-              })
-              .catch(function(){
-                btn.disabled = false;
-                btn.textContent = "↻ Odśwież indeksację (batch 50)";
-                msg.style.display = "block";
-                msg.style.background = "#fef2f2";
-                msg.style.color = "#d94c4c";
-                msg.textContent = "✗ Błąd sieci";
-              });
-          });
-        })();
         </script>
 
         <div class="ups-trend-grid">
@@ -3644,39 +3689,375 @@ function upsellio_render_site_analytics_page()
           </table>
         </div>
 
-        <div class="ups-analytics-card" style="margin-top:14px;">
-          <h2 style="margin-top:0;">Pozycje na konkretne słowa kluczowe</h2>
-          <?php if (empty($keywords_view)) : ?>
-            <p>Brak danych keywordów. Zaimportuj CSV poniżej, aby zobaczyć pozycje i trendy.</p>
+        <?php
+        $kw_raw_all = get_option("upsellio_keyword_metrics_rows", []);
+        if (!is_array($kw_raw_all)) {
+            $kw_raw_all = [];
+        }
+        $kw_best = [];
+        foreach ($kw_raw_all as $r) {
+            if (!is_array($r)) {
+                continue;
+            }
+            $kw = strtolower(trim((string) ($r["keyword"] ?? "")));
+            $url = (string) ($r["url"] ?? "");
+            if ($kw === "" || $url === "") {
+                continue;
+            }
+            $key = $kw . "|" . $url;
+            $pos = (float) ($r["position"] ?? 99);
+            if (!isset($kw_best[$key]) || $pos < $kw_best[$key]) {
+                $kw_best[$key] = $pos;
+            }
+        }
+        $kw_total = count($kw_best);
+        $kw_top3 = count(array_filter($kw_best, static function ($p) {
+            return $p <= 3;
+        }));
+        $kw_top10 = count(array_filter($kw_best, static function ($p) {
+            return $p <= 10;
+        }));
+        $kw_top50 = count(array_filter($kw_best, static function ($p) {
+            return $p <= 50;
+        }));
+        $kw_rest = $kw_total - $kw_top50;
+        $kw_seg_11_20 = count(array_filter($kw_best, static function ($p) {
+            return $p > 10 && $p <= 20;
+        }));
+        $kw_seg_21_50 = count(array_filter($kw_best, static function ($p) {
+            return $p > 20 && $p <= 50;
+        }));
+        $kw_nonce = wp_create_nonce("upsellio_gsc_keywords_full_nonce");
+        $kw_last = (string) get_option("upsellio_keyword_metrics_last_sync", "");
+        ?>
+        <div class="ups-analytics-card" style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+            <div>
+              <h2 style="margin:0">Widoczność GSC — słowa kluczowe</h2>
+              <p class="ups-analytics-sub" style="margin:4px 0 0">
+                Dane z <?php echo $kw_last !== "" ? esc_html($kw_last) : "ostatniego synca GSC"; ?>
+                · <?php echo esc_html(number_format($kw_total)); ?> unikalnych par fraza+URL
+              </p>
+            </div>
+            <button type="button" id="ups-kw-load" class="button button-secondary"
+                    data-nonce="<?php echo esc_attr($kw_nonce); ?>"
+                    data-ajaxurl="<?php echo esc_attr(admin_url("admin-ajax.php")); ?>">
+              ⬇ Załaduj pełną listę fraz
+            </button>
+          </div>
+
+          <?php if ($kw_total > 0) : ?>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+            <?php
+            $kpi_cards = [
+                ["Wszystkich fraz", number_format($kw_total), "#111"],
+                ["TOP 3", number_format($kw_top3), "#15803d"],
+                ["TOP 10", number_format($kw_top10), "#0369a1"],
+                ["TOP 50", number_format($kw_top50), "#9333ea"],
+            ];
+            foreach ($kpi_cards as $kpi_card) :
+                list($label, $value, $color) = $kpi_card;
+                ?>
+            <div style="background:#f8f9fa;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:10px;font-weight:700;letter-spacing:.8px;color:#666;text-transform:uppercase"><?php echo esc_html($label); ?></div>
+              <div style="font-size:24px;font-weight:800;color:<?php echo esc_attr($color); ?>;margin-top:4px"><?php echo esc_html($value); ?></div>
+            </div>
+            <?php endforeach; ?>
+          </div>
+
+          <div style="margin-bottom:16px">
+            <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:#444">Rozkład pozycji</div>
+            <div style="display:flex;height:20px;border-radius:6px;overflow:hidden;gap:1px">
+              <?php
+              $segments = [
+                  ["top3", $kw_top3, "#15803d", "TOP 1-3"],
+                  ["top410", max(0, $kw_top10 - $kw_top3), "#0369a1", "4-10"],
+                  ["top1120", $kw_seg_11_20, "#d97706", "11-20"],
+                  ["top2150", $kw_seg_21_50, "#9333ea", "21-50"],
+                  ["rest", max(0, $kw_rest), "#9ca3af", "51+"],
+              ];
+              foreach ($segments as $seg) :
+                  list($sk, $cnt, $color, $lab) = $seg;
+                  if ($cnt <= 0) {
+                      continue;
+                  }
+                  $pct = round($cnt / $kw_total * 100, 1);
+                  ?>
+              <div style="background:<?php echo esc_attr($color); ?>;width:<?php echo esc_attr((string) $pct); ?>%;
+                          display:flex;align-items:center;justify-content:center;
+                          font-size:10px;font-weight:700;color:#fff;min-width:2px"
+                   title="<?php echo esc_attr($lab . ": " . $cnt . " fraz (" . $pct . "%)"); ?>">
+                <?php echo $pct > 5 ? esc_html($lab) : ""; ?>
+              </div>
+              <?php endforeach; ?>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:6px;flex-wrap:wrap">
+              <?php foreach ($segments as $seg) :
+                  list($sk, $cnt, $color, $lab) = $seg;
+                  if ($cnt <= 0) {
+                      continue;
+                  }
+                  $pct = round($cnt / $kw_total * 100, 1);
+                  ?>
+              <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#444">
+                <span style="width:10px;height:10px;border-radius:2px;background:<?php echo esc_attr($color); ?>;flex-shrink:0"></span>
+                <strong><?php echo esc_html($lab); ?></strong>: <?php echo esc_html(number_format($cnt)); ?> (<?php echo esc_html((string) $pct); ?>%)
+              </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
           <?php else : ?>
-            <table class="ups-analytics-table">
+          <p class="ups-analytics-sub" style="margin-bottom:14px">Brak zsynchronizowanych fraz GSC — zaimportuj dane lub uruchom sync Search Console.</p>
+          <?php endif; ?>
+
+          <div id="ups-kw-loading" style="display:none;padding:12px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:13px;color:#0369a1;margin-bottom:12px">
+            ⏳ Ładuję dane…
+          </div>
+          <div id="ups-kw-error" style="display:none;padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:13px;color:#d94c4c;margin-bottom:12px"></div>
+
+          <div id="ups-kw-filters" style="display:none;margin-bottom:12px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <input type="search" id="ups-kw-search" placeholder="Szukaj frazy lub URL…"
+                     style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;min-width:220px">
+              <select id="ups-kw-group" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px">
+                <option value="">Wszystkie pozycje</option>
+                <option value="top3">TOP 1-3</option>
+                <option value="top10">TOP 4-10</option>
+                <option value="top20">TOP 11-20</option>
+                <option value="top50">TOP 21-50</option>
+                <option value="rest">51+</option>
+              </select>
+              <select id="ups-kw-sort" style="padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px">
+                <option value="position">Sortuj: pozycja ↑</option>
+                <option value="impressions_desc">Sortuj: wyświetlenia ↓</option>
+                <option value="clicks_desc">Sortuj: kliknięcia ↓</option>
+                <option value="ctr_desc">Sortuj: CTR ↓</option>
+                <option value="keyword_asc">Sortuj: fraza A-Z</option>
+              </select>
+              <span id="ups-kw-count" style="font-size:12px;color:#666;margin-left:4px"></span>
+              <button type="button" id="ups-kw-export" class="button button-small" style="margin-left:auto">
+                ⬇ Eksportuj CSV
+              </button>
+            </div>
+          </div>
+
+          <div id="ups-kw-table-wrap" style="display:none;overflow-x:auto">
+            <table id="ups-kw-table" style="width:100%;border-collapse:collapse;font-size:12px">
               <thead>
-                <tr>
-                  <th>Keyword</th>
-                  <th>URL</th>
-                  <th>Pozycja</th>
-                  <th>Impressions</th>
-                  <th>Kliknięcia</th>
-                  <th>CTR</th>
-                  <th>Data</th>
+                <tr style="background:#f8f9fa;border-bottom:2px solid #e5e7eb">
+                  <th style="text-align:left;padding:9px 12px;font-weight:700;color:#374151">Fraza kluczowa</th>
+                  <th style="text-align:left;padding:9px 8px;font-weight:700;color:#374151">URL</th>
+                  <th style="text-align:center;padding:9px 8px;font-weight:700;color:#374151;cursor:pointer" data-col="position">Pozycja ↕</th>
+                  <th style="text-align:right;padding:9px 8px;font-weight:700;color:#374151;cursor:pointer" data-col="impressions">Wyświetlenia ↕</th>
+                  <th style="text-align:right;padding:9px 8px;font-weight:700;color:#374151;cursor:pointer" data-col="clicks">Kliknięcia ↕</th>
+                  <th style="text-align:right;padding:9px 8px;font-weight:700;color:#374151;cursor:pointer" data-col="ctr">CTR% ↕</th>
+                  <th style="text-align:center;padding:9px 8px;font-weight:700;color:#374151">Trend</th>
                 </tr>
               </thead>
-              <tbody>
-                <?php foreach ($keywords_view as $keyword_row) : ?>
-                  <tr>
-                    <td><?php echo esc_html((string) $keyword_row["keyword"]); ?></td>
-                    <td class="ups-mono"><?php echo esc_html((string) wp_parse_url((string) $keyword_row["url"], PHP_URL_PATH)); ?></td>
-                    <td><?php echo esc_html((string) $keyword_row["position"]); ?></td>
-                    <td><?php echo esc_html((string) $keyword_row["impressions"]); ?></td>
-                    <td><?php echo esc_html((string) $keyword_row["clicks"]); ?></td>
-                    <td><?php echo esc_html((string) $keyword_row["ctr"]); ?>%</td>
-                    <td><?php echo esc_html((string) $keyword_row["date"]); ?></td>
-                  </tr>
-                <?php endforeach; ?>
-              </tbody>
+              <tbody id="ups-kw-tbody"></tbody>
             </table>
-          <?php endif; ?>
+            <div id="ups-kw-pagination" style="display:flex;gap:8px;align-items:center;padding:12px 0;flex-wrap:wrap">
+              <button type="button" id="ups-kw-prev" class="button button-small" disabled>← Poprzednie</button>
+              <span id="ups-kw-page-info" style="font-size:12px;color:#666"></span>
+              <button type="button" id="ups-kw-next" class="button button-small">Następne →</button>
+            </div>
+          </div>
         </div>
+
+        <script>
+        (function(){
+          "use strict";
+
+          var btn       = document.getElementById("ups-kw-load");
+          var loading   = document.getElementById("ups-kw-loading");
+          var errEl     = document.getElementById("ups-kw-error");
+          var filters   = document.getElementById("ups-kw-filters");
+          var tableWrap = document.getElementById("ups-kw-table-wrap");
+          var tbody     = document.getElementById("ups-kw-tbody");
+          var countEl   = document.getElementById("ups-kw-count");
+          var pageInfo  = document.getElementById("ups-kw-page-info");
+          var prevBtn   = document.getElementById("ups-kw-prev");
+          var nextBtn   = document.getElementById("ups-kw-next");
+          var exportBtn = document.getElementById("ups-kw-export");
+
+          if (!btn) { return; }
+
+          var allRows    = [];
+          var filtered   = [];
+          var PAGE_SIZE  = 100;
+          var currentPage = 1;
+
+          function posColor(p) {
+            if (p <= 3) { return "#15803d"; }
+            if (p <= 10) { return "#0369a1"; }
+            if (p <= 20) { return "#d97706"; }
+            if (p <= 50) { return "#9333ea"; }
+            return "#9ca3af";
+          }
+
+          function posBadge(p) {
+            var x = parseFloat(String(p));
+            if (isNaN(x)) { x = 0; }
+            return "<span style=\"display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:11px;background:"
+              + posColor(x) + "20;color:" + posColor(x) + "\">" + x.toFixed(1) + "</span>";
+          }
+
+          function renderPage() {
+            var start = (currentPage - 1) * PAGE_SIZE;
+            var page  = filtered.slice(start, start + PAGE_SIZE);
+            var html  = "";
+
+            page.forEach(function(r) {
+              var urlLabel = r.url_path || r.url;
+              html += "<tr style=\"border-bottom:1px solid #f3f4f6\">"
+                + "<td style=\"padding:7px 12px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\" title=\"" + esc(r.keyword) + "\">" + esc(r.keyword) + "</td>"
+                + "<td style=\"padding:7px 8px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;font-size:11px;color:#555\" title=\"" + esc(r.url) + "\">"
+                + "<a href=\"" + esc(r.url) + "\" target=\"_blank\" rel=\"noopener\" style=\"color:#0369a1\">" + esc(urlLabel) + "</a></td>"
+                + "<td style=\"padding:7px 8px;text-align:center\">" + posBadge(r.position) + "</td>"
+                + "<td style=\"padding:7px 8px;text-align:right;color:#374151\">" + r.impressions.toLocaleString("pl-PL") + "</td>"
+                + "<td style=\"padding:7px 8px;text-align:right;font-weight:600;color:#374151\">" + r.clicks.toLocaleString("pl-PL") + "</td>"
+                + "<td style=\"padding:7px 8px;text-align:right;color:#374151\">" + Number(r.ctr).toFixed(2) + "%</td>"
+                + "<td style=\"padding:7px 8px;text-align:center;font-size:11px;color:#9ca3af\">"
+                + (r.pos_group === "top3" ? "🟢" : r.pos_group === "top10" ? "🔵" : r.pos_group === "top20" ? "🟡" : r.pos_group === "top50" ? "🟣" : "⚪")
+                + "</td>"
+                + "</tr>";
+            });
+
+            tbody.innerHTML = html || "<tr><td colspan=\"7\" style=\"padding:20px;text-align:center;color:#888\">Brak wyników dla wybranych filtrów.</td></tr>";
+
+            var totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+            pageInfo.textContent = "Strona " + currentPage + " z " + totalPages
+              + " · " + filtered.length.toLocaleString("pl-PL") + " fraz";
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = currentPage >= totalPages;
+          }
+
+          function applyFilters() {
+            var searchEl = document.getElementById("ups-kw-search");
+            var groupEl = document.getElementById("ups-kw-group");
+            var sortEl = document.getElementById("ups-kw-sort");
+            var search = searchEl ? searchEl.value.toLowerCase().trim() : "";
+            var group  = groupEl ? groupEl.value : "";
+            var sort   = sortEl ? sortEl.value : "position";
+
+            filtered = allRows.filter(function(r) {
+              var matchSearch = search === "" || (r.keyword && r.keyword.toLowerCase().indexOf(search) !== -1)
+                || (r.url_path && r.url_path.toLowerCase().indexOf(search) !== -1)
+                || (r.url && r.url.toLowerCase().indexOf(search) !== -1);
+              var matchGroup  = group === "" || r.pos_group === group;
+              return matchSearch && matchGroup;
+            });
+
+            filtered.sort(function(a, b) {
+              if (sort === "impressions_desc") { return b.impressions - a.impressions; }
+              if (sort === "clicks_desc") { return b.clicks - a.clicks; }
+              if (sort === "ctr_desc") { return b.ctr - a.ctr; }
+              if (sort === "keyword_asc") { return String(a.keyword).localeCompare(String(b.keyword), "pl"); }
+              return a.position - b.position;
+            });
+
+            if (countEl) {
+              countEl.textContent = filtered.length.toLocaleString("pl-PL") + " fraz";
+            }
+            currentPage = 1;
+            renderPage();
+          }
+
+          function esc(s) {
+            return String(s)
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;");
+          }
+
+          btn.addEventListener("click", function() {
+            btn.disabled = true;
+            loading.style.display = "block";
+            errEl.style.display   = "none";
+
+            var body = new FormData();
+            body.append("action", "upsellio_gsc_keywords_full");
+            body.append("nonce",  btn.getAttribute("data-nonce") || "");
+
+            var ajaxUrl = btn.getAttribute("data-ajaxurl") || "";
+
+            fetch(ajaxUrl, { method: "POST", body: body, credentials: "same-origin" })
+              .then(function(r) { return r.json(); })
+              .then(function(d) {
+                loading.style.display = "none";
+                if (!d.success) {
+                  errEl.textContent = "✗ " + ((d.data && d.data.message) ? d.data.message : "Błąd ładowania danych");
+                  errEl.style.display = "block";
+                  btn.disabled = false;
+                  return;
+                }
+                allRows  = d.data.rows || [];
+                filtered = allRows.slice();
+                btn.textContent  = "✓ Załadowano " + allRows.length.toLocaleString("pl-PL") + " fraz";
+                filters.style.display   = "";
+                tableWrap.style.display = "";
+                applyFilters();
+              })
+              .catch(function() {
+                loading.style.display = "none";
+                errEl.textContent   = "✗ Błąd sieci";
+                errEl.style.display = "block";
+                btn.disabled = false;
+              });
+          });
+
+          var searchIn = document.getElementById("ups-kw-search");
+          var groupIn = document.getElementById("ups-kw-group");
+          var sortIn = document.getElementById("ups-kw-sort");
+          if (searchIn) { searchIn.addEventListener("input", applyFilters); }
+          if (groupIn) { groupIn.addEventListener("change", applyFilters); }
+          if (sortIn) { sortIn.addEventListener("change", applyFilters); }
+
+          prevBtn.addEventListener("click", function() { if (currentPage > 1) { currentPage--; renderPage(); } });
+          nextBtn.addEventListener("click", function() {
+            var tp = Math.ceil(filtered.length / PAGE_SIZE);
+            if (currentPage < tp) { currentPage++; renderPage(); }
+          });
+
+          document.querySelectorAll("#ups-kw-table th[data-col]").forEach(function(th) {
+            th.addEventListener("click", function() {
+              var col = th.getAttribute("data-col");
+              var sortEl = document.getElementById("ups-kw-sort");
+              if (!sortEl) { return; }
+              if (col === "position") { sortEl.value = "position"; }
+              if (col === "impressions") { sortEl.value = "impressions_desc"; }
+              if (col === "clicks") { sortEl.value = "clicks_desc"; }
+              if (col === "ctr") { sortEl.value = "ctr_desc"; }
+              applyFilters();
+            });
+          });
+
+          if (exportBtn) {
+            exportBtn.addEventListener("click", function() {
+              if (filtered.length === 0) { return; }
+              var csv = "Fraza,URL,Pozycja,Wyswietlenia,Klikniecia,CTR%,Grupa\n";
+              filtered.forEach(function(r) {
+                csv += [
+                  "\"" + String(r.keyword).replace(/"/g, "\"\"") + "\"",
+                  "\"" + String(r.url).replace(/"/g, "\"\"") + "\"",
+                  Number(r.position).toFixed(1),
+                  r.impressions,
+                  r.clicks,
+                  Number(r.ctr).toFixed(2),
+                  r.pos_group,
+                ].join(",") + "\n";
+              });
+              var blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+              var a = document.createElement("a");
+              a.href = URL.createObjectURL(blob);
+              a.download = "gsc-frazy-" + new Date().toISOString().slice(0, 10) + ".csv";
+              a.click();
+            });
+          }
+
+        })();
+        </script>
 
         <div class="ups-analytics-card" style="margin-top:14px;">
           <h2 style="margin-top:0;">Słowa kluczowe → Leady → Wartość zamknięcia</h2>
@@ -5494,6 +5875,97 @@ add_action("wp_ajax_upsellio_gsc_refresh_indexation", static function (): void {
         "total_stored" => (int) ($stats["total_stored"] ?? 0),
         "indexed" => (int) ($summary["indexed"] ?? 0),
         "submitted" => (int) ($summary["submitted"] ?? 0),
+    ]);
+});
+
+/**
+ * AJAX: pełny zbiór fraz GSC (zagregowany po fraza+URL, max 5000 wierszy w odpowiedzi).
+ */
+add_action("wp_ajax_upsellio_gsc_keywords_full", static function (): void {
+    if (!current_user_can("edit_posts")) {
+        wp_send_json_error(["message" => "Brak uprawnień."], 403);
+    }
+    check_ajax_referer("upsellio_gsc_keywords_full_nonce", "nonce");
+
+    $raw = get_option("upsellio_keyword_metrics_rows", []);
+    if (!is_array($raw) || empty($raw)) {
+        wp_send_json_success([
+            "rows" => [],
+            "total" => 0,
+            "last_sync" => (string) get_option("upsellio_keyword_metrics_last_sync", ""),
+        ]);
+    }
+
+    $by_kw_url = [];
+    foreach ($raw as $r) {
+        if (!is_array($r)) {
+            continue;
+        }
+        $kw = strtolower(trim((string) ($r["keyword"] ?? "")));
+        $url = (string) ($r["url"] ?? "");
+        if ($kw === "" || $url === "") {
+            continue;
+        }
+
+        $key = $kw . "|" . $url;
+        if (!isset($by_kw_url[$key])) {
+            $by_kw_url[$key] = [
+                "keyword" => (string) ($r["keyword"] ?? $kw),
+                "url" => $url,
+                "url_path" => (string) (wp_parse_url($url, PHP_URL_PATH) ?: $url),
+                "position" => (float) ($r["position"] ?? 99),
+                "impressions" => (int) ($r["impressions"] ?? 0),
+                "clicks" => (int) ($r["clicks"] ?? 0),
+                "days" => 0,
+            ];
+        } else {
+            $pos = (float) ($r["position"] ?? 99);
+            if ($pos < $by_kw_url[$key]["position"]) {
+                $by_kw_url[$key]["position"] = $pos;
+            }
+            $by_kw_url[$key]["impressions"] += (int) ($r["impressions"] ?? 0);
+            $by_kw_url[$key]["clicks"] += (int) ($r["clicks"] ?? 0);
+        }
+        $by_kw_url[$key]["days"]++;
+    }
+
+    $rows = [];
+    foreach ($by_kw_url as $row) {
+        $row["position"] = round((float) ($row["position"] ?? 99), 1);
+        $imp = (int) ($row["impressions"] ?? 0);
+        $clk = (int) ($row["clicks"] ?? 0);
+        $row["ctr"] = $imp > 0 ? round($clk / $imp * 100, 2) : 0.0;
+
+        $p = (float) $row["position"];
+        if ($p <= 3) {
+            $row["pos_group"] = "top3";
+        } elseif ($p <= 10) {
+            $row["pos_group"] = "top10";
+        } elseif ($p <= 20) {
+            $row["pos_group"] = "top20";
+        } elseif ($p <= 50) {
+            $row["pos_group"] = "top50";
+        } else {
+            $row["pos_group"] = "rest";
+        }
+
+        $rows[] = $row;
+    }
+
+    usort(
+        $rows,
+        static function ($a, $b) {
+            return ((float) ($a["position"] ?? 99)) <=> ((float) ($b["position"] ?? 99));
+        }
+    );
+
+    $total_full = count($rows);
+    $rows_out = array_slice($rows, 0, 5000);
+
+    wp_send_json_success([
+        "rows" => $rows_out,
+        "total" => $total_full,
+        "last_sync" => (string) get_option("upsellio_keyword_metrics_last_sync", ""),
     ]);
 });
 
