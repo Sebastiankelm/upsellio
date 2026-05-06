@@ -73,8 +73,8 @@ EOT;
     ];
     $resp = upsellio_anthropic_crm_send_user_prompt(
         "",
-        2000,
-        45,
+        2500,
+        60,
         function_exists("upsellio_ai_model_for") ? upsellio_ai_model_for("ads_spend_reviewer") : null,
         $cache_split
     );
