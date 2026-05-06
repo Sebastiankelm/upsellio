@@ -442,6 +442,85 @@ function upsellio_anthropic_crm_strip_json_markdown_fence(string $text): string
 }
 
 /**
+ * Naprawia typowe błędy JSON z LLM przed json_decode():
+ * 1. Surowe CR/LF wewnątrz wartości string → escape \\n / \\r
+ * 2. Trailing comma przed } lub ] → usunięcie
+ * 3. Ucięty JSON (brakujące } lub zamknięcie stringa) → dopisanie końcówki
+ */
+function upsellio_anthropic_crm_repair_json(string $json): string
+{
+    $json = trim($json);
+    if ($json === "") {
+        return $json;
+    }
+
+    $result = "";
+    $in_str = false;
+    $escape = false;
+    $len = strlen($json);
+    for ($i = 0; $i < $len; $i++) {
+        $ch = $json[$i];
+        if ($escape) {
+            $result .= $ch;
+            $escape = false;
+            continue;
+        }
+        if ($ch === "\\" && $in_str) {
+            $result .= $ch;
+            $escape = true;
+            continue;
+        }
+        if ($ch === '"') {
+            $in_str = !$in_str;
+            $result .= $ch;
+            continue;
+        }
+        if ($in_str && ($ch === "\n" || $ch === "\r")) {
+            $result .= ($ch === "\n") ? "\\n" : "\\r";
+            continue;
+        }
+        $result .= $ch;
+    }
+    $json = $result;
+
+    $json = (string) (preg_replace('/,(\s*[\}\]])/', '$1', $json) ?? $json);
+
+    $open = 0;
+    $in_s = false;
+    $esc = false;
+    $n = strlen($json);
+    for ($i = 0; $i < $n; $i++) {
+        $c = $json[$i];
+        if ($esc) {
+            $esc = false;
+            continue;
+        }
+        if ($c === "\\" && $in_s) {
+            $esc = true;
+            continue;
+        }
+        if ($c === '"') {
+            $in_s = !$in_s;
+            continue;
+        }
+        if (!$in_s) {
+            if ($c === "{") {
+                $open++;
+            } elseif ($c === "}") {
+                $open = max(0, $open - 1);
+            }
+        }
+    }
+    $suffix = $in_s ? '"' : "";
+    $suffix .= str_repeat("}", $open);
+    if ($suffix !== "") {
+        $json .= $suffix;
+    }
+
+    return $json;
+}
+
+/**
  * Pierwszy kompletny obiekt JSON od pierwszego „{” (respektuje stringi i nawiasy).
  *
  * @return string|null
@@ -499,7 +578,7 @@ function upsellio_anthropic_crm_parse_json_object($text)
 
     $stripped = upsellio_anthropic_crm_strip_json_markdown_fence($text);
 
-    $try_decode = static function ($payload) {
+    $try_decode = function ($payload) {
         $payload = trim((string) $payload);
         if ($payload === "") {
             return null;
@@ -516,9 +595,26 @@ function upsellio_anthropic_crm_parse_json_object($text)
         return null;
     };
 
+    // Próba 1: bezpośredni decode
     $decoded = $try_decode($stripped);
     if (is_array($decoded)) {
         return $decoded;
+    }
+
+    // Próba 2: repair (literal newlines, trailing commas, ucięty JSON)
+    $repaired = upsellio_anthropic_crm_repair_json($stripped);
+    if ($repaired !== $stripped) {
+        $decoded = $try_decode($repaired);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+        $slice_r = upsellio_anthropic_crm_extract_first_json_object($repaired);
+        if ($slice_r !== null && $slice_r !== "") {
+            $decoded = $try_decode($slice_r);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
     }
 
     $slice = upsellio_anthropic_crm_extract_first_json_object($stripped);
