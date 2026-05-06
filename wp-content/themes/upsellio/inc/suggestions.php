@@ -646,6 +646,7 @@ function upsellio_suggestions_generate(string $type): array
 
     $model = upsellio_suggestions_default_model();
     $in_tok = upsellio_suggestions_estimate_tokens($prompt);
+    $GLOBALS["upsellio_ai_current_task"] = "suggestions";
     $raw = upsellio_anthropic_crm_send_user_prompt($prompt, $max_out, 90, $model);
     if ($raw === null) {
         $err = function_exists("upsellio_anthropic_crm_get_last_send_error")
@@ -722,6 +723,7 @@ function upsellio_suggestions_generate_clusters(): array
         ? upsellio_ai_model_for("suggestions_clusters")
         : upsellio_suggestions_default_model();
     $in_tok = upsellio_suggestions_estimate_tokens($prompt);
+    $GLOBALS["upsellio_ai_current_task"] = "suggestions";
     $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 2400, 90, $model);
     if ($raw === null) {
         return ["ok" => false, "message" => "Brak odpowiedzi API."];
@@ -851,6 +853,7 @@ function upsellio_blog_keyword_research(string $seed): array
     $model = function_exists("upsellio_ai_model_for")
         ? upsellio_ai_model_for("blog_keyword_research")
         : upsellio_suggestions_default_model();
+    $GLOBALS["upsellio_ai_current_task"] = "suggestions";
     $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 900, 45, $model);
     if ($raw === null) {
         return ["error" => "Brak odpowiedzi AI."];
