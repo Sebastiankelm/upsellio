@@ -622,23 +622,23 @@ function upsellio_suggestions_generate(string $type): array
     }
 
     $prompt = "";
-    $max_out = 1800;
+    $max_out = 3000;
     switch ($type) {
         case "seo":
             $prompt = upsellio_suggestions_seo_prompt();
-            $max_out = 2200;
+            $max_out = 3000;
             break;
         case "blog":
             $prompt = upsellio_suggestions_blog_prompt();
-            $max_out = 2600;
+            $max_out = 3500;
             break;
         case "ads":
             $prompt = upsellio_suggestions_ads_prompt();
-            $max_out = 2200;
+            $max_out = 3000;
             break;
         case "keywords":
             $prompt = upsellio_suggestions_keywords_ai_prompt();
-            $max_out = 1600;
+            $max_out = 2200;
             break;
         default:
             return ["ok" => false, "message" => "Nieznany typ sugestii."];
@@ -724,7 +724,7 @@ function upsellio_suggestions_generate_clusters(): array
         : upsellio_suggestions_default_model();
     $in_tok = upsellio_suggestions_estimate_tokens($prompt);
     $GLOBALS["upsellio_ai_current_task"] = "suggestions";
-    $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 2400, 90, $model);
+    $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 3200, 90, $model);
     if ($raw === null) {
         return ["ok" => false, "message" => "Brak odpowiedzi API."];
     }
