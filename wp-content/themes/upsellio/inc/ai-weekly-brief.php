@@ -88,7 +88,7 @@ EOT;
     $GLOBALS["upsellio_ai_current_task"] = "weekly_brief";
     $brief = upsellio_anthropic_crm_send_user_prompt(
         "",
-        2000,
+        3000,
         60,
         function_exists("upsellio_ai_model_for") ? upsellio_ai_model_for("weekly_brief") : null,
         $cache_split
