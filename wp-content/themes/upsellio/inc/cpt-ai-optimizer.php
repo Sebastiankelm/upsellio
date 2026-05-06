@@ -485,8 +485,17 @@ function upsellio_cpt_ai_build_prompt(int $post_id, array $config, string $notes
     }
 
     $content_raw = $config["read_content"] ? (string) $post->post_content : "";
-    /* Definicje: krótszy PHP-seed — mniejsze ryzyko złego JSON (newline w polu). */
-    $content_limit = $post->post_type === "definicja" ? 2000 : 8000;
+    /*
+     * Limit znaków istniejącej treści wstrzykiwanej do promptu jako kontekst.
+     * Portfolio / marketing_portfolio: 3000 znaków wystarczy jako kontekst stylu — niższy koszt inputu.
+     * Miasto: read_content=false — limit nie ma znaczenia.
+     */
+    $content_limit = match ($post->post_type) {
+        "definicja" => 2000,
+        "portfolio" => 3000,
+        "marketing_portfolio" => 3000,
+        default => 4000,
+    };
     if (function_exists("mb_substr")) {
         $content_raw = mb_substr($content_raw, 0, $content_limit, "UTF-8");
     } else {
@@ -546,21 +555,38 @@ function upsellio_cpt_ai_run(int $post_id, string $notes = "")
         return new WP_Error("no_key", "Brak klucza Anthropic API.");
     }
 
-    $model = function_exists("upsellio_ai_model_for")
-        ? upsellio_ai_model_for("cpt_ai_optimize")
-        : "claude-sonnet-4-5";
-
-    /* Długie JSON + HTML: wyższe limity niż domyślne 4096. */
-    if ($post_type === "definicja" || $post_type === "marketing_portfolio") {
-        $max_tokens_for_type = 6000;
-    } elseif ($post_type === "portfolio") {
-        $max_tokens_for_type = 5000;
+    /*
+     * Routing modeli per typ wpisu:
+     * - miasto / definicja → Haiku: zadania rule-following, tańsze wejście.
+     * - portfolio / marketing_portfolio → Sonnet: case studies dla klienta.
+     * Filtry: upsellio_cpt_ai_model_{post_type}, upsellio_cpt_ai_max_tokens_{post_type}.
+     */
+    if (function_exists("upsellio_ai_model_for")) {
+        $model = in_array($post_type, ["miasto", "definicja"], true)
+            ? upsellio_ai_model_for("cpt_ai_optimize_fast")
+            : upsellio_ai_model_for("cpt_ai_optimize");
     } else {
-        $max_tokens_for_type = 4096;
+        $model = in_array($post_type, ["miasto", "definicja"], true)
+            ? "claude-haiku-4-5-20251001"
+            : "claude-sonnet-4-5";
     }
+    $model = (string) apply_filters("upsellio_cpt_ai_model_{$post_type}", $model);
+
+    $max_tokens_map = [
+        "miasto" => 2500,
+        "definicja" => 2000,
+        "portfolio" => 2500,
+        "marketing_portfolio" => 2500,
+    ];
+    $max_tokens_for_type = (int) apply_filters(
+        "upsellio_cpt_ai_max_tokens_{$post_type}",
+        $max_tokens_map[$post_type] ?? 3000
+    );
 
     $user_prompt = upsellio_cpt_ai_build_prompt($post_id, $config, $notes);
     $system_prompt = (string) $config["prompt_system"];
+
+    $GLOBALS["upsellio_ai_current_task"] = "cpt_optimizer_" . $post_type;
 
     $api_key = upsellio_anthropic_crm_api_key();
     $response = wp_remote_post("https://api.anthropic.com/v1/messages", [
