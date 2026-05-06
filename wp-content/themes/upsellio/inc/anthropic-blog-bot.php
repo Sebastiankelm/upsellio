@@ -1401,7 +1401,7 @@ function upsellio_blog_bot_generate_and_save(): void
         ? max(60, min(600, $stored_to))
         : (int) apply_filters("upsellio_blog_bot_api_timeout", $safe_timeout);
     $api_timeout = max(60, min(600, $api_timeout));
-    $max_out = upsellio_blog_bot_resolve_max_output_tokens(4096);
+    $max_out = upsellio_blog_bot_resolve_max_output_tokens(5500);
     $GLOBALS["upsellio_ai_current_task"] = "blog_bot";
     $raw = upsellio_anthropic_crm_send_user_prompt($full_prompt, $max_out, $api_timeout, $model, $cache_split);
     if ($raw === null) {
