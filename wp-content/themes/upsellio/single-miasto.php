@@ -16,21 +16,22 @@ while (have_posts()) :
     $voivodeship = is_array($cityDatasetItem) && !empty($cityDatasetItem["voivodeship"])
         ? $cityDatasetItem["voivodeship"]
         : (get_post_meta($postId, "_upsellio_city_voivodeship", true) ?: "polska");
-    $marketAngle = is_array($cityDatasetItem) && !empty($cityDatasetItem["market_angle"])
-        ? $cityDatasetItem["market_angle"]
-        : (get_post_meta($postId, "_upsellio_city_market_angle", true) ?: "lokalne firmy");
-    $serviceFocus = is_array($cityDatasetItem) && !empty($cityDatasetItem["service_focus"])
-        ? $cityDatasetItem["service_focus"]
-        : (get_post_meta($postId, "_upsellio_city_service_focus", true) ?: "marketing i strony WWW");
-    $localChallenge = is_array($cityDatasetItem) && !empty($cityDatasetItem["local_challenge"])
-        ? $cityDatasetItem["local_challenge"]
-        : (get_post_meta($postId, "_upsellio_city_local_challenge", true) ?: "niska jakość leadów z kampanii");
-    $localAdvantage = is_array($cityDatasetItem) && !empty($cityDatasetItem["local_advantage"])
-        ? $cityDatasetItem["local_advantage"]
-        : (get_post_meta($postId, "_upsellio_city_local_advantage", true) ?: "stabilny popyt lokalny");
-    $seasonalityAngle = is_array($cityDatasetItem) && !empty($cityDatasetItem["seasonality_angle"])
-        ? $cityDatasetItem["seasonality_angle"]
-        : (get_post_meta($postId, "_upsellio_city_seasonality_angle", true) ?: "stabilny popyt przez cały rok");
+    /* Meta z AI / edytora ma pierwszeństwo — dataset PHP to tylko fallback dla miast bez zapisanych pól. */
+    $marketAngle = (string) get_post_meta($postId, "_upsellio_city_market_angle", true)
+        ?: (is_array($cityDatasetItem) ? (string) ($cityDatasetItem["market_angle"] ?? "") : "")
+        ?: "lokalne firmy";
+    $serviceFocus = (string) get_post_meta($postId, "_upsellio_city_service_focus", true)
+        ?: (is_array($cityDatasetItem) ? (string) ($cityDatasetItem["service_focus"] ?? "") : "")
+        ?: "marketing i strony WWW";
+    $localChallenge = (string) get_post_meta($postId, "_upsellio_city_local_challenge", true)
+        ?: (is_array($cityDatasetItem) ? (string) ($cityDatasetItem["local_challenge"] ?? "") : "")
+        ?: "niska jakość leadów z kampanii";
+    $localAdvantage = (string) get_post_meta($postId, "_upsellio_city_local_advantage", true)
+        ?: (is_array($cityDatasetItem) ? (string) ($cityDatasetItem["local_advantage"] ?? "") : "")
+        ?: "stabilny popyt lokalny";
+    $seasonalityAngle = (string) get_post_meta($postId, "_upsellio_city_seasonality_angle", true)
+        ?: (is_array($cityDatasetItem) ? (string) ($cityDatasetItem["seasonality_angle"] ?? "") : "")
+        ?: "stabilny popyt przez cały rok";
     $cta = get_post_meta($postId, "_upsellio_city_cta", true);
     $faq = get_post_meta($postId, "_upsellio_city_faq", true);
     if (!is_array($faq)) {
