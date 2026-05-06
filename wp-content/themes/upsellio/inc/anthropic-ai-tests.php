@@ -87,6 +87,7 @@ function upsellio_ai_test_group_api(): array {
 
     // 4. Żywy ping do API
     if ($key !== '') {
+        $GLOBALS["upsellio_ai_current_task"] = "ai_tests";
         $ping = wp_remote_post('https://api.anthropic.com/v1/messages', [
             'timeout' => 18,
             'headers' => [
@@ -435,17 +436,15 @@ function upsellio_ai_test_group_crm(): array {
 }
 
 // ─────────────────────────────────────────────
-// RĘCZNE URUCHOMIENIE BLOG BOTA (WP-Cron — poza limitem HTTP)
+// RĘCZNE URUCHOMIENIE BLOG BOTA (fastcgi_finish_request — bez loopback cron)
 // ─────────────────────────────────────────────
 
 /**
- * Kolejkuje jednorazowe uruchomienie Blog Bota przez WP-Cron (osobny proces PHP).
- * Na hostingach z zablokowanym set_time_limit / krótkim max_execution_time synchroniczne
- * wywołanie API w AJAX kończy się timeoutem — cron omija limit żądania HTTP.
+ * Przygotowuje meta pollingu przed generowaniem (before_id, czas startu).
  *
  * @return array{ok: bool, keyword?: string, message: string}
  */
-function upsellio_blog_bot_queue_manual_run(): array
+function upsellio_blog_bot_prepare_manual_run(): array
 {
     if (!function_exists("upsellio_blog_bot_peek_keyword")) {
         return [
@@ -467,9 +466,6 @@ function upsellio_blog_bot_queue_manual_run(): array
     update_option("ups_blog_bot_manual_run_started_at", time(), false);
     delete_option("ups_blog_bot_last_error");
 
-    wp_schedule_single_event(time() + 5, "upsellio_blog_bot_manual_trigger");
-    spawn_cron();
-
     return [
         "ok" => true,
         "keyword" => $keyword,
@@ -477,13 +473,67 @@ function upsellio_blog_bot_queue_manual_run(): array
     ];
 }
 
-add_action("upsellio_blog_bot_manual_trigger", static function (): void {
+/**
+ * Wysyła natychmiast odpowiedź JSON (jak wp_send_json_success), zamyka połączenie HTTP (PHP-FPM:
+ * fastcgi_finish_request), po czym kontynuuje upsellio_blog_bot_generate_and_save() w tym samym procesie.
+ * Bufory wyjściowe WordPressa są czyszczone przed echo — inaczej JSON ginie albo po nim dokleja się śmieć.
+ * Kończy przez exit(0), nie wp_die() — WP przy AJAX potrafi dopisać „0” po odpowiedzi (parse error w fetch).
+ *
+ * @param array<string, mixed> $data Pole "data" w odpowiedzi AJAX.
+ */
+function upsellio_blog_bot_flush_ajax_success_and_run_generate(array $data): void
+{
+    $payload = wp_json_encode(
+        ["success" => true, "data" => $data],
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+    );
+    if ($payload === false) {
+        $payload = '{"success":false,"data":{"message":"encode_error"}}';
+    }
+
+    if (!headers_sent()) {
+        header("Content-Type: application/json; charset=UTF-8");
+        header("Connection: close");
+    }
+
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    if (!headers_sent()) {
+        header("Content-Length: " . strlen((string) $payload));
+    }
+
+    echo $payload;
+
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
+
+    if (function_exists("fastcgi_finish_request")) {
+        fastcgi_finish_request();
+        ignore_user_abort(true);
+        if (function_exists("set_time_limit")) {
+            @set_time_limit(300);
+        }
+        if (function_exists("upsellio_blog_bot_generate_and_save")) {
+            upsellio_blog_bot_generate_and_save();
+        }
+        exit(0);
+    }
+
+    flush();
+    ignore_user_abort(true);
+    if (function_exists("set_time_limit")) {
+        @set_time_limit(300);
+    }
     if (function_exists("upsellio_blog_bot_generate_and_save")) {
         upsellio_blog_bot_generate_and_save();
     }
-});
+    exit(0);
+}
 
-// Krok 1: AJAX — zakolejkuj cron i odpowiedz natychmiast
+// Krok 1: AJAX — odpowiedź JSON od razu, generowanie w tle (FastCGI / flush)
 function upsellio_ai_tests_run_blog_bot_ajax(): void
 {
     if (!current_user_can("manage_options")) {
@@ -491,15 +541,15 @@ function upsellio_ai_tests_run_blog_bot_ajax(): void
     }
     check_ajax_referer("upsellio_ai_tests_nonce", "nonce");
 
-    $out = upsellio_blog_bot_queue_manual_run();
-    if (!$out["ok"]) {
-        wp_send_json_error(["message" => $out["message"]]);
+    $prep = upsellio_blog_bot_prepare_manual_run();
+    if (!$prep["ok"]) {
+        wp_send_json_error(["message" => $prep["message"]]);
     }
 
-    wp_send_json_success([
+    upsellio_blog_bot_flush_ajax_success_and_run_generate([
         "queued" => true,
-        "keyword" => $out["keyword"],
-        "message" => $out["message"],
+        "keyword" => $prep["keyword"],
+        "message" => $prep["message"],
     ]);
 }
 add_action("wp_ajax_upsellio_ai_tests_run_blog_bot", "upsellio_ai_tests_run_blog_bot_ajax");
@@ -529,7 +579,7 @@ function upsellio_ai_tests_blog_bot_poll_ajax(): void
         ]);
     }
 
-    if ($elapsed > 180) {
+    if ($elapsed > 300) {
         $diag = get_option("ups_blog_bot_last_error", null);
         $labels = [
             "disabled" => "Blog Bot wyłączony w ustawieniach",
@@ -541,7 +591,7 @@ function upsellio_ai_tests_blog_bot_poll_ajax(): void
             "wp_insert_failed" => "Błąd zapisu wpisu w WordPressie",
             "already_running" => "Bot już działał — poczekaj chwilę",
         ];
-        $msg = "Timeout — draft nie powstał po 3 minutach.";
+        $msg = "Timeout — draft nie powstał po 5 minutach.";
         if (is_array($diag) && !empty($diag["code"])) {
             $code = (string) $diag["code"];
             $msg = $labels[$code] ?? $code;
@@ -822,7 +872,7 @@ function upsellio_ai_tests_render_page(): void {
 
         function escH(str){ const d=document.createElement('div'); d.textContent=str||''; return d.innerHTML; }
 
-        // Blog Bot: kolejka WP-Cron + polling (ominie max_execution_time w AJAX)
+        // Blog Bot: fastcgi_finish_request + polling (bez loopback cron / spawn_cron)
         document.getElementById('ups-at-run-blogbot').addEventListener('click', function(){
             const btn     = this;
             const loading = document.getElementById('ups-at-blogbot-loading');
@@ -849,7 +899,7 @@ function upsellio_ai_tests_render_page(): void {
                     result.className = 'ups-at-blogbot-result';
                     loading.textContent = data.data.message + ' Sprawdzam co 8 sek…';
                     let attempts = 0;
-                    const maxAttempts = 23;
+                    const maxAttempts = 38; // ~5 min przy odpytywaniu co 8 s
                     const pollBody = new FormData();
                     pollBody.append('action', 'upsellio_ai_tests_blog_bot_poll');
                     pollBody.append('nonce', nonce);
