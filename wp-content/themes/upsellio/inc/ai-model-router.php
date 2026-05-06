@@ -11,7 +11,11 @@ if (!defined("ABSPATH")) {
  * Zadania: blog_post | offer_fill | inbox_draft | inbox_followup |
  *          lead_scoring | intent_classify | topic_generator |
  *          keyword_cluster | competitor_analysis | client_plan |
- *          suggestions | suggestions_clusters | blog_keyword_research | cpt_ai_optimize
+ *          suggestions | suggestions_clusters | blog_keyword_research |
+ *          cpt_ai_optimize | cpt_ai_optimize_fast | pre_call_brief |
+ *          weekly_brief | anomaly_explainer | page_perf_simple | page_perf_deep |
+ *          icp_refiner | form_ab_suggestor | contract_followup | sales_playbook |
+ *          ads_spend_reviewer | ad_copy_generator | cold_outreach | site_analytics_brief
  */
 function upsellio_ai_model_for(string $task): string
 {
@@ -54,18 +58,20 @@ function upsellio_ai_model_for(string $task): string
         "blog_keyword_research" => $haiku,
         "suggestions_clusters" => $haiku,
         "cpt_ai_optimize" => $sonnet,
-        "pre_call_brief" => $sonnet,
+        "cpt_ai_optimize_fast" => $haiku,
+        "pre_call_brief" => $haiku,
         "weekly_brief" => $sonnet,
         "anomaly_explainer" => $haiku,
         "page_perf_simple" => $haiku,
         "page_perf_deep" => $sonnet,
         "icp_refiner" => $sonnet,
-        "form_ab_suggestor" => $sonnet,
-        "contract_followup" => $sonnet,
+        "form_ab_suggestor" => $haiku,
+        "contract_followup" => $haiku,
         "sales_playbook" => $sonnet,
-        "ads_spend_reviewer" => $sonnet,
+        "ads_spend_reviewer" => $haiku,
         "ad_copy_generator" => $haiku,
         "cold_outreach" => $sonnet,
+        "site_analytics_brief" => $haiku,
     ];
 
     $model = $map[$task] ?? $haiku;
