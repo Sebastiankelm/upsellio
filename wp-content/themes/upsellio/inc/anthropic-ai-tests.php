@@ -436,7 +436,9 @@ function upsellio_ai_test_group_crm(): array {
 }
 
 // ─────────────────────────────────────────────
-// RĘCZNE URUCHOMIENIE BLOG BOTA (fastcgi_finish_request — bez loopback cron)
+// RĘCZNE URUCHOMIENIE BLOG BOTA
+// Domyślnie: wp_remote_post(non-blocking) → REST POST /upsellio/v1/blog-bot-run (nowy proces PHP, własny limit czasu).
+// Fallback bez sekretu REST: fastcgi_flush + ten sam proces (ograniczenia max_execution_time na hostingu).
 // ─────────────────────────────────────────────
 
 /**
@@ -484,6 +486,8 @@ function upsellio_blog_bot_prepare_manual_run(): array
  * Bez Content-Length klient czyta body do końca połączenia.
  *
  * Kończy przez exit(0), nie wp_die() — WP przy AJAX potrafi dopisać „0” po odpowiedzi (JS: upsParseAjaxJson).
+ *
+ * Używane wyłącznie gdy brak ups_followup_inbound_secret — wtedy nie da się wywołać osobnego REST.
  *
  * @param array<string, mixed> $data Pole "data" w odpowiedzi AJAX.
  */
@@ -537,7 +541,42 @@ function upsellio_blog_bot_flush_ajax_success_and_run_generate(array $data): voi
     exit(0);
 }
 
-// Krok 1: AJAX — odpowiedź JSON od razu, generowanie w tle (FastCGI / flush)
+/**
+ * REST: osobny request HTTP = osobny proces PHP (shared hosting — własny licznik max_execution_time).
+ */
+function upsellio_ai_tests_rest_blog_bot_permission(\WP_REST_Request $req): bool
+{
+    $secret = (string) get_option("ups_followup_inbound_secret", "");
+    $token  = (string) $req->get_header("x-upsellio-secret");
+
+    return $secret !== "" && hash_equals($secret, $token);
+}
+
+/**
+ * @return \WP_REST_Response
+ */
+function upsellio_ai_tests_rest_blog_bot_run(\WP_REST_Request $req)
+{
+    if (function_exists("set_time_limit")) {
+        @set_time_limit(300);
+    }
+    ignore_user_abort(true);
+    if (function_exists("upsellio_blog_bot_generate_and_save")) {
+        upsellio_blog_bot_generate_and_save();
+    }
+
+    return new \WP_REST_Response(["ok" => true], 200);
+}
+
+add_action("rest_api_init", function (): void {
+    register_rest_route("upsellio/v1", "/blog-bot-run", [
+        "methods"             => "POST",
+        "permission_callback" => "upsellio_ai_tests_rest_blog_bot_permission",
+        "callback"            => "upsellio_ai_tests_rest_blog_bot_run",
+    ]);
+});
+
+// Krok 1: AJAX — natychmiast JSON; generowanie w osobnym procesie (REST) albo fallback flush
 function upsellio_ai_tests_run_blog_bot_ajax(): void
 {
     if (!current_user_can("manage_options")) {
@@ -550,8 +589,35 @@ function upsellio_ai_tests_run_blog_bot_ajax(): void
         wp_send_json_error(["message" => $prep["message"]]);
     }
 
+    $secret = (string) get_option("ups_followup_inbound_secret", "");
+    if ($secret !== "") {
+        $loopback_url = rest_url("upsellio/v1/blog-bot-run");
+        $sslverify = (bool) apply_filters("upsellio_ai_tests_blog_bot_loopback_sslverify", false);
+        wp_remote_post(
+            $loopback_url,
+            [
+                "timeout"   => 1,
+                "blocking"  => false,
+                "sslverify" => $sslverify,
+                "headers"   => [
+                    "x-upsellio-secret" => $secret,
+                    "Content-Type"      => "application/json",
+                ],
+                "body"      => "{}",
+                "cookies"   => [],
+            ]
+        );
+        wp_send_json_success([
+            "queued"  => true,
+            "keyword" => $prep["keyword"],
+            "message" => $prep["message"],
+        ]);
+
+        return;
+    }
+
     upsellio_blog_bot_flush_ajax_success_and_run_generate([
-        "queued" => true,
+        "queued"  => true,
         "keyword" => $prep["keyword"],
         "message" => $prep["message"],
     ]);
