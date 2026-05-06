@@ -330,7 +330,7 @@ function upsellio_get_theme_config_defaults()
         "footer_sections" => [
             "brand" => [
                 "description" => "Marketing i sprzedaż dla firm, które chcą realnych klientów - nie wykresów na slajdach. Pracuję z producentami, dystrybutorami i firmami usługowymi z całej Polski.",
-                "address" => "wierzbowa 21A/2, Dopiewiec",
+                "address" => "Wierzbowa 21A/2, Dopiewiec",
             ],
             "sections" => [
                 [

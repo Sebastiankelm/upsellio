@@ -1016,7 +1016,7 @@ function upsellio_render_unified_footer($args = [])
     if ($brand_description === "") {
         $brand_description = "Marketing i sprzedaż dla firm, które chcą realnych klientów - nie wykresów na slajdach. Pracuję z producentami, dystrybutorami i firmami usługowymi z całej Polski.";
     }
-    $brand_address = trim((string) ($brand_config["address"] ?? "wierzbowa 21A/2, Dopiewiec"));
+    $brand_address = trim((string) ($brand_config["address"] ?? "Wierzbowa 21A/2, Dopiewiec"));
 
     $normalized_sections = [];
     foreach ($section_config as $section_item) {
