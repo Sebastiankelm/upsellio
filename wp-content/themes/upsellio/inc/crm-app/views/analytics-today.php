@@ -4,47 +4,107 @@ if (!defined("ABSPATH")) {
 }
 $today_brief = (string) get_option("ups_ai_today_brief", "Kliknij Odśwież aby wygenerować.");
 $anomalies = (array) get_option("ups_ai_anomaly_explanations", []);
+
+// Indeksacja — summary
+$idx_summary = (array) get_option("ups_gsc_indexation_summary", []);
+$idx_submitted = (int) ($idx_summary["submitted"] ?? 0);
+$idx_indexed = (int) ($idx_summary["indexed"] ?? 0);
+$idx_ratio = $idx_submitted > 0 ? (int) round($idx_indexed / $idx_submitted * 100) : 0;
+$idx_problems = count(array_filter(
+    (array) get_option("ups_gsc_indexation_pages", []),
+    static function ($r) {
+        return is_array($r) && (string) ($r["verdict"] ?? "") !== "PASS" && (string) ($r["verdict"] ?? "") !== "";
+    }
+));
+$idx_last = (string) get_option("ups_gsc_indexation_last_sync", "");
+$idx_color = $idx_ratio >= 90 ? "var(--success)" : ($idx_ratio >= 70 ? "var(--warn)" : "var(--danger)");
+
+// Keyword summary
+$kw_raw = (array) get_option("upsellio_keyword_metrics_rows", []);
+$kw_best = [];
+foreach ($kw_raw as $r) {
+    if (!is_array($r)) {
+        continue;
+    }
+    $k = strtolower(trim((string) ($r["keyword"] ?? "")));
+    $u = (string) ($r["url"] ?? "");
+    if ($k === "" || $u === "") {
+        continue;
+    }
+    $key = $k . "|" . $u;
+    $pos = (float) ($r["position"] ?? 99);
+    if (!isset($kw_best[$key]) || $pos < $kw_best[$key]) {
+        $kw_best[$key] = $pos;
+    }
+}
+$kw_total = count($kw_best);
+$kw_top3 = count(array_filter($kw_best, static function ($p) {
+    return $p <= 3;
+}));
+$kw_top10 = count(array_filter($kw_best, static function ($p) {
+    return $p <= 10;
+}));
 ?>
 <section class="card">
-  <h3>Dziś</h3>
-  <div class="crm-brief-card" style="margin-bottom:12px">
+  <h3 style="margin:0 0 14px">Dziś</h3>
+
+  <!-- AI brief -->
+  <div class="crm-brief-card" style="margin-bottom:14px">
     <div class="crm-brief-badge"><i class="ti ti-sparkles" aria-hidden="true"></i>AI Podsumowanie dnia</div>
     <div class="crm-brief-title" id="crm-today-brief-text"><?php echo esc_html($today_brief); ?></div>
     <div class="crm-brief-actions">
-      <button class="crm-brief-btn white" type="button" onclick="crmRefreshTodayBrief()"><i class="ti ti-refresh" aria-hidden="true"></i>Odśwież brief</button>
-      <button class="crm-brief-btn ghost" type="button" onclick="crmAI('Co powinienem zrobić teraz na podstawie danych z dziś CRM Upsellio')"><i class="ti ti-list-check" aria-hidden="true"></i>Co zrobić teraz</button>
+      <button class="crm-brief-btn white" type="button" onclick="crmRefreshTodayBrief()">
+        <i class="ti ti-refresh" aria-hidden="true"></i>Odśwież brief
+      </button>
+      <button class="crm-brief-btn ghost" type="button"
+              onclick="crmAI('Co powinienem zrobić teraz na podstawie danych z dziś CRM Upsellio')">
+        <i class="ti ti-list-check" aria-hidden="true"></i>Co zrobić teraz
+      </button>
     </div>
   </div>
-  <h4>Top 3 hot leady</h4>
+
+  <!-- Hot leady -->
+  <h4 style="margin:0 0 8px;font-size:13px">Top 3 hot leady</h4>
   <?php
-  $hot_leads = get_posts([
-      "post_type" => "lead",
-      "posts_per_page" => 3,
-      "meta_query" => [["key" => "_upsellio_lead_score", "value" => 60, "compare" => ">="]],
-      "orderby" => "meta_value_num",
-      "meta_key" => "_upsellio_lead_score",
-      "order" => "DESC",
-  ]);
-  if (empty($hot_leads)) {
-      echo '<p class="muted">Brak leadów ze score ≥60.</p>';
-  } else {
-      echo "<ul>";
-      foreach ($hot_leads as $lead) {
-          $score = (int) get_post_meta((int) $lead->ID, "_upsellio_lead_score", true);
-          echo "<li>" . esc_html(get_the_title((int) $lead->ID)) . " — " . esc_html((string) $score) . "/100</li>";
-      }
-      echo "</ul>";
-  }
-  ?>
-  <h4>Anomalie</h4>
-  <?php if (empty($anomalies)) : ?>
-    <p class="muted">Brak danych — włącz sync i poczekaj na cron.</p>
+    $hot_leads = get_posts([
+        "post_type" => "lead",
+        "posts_per_page" => 3,
+        "meta_query" => [["key" => "_upsellio_lead_score", "value" => 60, "compare" => ">="]],
+        "orderby" => "meta_value_num",
+        "meta_key" => "_upsellio_lead_score",
+        "order" => "DESC",
+    ]);
+    if (empty($hot_leads)) :
+        ?>
+    <p class="muted" style="margin:0 0 14px">Brak leadów ze score ≥60.</p>
   <?php else : ?>
-    <?php foreach (array_slice(array_values($anomalies), 0, 5) as $a) : ?>
-      <?php if (!is_array($a)) { continue; } ?>
+    <ul style="margin:0 0 14px;padding-left:16px">
+      <?php foreach ($hot_leads as $lead) :
+          $score = (int) get_post_meta((int) $lead->ID, "_upsellio_lead_score", true);
+          $url = add_query_arg(["view" => "leads", "lead_id" => $lead->ID], home_url("/crm-app/"));
+          ?>
+      <li style="font-size:13px;margin-bottom:4px">
+        <a href="<?php echo esc_url($url); ?>" style="color:var(--teal);font-weight:600">
+          <?php echo esc_html(get_the_title((int) $lead->ID)); ?>
+        </a>
+        <span style="color:var(--text-3)"> — <?php echo esc_html((string) $score); ?>/100</span>
+      </li>
+      <?php endforeach; ?>
+    </ul>
+  <?php endif; ?>
+
+  <!-- Anomalie -->
+  <h4 style="margin:0 0 8px;font-size:13px">Anomalie</h4>
+  <?php if (empty($anomalies)) : ?>
+    <p class="muted" style="margin:0 0 14px">Brak danych — włącz sync i poczekaj na cron.</p>
+  <?php else : ?>
+    <?php foreach (array_slice(array_values($anomalies), 0, 4) as $a) : ?>
+      <?php if (!is_array($a)) {
+          continue;
+      } ?>
       <?php $pct = (float) ($a["pct"] ?? 0); ?>
       <?php $cls = $pct >= 10 ? "gr" : ($pct <= -10 ? "rd" : "am"); ?>
-      <div class="crm-anomaly-row">
+      <div class="crm-anomaly-row" style="margin-bottom:8px">
         <div class="crm-an-indicator <?php echo esc_attr($cls); ?>"></div>
         <div class="crm-an-body">
           <div class="crm-an-channel"><?php echo esc_html((string) ($a["channel"] ?? "")); ?></div>
@@ -54,9 +114,59 @@ $anomalies = (array) get_option("ups_ai_anomaly_explanations", []);
         </div>
       </div>
     <?php endforeach; ?>
+    <div style="margin-bottom:14px"></div>
   <?php endif; ?>
 
-  <?php if (function_exists("upsellio_render_gsc_indexation_teaser")) : ?>
-    <?php upsellio_render_gsc_indexation_teaser(); ?>
+  <!-- Indeksacja GSC -->
+  <h4 style="margin:0 0 8px;font-size:13px">Indeksacja Google (GSC)</h4>
+  <?php if ($idx_submitted === 0) : ?>
+    <p class="muted" style="margin:0 0 14px">Brak zagregowanych danych z Search Console (sitemap). Po pierwszym cronie lub po odświeżeniu w zakładce SEO pojawią się liczniki.</p>
+  <?php else : ?>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <?php
+        $today_idx_kpis = [
+            [$idx_indexed . " / " . $idx_submitted, "Zaindeksowanych", $idx_color],
+            [$idx_ratio . "%", "Wskaźnik", $idx_color],
+            [$idx_problems > 0 ? "⚠ " . $idx_problems : "✓ 0", "Problemy", $idx_problems > 0 ? "var(--danger)" : "var(--success)"],
+        ];
+        foreach ($today_idx_kpis as $tk) :
+            list($val, $lbl, $col) = $tk;
+            ?>
+      <div style="background:var(--bg);border-radius:var(--r-sm);padding:8px;text-align:center">
+        <div style="font-size:15px;font-weight:800;color:<?php echo esc_attr($col); ?>"><?php echo esc_html($val); ?></div>
+        <div style="font-size:10px;color:var(--text-3);margin-top:2px"><?php echo esc_html($lbl); ?></div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <div style="background:var(--border);border-radius:999px;height:6px;margin-bottom:14px">
+      <div style="background:<?php echo esc_attr($idx_color); ?>;border-radius:999px;height:6px;width:<?php echo esc_attr((string) $idx_ratio); ?>%"></div>
+    </div>
   <?php endif; ?>
+
+  <!-- Widoczność keywords -->
+  <h4 style="margin:0 0 8px;font-size:13px">Widoczność GSC</h4>
+  <?php if ($kw_total === 0) : ?>
+    <p class="muted" style="margin:0">Brak danych keywordów — podłącz GSC OAuth lub wgraj CSV.</p>
+  <?php else : ?>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      <?php
+        $today_kw_kpis = [
+            [number_format($kw_total), "Wszystkich fraz", "var(--text-main)"],
+            [number_format($kw_top3), "W TOP 3", "#15803d"],
+            [number_format($kw_top10), "W TOP 10", "#0369a1"],
+        ];
+        foreach ($today_kw_kpis as $tk) :
+            list($val, $lbl, $col) = $tk;
+            ?>
+      <div style="background:var(--bg);border-radius:var(--r-sm);padding:8px;text-align:center">
+        <div style="font-size:15px;font-weight:800;color:<?php echo esc_attr($col); ?>"><?php echo esc_html($val); ?></div>
+        <div style="font-size:10px;color:var(--text-3);margin-top:2px"><?php echo esc_html($lbl); ?></div>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <p style="margin:6px 0 0;font-size:11px;color:var(--text-3)">
+      Szczegóły → <a href="<?php echo esc_url(add_query_arg(["view" => "analytics", "atab" => "seo"], home_url("/crm-app/"))); ?>" style="color:var(--teal)">zakładka SEO</a>
+    </p>
+  <?php endif; ?>
+
 </section>
