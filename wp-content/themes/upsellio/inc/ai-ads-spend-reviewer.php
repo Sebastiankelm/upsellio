@@ -17,6 +17,9 @@ function upsellio_ai_join_ads_with_leads(array $campaigns): array
             "meta_query" => [["key" => "_upsellio_lead_utm_campaign", "value" => $cname]],
             "fields" => "ids",
         ]);
+        if (!empty($leads)) {
+            update_meta_cache("post", $leads);
+        }
         $won = 0;
         $value = 0.0;
         foreach ($leads as $lid) {

@@ -1749,3 +1749,147 @@ textarea#inbox-compose-body:focus {
     display: none;
   }
 }
+
+/* Inbox v3 simplification */
+.crm-inbox-kpi-row,
+.crm-inbox-ai-signals,
+.crm-inbox-rail,
+.crm-inbox-folder-section,
+.crm-inbox-group-toggle,
+.crm-inbox-bulk-bar,
+.inbox-bulk-cb,
+.inbox-drag-handle,
+.crm-inbox-pin-btn,
+.crm-inbox-quick-reply,
+.crm-inbox-thread-quick-actions {
+  display: none !important;
+}
+
+.crm-inbox-shell {
+  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-rows: 1fr;
+  height: calc(100vh - 120px);
+}
+
+.crm-inbox-topbar {
+  display: none;
+}
+
+.crm-inbox-thread-column {
+  grid-column: 1;
+  grid-row: 1;
+  border-right: 1px solid var(--border);
+  background: #fff;
+}
+
+.crm-inbox-column-head {
+  padding: 10px 12px;
+}
+
+.crm-inbox-column-head h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.crm-inbox-filters {
+  padding-top: 0;
+}
+
+.crm-inbox-detail {
+  grid-column: 2;
+  grid-row: 1;
+  background: var(--bg-main, #f2faf8);
+}
+
+/* New inbox spec uses context bar in detail, not old right rail */
+.crm-inbox-side {
+  display: none !important;
+}
+
+.crm-inbox-thread-card {
+  background: #fff;
+}
+
+.crm-inbox-thread-card.is-active {
+  background: #e6f9f6;
+  box-shadow: inset 2px 0 0 #0abfa3;
+}
+
+.crm-inbox-thread-badges .pill:nth-child(n+4) {
+  display: none !important;
+}
+
+.crm-inbox-conv-actions > *:nth-child(n+4) {
+  display: none !important;
+}
+
+.crm-inbox-compose .crm-inbox-compose-body {
+  display: block !important;
+  padding-top: 10px;
+}
+
+.crm-inb-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.crm-inb-indicator {
+  width: 4px;
+  border-radius: 999px;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.crm-inb-indicator.reply {
+  background: #ef4444;
+}
+
+.crm-inb-indicator.unread {
+  background: #0abfa3;
+}
+
+.crm-inb-ctab {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.crm-inb-ctab.is-on {
+  background: #0abfa3;
+  color: #fff;
+  border-color: #0abfa3;
+}
+
+/* Fix advanced options layout in compose panel */
+.crm-inbox-compose-advanced-body > label {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  cursor: pointer;
+}
+
+.crm-inbox-compose-advanced-body input[type="checkbox"] {
+  width: auto !important;
+  min-width: 14px;
+  height: 14px;
+  margin: 2px 0 0 0 !important;
+  padding: 0 !important;
+  flex: 0 0 auto;
+}
+
+.crm-inbox-compose-advanced-body label[for="inbox-reply-bcc"] {
+  display: block !important;
+  width: 100%;
+}
+
+.crm-inbox-compose-advanced-body #inbox-reply-bcc {
+  width: 100%;
+  box-sizing: border-box;
+}

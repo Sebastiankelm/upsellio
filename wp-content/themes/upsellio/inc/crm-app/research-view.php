@@ -351,7 +351,7 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                   if (kwError) kwError.style.display = "none";
                   setLoading(kwBtn, true);
                   var geoEl = document.getElementById("kw-geo");
-                  post("upsellio_keyword_research", {
+                  post("upsellio_kw_research", {
                     seeds: JSON.stringify(seedArr),
                     force_refresh: document.getElementById("kw-force-refresh") && document.getElementById("kw-force-refresh").checked ? "1" : "",
                     geo: geoEl ? geoEl.value : "2616"
@@ -392,7 +392,7 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                 kwCluster.addEventListener("click", function () {
                   if (!kwData.length) return;
                   setLoading(kwCluster, true);
-                  post("upsellio_keyword_ai_cluster", { keywords: JSON.stringify(kwData) }).then(function (j) {
+                  post("upsellio_kw_cluster_ai", { keywords: JSON.stringify(kwData) }).then(function (j) {
                     setLoading(kwCluster, false);
                     if (!j.success) {
                       showKwStatus(kwError, wpAjaxMessage(j), true);

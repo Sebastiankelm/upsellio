@@ -56,7 +56,7 @@ function upsellio_ai_model_for(string $task): string
         "cpt_ai_optimize" => $sonnet,
         "pre_call_brief" => $sonnet,
         "weekly_brief" => $sonnet,
-        "anomaly_explainer" => $sonnet,
+        "anomaly_explainer" => $haiku,
         "page_perf_simple" => $haiku,
         "page_perf_deep" => $sonnet,
         "icp_refiner" => $sonnet,
@@ -64,7 +64,7 @@ function upsellio_ai_model_for(string $task): string
         "contract_followup" => $sonnet,
         "sales_playbook" => $sonnet,
         "ads_spend_reviewer" => $sonnet,
-        "ad_copy_generator" => $sonnet,
+        "ad_copy_generator" => $haiku,
         "cold_outreach" => $sonnet,
     ];
 

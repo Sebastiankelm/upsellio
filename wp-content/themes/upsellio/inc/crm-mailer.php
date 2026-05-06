@@ -97,11 +97,33 @@ function upsellio_email_log(string $to, string $subject, string $type, bool $sen
         "type" => $type,
         "sent" => $sent,
     ]);
-    if (count($log) > 500) {
-        $log = array_slice($log, 0, 500);
+    if (count($log) > 1000) {
+        $log = array_slice($log, 0, 1000);
     }
     update_option("ups_crm_email_log", $log, false);
 }
+
+add_action("upsellio_email_log_prune", function () {
+    $log = (array) get_option("ups_crm_email_log", []);
+    $cutoff = strtotime("-90 days");
+    $log = array_values(array_filter($log, static function ($entry) use ($cutoff) {
+        if (!is_array($entry)) {
+            return false;
+        }
+        $ts = strtotime((string) ($entry["ts"] ?? ""));
+        return $ts !== false && $ts >= $cutoff;
+    }));
+    if (count($log) > 1000) {
+        $log = array_slice($log, -1000);
+    }
+    update_option("ups_crm_email_log", $log, false);
+});
+
+add_action("init", function () {
+    if (!wp_next_scheduled("upsellio_email_log_prune")) {
+        wp_schedule_event(time() + DAY_IN_SECONDS, "daily", "upsellio_email_log_prune");
+    }
+}, 30);
 
 add_action("admin_menu", function () {
     add_submenu_page(

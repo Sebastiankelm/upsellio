@@ -78,8 +78,8 @@ function upsellio_ai_record_usage(string $model, array $usage, string $task): vo
         "cache" => $cache_in,
         "pln" => round($cost_pln, 4),
     ]);
-    if (count($log) > 200) {
-        $log = array_slice($log, 0, 200);
+    if (count($log) > 1000) {
+        $log = array_slice($log, 0, 1000);
     }
     update_option("ups_ai_spend_log", $log, false);
 }
@@ -119,3 +119,57 @@ function upsellio_ai_can_call(string $task, float $estimated_pln = 0.20): bool
 
     return true;
 }
+
+function upsellio_ai_can_call_strict_global(string $task, float $estimated_pln = 0.20): bool
+{
+    if (!upsellio_ai_can_call($task, $estimated_pln)) {
+        return false;
+    }
+
+    $today = current_time("Y-m-d");
+    $today_key = "ups_ai_anon_calls_" . $today;
+    $daily_calls = (int) get_transient($today_key);
+    if ($daily_calls >= 100) {
+        return false;
+    }
+
+    set_transient($today_key, $daily_calls + 1, DAY_IN_SECONDS);
+    return true;
+}
+
+function upsellio_prune_option_log_by_ts(string $option_name, int $max_items = 1000, string $time_key = "ts"): void
+{
+    $rows = get_option($option_name, []);
+    if (!is_array($rows)) {
+        return;
+    }
+    $cutoff = strtotime("-90 days");
+    $filtered = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $ts_raw = (string) ($row[$time_key] ?? "");
+        $ts = strtotime($ts_raw);
+        if ($ts !== false && $ts >= $cutoff) {
+            $filtered[] = $row;
+        }
+    }
+    if (count($filtered) > $max_items) {
+        $filtered = array_slice($filtered, -$max_items);
+    }
+    update_option($option_name, array_values($filtered), false);
+}
+
+add_action("upsellio_log_prune_daily", function () {
+    if (function_exists("upsellio_prune_option_log_by_ts")) {
+        upsellio_prune_option_log_by_ts("ups_ai_spend_log", 1000, "ts");
+        upsellio_prune_option_log_by_ts("ups_ai_anomaly_explanations", 1000, "detected_at");
+    }
+});
+
+add_action("init", function () {
+    if (!wp_next_scheduled("upsellio_log_prune_daily")) {
+        wp_schedule_event(time() + DAY_IN_SECONDS, "daily", "upsellio_log_prune_daily");
+    }
+}, 30);

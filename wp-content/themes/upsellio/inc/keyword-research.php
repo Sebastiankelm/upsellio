@@ -75,6 +75,7 @@ function upsellio_keyword_planner_get_ideas(
 
     $response = wp_remote_post($url, [
         "timeout" => 35,
+        "sslverify" => true,
         "headers" => array_merge(
             upsellio_google_ads_request_headers((string) $token),
             ["Content-Type" => "application/json"]

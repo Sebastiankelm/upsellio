@@ -46,6 +46,9 @@ function upsellio_ai_generate_precall_brief(int $lead_id): ?string
     if ($existing && (time() - $existing_at) < DAY_IN_SECONDS) {
         return (string) $existing;
     }
+    if (function_exists("upsellio_ai_can_call_strict_global") && !upsellio_ai_can_call_strict_global("pre_call_brief", 0.10)) {
+        return null;
+    }
     if (function_exists("upsellio_ai_can_call") && !upsellio_ai_can_call("pre_call_brief", 0.10)) {
         return null;
     }

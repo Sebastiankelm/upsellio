@@ -710,15 +710,36 @@
 
   const skipAnalytics = Boolean(window.upsellioData && window.upsellioData.skipAnalytics);
 
+  function upsellioHashPII(value) {
+    const input = String(value || "").trim().toLowerCase();
+    if (!input) return "";
+    let hash = 5381;
+    for (let i = 0; i < input.length; i += 1) hash = (hash * 33) ^ input.charCodeAt(i);
+    return "h_" + (hash >>> 0).toString(16);
+  }
+
+  function sanitizeDataLayerPayload(payload) {
+    if (!payload || typeof payload !== "object") return {};
+    const clean = { ...payload };
+    ["email", "lead_email", "user_email", "phone", "lead_phone", "user_phone"].forEach((key) => {
+      if (!clean[key]) return;
+      const hashedKey = key.indexOf("phone") !== -1 ? "phone_hash" : "email_hash";
+      clean[hashedKey] = upsellioHashPII(clean[key]);
+      delete clean[key];
+    });
+    return clean;
+  }
+
   function pushDataLayerEvent(eventName, payload = {}) {
     if (skipAnalytics) return;
     window.dataLayer = window.dataLayer || [];
+    const safePayload = sanitizeDataLayerPayload(payload);
     window.dataLayer.push({
       event: eventName,
       page_location: window.location.href,
       page_path: window.location.pathname,
       page_title: document.title,
-      ...payload,
+      ...safePayload,
     });
   }
 

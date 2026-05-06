@@ -1190,6 +1190,20 @@ function upsellio_crm_app_handle_post_actions()
                     update_option("ups_prospect_body_step_" . $i, sanitize_textarea_field(wp_unslash($_POST["ups_prospect_body_step_" . $i])));
                 }
             }
+            if ($is_admin) {
+                if (isset($_POST["ups_audit_default_compare_window"])) {
+                    update_option("ups_audit_default_compare_window", max(7, min(365, (int) wp_unslash($_POST["ups_audit_default_compare_window"]))));
+                }
+                if (isset($_POST["ups_audit_pdf_brand_color"])) {
+                    update_option("ups_audit_pdf_brand_color", sanitize_text_field(wp_unslash($_POST["ups_audit_pdf_brand_color"])));
+                }
+                if (isset($_POST["ups_audit_anthropic_model_reports"])) {
+                    update_option("ups_audit_anthropic_model_reports", sanitize_text_field(wp_unslash($_POST["ups_audit_anthropic_model_reports"])));
+                }
+                if (isset($_POST["ups_audit_anthropic_model_audits"])) {
+                    update_option("ups_audit_anthropic_model_audits", sanitize_text_field(wp_unslash($_POST["ups_audit_anthropic_model_audits"])));
+                }
+            }
         }
     }
     $redirect_view = isset($_POST["crm_view"]) ? sanitize_key(wp_unslash($_POST["crm_view"])) : "dashboard";
@@ -2180,3 +2194,69 @@ function upsellio_gsc_refresh_analysis_ajax(): void
     ]);
 }
 add_action("wp_ajax_upsellio_gsc_refresh_analysis", "upsellio_gsc_refresh_analysis_ajax");
+
+function upsellio_ai_today_brief_ajax(): void
+{
+    if (!upsellio_suggestions_ajax_gate()) {
+        return;
+    }
+    $scores = (array) get_option("ups_automation_channel_quality_scores", []);
+    $campaigns = (array) get_option("ups_ads_campaigns_data", []);
+    $anomalies = (array) get_option("ups_ai_anomaly_explanations", []);
+    $top_channel = "";
+    if (!empty($scores) && is_array($scores[0] ?? null)) {
+        $top = (array) $scores[0];
+        $top_channel = trim((string) ($top["source"] ?? "") . " / " . (string) ($top["campaign"] ?? ""));
+    }
+    $campaign_count = is_array($campaigns) ? count($campaigns) : 0;
+    $anom_count = is_array($anomalies) ? count($anomalies) : 0;
+    $brief = sprintf(
+        "Dziś: %s, kampanie Ads: %d, anomalie do sprawdzenia: %d. Priorytet: follow-up hot leadów i kontrola ROAS.",
+        $top_channel !== "" ? $top_channel : "brak dominującego kanału",
+        (int) $campaign_count,
+        (int) $anom_count
+    );
+    update_option("ups_ai_today_brief", $brief, false);
+    wp_send_json_success(["brief" => $brief]);
+}
+add_action("wp_ajax_upsellio_ai_today_brief", "upsellio_ai_today_brief_ajax");
+
+function upsellio_ai_refresh_weekly_brief_ajax(): void
+{
+    if (!upsellio_suggestions_ajax_gate()) {
+        return;
+    }
+    if (function_exists("upsellio_ai_generate_weekly_brief")) {
+        $generated = (string) upsellio_ai_generate_weekly_brief();
+        wp_send_json_success(["brief" => $generated]);
+    }
+    $weekly = function_exists("upsellio_get_latest_weekly_brief") ? upsellio_get_latest_weekly_brief() : ["html" => "", "at" => 0];
+    wp_send_json_success(["brief" => (string) ($weekly["html"] ?? "")]);
+}
+add_action("wp_ajax_upsellio_ai_refresh_weekly_brief", "upsellio_ai_refresh_weekly_brief_ajax");
+
+function upsellio_blog_bot_add_keyword_ajax(): void
+{
+    upsellio_suggestions_queue_keyword_ajax();
+}
+add_action("wp_ajax_upsellio_blog_bot_add_keyword", "upsellio_blog_bot_add_keyword_ajax");
+
+function upsellio_kw_research_alias_ajax(): void
+{
+    if (function_exists("upsellio_ajax_keyword_research")) {
+        upsellio_ajax_keyword_research();
+        return;
+    }
+    wp_send_json_error(["message" => "missing_keyword_research"], 500);
+}
+add_action("wp_ajax_upsellio_kw_research", "upsellio_kw_research_alias_ajax");
+
+function upsellio_kw_cluster_ai_alias_ajax(): void
+{
+    if (function_exists("upsellio_ajax_keyword_ai_cluster")) {
+        upsellio_ajax_keyword_ai_cluster();
+        return;
+    }
+    wp_send_json_error(["message" => "missing_keyword_cluster"], 500);
+}
+add_action("wp_ajax_upsellio_kw_cluster_ai", "upsellio_kw_cluster_ai_alias_ajax");

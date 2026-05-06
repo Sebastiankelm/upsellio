@@ -22,6 +22,9 @@ function upsellio_inbox_sidebar_unread_total(): int
         ]],
     ]);
     $sum = 0;
+    if (!empty($ids)) {
+        update_meta_cache("post", array_map("intval", $ids));
+    }
     foreach ($ids as $cid) {
         $sum += (int) get_post_meta((int) $cid, "_ups_client_unread_count", true);
     }
@@ -48,6 +51,9 @@ function upsellio_inbox_recalc_client_unread_count(int $client_id): void
         ]],
     ]);
     $n = 0;
+    if (!empty($offers)) {
+        update_meta_cache("post", array_map("intval", $offers));
+    }
     foreach ($offers as $oid) {
         $thread = get_post_meta((int) $oid, "_ups_offer_inbox_thread", true);
         if (!is_array($thread)) {

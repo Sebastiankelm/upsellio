@@ -311,16 +311,37 @@ function upsellio_crm_create_lead($payload)
         $ownerId
     ) {
     $title = $name !== "" ? $name : ($email !== "" ? $email : "Nowy lead");
-    $leadId = wp_insert_post([
-        "post_type" => "lead",
-        "post_status" => "publish",
-        "post_title" => $title,
-        "post_content" => $message,
-        "post_author" => $ownerId,
-    ], true);
+    $leadId = upsellio_crm_find_existing_wp_lead_by_email($email);
+    $isNewLead = $leadId <= 0;
 
-    if (is_wp_error($leadId)) {
-        return 0;
+    if ($isNewLead) {
+        $leadId = wp_insert_post([
+            "post_type" => "lead",
+            "post_status" => "publish",
+            "post_title" => $title,
+            "post_content" => $message,
+            "post_author" => $ownerId,
+        ], true);
+
+        if (is_wp_error($leadId)) {
+            return 0;
+        }
+    } else {
+        $existingMessage = (string) get_post_field("post_content", $leadId);
+        $newChunk = trim((string) $message);
+        if ($newChunk !== "") {
+            $merged = trim($existingMessage);
+            if ($merged !== "") {
+                $merged .= "\n\n---\n" . current_time("mysql") . "\n" . $newChunk;
+            } else {
+                $merged = $newChunk;
+            }
+            wp_update_post([
+                "ID" => (int) $leadId,
+                "post_content" => $merged,
+                "post_title" => $title !== "" ? $title : get_the_title((int) $leadId),
+            ]);
+        }
     }
 
     update_post_meta($leadId, "_upsellio_lead_email", $email);
@@ -351,9 +372,11 @@ function upsellio_crm_create_lead($payload)
         upsellio_crm_attribute_lead_to_gsc_keyword((int) $leadId, (string) $landingUrl, (string) $referrer);
     }
 
-    $statusTermId = upsellio_crm_get_term_id_by_slug("lead_status", "new");
-    if ($statusTermId > 0) {
-        wp_set_object_terms($leadId, [$statusTermId], "lead_status", false);
+    if ($isNewLead) {
+        $statusTermId = upsellio_crm_get_term_id_by_slug("lead_status", "new");
+        if ($statusTermId > 0) {
+            wp_set_object_terms($leadId, [$statusTermId], "lead_status", false);
+        }
     }
 
     $sourceTermId = upsellio_crm_get_term_id_by_slug("lead_source", $source);
@@ -367,15 +390,46 @@ function upsellio_crm_create_lead($payload)
         wp_set_object_terms($leadId, [$sourceTermId], "lead_source", false);
     }
 
-    upsellio_crm_add_timeline_event($leadId, "created", "Lead został utworzony.");
-    upsellio_crm_create_followup_tasks_for_owner($leadId, $ownerId);
+    if ($isNewLead) {
+        upsellio_crm_add_timeline_event($leadId, "created", "Lead został utworzony.");
+        upsellio_crm_create_followup_tasks_for_owner($leadId, $ownerId);
+    } else {
+        upsellio_crm_add_timeline_event($leadId, "updated", "Scalono nowe zgłoszenie po adresie e-mail.");
+    }
 
     upsellio_crm_sync_wp_lead_to_crm_lead_module((int) $leadId);
+    upsellio_crm_sync_wp_lead_to_inbox_offer((int) $leadId);
 
-    do_action("upsellio_crm_contact_lead_created", (int) $leadId);
+    if ($isNewLead) {
+        do_action("upsellio_crm_contact_lead_created", (int) $leadId);
+    }
 
     return (int) $leadId;
     });
+}
+
+function upsellio_crm_find_existing_wp_lead_by_email($email)
+{
+    $email = sanitize_email((string) $email);
+    if (!is_email($email)) {
+        return 0;
+    }
+
+    $ids = get_posts([
+        "post_type" => "lead",
+        "post_status" => ["publish", "private", "draft", "pending"],
+        "posts_per_page" => 1,
+        "fields" => "ids",
+        "orderby" => "modified",
+        "order" => "DESC",
+        "meta_query" => [[
+            "key" => "_upsellio_lead_email",
+            "value" => $email,
+            "compare" => "=",
+        ]],
+    ]);
+
+    return !empty($ids) ? (int) $ids[0] : 0;
 }
 
 /**
@@ -494,6 +548,107 @@ function upsellio_crm_sync_wp_lead_to_crm_lead_module($wp_lead_id)
 
         return $crm_id;
     });
+}
+
+/**
+ * Zapewnia obecność leada webowego w module Inbox (crm_offer + pierwszy inbound message).
+ *
+ * @return int ID crm_offer lub 0
+ */
+function upsellio_crm_sync_wp_lead_to_inbox_offer($wp_lead_id)
+{
+    $wp_lead_id = (int) $wp_lead_id;
+    if ($wp_lead_id <= 0 || get_post_type($wp_lead_id) !== "lead") {
+        return 0;
+    }
+    if (!post_type_exists("crm_offer") || !function_exists("upsellio_inbox_append_message")) {
+        return 0;
+    }
+
+    $existing = (int) get_post_meta($wp_lead_id, "_upsellio_synced_inbox_offer_id", true);
+    if ($existing > 0 && get_post_type($existing) === "crm_offer") {
+        return $existing;
+    }
+
+    $post = get_post($wp_lead_id);
+    if (!($post instanceof WP_Post)) {
+        return 0;
+    }
+
+    $leadTitle = trim((string) $post->post_title);
+    $leadEmail = sanitize_email((string) get_post_meta($wp_lead_id, "_upsellio_lead_email", true));
+    $leadFormOrigin = sanitize_text_field((string) get_post_meta($wp_lead_id, "_upsellio_lead_form_origin", true));
+    $leadMessage = trim((string) $post->post_content);
+    $leadUtmSource = sanitize_text_field((string) get_post_meta($wp_lead_id, "_upsellio_lead_utm_source", true));
+    $leadUtmCampaign = sanitize_text_field((string) get_post_meta($wp_lead_id, "_upsellio_lead_utm_campaign", true));
+
+    $offerId = upsellio_crm_find_existing_inbox_offer_by_email($leadEmail);
+    if ($offerId <= 0) {
+        $offerTitle = $leadTitle !== "" ? $leadTitle : ($leadEmail !== "" ? $leadEmail : "Lead web");
+        $offerId = (int) wp_insert_post([
+            "post_type" => "crm_offer",
+            "post_status" => "publish",
+            "post_title" => "Lead web: " . $offerTitle,
+            "post_author" => (int) $post->post_author,
+        ], true);
+    }
+
+    if ($offerId <= 0 || is_wp_error($offerId)) {
+        return 0;
+    }
+
+    update_post_meta($offerId, "_ups_offer_status", "open");
+    update_post_meta($offerId, "_ups_offer_stage", "awareness");
+    update_post_meta($offerId, "_ups_offer_client_id", 0);
+    update_post_meta($offerId, "_ups_offer_contact_email", $leadEmail);
+    update_post_meta($offerId, "_ups_offer_form_origin", $leadFormOrigin !== "" ? $leadFormOrigin : "web-form");
+    if ($leadUtmSource !== "") {
+        update_post_meta($offerId, "_ups_offer_utm_source", $leadUtmSource);
+    }
+    if ($leadUtmCampaign !== "") {
+        update_post_meta($offerId, "_ups_offer_utm_campaign", $leadUtmCampaign);
+    }
+
+    $sender = function_exists("upsellio_followup_get_sender_settings") ? upsellio_followup_get_sender_settings() : [];
+    upsellio_inbox_append_message($offerId, [
+        "direction" => "in",
+        "from" => $leadEmail,
+        "to" => sanitize_email((string) ($sender["from_email"] ?? "")),
+        "subject" => "Nowy lead z formularza",
+        "body_plain" => $leadMessage !== "" ? $leadMessage : "Lead przesłał formularz bez dodatkowej wiadomości.",
+        "body_html" => "",
+        "source" => "lead_form",
+        "read" => false,
+    ]);
+
+    update_post_meta($wp_lead_id, "_upsellio_synced_inbox_offer_id", $offerId);
+    update_post_meta($offerId, "_upsellio_wp_lead_id", $wp_lead_id);
+
+    return $offerId;
+}
+
+function upsellio_crm_find_existing_inbox_offer_by_email($email)
+{
+    $email = sanitize_email((string) $email);
+    if (!is_email($email)) {
+        return 0;
+    }
+
+    $offers = get_posts([
+        "post_type" => "crm_offer",
+        "post_status" => ["publish", "draft", "pending", "private"],
+        "posts_per_page" => 1,
+        "fields" => "ids",
+        "orderby" => "modified",
+        "order" => "DESC",
+        "meta_query" => [[
+            "key" => "_ups_offer_contact_email",
+            "value" => $email,
+            "compare" => "=",
+        ]],
+    ]);
+
+    return !empty($offers) ? (int) $offers[0] : 0;
 }
 
 function upsellio_crm_get_open_tasks_for_lead($lead_id)
@@ -615,6 +770,23 @@ function upsellio_crm_is_rate_limited($email)
     return false;
 }
 
+function upsellio_crm_is_endpoint_rate_limited(): bool
+{
+    $ip_hash = upsellio_crm_get_request_ip_hash();
+    if ($ip_hash === "") {
+        return false;
+    }
+
+    $transient_key = "ups_lead_rl_ip_" . md5($ip_hash);
+    $attempts = (int) get_transient($transient_key);
+    if ($attempts >= 5) {
+        return true;
+    }
+
+    set_transient($transient_key, $attempts + 1, HOUR_IN_SECONDS);
+    return false;
+}
+
 function upsellio_crm_get_backup_recipient()
 {
     $optionEmail = sanitize_email((string) get_option("upsellio_backup_lead_email", ""));
@@ -729,12 +901,17 @@ function upsellio_crm_handle_lead_submission()
         ? upsellio_normalize_internal_redirect_url((string) $rawRedirectUrl, home_url("/"))
         : home_url("/");
 
+    if (upsellio_crm_is_endpoint_rate_limited()) {
+        wp_die("Zbyt wiele prób. Spróbuj ponownie za godzinę.", "Rate limited", ["response" => 429]);
+    }
+
     if (!isset($_POST["upsellio_lead_form_nonce"]) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["upsellio_lead_form_nonce"])), "upsellio_unified_lead_form")) {
         upsellio_crm_redirect_lead_form_error($redirectUrl, "nonce");
     }
 
     $honeypot = isset($_POST["lead_website"]) ? sanitize_text_field(wp_unslash($_POST["lead_website"])) : "";
-    if ($honeypot !== "") {
+    $honeypot_alt = isset($_POST["lead_company_url"]) ? sanitize_text_field(wp_unslash($_POST["lead_company_url"])) : "";
+    if ($honeypot !== "" || $honeypot_alt !== "") {
         upsellio_crm_redirect_lead_form_success($redirectUrl);
     }
 

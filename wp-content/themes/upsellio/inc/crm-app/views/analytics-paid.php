@@ -9,6 +9,9 @@ $channel_ltv = function_exists("upsellio_analytics_channel_ltv") ? upsellio_anal
 ?>
 <section class="card">
   <h3>Płatne</h3>
+  <?php if (empty($campaigns)) : ?>
+    <p class="muted">Brak danych — włącz sync i poczekaj na cron.</p>
+  <?php endif; ?>
   <?php if (!empty($ai_review) && is_array($ai_review)) : ?>
     <div style="padding:12px;background:#fff7ed;border-left:4px solid #f97316;margin-bottom:10px;"><?php echo esc_html((string) ($ai_review["summary"] ?? "")); ?></div>
   <?php endif; ?>

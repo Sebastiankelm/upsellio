@@ -286,7 +286,7 @@ function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $ti
     }
 
     // Anthropic Prompt Caching: blok z cache_control musi mieć ok. min. 1024 tokeny — krótszy prefiks powoduje HTTP 400.
-    $min_cache_chars = (int) apply_filters("upsellio_anthropic_crm_cache_min_chars", 4000);
+    $min_cache_chars = (int) apply_filters("upsellio_anthropic_crm_cache_min_chars", 1500);
     if ($use_cache && $min_cache_chars > 0) {
         $cache_len = function_exists("mb_strlen")
             ? (int) mb_strlen($cached_raw, "UTF-8")
@@ -334,6 +334,7 @@ function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $ti
         "https://api.anthropic.com/v1/messages",
         [
             "timeout" => $timeout,
+            "sslverify" => true,
             "headers" => $headers,
             "body" => wp_json_encode([
                 "model" => $model,
@@ -549,11 +550,22 @@ function upsellio_anthropic_crm_parse_json_object($text)
 /**
  * @param array<int, mixed> $thread
  */
-function upsellio_anthropic_crm_inbox_thread_transcript(array $thread, $max_msgs = 35, $body_chars = 3500)
+function upsellio_anthropic_crm_inbox_thread_transcript(array $thread, $max_msgs = 15, $body_chars = 2500)
 {
     $max_msgs = max(1, min(80, (int) $max_msgs));
     $body_chars = max(200, min(8000, (int) $body_chars));
     $slice = array_slice($thread, -$max_msgs);
+    $cutoff_ts = time() - (48 * HOUR_IN_SECONDS);
+    $slice = array_values(array_filter($slice, static function ($msg) use ($cutoff_ts) {
+        if (!is_array($msg)) {
+            return false;
+        }
+        $ts = strtotime((string) ($msg["ts"] ?? ""));
+        if ($ts === false || $ts <= 0) {
+            return true;
+        }
+        return $ts >= $cutoff_ts;
+    }));
     $lines = [];
     foreach ($slice as $msg) {
         if (!is_array($msg)) {
@@ -739,6 +751,9 @@ EOT;
     $score_model = function_exists("upsellio_ai_model_for")
         ? upsellio_ai_model_for("lead_scoring")
         : upsellio_anthropic_crm_resolve_model();
+    if (function_exists("upsellio_ai_can_call_strict_global") && !upsellio_ai_can_call_strict_global("lead_scoring", 0.01)) {
+        return;
+    }
     if (function_exists("upsellio_ai_can_call") && !upsellio_ai_can_call("lead_scoring", 0.01)) {
         return;
     }
@@ -830,7 +845,7 @@ function upsellio_crm_inbox_ai_draft_reply_ajax()
         $thread = [];
     }
 
-    $transcript = upsellio_anthropic_crm_inbox_thread_transcript($thread, 35, 3500);
+    $transcript = upsellio_anthropic_crm_inbox_thread_transcript($thread, 15, 2500);
     if ($transcript === "") {
         wp_send_json_error(["message" => "empty_thread"], 400);
     }
@@ -1037,7 +1052,7 @@ function upsellio_crm_ai_inbox_followup_hourly_run()
 
         $title = get_the_title($offer_id);
         $stage = (string) get_post_meta($offer_id, "_ups_offer_stage", true);
-        $transcript = upsellio_anthropic_crm_inbox_thread_transcript($thread, 38, 4000);
+        $transcript = upsellio_anthropic_crm_inbox_thread_transcript($thread, 15, 2500);
         if ($transcript === "") {
             continue;
         }

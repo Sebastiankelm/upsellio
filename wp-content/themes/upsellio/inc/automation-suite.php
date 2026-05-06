@@ -463,15 +463,35 @@ function upsellio_automation_capture_lead_from_form($request)
     }
     $payload = $request->get_json_params();
     $name = sanitize_text_field((string) ($payload["name"] ?? "Lead formularza"));
-    $lead_id = (int) wp_insert_post([
-        "post_type" => "crm_lead",
-        "post_status" => "publish",
-        "post_title" => $name,
-    ]);
+    $email = sanitize_email((string) ($payload["email"] ?? ""));
+    $lead_id = 0;
+    if (is_email($email)) {
+        $existing = get_posts([
+            "post_type" => "crm_lead",
+            "post_status" => ["publish", "private", "draft", "pending"],
+            "posts_per_page" => 1,
+            "fields" => "ids",
+            "orderby" => "modified",
+            "order" => "DESC",
+            "meta_query" => [[
+                "key" => "_ups_lead_email",
+                "value" => $email,
+                "compare" => "=",
+            ]],
+        ]);
+        $lead_id = !empty($existing) ? (int) $existing[0] : 0;
+    }
+    if ($lead_id <= 0) {
+        $lead_id = (int) wp_insert_post([
+            "post_type" => "crm_lead",
+            "post_status" => "publish",
+            "post_title" => $name,
+        ]);
+    }
     if ($lead_id <= 0) {
         return new WP_REST_Response(["ok" => false, "message" => "insert_failed"], 500);
     }
-    update_post_meta($lead_id, "_ups_lead_email", sanitize_email((string) ($payload["email"] ?? "")));
+    update_post_meta($lead_id, "_ups_lead_email", $email);
     update_post_meta($lead_id, "_ups_lead_phone", sanitize_text_field((string) ($payload["phone"] ?? "")));
     update_post_meta($lead_id, "_ups_lead_source", sanitize_text_field((string) ($payload["source"] ?? "form")));
     update_post_meta($lead_id, "_ups_lead_type", sanitize_key((string) ($payload["type"] ?? "inbound")));

@@ -61,11 +61,33 @@ function upsellio_mailbox_log(string $channel, string $level, string $message, $
         $log = [];
     }
     $log[] = $entry;
-    if (count($log) > 400) {
-        $log = array_slice($log, -400);
+    if (count($log) > 1000) {
+        $log = array_slice($log, -1000);
     }
     update_option("ups_mailbox_activity_log", $log, false);
 }
+
+add_action("upsellio_mailbox_log_prune", function () {
+    $log = (array) get_option("ups_mailbox_activity_log", []);
+    $cutoff = strtotime("-90 days");
+    $log = array_values(array_filter($log, static function ($entry) use ($cutoff) {
+        if (!is_array($entry)) {
+            return false;
+        }
+        $ts = strtotime((string) ($entry["ts"] ?? ""));
+        return $ts !== false && $ts >= $cutoff;
+    }));
+    if (count($log) > 1000) {
+        $log = array_slice($log, -1000);
+    }
+    update_option("ups_mailbox_activity_log", $log, false);
+});
+
+add_action("init", function () {
+    if (!wp_next_scheduled("upsellio_mailbox_log_prune")) {
+        wp_schedule_event(time() + DAY_IN_SECONDS, "daily", "upsellio_mailbox_log_prune");
+    }
+}, 30);
 
 function upsellio_mailbox_log_render_text(): string
 {
@@ -1349,6 +1371,23 @@ function upsellio_followup_find_offer_by_email($from_email)
     if (!is_email($from_email)) {
         return 0;
     }
+    $offers_by_contact = get_posts([
+        "post_type" => "crm_offer",
+        "post_status" => ["publish", "draft", "pending", "private"],
+        "posts_per_page" => 1,
+        "fields" => "ids",
+        "meta_query" => [[
+            "key" => "_ups_offer_contact_email",
+            "value" => $from_email,
+            "compare" => "=",
+        ]],
+        "orderby" => "modified",
+        "order" => "DESC",
+    ]);
+    if (!empty($offers_by_contact)) {
+        return (int) $offers_by_contact[0];
+    }
+
     $clients = get_posts([
         "post_type" => "crm_client",
         "post_status" => ["publish", "draft"],

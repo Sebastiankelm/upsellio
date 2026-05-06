@@ -3,8 +3,14 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
-function upsellio_ai_refine_icp(): ?string
+function upsellio_ai_refine_icp(bool $force = false): ?string
 {
+    if (!$force) {
+        $cached = get_transient("ups_ai_icp_report_cache");
+        if (is_string($cached) && $cached !== "") {
+            return $cached;
+        }
+    }
     if (function_exists("upsellio_ai_can_call") && !upsellio_ai_can_call("icp_refiner", 0.30)) {
         return null;
     }
@@ -18,6 +24,12 @@ function upsellio_ai_refine_icp(): ?string
         "posts_per_page" => 50,
         "tax_query" => [["taxonomy" => "lead_status", "field" => "slug", "terms" => ["lost"]]],
     ]);
+    $won_ids = wp_list_pluck($won, "ID");
+    $lost_ids = wp_list_pluck($lost, "ID");
+    $all_ids = array_values(array_unique(array_map("intval", array_merge($won_ids, $lost_ids))));
+    if ($all_ids !== []) {
+        update_meta_cache("post", $all_ids);
+    }
 
     $build_profile = static function ($posts) {
         $out = [];
@@ -69,6 +81,7 @@ EOT;
     if ($report) {
         update_option("ups_ai_icp_report", wp_kses_post($report), false);
         update_option("ups_ai_icp_report_at", time(), false);
+        set_transient("ups_ai_icp_report_cache", (string) $report, DAY_IN_SECONDS);
     }
     return $report;
 }
@@ -91,7 +104,7 @@ add_action("admin_menu", function () {
         $at = (int) get_option("ups_ai_icp_report_at", 0);
         echo '<div class="wrap"><h1>ICP Report — ' . ($at ? date("Y-m-d", $at) : "brak") . "</h1>";
         if (isset($_POST["regen"]) && check_admin_referer("ups_icp_regen")) {
-            upsellio_ai_refine_icp();
+            upsellio_ai_refine_icp(true);
             echo '<div class="notice notice-success"><p>Wygenerowano.</p></div>';
             $report = get_option("ups_ai_icp_report", "");
         }

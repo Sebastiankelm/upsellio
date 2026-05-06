@@ -500,6 +500,7 @@ function upsellio_cpt_ai_run(int $post_id, string $notes = "")
     $api_key = upsellio_anthropic_crm_api_key();
     $response = wp_remote_post("https://api.anthropic.com/v1/messages", [
         "timeout" => 180,
+        "sslverify" => true,
         "headers" => [
             "x-api-key" => $api_key,
             "anthropic-version" => "2023-06-01",

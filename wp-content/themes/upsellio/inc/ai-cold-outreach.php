@@ -9,7 +9,19 @@ function upsellio_ai_personalize_outreach(array $prospects): array
     $icp = mb_substr((string) get_option("ups_ai_icp_report", ""), 0, 6000);
     $results = [];
 
+    if (count($prospects) > 25) {
+        return [["error" => "Maksymalnie 25 prospectów na batch. Podziel CSV na mniejsze paczki."]];
+    }
+    $estimated_pln = (float) count($prospects) * 0.20;
+    if (function_exists("upsellio_ai_can_call") && !upsellio_ai_can_call("cold_outreach_batch", $estimated_pln)) {
+        return [["error" => "Batch przekracza miesięczny budżet AI. Zmniejsz liczbę wierszy lub zwiększ budżet."]];
+    }
+
     foreach ($prospects as $prospect) {
+        if (function_exists("upsellio_ai_can_call_strict_global") && !upsellio_ai_can_call_strict_global("cold_outreach", 0.05)) {
+            $results[] = ["prospect" => $prospect, "error" => "daily_anonymous_cap_reached"];
+            continue;
+        }
         if (function_exists("upsellio_ai_can_call") && !upsellio_ai_can_call("cold_outreach", 0.05)) {
             $results[] = ["prospect" => $prospect, "error" => "budget_exceeded"];
             continue;
@@ -72,7 +84,34 @@ add_action("admin_menu", function () {
             wp_nonce_field("ups_outreach");
             echo "<p>CSV (header: company,industry,size,name,role,notes):</p>";
             echo '<textarea name="ups_outreach_csv" style="width:100%;height:300px;font-family:monospace;"></textarea>';
-            echo '<button class="button button-primary">Wygeneruj sekwencje</button></form>';
+            echo '<button id="ups-outreach-submit" class="button button-primary">Wygeneruj sekwencje</button></form>';
+            ?>
+            <script>
+              (function () {
+                const form = document.querySelector('form[method="post"]');
+                const csvField = document.querySelector('textarea[name="ups_outreach_csv"]');
+                if (!form || !csvField) return;
+                form.addEventListener("submit", function (e) {
+                  const csvRows = csvField.value
+                    .split("\n")
+                    .map((row) => row.trim())
+                    .filter(Boolean);
+                  const rowCount = Math.max(0, csvRows.length - 1);
+                  const estimatedCost = (rowCount * 0.20).toFixed(2);
+                  if (rowCount > 25) {
+                    e.preventDefault();
+                    alert("Maksymalnie 25 prospectów na jeden batch.");
+                    return false;
+                  }
+                  if (!window.confirm("Wygeneruję " + rowCount + " sekwencji. Estymowany koszt: " + estimatedCost + " zł. Kontynuować?")) {
+                    e.preventDefault();
+                    return false;
+                  }
+                  return true;
+                });
+              })();
+            </script>
+            <?php
         }
         echo "</div>";
     });

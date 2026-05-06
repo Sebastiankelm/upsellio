@@ -9,6 +9,9 @@ $pages_to_optimize = (array) get_option("ups_ai_page_perf_suggestions", []);
 ?>
 <section class="card">
   <h3>SEO</h3>
+  <?php if (empty($query_lead["rows"])) : ?>
+    <p class="muted">Brak danych — włącz sync i poczekaj na cron.</p>
+  <?php endif; ?>
   <p class="muted">Łączny przychód z zapytań: <?php echo esc_html(number_format((float) ($query_lead["total_value"] ?? 0), 0, ",", " ")); ?> zł</p>
   <p class="muted">Pareto 80/20: <?php echo esc_html((string) ((int) ($pareto["count_for_80pct"] ?? 0))); ?> słów.</p>
   <table>

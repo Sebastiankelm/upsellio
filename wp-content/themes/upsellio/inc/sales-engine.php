@@ -995,6 +995,7 @@ function upsellio_sales_engine_classify_inbound_via_claude($subject, $body)
         "https://api.anthropic.com/v1/messages",
         [
             "timeout" => 12,
+            "sslverify" => true,
             "headers" => [
                 "x-api-key" => $api_key,
                 "anthropic-version" => "2023-06-01",
@@ -1170,19 +1171,31 @@ function upsellio_sales_engine_render_admin_page()
         echo '<div class="notice notice-success"><p>Zapisano ustawienia Sales Engine.</p></div>';
     }
 
-    $offers = get_posts(["post_type" => "crm_offer", "post_status" => ["publish", "draft", "pending", "private"], "posts_per_page" => 300]);
+    $offers = get_posts([
+        "post_type" => "crm_offer",
+        "post_status" => ["publish", "draft", "pending", "private"],
+        "posts_per_page" => 300,
+        "fields" => "ids",
+        "no_found_rows" => true,
+    ]);
     $attribution = [];
     $campaign_costs = upsellio_sales_engine_get_campaign_costs();
     $deliverability_failures = 0;
-    $clients = get_posts(["post_type" => "crm_client", "post_status" => ["publish", "draft", "pending", "private"], "posts_per_page" => 500]);
+    $clients = get_posts([
+        "post_type" => "crm_client",
+        "post_status" => ["publish", "draft", "pending", "private"],
+        "posts_per_page" => 500,
+        "fields" => "ids",
+        "no_found_rows" => true,
+    ]);
     $active_recurring_clients = 0;
     $active_mrr = 0.0;
     $cancelled_this_month = 0;
     $month_prefix = gmdate("Y-m");
     $clients_start_of_month_active = 0;
     $start_of_month = gmdate("Y-m-01");
-    foreach ($clients as $client) {
-        $client_id = (int) $client->ID;
+    foreach ($clients as $client_id) {
+        $client_id = (int) $client_id;
         $is_recurring = (string) get_post_meta($client_id, "_ups_client_is_recurring", true) === "1";
         if (!$is_recurring) {
             continue;
@@ -1215,8 +1228,8 @@ function upsellio_sales_engine_render_admin_page()
     $churn_rate = $clients_start_of_month_active > 0
         ? (($cancelled_this_month / $clients_start_of_month_active) * 100.0)
         : 0.0;
-    foreach ($offers as $offer) {
-        $offer_id = (int) $offer->ID;
+    foreach ($offers as $offer_id) {
+        $offer_id = (int) $offer_id;
         $source = (string) get_post_meta($offer_id, "_ups_offer_utm_source", true);
         $campaign = (string) get_post_meta($offer_id, "_ups_offer_utm_campaign", true);
         $won_value = (float) get_post_meta($offer_id, "_ups_offer_won_value", true);

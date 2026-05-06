@@ -536,98 +536,31 @@ function upsellio_ai_snap_leads(): array
  * @param string $scope scoring|blog|offer|full
  * @return string
  */
-function upsellio_ai_master_context($scope = "scoring")
+function upsellio_ai_master_context($scope = "scoring", $sections = null)
 {
     $scope = (string) $scope;
     $s = upsellio_ai_master_get();
     if ($s === [] || !is_array($s)) {
         return "";
     }
-
-    $lines = [];
-
-    if (in_array($scope, ["scoring", "full"], true)) {
-        $sal = isset($s["sales"]) && is_array($s["sales"]) ? $s["sales"] : [];
-        if (!empty($sal["won"]) || !empty($sal["lost"])) {
-            $lines[] = "TWOJE WYNIKI SPRZEDAŻOWE:";
-            $lines[] = "- Wygrane oferty: {$sal['won']}, win rate: {$sal['win_rate_pct']}%, śr. wartość wygranych: {$sal['avg_won_value_pln']} PLN";
-            $lines[] = "- Śr. czas od draftu do akceptacji (oferty won): {$sal['avg_ttc_days']} dni";
-            if (!empty($sal["top_industries"])) {
-                $lines[] = "- Najczęstsze branże wygranych: " . implode(", ", array_keys($sal["top_industries"]));
-            }
-            if (!empty($sal["top_win_reasons"])) {
-                $lines[] = "- Główne powody wygranych: " . implode(", ", array_keys($sal["top_win_reasons"]));
-            }
-            if (!empty($sal["top_loss_reasons"])) {
-                $lines[] = "- Najczęstsze powody przegranych: " . implode(", ", array_keys($sal["top_loss_reasons"]));
-            }
-            if (!empty($sal["top_scopes"]) && ($scope === "full" || $scope === "offer")) {
-                $lines[] = "- Typowe zakresy (Google/Meta/Web) w wygranych: " . implode(", ", array_keys($sal["top_scopes"]));
-            }
-        }
-
-        $ld = isset($s["leads"]) && is_array($s["leads"]) ? $s["leads"] : [];
-        if (!empty($ld["total"])) {
-            $lines[] = "LEADY (formularz + CRM, ostatnie 200 wpisów):";
-            $lines[] = "- Śr. AI score (gdzie jest): {$ld['avg_ai_score']}/100, udział „skutecznie zamkniętych” vs odrzuconych (converted vs rejected): {$ld['conversion_rate_pct']}%";
-            if ($ld["avg_response_time_h"] !== null) {
-                $lines[] = "- Śr. czas do pierwszego kontaktu: {$ld['avg_response_time_h']}h";
-            }
-            if (!empty($ld["top_sources"])) {
-                $src_bits = [];
-                foreach ($ld["top_sources"] as $k => $v) {
-                    $src_bits[] = $k . " (" . (int) $v . ")";
-                }
-                $lines[] = "- Top źródła (kubełki): " . implode(", ", $src_bits);
-            }
-        }
+    $section_map = [
+        "scoring" => ["sales", "leads"],
+        "blog" => ["blog", "channels"],
+        "offer" => ["sales", "clients", "channels"],
+        "briefing" => ["sales", "leads", "channels", "blog"],
+        "full" => ["sales", "leads", "blog", "channels", "clients"],
+    ];
+    $allowed_sections = ["sales", "leads", "blog", "channels", "clients"];
+    if (is_array($sections) && $sections !== []) {
+        $needed = array_values(array_intersect(array_map("strval", $sections), $allowed_sections));
+    } else {
+        $needed = $section_map[$scope] ?? ["sales"];
     }
-
-    if (in_array($scope, ["blog", "full"], true)) {
-        $bl = isset($s["blog"]) && is_array($s["blog"]) ? $s["blog"] : [];
-        if ((int) ($bl["total_posts"] ?? 0) > 0) {
-            $lines[] = "BLOG (ostatnie 50 wpisów, leady z path = artykuł, " . ($bl["blog_conversion_rate"] ?? 0) . "% lead/view 30 dni):";
-        }
-        if (!empty($bl["converting_posts"])) {
-            $lines[] = "BLOG — CO GENERUJE LEADY (ostatnie 30 dni):";
-            foreach (array_slice($bl["converting_posts"], 0, 3) as $bp) {
-                $lines[] = "- \"" . ($bp["title"] ?? "") . "\" → " . (int) ($bp["leads"] ?? 0) . " leadów";
-            }
-        }
-        if (!empty($bl["high_traffic_no_leads"])) {
-            $lines[] = "BLOG — RUCH (GSC) BEZ LEADÓW (kandydaci do CTA):";
-            foreach (array_slice($bl["high_traffic_no_leads"], 0, 3) as $bp) {
-                $lines[] = "- \"" . ($bp["title"] ?? "") . "\" → " . (int) ($bp["gsc_clicks"] ?? 0) . " kliknięć GSC, 0 leadów z URL wpisu";
-            }
-        }
-        if (isset($bl["no_traffic_count"]) && (int) $bl["no_traffic_count"] > 0) {
-            $lines[] = "- Wpisy praktycznie bez ruchu (niski GSC + widoki 30d): ok. {$bl['no_traffic_count']} szt.";
-        }
+    $filtered = array_intersect_key($s, array_flip($needed));
+    if ($filtered === []) {
+        return "";
     }
-
-    if (in_array($scope, ["offer", "full"], true)) {
-        $ch = isset($s["channels"]) && is_array($s["channels"]) ? $s["channels"] : [];
-        if (!empty($ch["top_channels"])) {
-            $lines[] = "NAJLEPSZE KANAŁY (GA4 — automation scores):";
-            foreach ($ch["top_channels"] as $c) {
-                $lines[] = "- " . ($c["source"] ?? "") . "/" . ($c["campaign"] ?? "") . ": score " . (int) ($c["score"] ?? 0) . "/100, konwersje GA4: " . (int) ($c["conversions"] ?? 0);
-            }
-        }
-
-        $cl = isset($s["clients"]) && is_array($s["clients"]) ? $s["clients"] : [];
-        if (!empty($cl["active_count"])) {
-            $lines[] = "KLIENCI: MRR {$cl['active_mrr_pln']} PLN ({$cl['active_count']} aktywnych), churn 90d (proxy): {$cl['churn_rate_pct']}%, szac. śr. LTV: {$cl['avg_ltv_pln']} PLN";
-        }
-
-        $sal2 = isset($s["sales"]) && is_array($s["sales"]) ? $s["sales"] : [];
-        if (!empty($sal2["top_scopes"]) && $scope === "offer") {
-            $lines[] = "WYGRANE — częste kombinacje zakresu: " . implode(", ", array_keys($sal2["top_scopes"]));
-        }
-    }
-
-    return implode("\n", array_filter($lines, static function ($ln) {
-        return $ln !== "";
-    }));
+    return wp_json_encode($filtered, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 }
 
 add_action("upsellio_ai_master_daily_build", "upsellio_ai_master_build");

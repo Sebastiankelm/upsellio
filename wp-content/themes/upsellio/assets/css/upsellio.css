@@ -780,7 +780,7 @@ select {
 
 .ups-breadcrumbs {
   border-bottom: 1px solid var(--border);
-  background: var(--surface-soft);
+  background: linear-gradient(180deg, var(--bg), var(--surface));
 }
 
 .ups-breadcrumbs__list {
