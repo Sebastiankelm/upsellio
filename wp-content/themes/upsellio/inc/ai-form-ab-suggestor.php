@@ -63,8 +63,8 @@ EOT;
     ];
     $resp = upsellio_anthropic_crm_send_user_prompt(
         "",
-        1200,
-        30,
+        1800,
+        45,
         function_exists("upsellio_ai_model_for") ? upsellio_ai_model_for("form_ab_suggestor") : null,
         $cache_split
     );
