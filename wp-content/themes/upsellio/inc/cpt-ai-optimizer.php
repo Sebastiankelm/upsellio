@@ -195,13 +195,14 @@ SEO — Rank Math wymaga tego dokładnie:
 - meta_description i seo_description: 140-160 znaków, MUSI zawierać primary_query dosłownie
 - post_content: MIN. 650 słów
 - 1 link zewnętrzny dofollow w post_content (think.withgoogle.com lub semrush.com) — OBOWIĄZKOWO
-  Link MUSI mieć rel="noopener" ale NIE rel="nofollow" — ma być dofollow
+- link zewnętrzny: NIE dodawaj rel="nofollow" — ma być dofollow
 
 HTML i JSON:
 - post_content: wyłącznie HTML (p, ul/li, h2, h3) — zero Markdown
-- Cudzysłowy w href zastąp &quot; — inaczej JSON jest niepoprawny
+- Cudzysłowy w atrybutach HTML w post_content zastąp encją &quot; — inaczej JSON jest niepoprawny
 - Linki wewnętrzne wyłącznie z dostarczonego katalogu URL w formacie [anchor](url)
-- Pole kpis: każdy KPI w osobnej linii, format label|przed|po|zmiana|opis
+- Pole kpis: KPI oddzielaj znakiem ;; (dwa średniki) — NIE nową linią, NIE enterem
+  Przykład: "CPL|120 zł|58 zł|-52%|koszt leada ;; ROAS|2.1|4.8|+129%|zwrot z budżetu"
 
 Zwracaj WYŁĄCZNIE jeden obiekt JSON bez markdown i bez komentarzy.
 Jeśli pole jest puste — zostaw pusty string "", nigdy nie wymyślaj danych.
@@ -217,7 +218,7 @@ Sektor klienta: {sector}
 Problem: {problem}
 Rozwiązanie: {solution}
 Wynik: {result}
-KPI (format label|przed|po|zmiana|opis): {kpis}
+KPI: {kpis}
 Tagi: {tags}
 
 Bieżąca treść HTML:
@@ -228,7 +229,7 @@ KATALOG LINKÓW WEWNĘTRZNYCH (tylko te URL):
 
 WYMAGANIA — niespełnienie któregokolwiek = błąd:
 1. primary_query: fraza która NATURALNIE PADA W TREŚCI — typ kampanii np. "kampania Meta Ads B2B"
-   NIE pisz "Meta Ads case study" ani "case study kampanii" — to nie pada naturalnie
+   NIE pisz "Meta Ads case study" ani "case study kampanii" — to nie pada naturalnie w narracji
 2. post_content: PIERWSZE zdanie zawiera primary_query dosłownie
 3. post_content: MIN. jeden H2 zawiera primary_query dosłownie
 4. post_content: primary_query MIN. 3× łącznie w treści
@@ -236,22 +237,23 @@ WYMAGANIA — niespełnienie któregokolwiek = błąd:
 6. seo_title: ZACZNIJ od primary_query, BEZ liczb z % na początku
 7. meta_description i seo_description: zawierają primary_query dosłownie
 8. link zewnętrzny: MUSI być dofollow — NIE dodawaj rel="nofollow"
+9. kpis: oddzielaj znakiem ;; — NIE nową linią
 
 Zwróć JSON (WYPEŁNIJ WSZYSTKIE POLA — puste = błąd):
 {
   "post_title": "<tytuł z wynikiem np. 'Meta Ads B2B — redukcja CPL o połowę w 4 miesiące'>",
-  "post_content": "<HTML MIN. 650 słów: PIERWSZE zdanie zawiera primary_query. H2 z primary_query. primary_query min. 3× w treści. H2 Sytuacja wyjściowa, H2 Co zmieniliśmy, H2 Wyniki, FAQ 2 pytania jako h3. 2-3 linki [anchor](url) z katalogu. 1 link zewnętrzny dofollow bez rel=nofollow. Cudzysłowy w href zastąp &quot;>",
+  "post_content": "<HTML MIN. 650 słów: PIERWSZE zdanie zawiera primary_query. H2 z primary_query. primary_query min. 3x w treści. H2 Sytuacja wyjściowa, H2 Co zmieniliśmy, H2 Wyniki, FAQ 2 pytania jako h3. 2-3 linki [anchor](url) z katalogu. 1 link zewnętrzny dofollow bez rel=nofollow. Cudzysłowy w href zastąp &quot;>",
   "post_excerpt": "<2 zdania: typ kampanii + kluczowy wynik>",
   "type": "<np. Meta Ads>",
-  "meta_project": "<np. Lead generation · B2B · Q1 2024>",
+  "meta_project": "<np. Lead generation - B2B - Q1 2024>",
   "sector": "<np. Firma usługowa B2B>",
   "badge": "<np. Meta Ads>",
   "cta": "<np. Przeczytaj case study>",
   "problem": "<2-3 zdania — sytuacja przed współpracą>",
   "solution": "<2-4 zdania — co zmieniono w kampaniach>",
   "result": "<2-3 zdania — konkretne wyniki z liczbami>",
-  "kpis": "<każdy KPI w osobnej linii: CPL|120 zł|58 zł|-52%|koszt pozyskania leada>",
-  "tags": "<tagi per linia>",
+  "kpis": "<KPI oddzielone ;; np. 'CPL|120 zł|58 zł|-52%|koszt leada ;; ROAS|2.1|4.8|+129%|zwrot'>",
+  "tags": "<tagi oddzielone przecinkami>",
   "seo_title": "<45-60 znaków: ZACZNIJ od primary_query, BEZ liczb % na początku>",
   "seo_description": "<140-160 znaków zawierające primary_query dosłownie>",
   "meta_description": "<identyczne co seo_description — 140-160 znaków z primary_query>",
@@ -908,13 +910,6 @@ function upsellio_cpt_ai_apply_portfolio(int $post_id, array $data): void
 
 function upsellio_cpt_ai_apply_marketing_portfolio(int $post_id, array $data): void
 {
-    // Upewnij się że meta_description trafia do Rank Math (fallback z seo_description)
-    $meta_desc = trim((string) ($data["meta_description"] ?? $data["seo_description"] ?? ""));
-    if ($meta_desc !== "") {
-        update_post_meta($post_id, "rank_math_description", sanitize_textarea_field($meta_desc));
-        update_post_meta($post_id, "_yoast_wpseo_metadesc", sanitize_textarea_field($meta_desc));
-    }
-
     $map = [
         "_ups_mport_type" => "type",
         "_ups_mport_meta" => "meta_project",
@@ -924,7 +919,6 @@ function upsellio_cpt_ai_apply_marketing_portfolio(int $post_id, array $data): v
         "_ups_mport_problem" => "problem",
         "_ups_mport_solution" => "solution",
         "_ups_mport_result" => "result",
-        "_ups_mport_kpis" => "kpis",
         "_ups_mport_seo_title" => "seo_title",
         "_ups_mport_seo_description" => "seo_description",
     ];
@@ -934,6 +928,19 @@ function upsellio_cpt_ai_apply_marketing_portfolio(int $post_id, array $data): v
         if ($val !== "") {
             update_post_meta($post_id, $meta_key, sanitize_textarea_field($val));
         }
+    }
+
+    $kpis_raw = trim((string) ($data["kpis"] ?? ""));
+    if ($kpis_raw !== "") {
+        $kpis_val = str_replace(" ;; ", "\n", $kpis_raw);
+        $kpis_val = str_replace(";;", "\n", $kpis_val);
+        update_post_meta($post_id, "_ups_mport_kpis", sanitize_textarea_field($kpis_val));
+    }
+
+    $meta_desc = trim((string) ($data["meta_description"] ?? $data["seo_description"] ?? ""));
+    if ($meta_desc !== "") {
+        update_post_meta($post_id, "rank_math_description", sanitize_textarea_field($meta_desc));
+        update_post_meta($post_id, "_yoast_wpseo_metadesc", sanitize_textarea_field($meta_desc));
     }
 
     $tags_raw = $data["tags"] ?? null;
