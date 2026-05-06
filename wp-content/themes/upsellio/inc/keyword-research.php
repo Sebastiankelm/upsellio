@@ -249,6 +249,7 @@ function upsellio_keyword_ai_cluster(array $keywords)
         . '"seo_gaps":["fraza1","fraza2"],"ads_quick_wins":["fraza1","fraza2"],"summary":"2-3 zdania co zrobić najpierw"}';
 
     $km = function_exists("upsellio_ai_model_for") ? upsellio_ai_model_for("keyword_cluster") : null;
+    $GLOBALS["upsellio_ai_current_task"] = "keyword_research";
     $raw = upsellio_anthropic_crm_send_user_prompt($prompt, 800, 45, $km);
     if (function_exists("upsellio_anthropic_crm_parse_json_object")) {
         $parsed = upsellio_anthropic_crm_parse_json_object((string) $raw);
@@ -310,6 +311,7 @@ function upsellio_competitor_ai_analysis(array $competitors, array $gsc_keywords
 
     $cm = function_exists("upsellio_ai_model_for") ? upsellio_ai_model_for("competitor_analysis") : null;
 
+    $GLOBALS["upsellio_ai_current_task"] = "keyword_research";
     return (string) upsellio_anthropic_crm_send_user_prompt($prompt, 600, 45, $cm);
 }
 
@@ -499,6 +501,7 @@ function upsellio_ajax_keyword_client_plan(): void
         . "Pisz konkretnie, po polsku, dla osoby która będzie to wdrażać.";
 
     $pm = function_exists("upsellio_ai_model_for") ? upsellio_ai_model_for("client_plan") : null;
+    $GLOBALS["upsellio_ai_current_task"] = "keyword_research";
     $plan = upsellio_anthropic_crm_send_user_prompt($prompt, 1800, 90, $pm);
 
     wp_send_json_success(["plan" => (string) $plan]);
