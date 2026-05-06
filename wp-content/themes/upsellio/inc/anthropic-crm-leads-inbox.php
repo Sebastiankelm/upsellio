@@ -603,6 +603,43 @@ function upsellio_anthropic_crm_inbox_thread_last_inbound(array $thread)
     return null;
 }
 
+function ups_anonymize_lead_for_ai(array $blob): array
+{
+    $email = (string) ($blob["email"] ?? "");
+    if ($email !== "" && strpos($email, "@") !== false) {
+        $parts = explode("@", $email);
+        $local = (string) ($parts[0] ?? "");
+        $domain = (string) ($parts[1] ?? "");
+        $blob["email"] = substr($local, 0, 2) . "***@" . $domain;
+    }
+
+    if (!empty($blob["phone"])) {
+        $digits = preg_replace("/\D+/", "", (string) $blob["phone"]);
+        $last3 = substr((string) $digits, -3);
+        $blob["phone"] = "+48 *** *** " . $last3;
+    }
+
+    if (!empty($blob["name"])) {
+        $name = trim((string) $blob["name"]);
+        if ($name !== "") {
+            $parts = preg_split("/\s+/", $name);
+            $initials = [];
+            foreach ((array) $parts as $part) {
+                $part = trim((string) $part);
+                if ($part === "") {
+                    continue;
+                }
+                $initials[] = strtoupper(substr($part, 0, 1)) . ".";
+            }
+            if ($initials !== []) {
+                $blob["name"] = implode(" ", $initials);
+            }
+        }
+    }
+
+    return $blob;
+}
+
 function upsellio_crm_maybe_schedule_wp_lead_ai_classification($lead_id)
 {
     $lead_id = (int) $lead_id;
@@ -634,6 +671,9 @@ function upsellio_crm_run_ai_wp_lead_classification($lead_id)
         return;
     }
     if ((string) get_option("ups_anthropic_wp_lead_form_enabled", "0") !== "1") {
+        return;
+    }
+    if ((string) get_option("ups_ai_lead_scoring_enabled", "1") !== "1") {
         return;
     }
     if (upsellio_anthropic_crm_api_key() === "") {
@@ -734,7 +774,8 @@ Kontekst aggregatowy z bazy będzie dołączony niżej.
 Odpowiadasz WYŁĄCZNIE JSON: {"lead_score": <0-100>, "lead_status": "new|contacted|qualified|proposal", "score_reason": "2-3 zdania konkretu PO POLSKU"}
 EOT;
 
-    $user_block = "DANE LEADA:\n" . wp_json_encode($lead_blob, JSON_UNESCAPED_UNICODE) . "\n\n";
+    $lead_blob_anon = ups_anonymize_lead_for_ai($lead_blob);
+    $user_block = "DANE LEADA:\n" . wp_json_encode($lead_blob_anon, JSON_UNESCAPED_UNICODE) . "\n\n";
     if ($avg_close_segment !== "") {
         $user_block .= "WARTOŚĆ HISTORYCZNA:\n" . $avg_close_segment . "\n\n";
     }

@@ -15,7 +15,10 @@ function upsellio_email_render(string $content_html, array $opts = []): string
     $brand_color = "#0d9488";
     $site_name = esc_html(get_bloginfo("name"));
     $site_url = esc_url(home_url("/"));
-    $site_address = esc_html((string) apply_filters("upsellio_email_address", "Upsellio · Polska"));
+    $site_address = esc_html((string) apply_filters(
+        "upsellio_email_address",
+        "VePo Sebastian Kelm · ul. Wierzbowa 21A/2, 62-070 Dopiewiec · NIP 7773388263"
+    ));
 
     $css = "
         body { margin:0; padding:0; background:#f8fafc; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color:#0f172a; }

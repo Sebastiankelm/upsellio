@@ -7,172 +7,117 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
-if (function_exists("upsellio_register_template_seo_head")) {
-    upsellio_register_template_seo_head("privacy_policy");
-}
-
-$contact_email = "kontakt@upsellio.pl";
-$contact_email_href = function_exists("upsellio_get_mailto_href") ? upsellio_get_mailto_href($contact_email) : ("mailto:" . $contact_email);
-$contact_email_display = function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address($contact_email) : $contact_email;
-$policy_url = get_permalink();
-$admin_name = "Sebastian Kelm / Upsellio";
-$admin_address = "wierzbowa 21A/2, Dopiewiec";
-
 get_header();
 ?>
 <style>
-  .pp-art{font-family:"DM Sans",system-ui,sans-serif;color:#0a1410;background:#fafaf7;line-height:1.7}
-  .pp-art *,.pp-art *::before,.pp-art *::after{box-sizing:border-box}
-  .pp-wrap{width:min(1040px,100% - 56px);margin-inline:auto}
-  .pp-hero{padding:92px 0 36px;background:radial-gradient(circle at 90% 0%,rgba(13,148,136,.1),transparent 40%);border-bottom:1px solid #e7e7e1}
-  .pp-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#0d9488;margin-bottom:14px}
-  .pp-eyebrow::before{content:"";width:26px;height:2px;background:#0d9488;border-radius:99px}
-  .pp-h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:clamp(38px,4.6vw,58px);line-height:1.03;letter-spacing:-1.6px;margin:0 0 16px}
-  .pp-lead{font-size:17px;color:#3d3d38;max-width:70ch}
-  .pp-main{padding:40px 0 96px}
-  .pp-section{background:#fff;border:1px solid #e7e7e1;border-radius:18px;padding:26px 28px}
-  .pp-section + .pp-section{margin-top:14px}
-  .pp-h2{font-family:"Bricolage Grotesque",sans-serif;font-size:clamp(24px,2.8vw,32px);line-height:1.1;letter-spacing:-.8px;margin:0 0 12px}
-  .pp-p{margin:0 0 10px;color:#3d3d38;font-size:15px;line-height:1.8}
-  .pp-p:last-child{margin-bottom:0}
-  .pp-list{margin:8px 0 0;padding-left:20px;display:grid;gap:6px}
-  .pp-list li{color:#3d3d38;font-size:15px;line-height:1.75}
-  .pp-note{margin-top:28px;padding:18px;border:1px solid #99f6e4;background:#ecfeff;border-radius:14px;color:#0f766e;font-size:14px}
-  @media(max-width:760px){.pp-wrap{width:min(1040px,100% - 26px)}.pp-section{padding:20px}}
+  .pp-wrap{width:min(1100px,100% - 32px);margin:40px auto 80px}
+  .pp-wrap h1,.pp-wrap h2,.pp-wrap h3{font-family:"Bricolage Grotesque",sans-serif}
+  .pp-wrap h1{font-size:42px;line-height:1.1;margin:0 0 8px}
+  .pp-wrap h2{font-size:28px;line-height:1.2;margin:28px 0 10px}
+  .pp-wrap p,.pp-wrap li,.pp-wrap td,.pp-wrap th{font-size:15px;line-height:1.75;color:#1f2937}
+  .pp-wrap .muted{color:#6b7280}
+  .pp-wrap .box{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:20px}
+  .pp-wrap table{width:100%;border-collapse:collapse;margin:10px 0}
+  .pp-wrap th,.pp-wrap td{border:1px solid #e5e7eb;padding:10px;text-align:left;vertical-align:top}
 </style>
 
-<main class="pp-art">
-  <section class="pp-hero">
-    <div class="pp-wrap">
-      <div class="pp-eyebrow">Dokument prawny</div>
-      <h1 class="pp-h1">Polityka prywatności</h1>
-      <p class="pp-lead">Niniejsza Polityka Prywatności określa zasady przetwarzania danych osobowych oraz wykorzystywania plików cookies w związku z korzystaniem ze strony internetowej.</p>
-    </div>
-  </section>
+<main class="pp-wrap">
+  <h1>Polityka Prywatności</h1>
+  <p class="muted"><strong>VePo Sebastian Kelm / Upsellio</strong><br/>Wierzbowa 21A/2 · 62-070 Dopiewiec · NIP: 7773388263<br/>kontakt@upsellio.pl · upsellio.pl<br/>Ostatnia aktualizacja: maj 2026 · Wersja: 2.0</p>
 
-  <section class="pp-main">
-    <div class="pp-wrap">
-      <article class="pp-section">
-        <h2 class="pp-h2">1. Informacje ogólne</h2>
-        <p class="pp-p">Administratorem danych osobowych jest: <strong><?php echo esc_html($admin_name); ?></strong>.</p>
-        <p class="pp-p">Adres: <?php echo esc_html($admin_address); ?>.</p>
-        <p class="pp-p">W sprawach związanych z danymi osobowymi możesz skontaktować się pod adresem: <a href="<?php echo esc_url($contact_email_href); ?>"><?php echo esc_html($contact_email_display); ?></a>.</p>
-      </article>
+  <section class="box">
+    <h2>1. Administrator danych osobowych</h2>
+    <p>Administratorem Pani/Pana danych osobowych jest: VePo Sebastian Kelm, prowadzący działalność pod nazwą Upsellio, ul. Wierzbowa 21A/2, 62-070 Dopiewiec, NIP: 7773388263, e-mail: kontakt@upsellio.pl, strona: https://upsellio.pl.</p>
+    <p>W sprawach związanych z ochroną danych osobowych może Pani/Pan kontaktować się bezpośrednio z Administratorem pod wskazanym adresem e-mail.</p>
 
-      <article class="pp-section">
-        <h2 class="pp-h2">2. Zakres zbieranych danych</h2>
-        <ul class="pp-list">
-          <li>imię i nazwisko</li>
-          <li>adres e-mail</li>
-          <li>numer telefonu</li>
-          <li>nazwa firmy</li>
-          <li>dane przekazane w formularzu kontaktowym</li>
-          <li>adres IP</li>
-          <li>dane o zachowaniu na stronie (analytics)</li>
-        </ul>
-      </article>
+    <h2>2. Zakres i źródła zbieranych danych</h2>
+    <p>Administrator przetwarza dane osobowe pozyskane bezpośrednio od Pani/Pana, wyłącznie na podstawie dobrowolnie wypełnionego formularza kontaktowego lub wiadomości e-mail.</p>
+    <ul>
+      <li>Dane identyfikacyjne: imię i nazwisko lub nazwa firmy</li>
+      <li>Dane kontaktowe: adres e-mail, numer telefonu (opcjonalnie)</li>
+      <li>Dane związane z zapytaniem: treść wiadomości, wybrany zakres usług, budżet (opcjonalnie)</li>
+      <li>Dane techniczne: adres IP, user-agent, data i godzina przesłania formularza, URL strony źródłowej</li>
+      <li>Dane analityczne: dane o zachowaniu na stronie zbierane przez narzędzia wskazane w sekcji 8 (wyłącznie po udzieleniu zgody)</li>
+    </ul>
+    <p>Administrator nie zbiera świadomie danych osobowych osób poniżej 16. roku życia.</p>
 
-      <article class="pp-section">
-        <h2 class="pp-h2">3. Cele przetwarzania danych</h2>
-        <ul class="pp-list">
-          <li>kontaktu z użytkownikiem (formularz, e-mail, telefon)</li>
-          <li>przedstawienia oferty usług</li>
-          <li>realizacji usług marketingowych / konsultacji</li>
-          <li>analizy ruchu na stronie (statystyki, optymalizacja)</li>
-          <li>działań remarketingowych i reklamowych</li>
-        </ul>
-      </article>
+    <h2>3. Cele i podstawy prawne przetwarzania</h2>
+    <table>
+      <thead><tr><th>Cel przetwarzania</th><th>Podstawa prawna RODO</th><th>Czas przechowywania</th></tr></thead>
+      <tbody>
+        <tr><td>Odpowiedź na zapytanie kontaktowe i przedstawienie oferty</td><td>Art. 6 ust. 1 lit. a lub lit. b</td><td>3 lata od ostatniego kontaktu</td></tr>
+        <tr><td>Realizacja usług marketingowych (w ramach umowy)</td><td>Art. 6 ust. 1 lit. b</td><td>Czas umowy + 5 lat</td></tr>
+        <tr><td>Marketing bezpośredni, follow-up, przypomnienia</td><td>Art. 6 ust. 1 lit. f</td><td>Do sprzeciwu, max. 3 lata</td></tr>
+        <tr><td>Wystawianie faktur i archiwizacja księgowa</td><td>Art. 6 ust. 1 lit. c</td><td>5 lat od końca roku podatkowego</td></tr>
+        <tr><td>Analityka ruchu i optymalizacja strony (GA4, Clarity)</td><td>Art. 6 ust. 1 lit. a</td><td>26 miesięcy (GA4) / sesja (Clarity)</td></tr>
+        <tr><td>Reklama remarketingowa (Meta Ads, Google Ads)</td><td>Art. 6 ust. 1 lit. a</td><td>Do cofnięcia zgody</td></tr>
+        <tr><td>Dochodzenie lub obrona roszczeń</td><td>Art. 6 ust. 1 lit. f</td><td>Do przedawnienia roszczeń (max. 6 lat)</td></tr>
+      </tbody>
+    </table>
 
-      <article class="pp-section">
-        <h2 class="pp-h2">4. Podstawy prawne przetwarzania</h2>
-        <ul class="pp-list">
-          <li>art. 6 ust. 1 lit. a RODO – zgoda (formularz, kontakt)</li>
-          <li>art. 6 ust. 1 lit. b RODO – realizacja umowy lub działania przed jej zawarciem</li>
-          <li>art. 6 ust. 1 lit. f RODO – uzasadniony interes (marketing, analityka)</li>
-        </ul>
-      </article>
+    <h2>4. Automatyczne przetwarzanie i profilowanie (AI)</h2>
+    <p>Administrator korzysta z systemu AI (Anthropic Claude) do automatycznej oceny (scoringu) zapytań kontaktowych. Ocena ma charakter pomocniczy i nie stanowi zautomatyzowanej decyzji wywołującej skutki prawne.</p>
+    <p>Profilowanie polega na analizie anonimizowanych danych formularza (zakres usługi, branża, cel, budżet) w celu dopasowania priorytetu odpowiedzi i propozycji oferty.</p>
+    <p>Masz prawo do uzyskania wyjaśnienia dotyczącego zastosowanej oceny AI oraz do wyrażenia sprzeciwu wobec profilowania — napisz na kontakt@upsellio.pl z tytułem: „Sprzeciw — profilowanie AI”.</p>
 
-      <article class="pp-section">
-        <h2 class="pp-h2">5. Odbiorcy danych</h2>
-        <p class="pp-p">Dane mogą być przekazywane podmiotom wspierającym działanie strony i usług, np.:</p>
-        <ul class="pp-list">
-          <li>dostawcom hostingu</li>
-          <li>narzędziom analitycznym (np. Google Analytics)</li>
-          <li>systemom reklamowym (np. Meta Ads, Google Ads)</li>
-          <li>narzędziom mailingowym / CRM</li>
-        </ul>
-        <p class="pp-p">Dane nie są sprzedawane osobom trzecim.</p>
-      </article>
+    <h2>5. Odbiorcy danych — podmioty przetwarzające</h2>
+    <table>
+      <thead><tr><th>Podmiot / usługa</th><th>Kraj</th><th>Przekazywane dane</th><th>Podstawa transferu</th></tr></thead>
+      <tbody>
+        <tr><td>Dostawca hostingu WordPress</td><td>EU</td><td>IP, dane techniczne</td><td>Nie dotyczy (EOG)</td></tr>
+        <tr><td>Google LLC — GA4 / Google Ads / Measurement Protocol</td><td>USA</td><td>Dane sesji, click IDs, eventy</td><td>SCC + DPF</td></tr>
+        <tr><td>Meta Platforms — Meta Pixel + CAPI</td><td>USA</td><td>Email/phone hash, IP, fbp/fbc</td><td>SCC + DPF</td></tr>
+        <tr><td>Microsoft Corporation — Clarity</td><td>USA</td><td>Nagrania sesji, mapy cieplne</td><td>SCC + DPF</td></tr>
+        <tr><td>Anthropic PBC — AI scoring (Claude)</td><td>USA</td><td>Anonimizowane dane formularza</td><td>SCC / DPA Anthropic</td></tr>
+        <tr><td>Cybot A/S — Cookiebot</td><td>Dania/EU</td><td>Zgody cookies, timestamp, IP</td><td>Nie dotyczy (EOG)</td></tr>
+      </tbody>
+    </table>
 
-      <article class="pp-section">
-        <h2 class="pp-h2">6. Czas przechowywania danych</h2>
-        <ul class="pp-list">
-          <li>przez czas trwania kontaktu / współpracy</li>
-          <li>do momentu cofnięcia zgody</li>
-          <li>do momentu przedawnienia roszczeń</li>
-          <li>do czasu zakończenia działań marketingowych</li>
-        </ul>
-      </article>
+    <h2>6. Prawa osoby, której dane dotyczą</h2>
+    <p>Przysługuje Pani/Panu prawo dostępu, sprostowania, usunięcia, ograniczenia, przenoszenia danych, wniesienia sprzeciwu, cofnięcia zgody oraz złożenia skargi do UODO.</p>
 
-      <article class="pp-section">
-        <h2 class="pp-h2">7. Prawa użytkownika</h2>
-        <p class="pp-p">Masz prawo do:</p>
-        <ul class="pp-list">
-          <li>dostępu do swoich danych</li>
-          <li>sprostowania danych</li>
-          <li>usunięcia danych</li>
-          <li>ograniczenia przetwarzania</li>
-          <li>sprzeciwu wobec przetwarzania</li>
-          <li>przenoszenia danych</li>
-        </ul>
-        <p class="pp-p">Możesz również złożyć skargę do Prezesa UODO.</p>
-      </article>
+    <h2>7. Pliki cookies i zarządzanie zgodą</h2>
+    <p>Zarządzanie zgodą na cookies odbywa się za pomocą Cookiebot (Cybot A/S, Havnegade 39, 1058 Kopenhaga, Dania), identyfikator: 91229b76-132c-42e8-9021-9542287ad319.</p>
+    <p>Pełny rejestr cookies: https://www.cookiebot.com/goto/privacy-policy/</p>
+    <table>
+      <thead><tr><th>Kategoria</th><th>Cel</th><th>Przykłady</th><th>Zgoda wymagana</th></tr></thead>
+      <tbody>
+        <tr><td>Niezbędne</td><td>Działanie strony i bezpieczeństwo</td><td>ups_nonce, PHPSESSID</td><td>NIE</td></tr>
+        <tr><td>Statystyczne</td><td>Analityka ruchu i UX</td><td>_ga, _gid, _clck</td><td>TAK</td></tr>
+        <tr><td>Marketingowe</td><td>Remarketing i konwersje reklamowe</td><td>_fbp, _gcl_au, _fbc</td><td>TAK</td></tr>
+      </tbody>
+    </table>
 
-      <article class="pp-section">
-        <h2 class="pp-h2">8. Pliki cookies</h2>
-        <p class="pp-p">Strona wykorzystuje pliki cookies w celu:</p>
-        <ul class="pp-list">
-          <li>prawidłowego działania strony</li>
-          <li>analizy ruchu</li>
-          <li>prowadzenia działań marketingowych</li>
-        </ul>
-        <p class="pp-p">Cookies mogą pochodzić od podmiotów trzecich (np. Google, Meta).</p>
-      </article>
+    <h2>8. Narzędzia zewnętrzne i ich polityki</h2>
+    <ul>
+      <li>Google Analytics 4: https://policies.google.com/privacy</li>
+      <li>Google Ads / Conversion Tracking: https://policies.google.com/privacy</li>
+      <li>Google Tag Manager: https://policies.google.com/privacy</li>
+      <li>Meta Pixel + CAPI: https://www.facebook.com/privacy/policy/</li>
+      <li>Microsoft Clarity: https://privacy.microsoft.com/pl-pl/privacystatement</li>
+      <li>Anthropic Claude: https://www.anthropic.com/privacy</li>
+      <li>Cookiebot: https://www.cookiebot.com/pl/privacy-policy/</li>
+    </ul>
 
-      <article class="pp-section">
-        <h2 class="pp-h2">9. Zarządzanie cookies</h2>
-        <p class="pp-p">Możesz zarządzać cookies poprzez ustawienia swojej przeglądarki.</p>
-        <p class="pp-p">Ograniczenie cookies może wpłynąć na działanie strony.</p>
-      </article>
+    <h2>9. Bezpieczeństwo danych</h2>
+    <ul>
+      <li>Szyfrowanie połączenia TLS/HTTPS</li>
+      <li>Hashowanie danych przed przekazaniem do systemów reklamowych (SHA-256)</li>
+      <li>Szyfrowanie tokenów OAuth (AES-256-CBC)</li>
+      <li>Ograniczenie dostępu na zasadzie need-to-know</li>
+      <li>Aktualizacje oprogramowania i monitorowanie podatności</li>
+      <li>Automatyczne usuwanie danych po okresie retencji</li>
+    </ul>
 
-      <article class="pp-section">
-        <h2 class="pp-h2">10. Narzędzia zewnętrzne</h2>
-        <p class="pp-p">Na stronie mogą być wykorzystywane:</p>
-        <ul class="pp-list">
-          <li>Google Analytics</li>
-          <li>Google Ads</li>
-          <li>Meta Pixel (Facebook)</li>
-        </ul>
-        <p class="pp-p">Narzędzia te mogą zbierać dane o użytkowniku w celach analitycznych i reklamowych.</p>
-      </article>
+    <h2>10. Komunikacja e-mail — rezygnacja</h2>
+    <p>Wiadomości e-mail zawierają link „Wypisz się z dalszych wiadomości” umożliwiający natychmiastowe i bezwarunkowe wypisanie.</p>
 
-      <article class="pp-section">
-        <h2 class="pp-h2">11. Bezpieczeństwo danych</h2>
-        <p class="pp-p">Administrator stosuje odpowiednie środki techniczne i organizacyjne w celu ochrony danych przed:</p>
-        <ul class="pp-list">
-          <li>utratą</li>
-          <li>nieautoryzowanym dostępem</li>
-          <li>nieuprawnionym ujawnieniem</li>
-        </ul>
-      </article>
+    <h2>11. Zmiany polityki prywatności</h2>
+    <p>Administrator zastrzega prawo do zmiany niniejszej polityki w przypadku zmian prawa, narzędzi lub zakresu przetwarzania.</p>
 
-      <article class="pp-section">
-        <h2 class="pp-h2">12. Zmiany polityki</h2>
-        <p class="pp-p">Polityka może być aktualizowana. Aktualna wersja zawsze znajduje się na stronie.</p>
-      </article>
-
-      <p class="pp-note">Aktualna wersja dokumentu: <a href="<?php echo esc_url($policy_url); ?>">Polityka prywatności</a>.</p>
-    </div>
+    <h2>12. Dane kontaktowe w sprawach ochrony danych</h2>
+    <p>VePo Sebastian Kelm (Upsellio), ul. Wierzbowa 21A/2, 62-070 Dopiewiec, kontakt@upsellio.pl</p>
+    <p>Organ nadzorczy: Prezes UODO, ul. Stawki 2, 00-193 Warszawa, https://uodo.gov.pl</p>
   </section>
 </main>
 <?php

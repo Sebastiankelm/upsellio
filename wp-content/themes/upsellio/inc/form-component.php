@@ -170,7 +170,12 @@ function upsellio_render_lead_form(array $args = [])
             </div>
             <input type="hidden" name="lead_name" value="Szybka analiza" />
             <input type="hidden" name="lead_message" value="Prośba o szybką analizę strony." />
-            <input type="hidden" name="lead_consent" value="1" />
+            <label class="ups-form__consent">
+                <input type="checkbox" name="lead_consent" value="1" required />
+                <span>Wyrażam zgodę na kontakt w celu bezpłatnej analizy strony.
+                    <a href="<?php echo esc_url(home_url("/polityka-prywatnosci/")); ?>" target="_blank" rel="noopener noreferrer">Polityka prywatności</a>.
+                </span>
+            </label>
 
         <?php elseif ($variant === "email-only") : ?>
             <?php

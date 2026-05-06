@@ -543,6 +543,20 @@ function upsellio_followup_send_html_mail_via_smtp($to_email, $subject, $html, $
                 $mail->addAttachment($p, $n !== "" ? $n : basename($p));
             }
         }
+        if (function_exists("upsellio_email_unsub_token") && is_email($to_email)) {
+            $unsub_token = upsellio_email_unsub_token($to_email);
+            $unsub_url = add_query_arg([
+                "ups_unsub" => $unsub_token,
+                "email" => rawurlencode($to_email),
+            ], home_url("/"));
+            $unsub_mailto = "mailto:kontakt@upsellio.pl?subject=Wypisz+"
+                . rawurlencode($to_email);
+            $mail->addCustomHeader(
+                "List-Unsubscribe",
+                "<" . $unsub_url . ">, <" . $unsub_mailto . ">"
+            );
+            $mail->addCustomHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
+        }
 
         /**
          * Ostatnia szansa na modyfikację PHPMailera (np. niestandardowe nagłówki na hostingu).

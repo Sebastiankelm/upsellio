@@ -1427,6 +1427,38 @@ function upsellio_print_tracking_scripts_body()
 }
 add_action("wp_body_open", "upsellio_print_tracking_scripts_body", 1);
 
+function ups_purge_stale_leads(): void
+{
+    $cutoff = date("Y-m-d", strtotime("-3 years"));
+    $leads = get_posts([
+        "post_type" => "lead",
+        "post_status" => ["publish", "private", "draft", "pending"],
+        "posts_per_page" => 50,
+        "date_query" => [[
+            "before" => $cutoff,
+            "inclusive" => true,
+        ]],
+        "meta_query" => [[
+            "key" => "_upsellio_first_contact_at",
+            "compare" => "NOT EXISTS",
+        ]],
+    ]);
+
+    foreach ($leads as $lead) {
+        if (!($lead instanceof WP_Post)) {
+            continue;
+        }
+        wp_delete_post((int) $lead->ID, true);
+    }
+}
+add_action("ups_purge_stale_leads_cron", "ups_purge_stale_leads");
+
+add_action("init", static function () {
+    if (!wp_next_scheduled("ups_purge_stale_leads_cron")) {
+        wp_schedule_event(time(), "monthly", "ups_purge_stale_leads_cron");
+    }
+}, 40);
+
 function upsellio_primary_menu_name()
 {
     return "Upsellio Primary Auto";

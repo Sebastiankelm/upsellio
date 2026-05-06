@@ -275,6 +275,11 @@ function upsellio_crm_create_lead($payload)
     $landingUrl = esc_url_raw($payload["landing_url"] ?? "");
     $referrer = esc_url_raw($payload["referrer"] ?? "");
     $monthlySales = sanitize_text_field($payload["monthly_sales"] ?? "");
+    $consentTimestamp = sanitize_text_field($payload["consent_timestamp"] ?? "");
+    $consentIp = sanitize_text_field($payload["consent_ip"] ?? "");
+    $consentUa = sanitize_text_field($payload["consent_ua"] ?? "");
+    $consentForm = sanitize_text_field($payload["consent_form"] ?? "");
+    $consentVersion = sanitize_text_field($payload["consent_version"] ?? "");
     $ownerId = isset($payload["owner_id"]) ? (int) $payload["owner_id"] : 0;
     if ($ownerId <= 0) {
         $ownerId = upsellio_crm_get_default_owner_id();
@@ -308,6 +313,11 @@ function upsellio_crm_create_lead($payload)
         $landingUrl,
         $referrer,
         $monthlySales,
+        $consentTimestamp,
+        $consentIp,
+        $consentUa,
+        $consentForm,
+        $consentVersion,
         $ownerId
     ) {
     $title = $name !== "" ? $name : ($email !== "" ? $email : "Nowy lead");
@@ -368,11 +378,16 @@ function upsellio_crm_create_lead($payload)
     update_post_meta($leadId, "_upsellio_lead_quiz_budget", $quizBudget);
     update_post_meta($leadId, "_upsellio_lead_landing_url", $landingUrl);
     update_post_meta($leadId, "_upsellio_lead_referrer", $referrer);
+    update_post_meta($leadId, "_upsellio_lead_consent_ua", $consentUa);
     if (function_exists("upsellio_crm_attribute_lead_to_gsc_keyword")) {
         upsellio_crm_attribute_lead_to_gsc_keyword((int) $leadId, (string) $landingUrl, (string) $referrer);
     }
 
     if ($isNewLead) {
+        update_post_meta($leadId, "_upsellio_lead_consent_at", $consentTimestamp);
+        update_post_meta($leadId, "_upsellio_lead_consent_ip", $consentIp);
+        update_post_meta($leadId, "_upsellio_lead_consent_form", $consentForm);
+        update_post_meta($leadId, "_upsellio_lead_consent_version", $consentVersion);
         $statusTermId = upsellio_crm_get_term_id_by_slug("lead_status", "new");
         if ($statusTermId > 0) {
             wp_set_object_terms($leadId, [$statusTermId], "lead_status", false);
@@ -816,6 +831,7 @@ function upsellio_crm_send_emails($lead_id, $name, $email, $message)
     $quiz_industry = (string) get_post_meta($lead_id, "_upsellio_lead_quiz_industry", true);
     $quiz_problem = (string) get_post_meta($lead_id, "_upsellio_lead_quiz_problem", true);
     $quiz_budget = (string) get_post_meta($lead_id, "_upsellio_lead_quiz_budget", true);
+    $consent_at = (string) get_post_meta($lead_id, "_upsellio_lead_consent_at", true);
     $edit_url = admin_url("post.php?post=" . (int) $lead_id . "&action=edit");
     $subject = "🎯 Lead: {$name}" . ($company !== "" ? " ({$company})" : "") . " · score {$score}";
     $body = "<p><strong>" . esc_html($name) . "</strong>" . ($company !== "" ? " · " . esc_html($company) : "") . "<br><span style='font-size:13px;color:#64748b;'>" . esc_html($email) . "</span></p>
@@ -825,6 +841,7 @@ function upsellio_crm_send_emails($lead_id, $name, $email, $message)
 <tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Usługa:</td><td>" . esc_html($service ?: "—") . "</td></tr>
 <tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Quiz:</td><td>" . esc_html($quiz_problem) . " · " . esc_html($quiz_industry) . " · " . esc_html($quiz_budget) . "</td></tr>
 <tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Źródło:</td><td>" . esc_html($utm_source ?: "organic") . " " . esc_html($gclid) . "</td></tr>
+<tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Zgoda:</td><td>" . esc_html($consent_at !== "" ? $consent_at : "brak daty") . "</td></tr>
 </table>
 <p><a href='" . esc_url($edit_url) . "' class='ups-cta'>Otwórz lead w CRM →</a></p>";
     $adminSent = is_email($recipient) && function_exists("upsellio_send_crm_mail")
@@ -924,6 +941,18 @@ function upsellio_crm_handle_lead_submission()
         upsellio_crm_redirect_lead_form_error($redirectUrl, "fields");
     }
 
+    $consentTimestamp = current_time("mysql");
+    $consentIp = isset($_SERVER["REMOTE_ADDR"])
+        ? sanitize_text_field(wp_unslash($_SERVER["REMOTE_ADDR"]))
+        : "";
+    $consentUa = isset($_SERVER["HTTP_USER_AGENT"])
+        ? sanitize_text_field(wp_unslash($_SERVER["HTTP_USER_AGENT"]))
+        : "";
+    $consentForm = isset($_POST["lead_form_origin"])
+        ? sanitize_text_field(wp_unslash($_POST["lead_form_origin"]))
+        : "contact-form";
+    $consentVersion = sanitize_text_field((string) get_option("ups_consent_policy_version", "v1.0"));
+
     if (upsellio_crm_is_rate_limited($email)) {
         upsellio_crm_redirect_lead_form_error($redirectUrl, "rate");
     }
@@ -962,6 +991,11 @@ function upsellio_crm_handle_lead_submission()
         "quiz_problem" => isset($_POST["lead_quiz_problem"]) ? sanitize_text_field(wp_unslash($_POST["lead_quiz_problem"])) : "",
         "quiz_industry" => isset($_POST["lead_quiz_industry"]) ? sanitize_text_field(wp_unslash($_POST["lead_quiz_industry"])) : "",
         "quiz_budget" => isset($_POST["lead_quiz_budget"]) ? sanitize_text_field(wp_unslash($_POST["lead_quiz_budget"])) : "",
+        "consent_timestamp" => $consentTimestamp,
+        "consent_ip" => $consentIp,
+        "consent_ua" => $consentUa,
+        "consent_form" => $consentForm,
+        "consent_version" => $consentVersion,
     ];
 
     $leadId = upsellio_crm_create_lead($payload);
