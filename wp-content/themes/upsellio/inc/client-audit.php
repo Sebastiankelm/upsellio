@@ -660,7 +660,7 @@ function ups_audit_generate_monthly_report($client_id)
     $model = ups_audit_ai_model_from_option("ups_audit_anthropic_model_reports", "sonnet");
     $GLOBALS["upsellio_ai_current_task"] = "client_audit";
     $result = function_exists("upsellio_anthropic_crm_send_user_prompt")
-        ? upsellio_anthropic_crm_send_user_prompt($prompt, 4000, 90, $model)
+        ? upsellio_anthropic_crm_send_user_prompt($prompt, 5000, 120, $model)
         : null;
     $html = is_string($result) && $result !== "" ? $result : "<h2>Raport miesięczny</h2><p>Brak odpowiedzi AI. Sprawdź konfigurację API.</p>";
     $report_id = wp_insert_post([
