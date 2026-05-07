@@ -15,7 +15,15 @@ get_header();
 
 $items = function_exists("upsellio_get_marketing_portfolio_list") ? upsellio_get_marketing_portfolio_list(200) : [];
 $per_page = 9;
-$paged = max(1, (int) get_query_var("paged"), (int) get_query_var("page"), isset($_GET["paged"]) ? (int) $_GET["paged"] : 1);
+// Static page pagination uses "page" not "paged" (WordPress quirk).
+// We accept both via query var and ?page=N / ?paged=N URL.
+$paged = max(
+    1,
+    (int) get_query_var("page"),
+    (int) get_query_var("paged"),
+    isset($_GET["page"]) ? (int) $_GET["page"] : 0,
+    isset($_GET["paged"]) ? (int) $_GET["paged"] : 0
+);
 $total_items = count($items);
 $summary_projects = $total_items;
 $max_pages = max(1, (int) ceil($total_items / $per_page));
@@ -155,8 +163,8 @@ foreach ($items as $index => $item) {
           <nav class="mp-pager" aria-label="Paginacja portfolio marketingowego">
             <?php
             $base_url = function_exists("upsellio_get_marketing_portfolio_page_url") ? (string) upsellio_get_marketing_portfolio_page_url() : get_permalink();
-            $prev_url = $paged > 2 ? add_query_arg("paged", $paged - 1, $base_url) : $base_url;
-            $next_url = add_query_arg("paged", $paged + 1, $base_url);
+            $prev_url = $paged > 2 ? add_query_arg("page", $paged - 1, $base_url) : $base_url;
+            $next_url = add_query_arg("page", $paged + 1, $base_url);
             ?>
             <?php if ($paged > 1) : ?>
               <a href="<?php echo esc_url($prev_url); ?>" aria-label="Poprzednia strona">‹</a>
@@ -165,7 +173,7 @@ foreach ($items as $index => $item) {
             <?php endif; ?>
 
             <?php for ($i = 1; $i <= $max_pages; $i++) : ?>
-              <?php $page_url = $i > 1 ? add_query_arg("paged", $i, $base_url) : $base_url; ?>
+              <?php $page_url = $i > 1 ? add_query_arg("page", $i, $base_url) : $base_url; ?>
               <?php if ($i === $paged) : ?>
                 <span class="is-current"><?php echo esc_html((string) $i); ?></span>
               <?php else : ?>

@@ -208,7 +208,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
 
 /* Mini-stats z perspektywy klienta */
 .hr-hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:0}
-.hr-hero-stat{padding:18px 18px;background:var(--hr-surface);border:1px solid var(--hr-border);border-radius:var(--hr-rl);display:flex;flex-direction:column;gap:4px}
+.hr-hero-stat{padding:18px 18px;background:var(--hr-surface);border:1px solid var(--hr-border);border-radius:var(--hr-rl);display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center}
 .hr-hero-stat strong{font-family:var(--hr-fd);font-weight:800;font-size:22px;color:var(--hr-ink);line-height:1.05;letter-spacing:-.025em}
 .hr-hero-stat strong em{font-style:normal;color:var(--hr-teal)}
 .hr-hero-stat span{font-size:12.5px;color:var(--hr-muted);line-height:1.45;font-weight:500}
@@ -433,7 +433,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
           </div>
           <div class="hr-hero-stat">
             <strong>0 zł</strong>
-            <span>pierwsza rozmowa, 30 min</span>
+            <span>Tylko kosztuje pierwsza analiza twojej sytuacji</span>
           </div>
           <div class="hr-hero-stat">
             <strong>0%</strong>
