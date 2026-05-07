@@ -571,18 +571,14 @@ function upsellio_cpt_ai_run(int $post_id, string $notes = "")
 
     /*
      * Routing modeli per typ wpisu:
-     * - miasto / definicja → Haiku: zadania rule-following, tańsze wejście.
+     * - miasto / definicja → Sonnet: dluzsze odpowiedzi i stabilniejszy JSON.
      * - portfolio / marketing_portfolio → Sonnet: case studies dla klienta.
      * Filtry: upsellio_cpt_ai_model_{post_type}, upsellio_cpt_ai_max_tokens_{post_type}.
      */
     if (function_exists("upsellio_ai_model_for")) {
-        $model = in_array($post_type, ["miasto", "definicja"], true)
-            ? upsellio_ai_model_for("cpt_ai_optimize_fast")
-            : upsellio_ai_model_for("cpt_ai_optimize");
+        $model = upsellio_ai_model_for("cpt_ai_optimize");
     } else {
-        $model = in_array($post_type, ["miasto", "definicja"], true)
-            ? "claude-haiku-4-5-20251001"
-            : "claude-sonnet-4-5";
+        $model = "claude-sonnet-4-5";
     }
     $model = (string) apply_filters("upsellio_cpt_ai_model_{$post_type}", $model);
 
@@ -591,10 +587,10 @@ function upsellio_cpt_ai_run(int $post_id, string $notes = "")
      * Miasto ~700 słów HTML + pola; definicja ~550 słów; portfolio / marketing_portfolio większe case studies.
      */
     $max_tokens_map = [
-        "miasto"              => 3000,
-        "definicja"           => 2500,
-        "portfolio"           => 3000,
-        "marketing_portfolio" => 3500,
+        "miasto"              => 4500,
+        "definicja"           => 4000,
+        "portfolio"           => 4500,
+        "marketing_portfolio" => 5000,
     ];
     $max_tokens_for_type = (int) apply_filters(
         "upsellio_cpt_ai_max_tokens_{$post_type}",
@@ -951,6 +947,27 @@ function upsellio_cpt_ai_apply_portfolio(int $post_id, array $data): void
         }
     }
 
+    // Rank Math SEO fields
+    $pq_rm = trim((string) ($data["primary_query"] ?? ""));
+    if ($pq_rm !== "") {
+        if (function_exists("mb_strlen") && mb_strlen($pq_rm, "UTF-8") > 40) {
+            $pq_rm = mb_substr($pq_rm, 0, 40, "UTF-8");
+        }
+        update_post_meta($post_id, "rank_math_focus_keyword", $pq_rm);
+        update_post_meta($post_id, "_yoast_wpseo_focuskw", $pq_rm);
+        update_post_meta($post_id, "_upsellio_primary_query", $pq_rm);
+    }
+    $seo_title_rm = trim((string) ($data["seo_title"] ?? ""));
+    if ($seo_title_rm !== "") {
+        update_post_meta($post_id, "rank_math_title", sanitize_text_field($seo_title_rm));
+        update_post_meta($post_id, "_yoast_wpseo_title", sanitize_text_field($seo_title_rm));
+    }
+    $meta_desc_rm = trim((string) ($data["meta_description"] ?? ""));
+    if ($meta_desc_rm !== "") {
+        update_post_meta($post_id, "rank_math_description", sanitize_textarea_field($meta_desc_rm));
+        update_post_meta($post_id, "_yoast_wpseo_metadesc", sanitize_textarea_field($meta_desc_rm));
+    }
+
     // Aktualizuj slug z primary_query
     $pq_slug = trim((string) ($data["primary_query"] ?? ""));
     if ($pq_slug !== "") {
@@ -991,7 +1008,7 @@ function upsellio_cpt_ai_apply_marketing_portfolio(int $post_id, array $data): v
     $kpis_raw = trim((string) ($data["kpis"] ?? ""));
     if ($kpis_raw !== "") {
         $kpis_val = str_replace(" ;; ", "\n", $kpis_raw);
-        $kpis_val = str_replace(";;", "\n", $kpis_val);
+        $kpis_val = str_replace(";;", "\n", $kpis_raw);
         update_post_meta($post_id, "_ups_mport_kpis", sanitize_textarea_field($kpis_val));
     }
 
@@ -1037,10 +1054,18 @@ add_action("wp_ajax_upsellio_cpt_ai_optimize", static function (): void {
     }
 
     $lock_key = "ups_cpt_ai_running_" . $post_id;
-    if (get_transient($lock_key)) {
-        wp_send_json_error("AI już przetwarza ten wpis. Poczekaj chwilę.");
+    $lock_val = (int) get_transient($lock_key);
+    // Lock auto-expires po 30s - jesli poprzednie wywolanie padlo (timeout/fatal),
+    // user moze sprobowac ponownie zamiast czekac 3 min na wygasniecie transient.
+    if ($lock_val > 0 && (time() - $lock_val) < 30) {
+        wp_send_json_error("AI już przetwarza ten wpis. Poczekaj " . (30 - (time() - $lock_val)) . " sekund.");
     }
-    set_transient($lock_key, 1, 3 * MINUTE_IN_SECONDS);
+    set_transient($lock_key, time(), 3 * MINUTE_IN_SECONDS);
+
+    // Bezpiecznik: usun lock nawet przy fatal error / timeout PHP.
+    register_shutdown_function(static function () use ($lock_key): void {
+        delete_transient($lock_key);
+    });
 
     try {
         $notes = isset($_POST["notes"]) ? sanitize_textarea_field(wp_unslash((string) $_POST["notes"])) : "";
