@@ -656,8 +656,22 @@ function upsellio_blog_bot_mb_cut(string $s, int $max): string
 function upsellio_blog_bot_clamp_seo_title(string $seo_title, string $fallback_title, string $primary_query): string
 {
     $seo_title = trim($seo_title);
+    $primary_query = trim($primary_query);
     if ($seo_title === "") {
         $seo_title = trim($fallback_title);
+    }
+
+    if ($primary_query !== "") {
+        $title_lower = function_exists("mb_strtolower") ? mb_strtolower($seo_title, "UTF-8") : strtolower($seo_title);
+        $pq_lower = function_exists("mb_strtolower") ? mb_strtolower($primary_query, "UTF-8") : strtolower($primary_query);
+        if (strpos($title_lower, $pq_lower) !== 0) {
+            $remaining_len = 60 - upsellio_blog_bot_mb_len($primary_query) - 3;
+            if ($remaining_len > 15) {
+                $seo_title = $primary_query . " — " . upsellio_blog_bot_mb_cut($seo_title, $remaining_len);
+            } else {
+                $seo_title = upsellio_blog_bot_mb_cut($primary_query, 60);
+            }
+        }
     }
 
     $len = upsellio_blog_bot_mb_len($seo_title);
@@ -667,23 +681,24 @@ function upsellio_blog_bot_clamp_seo_title(string $seo_title, string $fallback_t
         return $seo_title;
     }
 
-    // Za długi — spróbuj skrócić zachowując primary_query na początku
     if ($len > 60) {
-        // Jeśli primary_query mieści się w 60 znakach — użyj go jako seo_title
-        $pq_len = upsellio_blog_bot_mb_len($primary_query);
-        if ($primary_query !== "" && $pq_len <= 60 && $pq_len >= 20) {
-            return $primary_query;
+        if ($primary_query !== "" && upsellio_blog_bot_mb_len($primary_query) <= 60) {
+            $remaining = 60 - upsellio_blog_bot_mb_len($primary_query) - 3;
+            if ($remaining > 10) {
+                $sep_pos = function_exists("mb_strpos") ? mb_strpos($seo_title, " — ", 0, "UTF-8") : strpos($seo_title, " — ");
+                if ($sep_pos !== false) {
+                    $tail_full = function_exists("mb_substr") ? mb_substr($seo_title, $sep_pos + 3, null, "UTF-8") : substr($seo_title, $sep_pos + 3);
+                    return $primary_query . " — " . upsellio_blog_bot_mb_cut($tail_full, $remaining);
+                }
+            }
+            return upsellio_blog_bot_mb_cut($primary_query, 60);
         }
-        // Skróć do 60
         return upsellio_blog_bot_mb_cut($seo_title, 60);
     }
 
     // Za krótki — dopełnij
     $suffix = " — poradnik B2B";
     $candidate = $seo_title . $suffix;
-    if (upsellio_blog_bot_mb_len($candidate) < 45 && $primary_query !== "") {
-        $candidate = $seo_title . " — " . upsellio_blog_bot_mb_cut($primary_query, 48);
-    }
     if (upsellio_blog_bot_mb_len($candidate) < 45) {
         $candidate .= " — checklista i metryki";
     }
@@ -769,28 +784,23 @@ function upsellio_blog_bot_fix_seo_issues(string $content, string $primary_query
     }
 
     $primary_query = trim($primary_query);
-    $kw_lower = function_exists("mb_strtolower")
+    $pq_lower = function_exists("mb_strtolower")
         ? mb_strtolower($primary_query, "UTF-8")
         : strtolower($primary_query);
-    $kw_words = preg_split("/\s+/u", $kw_lower, -1, PREG_SPLIT_NO_EMPTY) ?: [];
-    $kw_prefix = implode(" ", array_slice($kw_words, 0, 2));
-    if (upsellio_blog_bot_mb_len($kw_prefix) <= 3) {
-        $kw_prefix = $kw_lower;
-    }
 
-    // 1. Pierwszy akapit — jeśli brak prefiksu frazy, wstrzyknij zdanie otwierające.
+    // 1. Pierwszy akapit musi zawierać CAŁĄ frazę primary_query.
     if (preg_match("/<p[^>]*>(.*?)<\/p>/is", $content, $first_p_match)) {
         $first_p_text = function_exists("mb_strtolower")
             ? mb_strtolower(wp_strip_all_tags($first_p_match[1]), "UTF-8")
             : strtolower(wp_strip_all_tags($first_p_match[1]));
-        if (upsellio_blog_bot_mb_len($kw_prefix) > 3 && !upsellio_blog_bot_str_contains_ci($first_p_text, $kw_prefix)) {
+        if (strpos($first_p_text, $pq_lower) === false) {
             $inject = ucfirst($primary_query)
                 . " to temat który warto dobrze rozumieć, jeśli prowadzisz firmę B2B. ";
             $content = (string) preg_replace("/<p([^>]*)>/i", "<p$1>" . $inject, $content, 1);
         }
     }
 
-    // 2. Co najmniej jeden nagłówek H2/H3 z fragmentem frazy — inaczej dopisz do pierwszego H2/H3.
+    // 2. Co najmniej jeden nagłówek H2/H3 z CAŁĄ frazą.
     preg_match_all("/<h[23][^>]*>.*?<\/h[23]>/is", $content, $heading_blocks);
     $kw_in_heading = false;
     if (!empty($heading_blocks[0])) {
@@ -798,7 +808,7 @@ function upsellio_blog_bot_fix_seo_issues(string $content, string $primary_query
             $ht = function_exists("mb_strtolower")
                 ? mb_strtolower(wp_strip_all_tags($block), "UTF-8")
                 : strtolower(wp_strip_all_tags($block));
-            if (upsellio_blog_bot_str_contains_ci($ht, $kw_prefix)) {
+            if (strpos($ht, $pq_lower) !== false) {
                 $kw_in_heading = true;
                 break;
             }
@@ -818,7 +828,20 @@ function upsellio_blog_bot_fix_seo_issues(string $content, string $primary_query
         );
     }
 
-    // 3. Link zewnętrzny (authority), jeśli brak jakiegokolwiek linku poza domeną.
+    // 3. Zapewnij min. 3 wystąpienia exact-match primary_query.
+    $content_lower = function_exists("mb_strtolower")
+        ? mb_strtolower(wp_strip_all_tags($content), "UTF-8")
+        : strtolower(wp_strip_all_tags($content));
+    $pq_count = substr_count($content_lower, $pq_lower);
+    if ($pq_count < 3) {
+        $extra_sentence = " Pamiętaj: " . $primary_query . " to nie jednorazowa decyzja, tylko proces wymagający regularnej pracy.";
+        $last_p_pos = strrpos($content, "</p>");
+        if ($last_p_pos !== false) {
+            $content = substr($content, 0, $last_p_pos) . esc_html($extra_sentence) . substr($content, $last_p_pos);
+        }
+    }
+
+    // 4. Link zewnętrzny (authority), jeśli brak jakiegokolwiek linku poza domeną.
     if (!upsellio_blog_bot_content_has_external_http_link($content)) {
         $external_url = "https://think.withgoogle.com/";
         $external_text = "Think with Google";
@@ -895,6 +918,16 @@ function upsellio_blog_bot_save_sbt_meta(int $post_id, array $data, string $titl
         $title,
         $primary_query
     );
+    if (!preg_match("/\d/", $seo_title)) {
+        $year = date("Y");
+        $with_year = $seo_title . " " . $year;
+        if (upsellio_blog_bot_mb_len($with_year) <= 60) {
+            $seo_title = $with_year;
+        } else {
+            $cut = upsellio_blog_bot_mb_cut($seo_title, 60 - upsellio_blog_bot_mb_len(" " . $year));
+            $seo_title = rtrim($cut) . " " . $year;
+        }
+    }
     $seo_desc = upsellio_blog_bot_clamp_meta_description($meta_description, $title, $primary_query);
 
     $query_cluster = trim((string) ($data["query_cluster"] ?? ""));
@@ -1247,7 +1280,7 @@ function upsellio_blog_bot_next_slot_timestamp(): int
 /**
  * Miniaturka wpisu: wyszukanie w mediach po słowach z frazy lub obraz z opcji CRM.
  */
-function upsellio_blog_bot_assign_featured_image(int $post_id, string $keyword): void
+function upsellio_blog_bot_assign_featured_image(int $post_id, string $keyword, string $primary_query = ""): void
 {
     $post_id = (int) $post_id;
     if ($post_id <= 0 || (int) get_post_thumbnail_id($post_id) > 0) {
@@ -1275,9 +1308,10 @@ function upsellio_blog_bot_assign_featured_image(int $post_id, string $keyword):
             $img_id = (int) $media[0]->ID;
             set_post_thumbnail($post_id, $img_id);
             if ($keyword !== "") {
+                $alt_text = trim($primary_query) !== "" ? trim($primary_query) : $keyword;
                 $existing_alt = (string) get_post_meta($img_id, "_wp_attachment_image_alt", true);
-                if ($existing_alt === "") {
-                    update_post_meta($img_id, "_wp_attachment_image_alt", sanitize_text_field($keyword));
+                if ($existing_alt === "" || (trim($primary_query) !== "" && stripos($existing_alt, $primary_query) === false)) {
+                    update_post_meta($img_id, "_wp_attachment_image_alt", sanitize_text_field($alt_text));
                 }
             }
 
@@ -1288,9 +1322,10 @@ function upsellio_blog_bot_assign_featured_image(int $post_id, string $keyword):
     if ($default_id > 0 && wp_attachment_is_image($default_id)) {
         set_post_thumbnail($post_id, $default_id);
         if ($keyword !== "") {
+            $alt_text = trim($primary_query) !== "" ? trim($primary_query) : $keyword;
             $existing_alt = (string) get_post_meta($default_id, "_wp_attachment_image_alt", true);
-            if ($existing_alt === "") {
-                update_post_meta($default_id, "_wp_attachment_image_alt", sanitize_text_field($keyword));
+            if ($existing_alt === "" || (trim($primary_query) !== "" && stripos($existing_alt, $primary_query) === false)) {
+                update_post_meta($default_id, "_wp_attachment_image_alt", sanitize_text_field($alt_text));
             }
         }
     }
@@ -1530,11 +1565,13 @@ function upsellio_blog_bot_generate_and_save(): void
     $content_raw = upsellio_blog_bot_fix_seo_issues($content_raw, $pq_seo, $keyword);
     $content = wp_kses_post($content_raw);
 
-    $slug = sanitize_title((string) ($data["slug"] ?? ""));
-    if ($slug === "") {
-        // Preferuj primary_query jako slug — krótszy i zawiera frazę kluczową (sanitize_title usuwa polskie znaki)
-        $pq_for_slug = trim((string) ($data["primary_query"] ?? ""));
-        $slug = sanitize_title($pq_for_slug !== "" ? $pq_for_slug : $title);
+    $pq_for_slug = trim((string) ($data["primary_query"] ?? ""));
+    $model_slug = sanitize_title((string) ($data["slug"] ?? ""));
+    if ($pq_for_slug !== "") {
+        $pq_slug = sanitize_title($pq_for_slug);
+        $slug = ($model_slug !== "" && strpos($model_slug, $pq_slug) === 0) ? $model_slug : $pq_slug;
+    } else {
+        $slug = $model_slug !== "" ? $model_slug : sanitize_title($title);
     }
     // Ogranicz do 70 znaków (ASCII slug — strlen OK)
     if (strlen($slug) > 70) {
@@ -1584,7 +1621,7 @@ function upsellio_blog_bot_generate_and_save(): void
     }
     $post_id = (int) $post_id;
 
-    upsellio_blog_bot_assign_featured_image($post_id, $keyword);
+    upsellio_blog_bot_assign_featured_image($post_id, $keyword, $pq_seo);
 
     $plain = wp_strip_all_tags((string) $content);
     $word_count = $plain !== ""
