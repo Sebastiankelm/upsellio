@@ -1686,14 +1686,52 @@ function upsellio_followup_run_mailbox_poll(): array
         }
     }
     if ($messages === false) {
-        $detail = function_exists("imap_last_error") ? (string) imap_last_error() : "imap_search nie powiodło się";
-        imap_close($imap);
-        $out["message"] = "Błąd wyszukiwania IMAP: " . ($detail !== "" ? $detail : "nieznany");
-        if (function_exists("upsellio_mailbox_log")) {
-            upsellio_mailbox_log("imap", "error", "imap_search(UNSEEN) zwróciło false.", $detail);
+        $last_error = function_exists("imap_last_error") ? (string) imap_last_error() : "";
+        $imap_errors = function_exists("imap_errors") ? (array) imap_errors() : [];
+        $imap_alerts = function_exists("imap_alerts") ? (array) imap_alerts() : [];
+        $detail_parts = [];
+        if ($last_error !== "") {
+            $detail_parts[] = "last_error: " . $last_error;
         }
+        if (!empty($imap_errors)) {
+            $detail_parts[] = "errors: " . implode(" | ", array_map("strval", $imap_errors));
+        }
+        if (!empty($imap_alerts)) {
+            $detail_parts[] = "alerts: " . implode(" | ", array_map("strval", $imap_alerts));
+        }
+        $detail = implode(" || ", $detail_parts);
 
-        return $out;
+        // Fallback pod hostingi, gdzie "UNSEEN" bywa niestabilne:
+        // pobierz ALL i odfiltruj wiadomości nieprzeczytane po overview->seen.
+        $all_messages = @imap_search($imap, "ALL");
+        if (is_array($all_messages) && $all_messages !== []) {
+            $unseen_fallback = [];
+            foreach ($all_messages as $msg_no) {
+                $overview_list = @imap_fetch_overview($imap, (string) $msg_no, 0);
+                $overview = is_array($overview_list) && isset($overview_list[0]) ? $overview_list[0] : null;
+                $is_seen = $overview && isset($overview->seen) ? (int) $overview->seen === 1 : false;
+                if (!$is_seen) {
+                    $unseen_fallback[] = (int) $msg_no;
+                }
+            }
+            $messages = $unseen_fallback;
+            if (function_exists("upsellio_mailbox_log")) {
+                upsellio_mailbox_log(
+                    "imap",
+                    "warn",
+                    "imap_search(UNSEEN) zwróciło false — użyto fallback ALL + filtr seen.",
+                    $detail !== "" ? $detail : "brak dodatkowych szczegółów z IMAP"
+                );
+            }
+        } else {
+            imap_close($imap);
+            $out["message"] = "Błąd wyszukiwania IMAP: " . ($detail !== "" ? $detail : "nieznany");
+            if (function_exists("upsellio_mailbox_log")) {
+                upsellio_mailbox_log("imap", "error", "imap_search(UNSEEN) zwróciło false.", $detail !== "" ? $detail : "brak szczegółów");
+            }
+
+            return $out;
+        }
     }
     if ($messages === []) {
         imap_close($imap);
