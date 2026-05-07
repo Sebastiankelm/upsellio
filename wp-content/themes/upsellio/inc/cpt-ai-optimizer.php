@@ -603,76 +603,85 @@ function upsellio_cpt_ai_run(int $post_id, string $notes = "")
     $GLOBALS["upsellio_ai_current_task"] = "cpt_optimizer_" . $post_type;
 
     $api_key = upsellio_anthropic_crm_api_key();
-    $response = wp_remote_post("https://api.anthropic.com/v1/messages", [
-        "timeout" => 180,
-        "sslverify" => true,
-        "headers" => [
-            "x-api-key" => $api_key,
-            "anthropic-version" => "2023-06-01",
-            "content-type" => "application/json",
-        ],
-        "body" => wp_json_encode([
-            "model" => $model,
-            "max_tokens" => $max_tokens_for_type,
-            "system" => $system_prompt,
-            "messages" => [["role" => "user", "content" => $user_prompt]],
-        ]),
-    ]);
 
-    if (is_wp_error($response)) {
-        return $response;
-    }
+    // Statystycznie parser czasem pada przez uszkodzony JSON — retry zwykle pomaga.
+    $last_error_detail = "";
+    for ($attempt = 1; $attempt <= 2; $attempt++) {
+        $effective_user_prompt = $user_prompt;
+        if ($attempt === 2) {
+            $effective_user_prompt .= "\n\n---\nUWAGA RETRY: Poprzednia próbka miała błędny JSON. "
+                . "Odpowiadaj WYŁĄCZNIE czystym JSON. Pierwszy znak musi być { ostatni }. "
+                . "Wszystkie cudzysłowy escape jako \\\". Wszystkie newline escape jako \\n. "
+                . "Skróć post_content jeśli potrzeba.";
+        }
 
-    $code = (int) wp_remote_retrieve_response_code($response);
-    $body = json_decode((string) wp_remote_retrieve_body($response), true);
+        $response = wp_remote_post("https://api.anthropic.com/v1/messages", [
+            "timeout" => 180,
+            "sslverify" => true,
+            "headers" => [
+                "x-api-key" => $api_key,
+                "anthropic-version" => "2023-06-01",
+                "content-type" => "application/json",
+            ],
+            "body" => wp_json_encode([
+                "model" => $model,
+                "max_tokens" => $max_tokens_for_type,
+                "system" => $system_prompt,
+                "messages" => [["role" => "user", "content" => $effective_user_prompt]],
+            ]),
+        ]);
 
-    if ($code >= 400) {
-        $msg = (string) ($body["error"]["message"] ?? "API error {$code}");
+        if (is_wp_error($response)) {
+            return $response;
+        }
 
-        return new WP_Error("api_error", $msg);
-    }
+        $code = (int) wp_remote_retrieve_response_code($response);
+        $body = json_decode((string) wp_remote_retrieve_body($response), true);
 
-    $text = "";
-    if (function_exists("upsellio_anthropic_crm_extract_text_from_response_body") && is_array($body)) {
-        $text = upsellio_anthropic_crm_extract_text_from_response_body($body);
-    }
-    if ($text === "" && isset($body["content"][0]["text"])) {
-        $text = (string) $body["content"][0]["text"];
-    }
-    if (trim($text) === "") {
-        return new WP_Error("empty_response", "Pusta odpowiedź modelu.");
-    }
+        if ($code >= 400) {
+            $msg = (string) ($body["error"]["message"] ?? "API error {$code}");
 
-    $stop_reason = is_array($body) ? (string) ($body["stop_reason"] ?? "") : "";
+            return new WP_Error("api_error", $msg);
+        }
 
-    $parsed = null;
-    if (function_exists("upsellio_anthropic_crm_parse_json_object")) {
-        $parsed = upsellio_anthropic_crm_parse_json_object($text);
-    }
-    if (!is_array($parsed)) {
-        $fallback = upsellio_cpt_ai_parse_json_from_text($text);
-        if (is_wp_error($fallback)) {
-            if ($stop_reason === "max_tokens") {
-                return new WP_Error(
-                    "parse_error",
-                    "Model uciął odpowiedź (stop_reason: max_tokens) — JSON jest niekompletny. "
-                    . "Zwiększ max_tokens dla tego typu wpisu lub skróć wymagany post_content."
-                );
+        $text = "";
+        if (function_exists("upsellio_anthropic_crm_extract_text_from_response_body") && is_array($body)) {
+            $text = upsellio_anthropic_crm_extract_text_from_response_body($body);
+        }
+        if ($text === "" && isset($body["content"][0]["text"])) {
+            $text = (string) $body["content"][0]["text"];
+        }
+        if (trim($text) === "") {
+            return new WP_Error("empty_response", "Pusta odpowiedź modelu.");
+        }
+
+        $stop_reason = is_array($body) ? (string) ($body["stop_reason"] ?? "") : "";
+
+        $parsed = null;
+        if (function_exists("upsellio_anthropic_crm_parse_json_object")) {
+            $parsed = upsellio_anthropic_crm_parse_json_object($text);
+        }
+        if (!is_array($parsed)) {
+            $fallback = upsellio_cpt_ai_parse_json_from_text($text);
+            if (!is_wp_error($fallback) && is_array($fallback)) {
+                $parsed = $fallback;
             }
+        }
 
-            return $fallback;
+        if (is_array($parsed)) {
+            return $parsed;
         }
-        if (!is_array($fallback)) {
-            return new WP_Error(
-                "parse_error",
-                "Model nie zwrócił poprawnego JSON."
-                . ($stop_reason !== "" ? " (stop_reason: {$stop_reason})" : "")
-            );
+
+        $snippet = function_exists("mb_substr") ? mb_substr($text, 0, 200, "UTF-8") : substr($text, 0, 200);
+        if ($stop_reason === "max_tokens") {
+            $last_error_detail = "Model uciął odpowiedź (stop_reason: max_tokens). Próbka: " . $snippet;
+            break;
         }
-        $parsed = $fallback;
+
+        $last_error_detail = "Próbka: " . $snippet;
     }
 
-    return $parsed;
+    return new WP_Error("parse_error", "Model nie zwrócił poprawnego JSON po 2 próbach. " . $last_error_detail);
 }
 
 /**
