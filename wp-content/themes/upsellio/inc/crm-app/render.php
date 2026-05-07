@@ -679,7 +679,14 @@ function upsellio_crm_app_template_redirect()
       ?>
       <link rel="stylesheet" href="<?php echo esc_url(get_template_directory_uri() . "/assets/css/upsellio.css"); ?>?ver=<?php echo esc_attr($_ups_crm_theme_css_v); ?>" />
       <?php if ($view === "dashboard") : ?>
-      <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+      <script>
+      (function(){
+        var s=document.createElement("script");
+        s.src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js";
+        s.onerror=function(){var s2=document.createElement("script");s2.src="https://unpkg.com/chart.js@4.4.3/dist/chart.umd.min.js";document.head.appendChild(s2);};
+        document.head.appendChild(s);
+      })();
+      </script>
       <?php endif; ?>
       <style id="upsellio-crm-width-fix">
         /* Theme upsellio.css defines .content { width: min(var(--content),100%); } (--content: 760px) for marketing pages; CRM reuses .content and must stay full width of .main. */

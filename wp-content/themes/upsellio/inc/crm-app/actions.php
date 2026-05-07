@@ -2045,7 +2045,7 @@ function upsellio_suggestions_ajax_gate(): bool
         return false;
     }
     $nonce = isset($_POST["nonce"]) ? sanitize_text_field(wp_unslash($_POST["nonce"])) : "";
-    if (!wp_verify_nonce($nonce, "upsellio_suggestions_nonce")) {
+    if (!wp_verify_nonce($nonce, "upsellio_suggestions_nonce") && !wp_verify_nonce($nonce, "ups_crm_app_action")) {
         wp_send_json_error(["message" => "bad_nonce"], 403);
 
         return false;
@@ -2197,7 +2197,14 @@ add_action("wp_ajax_upsellio_gsc_refresh_analysis", "upsellio_gsc_refresh_analys
 
 function upsellio_ai_today_brief_ajax(): void
 {
-    if (!upsellio_suggestions_ajax_gate()) {
+    if (!upsellio_crm_app_user_can_access()) {
+        wp_send_json_error(["message" => "forbidden"], 403);
+        return;
+    }
+    // Nonce: ups_crm_app_action (to co JS wysyla przez CRM_CAL_NONCE)
+    $nonce = isset($_POST["nonce"]) ? sanitize_text_field(wp_unslash($_POST["nonce"])) : "";
+    if (!wp_verify_nonce($nonce, "ups_crm_app_action") && !wp_verify_nonce($nonce, "upsellio_suggestions_nonce")) {
+        wp_send_json_error(["message" => "bad_nonce"], 403);
         return;
     }
     $scores = (array) get_option("ups_automation_channel_quality_scores", []);
@@ -2210,14 +2217,52 @@ function upsellio_ai_today_brief_ajax(): void
     }
     $campaign_count = is_array($campaigns) ? count($campaigns) : 0;
     $anom_count = is_array($anomalies) ? count($anomalies) : 0;
-    $brief = sprintf(
-        "Dziś: %s, kampanie Ads: %d, anomalie do sprawdzenia: %d. Priorytet: follow-up hot leadów i kontrola ROAS.",
-        $top_channel !== "" ? $top_channel : "brak dominującego kanału",
-        (int) $campaign_count,
-        (int) $anom_count
-    );
-    update_option("ups_ai_today_brief", $brief, false);
-    wp_send_json_success(["brief" => $brief]);
+    // Pobierz dodatkowe dane do briefu
+    $hot_leads = get_posts([
+        "post_type" => "lead",
+        "posts_per_page" => 3,
+        "meta_query" => [["key" => "_upsellio_lead_score", "value" => 60, "compare" => ">=", "type" => "NUMERIC"]],
+        "orderby" => "meta_value_num",
+        "meta_key" => "_upsellio_lead_score",
+        "order" => "DESC",
+    ]);
+    $hot_count = count($hot_leads);
+    $hot_names = [];
+    foreach (array_slice($hot_leads, 0, 2) as $hl) {
+        $hot_names[] = get_the_title($hl->ID);
+    }
+    $pipeline_val = (float) get_option("ups_pipeline_total_value", 0);
+    $last_error_bb = get_option("ups_blog_bot_last_error", null);
+
+    // Spróbuj wygenerować brief przez AI
+    $ai_brief = "";
+    if (function_exists("upsellio_anthropic_crm_send_user_prompt") && function_exists("upsellio_ai_model_for")) {
+        $company_ctx = (string) get_option("ups_ai_company_context", "");
+        $prompt = "Napisz krótkie (3-4 zdania) podsumowanie dnia dla " . $company_ctx . "\n"
+            . "Dane: hot leady ($hot_count): " . implode(", ", $hot_names) . "\n"
+            . "Kampanie aktywne: $campaign_count, anomalie: $anom_count\n"
+            . "Top kanał: " . ($top_channel ?: "brak danych") . "\n"
+            . "Wartość pipeline: " . number_format($pipeline_val, 0, ",", " ") . " PLN\n"
+            . "Co zrobić teraz? Jeden konkretny priorytet na dziś. Bez ogólników.";
+        $GLOBALS["upsellio_ai_current_task"] = "site_analytics_brief";
+        $model = upsellio_ai_model_for("site_analytics_brief");
+        $ai_brief = (string) upsellio_anthropic_crm_send_user_prompt($prompt, 300, 30, $model);
+    }
+
+    // Fallback jeśli AI nie odpowiedziało
+    if ($ai_brief === "") {
+        $ai_brief = sprintf(
+            "Dziś: %s | kampanie: %d | hot leady: %d (%s) | anomalie: %d. Priorytet: follow-up hot leadów.",
+            $top_channel !== "" ? $top_channel : "brak danych GSC",
+            (int) $campaign_count,
+            $hot_count,
+            !empty($hot_names) ? implode(", ", $hot_names) : "brak",
+            (int) $anom_count
+        );
+    }
+
+    update_option("ups_ai_today_brief", $ai_brief, false);
+    wp_send_json_success(["brief" => $ai_brief]);
 }
 add_action("wp_ajax_upsellio_ai_today_brief", "upsellio_ai_today_brief_ajax");
 
