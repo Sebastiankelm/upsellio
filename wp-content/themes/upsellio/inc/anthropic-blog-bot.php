@@ -1007,7 +1007,7 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null,
     $catalog_block = upsellio_blog_bot_format_catalog_for_prompt($catalog);
 
     $prompt_template = (string) get_option("ups_ai_prompt_blog_post", "");
-    $target_length = max(600, (int) get_option("ups_blog_bot_target_length", 1200));
+    $target_length = max(600, (int) get_option("ups_blog_bot_target_length", 1000));
     if ($slim) {
         $target_length = max(500, (int) round($target_length * 0.90));
     }
@@ -1017,13 +1017,8 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null,
     $converting_kw = upsellio_blog_bot_get_converting_keywords($slim ? 5 : 8);
 
     $gsc_keyword_context = "";
-    $gsc_cache = get_option("ups_gsc_analysis_cache", []);
-    if (
-        is_array($gsc_cache)
-        && !empty($gsc_cache["quick_wins"])
-        && function_exists("upsellio_gsc_build_prompt_block")
-    ) {
-        $gsc_keyword_context = (string) upsellio_gsc_build_prompt_block($gsc_cache);
+    if (function_exists("upsellio_gsc_build_prompt_block")) {
+        $gsc_keyword_context = (string) upsellio_gsc_build_prompt_block("topicgen");
     } elseif (function_exists("upsellio_gsc_build_keyword_context")) {
         $gsc_keyword_context = upsellio_gsc_build_keyword_context($keyword);
     }
@@ -1148,6 +1143,15 @@ function upsellio_blog_bot_build_prompt(string $keyword, ?array $catalog = null,
             . "Poprzednia odpowiedź była obcięta lub nieparsowalna. Odpowiedz WYŁĄCZNIE jednym kompletnym obiektem JSON kończącym się na „}”.\n"
             . "Pole content: krótszy artykuł HTML (orientacyjnie " . (int) round($target_length * 6) . "–" . (int) round($target_length * 10) . " znaków), 2–3 linki markdown z katalogu, 2–3 nagłówki H2/H3 + krótka sekcja FAQ — ale WSZYSTKIE klucze JSON muszą być obecne i poprawne.\n";
     }
+
+    // Krytyczne ograniczenia outputu: bez markdown fence i zawsze pełny obiekt JSON.
+    $prompt .= "\n\n---\n"
+        . "KRYTYCZNE WYMAGANIA OUTPUTU (model NIE SPELNIA = blad systemu):\n"
+        . "1. Odpowiadaj WYLACZNIE czystym JSON. ZADEN markdown, ZADNE ```json, ZADEN tekst przed lub po.\n"
+        . "2. Pierwszy znak odpowiedzi MUSI byc {, ostatni }.\n"
+        . "3. Wszystkie wartosci string z cudzyslowem w srodku - escape jako \\\\\".\n"
+        . "4. Wszystkie newliny w stringach - escape jako \\\\n.\n"
+        . "5. Pole content max 1000 slow, zeby JSON zmiescil sie w limicie tokenow.\n";
 
     return $prompt;
 }
@@ -1419,7 +1423,7 @@ function upsellio_blog_bot_generate_and_save(): void
         ? max(60, min(600, $stored_to))
         : (int) apply_filters("upsellio_blog_bot_api_timeout", $safe_timeout);
     $api_timeout = max(60, min(600, $api_timeout));
-    $max_out = upsellio_blog_bot_resolve_max_output_tokens(5500);
+    $max_out = upsellio_blog_bot_resolve_max_output_tokens(8000);
     upsellio_blog_bot_debug_log(
         "Calling API: model=" . $model
         . " timeout=" . $api_timeout
@@ -1590,7 +1594,7 @@ function upsellio_blog_bot_generate_and_save(): void
     $has_faq = stripos((string) $content, "FAQ") !== false
         || stripos((string) $content, "często zadawane") !== false
         || stripos((string) $content, "CZĘSTO ZADAWANE") !== false;
-    $target_len = max(400, (int) get_option("ups_blog_bot_target_length", 1200));
+    $target_len = max(400, (int) get_option("ups_blog_bot_target_length", 1000));
     $min_words = (int) max(350, (int) round($target_len * 0.36));
     $quality_notes = [];
     if ($word_count < $min_words) {
