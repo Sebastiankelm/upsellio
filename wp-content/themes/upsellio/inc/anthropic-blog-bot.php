@@ -1546,21 +1546,14 @@ function upsellio_blog_bot_generate_and_save(): void
     // Spis treści jest budowany w single.php (.sp-toc) — nie wstrzykuj ups-article-toc do treści (uniknięcie podwójnego TOC).
     // $content_raw = upsellio_blog_bot_prepend_toc_block($content_raw);
     $content_raw = upsellio_blog_bot_ensure_sbt_shortcodes($content_raw, $article_type);
-    /* primary_query z AI — treść / fix_seo_issues; Rank Math focus — fraza z kolejki (poniżej). */
+    /* primary_query z AI — używana spójnie w treści, slugu i Rank Math focus. */
     $pq_seo = trim((string) ($data["primary_query"] ?? ""));
     if ($pq_seo === "") {
         $pq_seo = $keyword;
     }
 
-    $pq_rankmath = preg_replace(
-        '/\s*—\s*\d+\s+\w+\s*(które|który|którą|co|jak|dla|na|w|i)?\s*\w*$/ui',
-        "",
-        $keyword
-    );
-    $pq_rankmath = trim((string) $pq_rankmath);
-    if ($pq_rankmath === "") {
-        $pq_rankmath = $pq_seo;
-    }
+    // Rank Math focus musi być identyczny jak fraza wstrzyknięta do treści.
+    $pq_rankmath = $pq_seo;
 
     $content_raw = upsellio_blog_bot_fix_seo_issues($content_raw, $pq_seo, $keyword);
     $content = wp_kses_post($content_raw);
