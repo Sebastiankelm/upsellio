@@ -5512,7 +5512,43 @@ function upsellio_crm_app_template_redirect()
                               <?php if ($is_out && (string) ($msg["to"] ?? "") !== "") : ?>
                                 <div style="font-size:11px;opacity:.72;margin-bottom:6px"><?php esc_html_e("Do:", "upsellio"); ?> <?php echo esc_html((string) ($msg["to"] ?? "")); ?><?php echo (string) ($msg["cc"] ?? "") !== "" ? " · Dw: " . esc_html((string) ($msg["cc"] ?? "")) : ""; ?></div>
                               <?php endif; ?>
-                              <?php echo nl2br(esc_html((string) ($msg["body_plain"] ?? ""))); ?>
+                              <?php
+                              $body_raw = (string) ($msg["body_plain"] ?? "");
+                              // Schowaj cytaty z poprzedniej korespondencji (typowe dla IMAP / mail replies).
+                              $body_lines = preg_split("/\r\n|\r|\n/", $body_raw);
+                              if (!is_array($body_lines)) {
+                                  $body_lines = [$body_raw];
+                              }
+                              $body_clean = [];
+                              $quote_start_idx = null;
+                              foreach ($body_lines as $line_idx => $line_raw) {
+                                  $line_trimmed = ltrim((string) $line_raw);
+                                  if (preg_match("/^(On |W dniu |Dnia |Od:|Wys\x{0142}ano:|>)/u", $line_trimmed)) {
+                                      $quote_start_idx = (int) $line_idx;
+                                      break;
+                                  }
+                                  if (preg_match("/(napisa\x{0142}|wrote|pisze):\s*$/iu", $line_trimmed)) {
+                                      $quote_start_idx = (int) $line_idx;
+                                      break;
+                                  }
+                                  $body_clean[] = (string) $line_raw;
+                              }
+                              $body_visible = trim(implode("\n", $body_clean));
+                              if ($body_visible === "") {
+                                  $body_visible = $body_raw;
+                              }
+                              echo nl2br(esc_html($body_visible));
+                              $quoted_tail = "";
+                              if ($quote_start_idx !== null) {
+                                  $quoted_tail = trim(implode("\n", array_slice($body_lines, $quote_start_idx)));
+                              }
+                              if ($quoted_tail !== "") :
+                              ?>
+                              <details class="crm-inbox-msg-quote">
+                                <summary><?php esc_html_e("Poprzednia korespondencja", "upsellio"); ?></summary>
+                                <div><?php echo nl2br(esc_html($quoted_tail)); ?></div>
+                              </details>
+                              <?php endif; ?>
                               <?php if ($cls !== "") : ?>
                                 <div class="crm-inbox-cls-tag" style="background:<?php echo $is_out ? "rgba(255,255,255,.12)" : "var(--bg-2)"; ?>;color:<?php echo $is_out ? "#fff" : "var(--text-3)"; ?>">
                                   <?php echo esc_html($cls_label !== "" ? $cls_label : $cls); ?>
@@ -6889,7 +6925,7 @@ function upsellio_crm_app_template_redirect()
                     <label>Autor draftów (ID użytkownika WP)</label>
                     <input type="number" min="1" name="ups_blog_bot_post_author" value="<?php echo esc_attr((string) max(1, (int) get_option("ups_blog_bot_post_author", max(1, (int) get_current_user_id())))); ?>" />
                     <label>Docelowa liczba słów</label>
-                    <input type="number" min="400" step="50" name="ups_blog_bot_target_length" value="<?php echo esc_attr((string) max(400, (int) get_option("ups_blog_bot_target_length", 1200))); ?>" />
+                    <input type="number" min="400" step="50" name="ups_blog_bot_target_length" value="<?php echo esc_attr((string) max(400, (int) get_option("ups_blog_bot_target_length", 1000))); ?>" />
                     <label>Timeout HTTP (API Anthropic, sekundy)</label>
                     <input type="number" min="0" max="600" step="30" name="ups_blog_bot_http_timeout" value="<?php echo esc_attr((string) max(0, (int) get_option("ups_blog_bot_http_timeout", 0))); ?>" placeholder="0 = auto do 300 s · zalecane 300" />
                     <p class="muted" style="grid-column:1/-1;margin:-8px 0 4px;font-size:11px;line-height:1.45">Wpisz <strong>0</strong>, aby użyć domyślnych <strong>240 s</strong> (wcześniejsze stałe 90 s kończyły się <code>cURL error 28</code> przy długiej odpowiedzi JSON). Na wolnym hostingu ustaw np. 300–420. Górny limit techniczny: 600.</p>
