@@ -1306,8 +1306,22 @@ function upsellio_blog_bot_ensure_cron(): void
     wp_schedule_event($start, $schedule, "upsellio_blog_bot_cron_run");
 }
 
+function upsellio_blog_bot_debug_log_path(): string
+{
+    return defined("WP_CONTENT_DIR")
+        ? WP_CONTENT_DIR . "/ups-blog-bot-debug.log"
+        : sys_get_temp_dir() . "/ups-blog-bot-debug.log";
+}
+
+function upsellio_blog_bot_debug_log(string $message): void
+{
+    $timestamp = date("Y-m-d H:i:s");
+    @file_put_contents(upsellio_blog_bot_debug_log_path(), "[{$timestamp}] {$message}\n", FILE_APPEND | LOCK_EX);
+}
+
 function upsellio_blog_bot_generate_and_save(): void
 {
+    upsellio_blog_bot_debug_log("generate_and_save START");
     upsellio_blog_bot_set_last_error(null);
 
     if (function_exists("set_time_limit")) {
@@ -1317,6 +1331,7 @@ function upsellio_blog_bot_generate_and_save(): void
 
     $lock_key = "ups_blog_bot_running";
     if (get_transient($lock_key)) {
+        upsellio_blog_bot_debug_log("EXIT: already_running (transient lock aktywny)");
         upsellio_blog_bot_set_last_error([
             "code" => "already_running",
             "detail" => "Blog Bot jest już uruchomiony. Poczekaj na zakończenie poprzedniego wywołania.",
@@ -1328,6 +1343,7 @@ function upsellio_blog_bot_generate_and_save(): void
 
     try {
     if ((string) get_option("ups_blog_bot_enabled", "0") !== "1") {
+        upsellio_blog_bot_debug_log("EXIT: disabled (ups_blog_bot_enabled != 1)");
         upsellio_blog_bot_set_last_error([
             "code" => "disabled",
             "detail" => "Włącz Blog Bota w CRM → Ustawienia → AI.",
@@ -1336,6 +1352,7 @@ function upsellio_blog_bot_generate_and_save(): void
         return;
     }
     if (!function_exists("upsellio_anthropic_crm_api_key") || upsellio_anthropic_crm_api_key() === "") {
+        upsellio_blog_bot_debug_log("EXIT: no_api_key");
         upsellio_blog_bot_set_last_error([
             "code" => "no_api_key",
             "detail" => "Brak UPSELLIO_ANTHROPIC_API_KEY / ups_anthropic_api_key.",
@@ -1353,6 +1370,7 @@ function upsellio_blog_bot_generate_and_save(): void
 
     $keyword = upsellio_blog_bot_peek_keyword();
     if ($keyword === "") {
+        upsellio_blog_bot_debug_log("EXIT: empty_queue");
         $notify = (string) get_option("ups_blog_bot_notify_email", "");
         if (is_email($notify)) {
             wp_mail(
@@ -1402,12 +1420,24 @@ function upsellio_blog_bot_generate_and_save(): void
         : (int) apply_filters("upsellio_blog_bot_api_timeout", $safe_timeout);
     $api_timeout = max(60, min(600, $api_timeout));
     $max_out = upsellio_blog_bot_resolve_max_output_tokens(5500);
+    upsellio_blog_bot_debug_log(
+        "Calling API: model=" . $model
+        . " timeout=" . $api_timeout
+        . " max_out=" . $max_out
+        . " keyword=" . (function_exists("mb_substr") ? mb_substr($keyword, 0, 80, "UTF-8") : substr($keyword, 0, 80))
+    );
     $GLOBALS["upsellio_ai_current_task"] = "blog_bot";
     $raw = upsellio_anthropic_crm_send_user_prompt($full_prompt, $max_out, $api_timeout, $model, $cache_split);
+    upsellio_blog_bot_debug_log("API returned: " . ($raw === null ? "NULL" : "OK (" . strlen($raw) . " bytes)"));
     if ($raw === null) {
         $api_detail = function_exists("upsellio_anthropic_crm_get_last_send_error")
             ? upsellio_anthropic_crm_get_last_send_error()
             : "";
+        if ($api_detail !== "") {
+            upsellio_blog_bot_debug_log("EXIT: api_null | " . $api_detail);
+        } else {
+            upsellio_blog_bot_debug_log("EXIT: api_null");
+        }
         upsellio_blog_bot_set_last_error([
             "code" => "api_null",
             "detail" => $api_detail !== "" ? $api_detail : "Brak treści odpowiedzi (HTTP / sieć / limity).",
@@ -1449,6 +1479,7 @@ function upsellio_blog_bot_generate_and_save(): void
             "code" => "bad_json",
             "detail" => "Nie udało się wyciągnąć obiektu JSON z odpowiedzi (w tym po retry kompaktowym)." . $hint . " Początek: " . $snippet,
         ]);
+        upsellio_blog_bot_debug_log("EXIT: bad_json");
 
         return;
     }
@@ -1517,6 +1548,7 @@ function upsellio_blog_bot_generate_and_save(): void
         : [];
 
     if ($title === "" || $content === "") {
+        upsellio_blog_bot_debug_log("EXIT: empty_fields (title/content)");
         upsellio_blog_bot_set_last_error([
             "code" => "empty_fields",
             "detail" => "Model musi zwrócić JSON z polami title oraz content (alternatywnie: content_html / body).",
@@ -1538,6 +1570,7 @@ function upsellio_blog_bot_generate_and_save(): void
 
     if (is_wp_error($post_id) || (int) $post_id <= 0) {
         $err_msg = is_wp_error($post_id) ? $post_id->get_error_message() : "wp_insert_post zwrócił 0.";
+        upsellio_blog_bot_debug_log("EXIT: wp_insert_failed | " . $err_msg);
         upsellio_blog_bot_set_last_error([
             "code" => "wp_insert_failed",
             "detail" => $err_msg,
@@ -1606,6 +1639,7 @@ function upsellio_blog_bot_generate_and_save(): void
     update_option("ups_blog_bot_last_run", current_time("mysql"), false);
     update_option("ups_blog_bot_last_draft_id", $post_id, false);
     upsellio_blog_bot_set_last_error(null);
+    upsellio_blog_bot_debug_log("SUCCESS: draft_created #" . $post_id . " | " . $title);
     update_option("ups_blog_bot_last_run_result", [
         "time" => current_time("mysql"),
         "result" => "success",
@@ -1624,6 +1658,7 @@ function upsellio_blog_bot_generate_and_save(): void
     }
     } finally {
         delete_transient($lock_key);
+        upsellio_blog_bot_debug_log("generate_and_save END");
     }
 }
 

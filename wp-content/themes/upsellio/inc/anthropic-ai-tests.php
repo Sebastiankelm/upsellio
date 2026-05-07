@@ -436,13 +436,11 @@ function upsellio_ai_test_group_crm(): array {
 }
 
 // ─────────────────────────────────────────────
-// RĘCZNE URUCHOMIENIE BLOG BOTA (fastcgi_finish_request — bez loopback HTTP)
-// Loopback (REST/wp_remote_post do localhost) bywa blokowany na shared hostingu — jedyna ścieżka: ten sam proces po zamknięciu połączenia.
-// Zapas: pojedynczy WP-Cron za ~90 s (jeśli pierwszy proces padnie, kolejna wizyta / prawdziwy cron może odpalić `upsellio_blog_bot_cron_run`).
+// RĘCZNE URUCHOMIENIE BLOG BOTA (synchronicznie, jak CPT optimizer)
 // ─────────────────────────────────────────────
 
 /**
- * Przygotowuje meta pollingu przed generowaniem (before_id, czas startu).
+ * Przygotowuje dane przed ręcznym uruchomieniem generatora.
  *
  * @return array{ok: bool, keyword?: string, message: string}
  */
@@ -463,9 +461,6 @@ function upsellio_blog_bot_prepare_manual_run(): array
         ];
     }
 
-    // Stary lock z ubitego procesu PHP blokował kolejne uruchomienia (already_running) bez sensownego last_error.
-    delete_transient("ups_blog_bot_running");
-
     $before_id = (int) get_option("ups_blog_bot_last_draft_id", 0);
     update_option("ups_blog_bot_manual_run_before_id", $before_id, false);
     update_option("ups_blog_bot_manual_run_started_at", time(), false);
@@ -478,79 +473,7 @@ function upsellio_blog_bot_prepare_manual_run(): array
     ];
 }
 
-/**
- * Wysyła natychmiast odpowiedź JSON (jak wp_send_json_success), zamyka połączenie HTTP (PHP-FPM:
- * fastcgi_finish_request), po czym kontynuuje upsellio_blog_bot_generate_and_save() w tym samym procesie.
- * Bufory wyjściowe są czyszczone przed nagłówkami.
- *
- * Celowo bez Content-Length: przy włączonym output_buffering w php.ini (np. Cyberfolks) bufor
- * systemowy może dopisać bajty przed JSON — wtedy nagłówek z długością tylko payloadu przesuwa
- * offset i fetch() widzi „Unexpected non-whitespace character after JSON”.
- * Bez Content-Length klient czyta body do końca połączenia.
- *
- * Kończy przez exit(0), nie wp_die() — WP przy AJAX potrafi dopisać „0” po odpowiedzi (JS: upsParseAjaxJson).
- *
- * @param array<string, mixed> $data Pole "data" w odpowiedzi AJAX.
- */
-function upsellio_blog_bot_flush_ajax_success_and_run_generate(array $data): void
-{
-    $payload = wp_json_encode(
-        ["success" => true, "data" => $data],
-        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-    );
-    if ($payload === false) {
-        $payload = '{"success":false,"data":{"message":"encode_error"}}';
-    }
-
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
-
-    if (!headers_sent()) {
-        header("Content-Type: application/json; charset=UTF-8");
-        header("Connection: close");
-        header("X-Accel-Buffering: no");
-        header("X-Content-Type-Options: nosniff");
-    }
-
-    echo $payload;
-
-    if (session_status() === PHP_SESSION_ACTIVE) {
-        session_write_close();
-    }
-
-    // Jeśli poprzedni run został ubity przez hosting przed finally{} w generatorze — transient zostaje i blokuje bot (already_running).
-    delete_transient("ups_blog_bot_running");
-
-    if (function_exists("fastcgi_finish_request")) {
-        fastcgi_finish_request();
-        ignore_user_abort(true);
-        if (function_exists("set_time_limit")) {
-            @set_time_limit(360);
-        }
-        if (function_exists("upsellio_blog_bot_generate_and_save")) {
-            upsellio_blog_bot_generate_and_save();
-        }
-        exit(0);
-    }
-
-    // Bez FastCGI (część instalacji Apache mod_php): pojedynczy flush() często nie zamyka połączenia — wyczyść kolejne warstwy i wymuś wysyłkę.
-    ignore_user_abort(true);
-    if (function_exists("set_time_limit")) {
-        @set_time_limit(360);
-    }
-    for ($i = 0; $i < 8 && ob_get_level() > 0; $i++) {
-        @ob_end_flush();
-    }
-    @flush();
-    @flush();
-    if (function_exists("upsellio_blog_bot_generate_and_save")) {
-        upsellio_blog_bot_generate_and_save();
-    }
-    exit(0);
-}
-
-// Krok 1: AJAX — odpowiedź JSON od razu; generowanie w tle (fastcgi_finish_request lub fallback flush)
+// AJAX: uruchom Blog Bota synchronicznie (browser czeka na wynik).
 function upsellio_ai_tests_run_blog_bot_ajax(): void
 {
     if (!current_user_can("manage_options")) {
@@ -563,33 +486,57 @@ function upsellio_ai_tests_run_blog_bot_ajax(): void
         wp_send_json_error(["message" => $prep["message"]]);
     }
 
-    $has_fastcgi = function_exists("fastcgi_finish_request");
-    update_option("ups_blog_bot_last_trigger_method", $has_fastcgi ? "fastcgi" : "flush", false);
+    // Synchronicznie - tak jak CPT optimizer.
+    // PHP max_execution_time = 180s na Cyberfolks, API odpowiada w 60-90s.
+    // AJAX czeka, generuje, zwraca wynik. Bez shutdown hooks i polling.
+    update_option("ups_blog_bot_last_trigger_method", "sync_ajax", false);
     update_option("ups_blog_bot_last_trigger_at", time(), false);
 
-    // Zapasowy harmonogram WP-Cron — jeśli ten proces umrze w połowie, kolejna wizyta strony / prawdziwy cron może uruchomić `upsellio_blog_bot_cron_run`.
-    wp_schedule_single_event(time() + 90, "upsellio_blog_bot_cron_run");
+    // Usuń lock z poprzedniego nieukończonego uruchomienia.
+    delete_transient("ups_blog_bot_running");
 
-    upsellio_blog_bot_flush_ajax_success_and_run_generate([
-        "queued"  => true,
-        "keyword" => $prep["keyword"],
-        "message" => $prep["message"] . ($has_fastcgi ? "" : " (tryb fallback: brak fastcgi_finish_request)"),
-    ]);
-}
-add_action("wp_ajax_upsellio_ai_tests_run_blog_bot", "upsellio_ai_tests_run_blog_bot_ajax");
+    @set_time_limit(180);
+    ignore_user_abort(true);
+    @ini_set("memory_limit", "512M");
 
-// Krok 2: AJAX polling — sprawdź czy draft już powstał
-function upsellio_ai_tests_blog_bot_poll_ajax(): void
-{
-    if (!current_user_can("manage_options")) {
-        wp_send_json_error(["message" => "forbidden"], 403);
+    // Bezpiecznik: jezeli proces padnie fatalem, zwroc JSON zamiast HTML "blad krytyczny".
+    register_shutdown_function(static function (): void {
+        $err = error_get_last();
+        if (!is_array($err)) {
+            return;
+        }
+        $fatal_types = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+        if (!in_array((int) ($err["type"] ?? 0), $fatal_types, true)) {
+            return;
+        }
+
+        if (!headers_sent()) {
+            header("Content-Type: application/json; charset=UTF-8");
+            http_response_code(500);
+        }
+
+        echo wp_json_encode([
+            "success" => false,
+            "data" => [
+                "message" => "PHP fatal: " . substr((string) ($err["message"] ?? "unknown"), 0, 300),
+            ],
+        ]);
+    });
+
+    $before_id = (int) get_option("ups_blog_bot_last_draft_id", 0);
+
+    if (!function_exists("upsellio_blog_bot_generate_and_save")) {
+        wp_send_json_error(["message" => "Blog Bot niedostepny - brak funkcji generate_and_save"]);
     }
-    check_ajax_referer("upsellio_ai_tests_nonce", "nonce");
 
-    $before_id = (int) get_option("ups_blog_bot_manual_run_before_id", 0);
-    $started_at = (int) get_option("ups_blog_bot_manual_run_started_at", 0);
+    try {
+        upsellio_blog_bot_generate_and_save();
+    } catch (\Throwable $e) {
+        wp_send_json_error(["message" => "Wyjatek: " . $e->getMessage()]);
+    }
+
     $after_id = (int) get_option("ups_blog_bot_last_draft_id", 0);
-    $elapsed = $started_at > 0 ? (time() - $started_at) : 0;
+    $err = get_option("ups_blog_bot_last_error", null);
 
     if ($after_id > 0 && $after_id !== $before_id) {
         $post = get_post($after_id);
@@ -603,37 +550,53 @@ function upsellio_ai_tests_blog_bot_poll_ajax(): void
         ]);
     }
 
-    if ($elapsed > 300) {
-        $diag   = get_option("ups_blog_bot_last_error", null);
-        $method = (string) get_option("ups_blog_bot_last_trigger_method", "nieznana");
-        $labels = [
-            "disabled"         => "Blog Bot wyłączony w ustawieniach (włącz w CRM → Ustawienia → AI)",
-            "no_api_key"       => "Brak klucza Anthropic API",
-            "empty_queue"      => "Pusta kolejka tematów",
-            "api_null"         => "Błąd wywołania API Anthropic (sprawdź klucz i limity)",
-            "bad_json"         => "Niepoprawny JSON z modelu",
-            "empty_fields"     => "Brak title/content w JSON",
-            "wp_insert_failed" => "Błąd zapisu wpisu w WordPressie",
-            "already_running"  => "Bot był już uruchomiony — transient lock (poczekaj 5 min lub wyczyść transient ups_blog_bot_running)",
-        ];
-        if (is_array($diag) && !empty($diag["code"])) {
-            $code = (string) $diag["code"];
-            $msg  = $labels[$code] ?? $code;
-            if (!empty($diag["detail"])) {
-                $msg .= ": " . $diag["detail"];
-            }
-        } else {
-            $has_fastcgi = function_exists("fastcgi_finish_request");
-            $msg = "Timeout — bot nie uruchomił się lub nie zdążył (metoda: {$method}, fastcgi: "
-                . ($has_fastcgi ? "dostępne" : "niedostępne")
-                . "). Sprawdź PHP error_log. Możliwe: bardzo krótki max_execution_time na hostingu — ustaw zewnętrzny cron na wp-cron.php lub polegaj na harmonogramie Blog Bota.";
+    $labels = [
+        "disabled" => "Blog Bot wylaczony w ustawieniach",
+        "no_api_key" => "Brak klucza Anthropic API",
+        "empty_queue" => "Pusta kolejka tematow",
+        "api_null" => "Blad API Anthropic",
+        "bad_json" => "Niepoprawny JSON z modelu",
+        "empty_fields" => "Brak title/content w JSON",
+        "wp_insert_failed" => "Blad zapisu wpisu",
+        "already_running" => "Bot juz dzialal - poczekaj 5 min",
+    ];
+    $msg = "Blog Bot nie utworzyl draftu.";
+    if (is_array($err) && !empty($err["code"])) {
+        $code = (string) $err["code"];
+        $msg = $labels[$code] ?? $code;
+        if (!empty($err["detail"])) {
+            $msg .= ": " . $err["detail"];
         }
-        wp_send_json_success(["done" => false, "timeout" => true, "message" => $msg]);
+    }
+    wp_send_json_error(["message" => $msg]);
+}
+add_action("wp_ajax_upsellio_ai_tests_run_blog_bot", "upsellio_ai_tests_run_blog_bot_ajax");
+
+// AJAX: odczyt debug logu Blog Bota.
+add_action("wp_ajax_upsellio_blog_bot_read_log", static function (): void {
+    if (!current_user_can("manage_options")) {
+        wp_send_json_error(["message" => "forbidden"], 403);
+    }
+    check_ajax_referer("upsellio_ai_tests_nonce", "nonce");
+
+    $log_path = defined("WP_CONTENT_DIR")
+        ? WP_CONTENT_DIR . "/ups-blog-bot-debug.log"
+        : sys_get_temp_dir() . "/ups-blog-bot-debug.log";
+
+    if (!file_exists($log_path)) {
+        wp_send_json_success([
+            "path" => $log_path,
+            "content" => "Plik logu nie istnieje.\nBot mógł nie dojść do etapu zapisu logu.",
+        ]);
     }
 
-    wp_send_json_success(["done" => false, "elapsed" => $elapsed]);
-}
-add_action("wp_ajax_upsellio_ai_tests_blog_bot_poll", "upsellio_ai_tests_blog_bot_poll_ajax");
+    $lines = @file($log_path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    $last_lines = array_slice((array) $lines, -30);
+    wp_send_json_success([
+        "path" => $log_path,
+        "content" => implode("\n", $last_lines),
+    ]);
+});
 
 // ─────────────────────────────────────────────
 // AJAX RUNNER
@@ -795,6 +758,8 @@ function upsellio_ai_tests_render_page(): void {
         </form>
         <span id="ups-at-blogbot-loading" style="display:none;margin-left:10px;font-size:12px;color:#666">Generuję wpis… (może potrwać 15–60 sekund)</span>
         <div class="ups-at-blogbot-result" id="ups-at-blogbot-result"></div>
+        <button type="button" id="ups-bb-log-btn" class="button button-small" style="display:none;margin-top:8px">Pokaż log</button>
+        <pre id="ups-bb-log-out" style="display:none;margin-top:8px;font-size:11px;background:#f8f8f8;padding:10px;border:1px solid #ddd;max-height:300px;overflow:auto;white-space:pre-wrap"></pre>
     </div>
 
     <script>
@@ -901,124 +866,85 @@ function upsellio_ai_tests_render_page(): void {
 
         function escH(str){ const d=document.createElement('div'); d.textContent=str||''; return d.innerHTML; }
 
-        /** WP AJAX czasem dokleja śmieć po JSON (np. „0”) — parsuj pierwszy kompletny obiekt. */
-        function upsParseAjaxJson(raw){
-            const t = String(raw || '').trim();
-            function tryParse(s){
-                try { return JSON.parse(s); } catch (e) { return null; }
-            }
-            let p = tryParse(t);
-            if (p) return p;
-            p = tryParse(t.replace(/(\})\s*0\s*$/, '$1').trim());
-            if (p) return p;
-            const start = t.indexOf('{');
-            if (start < 0) throw new Error('Brak JSON w odpowiedzi');
-            let depth = 0;
-            for (let i = start; i < t.length; i++) {
-                const c = t.charAt(i);
-                if (c === '{') depth++;
-                else if (c === '}') {
-                    depth--;
-                    if (depth === 0) {
-                        p = tryParse(t.slice(start, i + 1));
-                        if (p) return p;
-                    }
-                }
-            }
-            throw new Error('Nie da się odczytać JSON');
-        }
-
-        // Blog Bot: fastcgi_finish_request + polling (bez loopback cron / spawn_cron)
+        // Blog Bot: synchronicznie - czekamy na odpowiedz API.
         document.getElementById('ups-at-run-blogbot').addEventListener('click', function(){
             const btn     = this;
             const loading = document.getElementById('ups-at-blogbot-loading');
             const result  = document.getElementById('ups-at-blogbot-result');
+            const logBtn  = document.getElementById('ups-bb-log-btn');
+            const logOut  = document.getElementById('ups-bb-log-out');
             btn.disabled  = true;
             loading.style.display = 'inline';
+            loading.textContent = 'Generuję wpis… (czekaj 60-90 sek, nie zamykaj)';
             result.className = 'ups-at-blogbot-result';
             result.textContent = '';
+            logBtn.style.display = 'none';
+            logOut.style.display = 'none';
+            logOut.textContent = '';
 
             const body = new FormData();
             body.append('action', 'upsellio_ai_tests_run_blog_bot');
             body.append('nonce', nonce);
 
-            fetch(ajaxUrl, { method:'POST', body, credentials: 'same-origin' })
-                .then(function(r){ return r.text().then(function(txt){ return txt; }); })
-                .then(function(txt){
-                    var data;
-                    try { data = upsParseAjaxJson(txt); } catch (e) {
-                        btn.disabled = false;
-                        loading.style.display = 'none';
-                        result.className = 'ups-at-blogbot-result err';
-                        result.textContent = 'Błąd odpowiedzi: ' + e.message + (txt ? ' — ' + txt.slice(0, 400) : '');
-                        return;
-                    }
-                    if (!data.success) {
-                        btn.disabled = false;
-                        loading.style.display = 'none';
-                        result.className = 'ups-at-blogbot-result err';
-                        result.textContent = '✗ ' + (data.data && data.data.message ? data.data.message : 'Nieznany błąd');
-                        return;
-                    }
-                    result.className = 'ups-at-blogbot-result';
-                    loading.textContent = (data.data && data.data.message ? data.data.message : '') + ' Sprawdzam co 8 sek…';
-                    let attempts = 0;
-                    const maxAttempts = 38; // ~5 min przy odpytywaniu co 8 s
-                    const pollBody = new FormData();
-                    pollBody.append('action', 'upsellio_ai_tests_blog_bot_poll');
-                    pollBody.append('nonce', nonce);
+            fetch(ajaxUrl, { method:'POST', body })
+                .then(r => r.json())
+                .then(data => {
+                    btn.disabled = false;
+                    loading.style.display = 'none';
+                    loading.textContent = 'Generuję wpis… (może potrwać 60-90 sekund)';
 
-                    const poll = setInterval(function(){
-                        attempts++;
-                        fetch(ajaxUrl, { method:'POST', body: pollBody, credentials: 'same-origin' })
-                            .then(function(r){ return r.text().then(function(txt){ return txt; }); })
-                            .then(function(txt){
-                                let pd;
-                                try { pd = upsParseAjaxJson(txt); } catch (e) { return; }
-                                if (!pd.success) { return; }
-                                const d = pd.data;
-                                if (d.done) {
-                                    clearInterval(poll);
-                                    btn.disabled = false;
-                                    loading.style.display = 'none';
-                                    loading.textContent = 'Generuję wpis… (może potrwać 15–60 sekund)';
-                                    if (d.edit_url) {
-                                        result.className = 'ups-at-blogbot-result ok';
-                                        result.innerHTML = '✓ Draft utworzony!'
-                                            + (d.title ? '<br>Tytuł: <strong>' + escH(d.title) + '</strong>' : '')
-                                            + '<br><a href="' + escH(d.edit_url) + '" target="_blank">→ Edytuj draft w WP Admin</a>';
-                                    } else {
-                                        result.className = 'ups-at-blogbot-result err';
-                                        result.textContent = '✗ ' + (d.message || 'Nieznany błąd');
-                                    }
-                                } else if (d.timeout) {
-                                    clearInterval(poll);
-                                    btn.disabled = false;
-                                    loading.style.display = 'none';
-                                    loading.textContent = 'Generuję wpis… (może potrwać 15–60 sekund)';
-                                    result.className = 'ups-at-blogbot-result err';
-                                    result.textContent = '✗ ' + (d.message || 'Timeout');
-                                } else if (attempts >= maxAttempts) {
-                                    clearInterval(poll);
-                                    btn.disabled = false;
-                                    loading.style.display = 'none';
-                                    loading.textContent = 'Generuję wpis… (może potrwać 15–60 sekund)';
-                                    result.className = 'ups-at-blogbot-result err';
-                                    result.textContent = '✗ Przekroczono czas oczekiwania. Sprawdź WP Admin → Wpisy czy draft nie powstał w tle.';
-                                } else {
-                                    loading.textContent = 'Generuję… ' + (d.elapsed || attempts * 8) + 's';
-                                }
-                            })
-                            .catch(function(){});
-                    }, 8000);
+                    if (!data.success) {
+                        result.className = 'ups-at-blogbot-result err';
+                        result.textContent = '✗ ' + (data.data?.message || 'Nieznany błąd');
+                        logBtn.style.display = 'inline-block';
+                        return;
+                    }
+                    const d = data.data || {};
+                    if (d.done && d.edit_url) {
+                        result.className = 'ups-at-blogbot-result ok';
+                        result.innerHTML = '✓ Draft utworzony!'
+                            + (d.title ? '<br>Tytuł: <strong>' + escH(d.title) + '</strong>' : '')
+                            + '<br><a href="' + escH(d.edit_url) + '" target="_blank">→ Edytuj draft w WP Admin</a>';
+                    } else {
+                        result.className = 'ups-at-blogbot-result err';
+                        result.textContent = '✗ ' + (d.message || 'Brak draftu');
+                        logBtn.style.display = 'inline-block';
+                    }
                 })
                 .catch(err => {
                     btn.disabled = false;
                     loading.style.display = 'none';
                     result.className = 'ups-at-blogbot-result err';
                     result.textContent = 'Błąd sieci: ' + err.message;
+                    logBtn.style.display = 'inline-block';
                 });
         });
+
+        const logBtn = document.getElementById('ups-bb-log-btn');
+        const logOut = document.getElementById('ups-bb-log-out');
+        if (logBtn && logOut) {
+            logBtn.addEventListener('click', function(){
+                const body = new FormData();
+                body.append('action', 'upsellio_blog_bot_read_log');
+                body.append('nonce', nonce);
+                fetch(ajaxUrl, { method: 'POST', body })
+                    .then(r => r.json())
+                    .then(data => {
+                        logOut.style.display = 'block';
+                        if (!data.success) {
+                            logOut.textContent = 'Błąd odczytu logu.';
+                            return;
+                        }
+                        const path = data.data?.path || '';
+                        const content = data.data?.content || '(pusty log)';
+                        logOut.textContent = (path ? path + ':\n' : '') + content;
+                    })
+                    .catch(() => {
+                        logOut.style.display = 'block';
+                        logOut.textContent = 'Błąd sieci podczas odczytu logu.';
+                    });
+            });
+        }
     })();
     </script>
     </div>
