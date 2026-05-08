@@ -163,7 +163,7 @@ get_header();
   <section class="am-section">
     <div class="am-wrap">
       <div class="am-eyebrow">Jak pracuję</div>
-      <h2 class="am-h2">Strategia marketingu i sprzedaży w czterech krokach.</h2>
+      <h2 class="am-h2">Strategia marketingu i sprzedaży w trzech krokach.</h2>
       <div class="am-grid-3">
         <article class="am-card"><h3 class="am-h3">1. Diagnoza</h3><p class="am-body">Analizuję kampanie, stronę, ofertę i proces obsługi leadów. Szukam największego wąskiego gardła.</p></article>
         <article class="am-card"><h3 class="am-h3">2. Priorytety</h3><p class="am-body">Ustalam plan działań na 30-90 dni: co wdrożyć najpierw, żeby poprawić wynik przy realnym budżecie.</p></article>
@@ -242,7 +242,7 @@ get_header();
       <div>
         <div class="am-eyebrow">Formularz kontaktowy</div>
         <h2 class="am-h2">Napisz, co dziś blokuje wyniki — odezwę się z konkretem.</h2>
-        <p class="am-body">To ten sam formularz, którego używam na stronie głównej. Opisz sytuację w 2-3 zdaniach, a dostaniesz odpowiedź bez ogólników.</p>
+        <p class="am-body">Możesz napisać o swojej sytuacji marketingowej, zapytać o coś konkretnego, albo umówić się na rozmowę, krótka wiadomośc wystarczy, odpowiadam w ciagu 24h.</p>
       </div>
       <div class="am-contact-card">
         <h3>Bezpłatna diagnoza</h3>
