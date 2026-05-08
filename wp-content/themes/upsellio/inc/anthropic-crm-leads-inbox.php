@@ -485,7 +485,8 @@ function upsellio_anthropic_crm_repair_json(string $json): string
 
     $json = (string) (preg_replace('/,(\s*[\}\]])/', '$1', $json) ?? $json);
 
-    $open = 0;
+    // Sledzimy oba typy nawiasow ({ } oraz [ ]) zeby naprawic ucinki w tablicach
+    $stack = []; // stos znakow: { albo [
     $in_s = false;
     $esc = false;
     $n = strlen($json);
@@ -504,15 +505,29 @@ function upsellio_anthropic_crm_repair_json(string $json): string
             continue;
         }
         if (!$in_s) {
-            if ($c === "{") {
-                $open++;
-            } elseif ($c === "}") {
-                $open = max(0, $open - 1);
+            if ($c === "{" || $c === "[") {
+                $stack[] = $c;
+            } elseif ($c === "}" || $c === "]") {
+                if (!empty($stack)) {
+                    array_pop($stack);
+                }
             }
         }
     }
+    // Jesli stringa nie zamknelismy - zamknij
     $suffix = $in_s ? '"' : "";
-    $suffix .= str_repeat("}", $open);
+    // Usun trailing przecinek po niezamknietej wartosci (czesty przy ucinaniu)
+    if (preg_match('/,\s*$/', $json . $suffix)) {
+        $json = rtrim($json);
+        if (substr($json, -1) === ",") {
+            $json = substr($json, 0, -1);
+        }
+    }
+    // Zamknij wszystkie otwarte nawiasy w odwrotnej kolejnosci
+    while (!empty($stack)) {
+        $opener = array_pop($stack);
+        $suffix .= $opener === "{" ? "}" : "]";
+    }
     if ($suffix !== "") {
         $json .= $suffix;
     }
