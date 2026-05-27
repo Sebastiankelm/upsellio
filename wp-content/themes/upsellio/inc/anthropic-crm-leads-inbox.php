@@ -259,6 +259,20 @@ function upsellio_anthropic_crm_send_user_prompt($prompt, $max_tokens = 768, $ti
 
         return null;
     }
+    if (function_exists("upsellio_ai_can_call")) {
+        $task_label_for_budget = (string) ($GLOBALS["upsellio_ai_current_task"] ?? "unknown");
+        $estimated_pln = (float) apply_filters(
+            "upsellio_ai_estimated_call_pln",
+            0.20,
+            $task_label_for_budget,
+            $max_tokens
+        );
+        if (!upsellio_ai_can_call($task_label_for_budget, $estimated_pln)) {
+            $GLOBALS["upsellio_anthropic_crm_last_send_error"] = "Budget block: miesięczny budżet AI (ups_ai_monthly_budget_pln) wyczerpany dla zadania '" . $task_label_for_budget . "'.";
+
+            return null;
+        }
+    }
     $model = $model_override !== null && trim((string) $model_override) !== ""
         ? trim((string) $model_override)
         : upsellio_anthropic_crm_resolve_model();
