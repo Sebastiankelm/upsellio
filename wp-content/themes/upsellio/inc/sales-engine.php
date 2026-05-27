@@ -486,7 +486,7 @@ function upsellio_sales_engine_format_offer_task_brief_html($offer_id)
 function upsellio_sales_engine_refresh_lead_hybrid_scores($lead_id)
 {
     $lead_id = (int) $lead_id;
-    if ($lead_id <= 0 || get_post_type($lead_id) !== "crm_lead") {
+    if ($lead_id <= 0 || !in_array(get_post_type($lead_id), ["lead", "crm_lead"], true)) {
         return;
     }
     $w = upsellio_sales_engine_hybrid_weights();
