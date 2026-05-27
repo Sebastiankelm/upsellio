@@ -2810,7 +2810,7 @@ require_once get_template_directory() . "/inc/post-types.php";
 
 function upsellio_register_error_page_rewrite()
 {
-    add_rewrite_rule("^blad/([0-9]{3})/?$", "index.php?ups_error_code=$matches[1]", "top");
+    add_rewrite_rule('^blad/([0-9]{3})/?$', 'index.php?ups_error_code=$matches[1]', "top");
 }
 add_action("init", "upsellio_register_error_page_rewrite");
 

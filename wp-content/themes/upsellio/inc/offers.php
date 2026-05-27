@@ -42,7 +42,7 @@ add_action("init", "upsellio_register_offers_post_types");
 
 function upsellio_offer_register_rewrite()
 {
-    add_rewrite_rule("^oferta/([^/]+)/?$", "index.php?ups_offer_slug=$matches[1]", "top");
+    add_rewrite_rule('^oferta/([^/]+)/?$', 'index.php?ups_offer_slug=$matches[1]', "top");
 }
 add_action("init", "upsellio_offer_register_rewrite", 20);
 

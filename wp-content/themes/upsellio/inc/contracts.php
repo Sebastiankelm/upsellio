@@ -24,7 +24,7 @@ add_action("init", "upsellio_contracts_register_post_type");
 
 function upsellio_contracts_register_rewrite()
 {
-    add_rewrite_rule("^umowa/([^/]+)/?$", "index.php?ups_contract_token=$matches[1]", "top");
+    add_rewrite_rule('^umowa/([^/]+)/?$', 'index.php?ups_contract_token=$matches[1]', "top");
 }
 add_action("init", "upsellio_contracts_register_rewrite", 20);
 
