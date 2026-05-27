@@ -1185,7 +1185,8 @@ add_action("upsellio_followup_inbound_received", "upsellio_automation_mark_prosp
 
 function upsellio_automation_hourly_runner()
 {
-    upsellio_automation_handle_sla_rules();
+    // Legacy 7-day SLA disabled 2026-05-27 — duplikowało taski z modern pipeline SLA (sla_quarter, co 15min).
+    // upsellio_automation_handle_sla_rules();
 }
 add_action("upsellio_automation_hourly", "upsellio_automation_hourly_runner");
 
