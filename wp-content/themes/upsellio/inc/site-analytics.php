@@ -5148,16 +5148,12 @@ function upsellio_google_ads_sync_campaigns(): void
 
 add_action("upsellio_google_ads_daily_sync", "upsellio_google_ads_sync_campaigns");
 add_action("upsellio_automation_daily", "upsellio_google_ads_sync_campaigns", 34);
-add_action("upsellio_gsc_daily_sync_hook", "upsellio_gsc_daily_sync_job");
 
 add_action(
     "init",
     static function () {
         if (!wp_next_scheduled("upsellio_gsc_daily_sync")) {
             wp_schedule_event(time() + (45 * MINUTE_IN_SECONDS), "daily", "upsellio_gsc_daily_sync");
-        }
-        if (!wp_next_scheduled("upsellio_gsc_daily_sync_hook")) {
-            wp_schedule_event(time() + MINUTE_IN_SECONDS, "daily", "upsellio_gsc_daily_sync_hook");
         }
         if (!wp_next_scheduled("upsellio_google_ads_daily_sync")) {
             wp_schedule_event(time() + HOUR_IN_SECONDS, "daily", "upsellio_google_ads_daily_sync");
