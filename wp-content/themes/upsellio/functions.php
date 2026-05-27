@@ -104,6 +104,7 @@ function upsellio_get_mailto_href($email)
 }
 
 require_once get_template_directory() . "/inc/technical-seo.php";
+require_once get_template_directory() . "/inc/seo-indexing-fixes.php";
 
 require_once get_template_directory() . "/inc/admin-tools.php";
 require_once get_template_directory() . "/inc/home-media.php";
