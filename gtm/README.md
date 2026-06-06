@@ -1,4 +1,6 @@
-# Upsellio GTM Web - wdrozenie
+# Upsellio GTM Web — wdrożenie
+
+> Pełna dokumentacja repozytorium: [../README.md](../README.md)
 
 Plik `upsellio-gtm-web-config.json` to specyfikacja kontenera (mapa tagow, triggerow, zmiennych i eventow), przygotowana dla:
 
