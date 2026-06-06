@@ -1,0 +1,14 @@
+{
+    "name": "upsellio/theme",
+    "description": "Upsellio theme dependencies (PDF export)",
+    "require": {
+        "php": ">=7.4",
+        "dompdf/dompdf": "^3.0"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "composer/installers": true
+        }
+    }
+}
