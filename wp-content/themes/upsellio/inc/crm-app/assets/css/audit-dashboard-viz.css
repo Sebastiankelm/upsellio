@@ -1,0 +1,251 @@
+/* Audit dashboard — wizualizacje */
+
+.ups-audit-viz-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.ups-audit-viz-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ups-audit-viz-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ups-audit-viz-grid--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 960px) {
+  .ups-audit-viz-grid--2,
+  .ups-audit-viz-grid--3,
+  .ups-audit-viz-grid--4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ups-audit-score-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.ups-audit-score-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 10px;
+  border: 1px solid var(--border, #e8e8e0);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+}
+
+.ups-audit-score-card__label {
+  font-size: 11px;
+  color: var(--text-3, #7a7a72);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.ups-audit-score-card__gauge {
+  position: relative;
+  width: 88px;
+  height: 88px;
+}
+
+.ups-audit-score-card__value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.ups-audit-score-card__sub {
+  font-size: 11px;
+  color: var(--text-3, #7a7a72);
+  margin-top: 4px;
+  text-align: center;
+}
+
+.ups-audit-chart-panel {
+  border: 1px solid var(--border, #e8e8e0);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--surface, #fff);
+}
+
+.ups-audit-chart-panel__title {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ups-audit-chart-panel__sub {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: var(--text-3, #7a7a72);
+}
+
+.ups-audit-chart-panel--tall .ups-crm-chart-box {
+  height: 240px;
+  min-height: 200px;
+}
+
+.ups-audit-chart-panel--wide .ups-crm-chart-box {
+  height: 220px;
+}
+
+.ups-audit-funnel-viz {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ups-audit-funnel-step {
+  display: grid;
+  grid-template-columns: minmax(100px, 28%) 1fr auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 11px;
+}
+
+.ups-audit-funnel-step__bar-wrap {
+  background: var(--bg, #fafaf6);
+  border-radius: 6px;
+  height: 22px;
+  overflow: hidden;
+}
+
+.ups-audit-funnel-step__bar {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #0d9488, #0abfa3);
+  min-width: 4px;
+  transition: width 0.4s ease;
+}
+
+.ups-audit-funnel-step__bar--crm {
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+
+.ups-audit-funnel-step__bar--ads {
+  background: linear-gradient(90deg, #d97706, #f59e0b);
+}
+
+.ups-audit-funnel-step__val {
+  font-weight: 800;
+  font-size: 13px;
+  min-width: 48px;
+  text-align: right;
+}
+
+.ups-audit-funnel-step__rate {
+  font-size: 10px;
+  color: var(--text-3, #7a7a72);
+}
+
+.ups-audit-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.ups-audit-kpi-tile {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border, #e8e8e0);
+  background: var(--bg, #fafaf6);
+}
+
+.ups-audit-kpi-tile__lbl {
+  font-size: 10px;
+  color: var(--text-3, #7a7a72);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.ups-audit-kpi-tile__val {
+  font-size: 18px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.ups-audit-kpi-tile__delta {
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+.ups-audit-alert-compact {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 11px;
+  align-items: start;
+}
+
+.ups-audit-alert-compact + .ups-audit-alert-compact {
+  margin-top: 6px;
+}
+
+.ups-audit-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.ups-audit-section-head h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.ups-audit-legend-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ups-audit-legend-pill {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.ups-audit-legend-pill--scale { border-color: #16a34a; color: #16a34a; }
+.ups-audit-legend-pill--watch { border-color: #2563eb; color: #2563eb; }
+.ups-audit-legend-pill--exclude { border-color: #dc2626; color: #dc2626; }
+
+#ups-audit-dash-root .card {
+  border-radius: 12px;
+}
+
+.ups-audit-dash-charts-main {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 860px) {
+  .ups-audit-dash-charts-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ups-audit-dash-charts-main .ups-crm-chart-box {
+  height: 220px;
+}

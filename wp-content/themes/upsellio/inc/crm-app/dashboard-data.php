@@ -390,6 +390,16 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
         }
     }
 
+    $snap_total_pln = 0.0;
+    foreach ($snapshot as $snap_row) {
+        $snap_total_pln += (float) ($snap_row["value_pln"] ?? 0);
+    }
+    foreach ($snapshot as $sk => $snap_row) {
+        $snapshot[$sk]["share_pct"] = $snap_total_pln > 0
+            ? (int) round(((float) ($snap_row["value_pln"] ?? 0) / $snap_total_pln) * 100)
+            : 0;
+    }
+
     $sources_rows = [];
     foreach ($leads_f as $lp) {
         $lid = (int) $lp->ID;

@@ -5,6 +5,7 @@ if (!defined("ABSPATH")) {
 }
 
 require_once __DIR__ . "/crm-app/core.php";
+require_once __DIR__ . "/crm-app/nav-config.php";
 require_once __DIR__ . "/crm-app/dashboard-data.php";
 require_once __DIR__ . "/crm-app/analytics-data/joins.php";
 require_once __DIR__ . "/crm-app/analytics-data/kpi-cards.php";
