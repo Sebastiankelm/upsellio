@@ -5,3 +5,7 @@ gsc-sync.py
 ga4-sync.py
 auth.py
 *.log
+
+# Deploy archives & local dev cache
+*.tgz
+.npm-cache/
