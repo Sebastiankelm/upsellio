@@ -67,24 +67,279 @@ function ups_audit_decrypt($encoded)
     return is_string($out) ? $out : "";
 }
 
-function ups_audit_start_oauth_connect($label = "")
+/**
+ * Liczba aktywnych połączeń Google (osobne konta OAuth).
+ */
+function ups_audit_count_google_accounts(): int
 {
+    $ids = get_posts([
+        "post_type" => "crm_google_account",
+        "posts_per_page" => -1,
+        "post_status" => ["publish", "draft"],
+        "fields" => "ids",
+    ]);
+
+    return is_array($ids) ? count($ids) : 0;
+}
+
+/**
+ * @param bool $same_account_reconnect true = ten sam Gmail (np. dopięcie Ads), bez wymuszania „innego konta”.
+ */
+function ups_audit_google_oauth_prompt_param(bool $same_account_reconnect = false): string
+{
+    if ($same_account_reconnect) {
+        return "consent";
+    }
+
+    return ups_audit_count_google_accounts() > 0 ? "consent select_account" : "consent";
+}
+
+function ups_audit_fetch_google_sub_from_access(string $access_token): string
+{
+    $access_token = trim($access_token);
+    if ($access_token === "") {
+        return "";
+    }
+    $r = wp_remote_get("https://oauth2.googleapis.com/tokeninfo?access_token=" . rawurlencode($access_token), [
+        "timeout" => 20,
+        "sslverify" => true,
+    ]);
+    if (is_wp_error($r)) {
+        return "";
+    }
+    $json = json_decode((string) wp_remote_retrieve_body($r), true);
+
+    return is_array($json) ? sanitize_text_field((string) ($json["sub"] ?? "")) : "";
+}
+
+function ups_audit_find_google_account_id_by_identity(string $google_sub = "", string $email = ""): int
+{
+    $google_sub = trim($google_sub);
+    $email = sanitize_email($email);
+
+    if ($google_sub !== "") {
+        $by_sub = get_posts([
+            "post_type" => "crm_google_account",
+            "posts_per_page" => 1,
+            "post_status" => ["publish", "draft"],
+            "fields" => "ids",
+            "meta_query" => [[
+                "key" => "_ups_gacc_google_sub",
+                "value" => $google_sub,
+                "compare" => "=",
+            ]],
+        ]);
+        if (!empty($by_sub)) {
+            return (int) $by_sub[0];
+        }
+    }
+
+    if ($email !== "" && is_email($email)) {
+        $by_email = get_posts([
+            "post_type" => "crm_google_account",
+            "posts_per_page" => 1,
+            "post_status" => ["publish", "draft"],
+            "fields" => "ids",
+            "meta_query" => [[
+                "key" => "_ups_gacc_email",
+                "value" => $email,
+                "compare" => "=",
+            ]],
+        ]);
+        if (!empty($by_email)) {
+            return (int) $by_email[0];
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * Tworzy lub odświeża konto Google (wiele kont równolegle — osobny refresh token na wpis).
+ */
+function ups_audit_upsert_google_account_from_tokens($refresh, $client_id, $client_secret, $label = "", $uid = 0, int $force_account_id = 0): int
+{
+    $refresh = trim((string) $refresh);
+    $client_id = trim((string) $client_id);
+    $client_secret = trim((string) $client_secret);
+    if ($refresh === "" || $client_id === "" || $client_secret === "") {
+        return 0;
+    }
+
+    $email = ups_audit_fetch_email_from_token($refresh, $client_id, $client_secret);
+    $access = upsellio_gsc_get_access_token([
+        "client_id" => $client_id,
+        "client_secret" => $client_secret,
+        "refresh_token" => $refresh,
+    ]);
+    $google_sub = is_string($access) && $access !== "" ? ups_audit_fetch_google_sub_from_access($access) : "";
+
+    $account_id = ups_audit_find_google_account_id_by_identity($google_sub, $email);
+    $force_account_id = (int) $force_account_id;
+    if ($force_account_id > 0) {
+        $account_id = $force_account_id;
+    }
+    $title = $email !== "" ? $email : "Konto " . substr(md5($refresh), 0, 8);
+
+    if ($account_id <= 0) {
+        $account_id = wp_insert_post([
+            "post_type" => "crm_google_account",
+            "post_title" => $title,
+            "post_status" => "publish",
+        ]);
+        if ($account_id <= 0) {
+            return 0;
+        }
+    } else {
+        wp_update_post([
+            "ID" => $account_id,
+            "post_title" => $title,
+        ]);
+    }
+
+    update_post_meta($account_id, "_ups_gacc_email", $email);
+    if ($google_sub !== "") {
+        update_post_meta($account_id, "_ups_gacc_google_sub", $google_sub);
+    }
+    $label = sanitize_text_field((string) $label);
+    if ($label !== "") {
+        update_post_meta($account_id, "_ups_gacc_label", $label);
+    }
+    update_post_meta($account_id, "_ups_gacc_oauth_client_id", $client_id);
+    update_post_meta($account_id, "_ups_gacc_oauth_client_secret", ups_audit_encrypt($client_secret));
+    update_post_meta($account_id, "_ups_gacc_oauth_refresh_token", ups_audit_encrypt($refresh));
+    update_post_meta($account_id, "_ups_gacc_token_expires_at", gmdate("Y-m-d H:i:s", time() + (180 * DAY_IN_SECONDS)));
+    update_post_meta($account_id, "_ups_gacc_last_sync_at", current_time("mysql"));
+    if (is_string($access) && $access !== "") {
+        $scopes = ups_audit_fetch_scopes($access);
+        update_post_meta($account_id, "_ups_gacc_scopes", is_array($scopes) ? $scopes : []);
+    }
+    if ($uid > 0) {
+        update_post_meta($account_id, "_ups_gacc_connected_by", (int) $uid);
+    }
+
+    return (int) $account_id;
+}
+
+function ups_audit_oauth_create_account_from_tokens($refresh, $client_id, $client_secret, $label = "", $uid = 0): int
+{
+    return ups_audit_upsert_google_account_from_tokens($refresh, $client_id, $client_secret, $label, $uid);
+}
+
+if (!function_exists("ups_audit_oauth_start_direct")) {
+function ups_audit_oauth_start_direct(string $label = "", bool $include_ads = true, int $reconnect_account_id = 0): string
+{
+    $uid = get_current_user_id();
+    $state = bin2hex(random_bytes(16));
+    $reconnect_account_id = (int) $reconnect_account_id;
+    if ($include_ads) {
+        update_option("upsellio_google_ads_include_scope", "1", false);
+    }
+    $pending_payload = [
+        "state" => $state,
+        "gsc_property" => "",
+        "ga4_property_id" => "",
+        "managed_oauth" => false,
+        "conn_type" => "audit",
+        "label" => sanitize_text_field($label),
+        "include_ads" => $include_ads ? "1" : "0",
+        "wp_user_id" => (int) $uid,
+        "reconnect_account_id" => $reconnect_account_id > 0 ? $reconnect_account_id : 0,
+    ];
+    set_transient(upsellio_google_oauth_transient_key($uid), $pending_payload, 30 * MINUTE_IN_SECONDS);
+    if (function_exists("ups_audit_oauth_mirror_pending_by_state")) {
+        ups_audit_oauth_mirror_pending_by_state($state, $pending_payload, 30 * MINUTE_IN_SECONDS);
+    }
+    $existing = upsellio_get_gsc_credentials();
+    $client_id = (string) ($existing["client_id"] ?? "");
+    $client_secret = (string) ($existing["client_secret"] ?? "");
+    if ($client_id === "" || $client_secret === "") {
+        return function_exists("ups_audit_oauth_crm_error_url")
+            ? ups_audit_oauth_crm_error_url("Uzupełnij Client ID i Secret w Analityce SEO (OAuth Upsellio).")
+            : add_query_arg(
+                ["view" => "ca-accounts", "ups_audit_error" => rawurlencode("Uzupełnij Client ID i Secret w Analityce SEO (OAuth Upsellio).")],
+                home_url("/crm-app/")
+            );
+    }
+    $scopes = function_exists("upsellio_google_oauth_scope_string")
+        ? upsellio_google_oauth_scope_string()
+        : "https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/analytics.readonly";
+
+    $redirect_uri = function_exists("ups_audit_oauth_redirect_uri")
+        ? ups_audit_oauth_redirect_uri()
+        : upsellio_google_oauth_redirect_uri();
+
+    return add_query_arg(
+        [
+            "client_id" => $client_id,
+            "redirect_uri" => $redirect_uri,
+            "response_type" => "code",
+            "scope" => $scopes,
+            "access_type" => "offline",
+            "prompt" => function_exists("ups_audit_google_oauth_prompt_param")
+                ? ups_audit_google_oauth_prompt_param($reconnect_account_id > 0)
+                : "consent",
+            "include_granted_scopes" => "true",
+            "state" => $state,
+        ],
+        "https://accounts.google.com/o/oauth2/v2/auth"
+    );
+}
+}
+
+function ups_audit_start_oauth_connect($label = "", bool $include_ads = true, int $reconnect_account_id = 0)
+{
+    if (function_exists("ups_audit_oauth_ensure_managed_connect")) {
+        ups_audit_oauth_ensure_managed_connect();
+    }
+
+    $info = function_exists("ups_audit_oauth_connection_info") ? ups_audit_oauth_connection_info() : ["ready" => true];
+    $has_creds = !empty($info["has_app_credentials"]) || !empty($info["ready"]);
+    if (!$has_creds) {
+        return function_exists("ups_audit_oauth_crm_error_url")
+            ? ups_audit_oauth_crm_error_url((string) ($info["message"] ?? "OAuth niedostępny."))
+            : home_url("/crm-app/?view=ca-accounts");
+    }
+
     $state = bin2hex(random_bytes(16));
     $uid = get_current_user_id();
-    set_transient(
-        upsellio_google_oauth_transient_key($uid),
-        [
-            "state" => $state,
-            "gsc_property" => "",
-            "ga4_property_id" => "",
-            "managed_oauth" => true,
-            "conn_type" => "audit",
-            "label" => sanitize_text_field((string) $label),
-        ],
-        15 * MINUTE_IN_SECONDS
-    );
-    $return_ok = home_url("/crm-app/?view=ca-accounts&connected=1");
-    return upsellio_google_managed_oauth_build_start_url($state, $return_ok, $uid);
+    if ($include_ads) {
+        update_option("upsellio_google_ads_include_scope", "1", false);
+    } else {
+        update_option("upsellio_google_ads_include_scope", "0", false);
+    }
+    $managed = function_exists("ups_audit_oauth_managed_is_available") && ups_audit_oauth_managed_is_available();
+    $reconnect_account_id = (int) $reconnect_account_id;
+    $pending_payload = [
+        "state" => $state,
+        "gsc_property" => "",
+        "ga4_property_id" => "",
+        "managed_oauth" => $managed,
+        "conn_type" => "audit",
+        "label" => sanitize_text_field((string) $label),
+        "include_ads" => $include_ads ? "1" : "0",
+        "wp_user_id" => (int) $uid,
+        "reconnect_account_id" => $reconnect_account_id > 0 ? $reconnect_account_id : 0,
+    ];
+    set_transient(upsellio_google_oauth_transient_key($uid), $pending_payload, 30 * MINUTE_IN_SECONDS);
+    if (function_exists("ups_audit_oauth_mirror_pending_by_state")) {
+        ups_audit_oauth_mirror_pending_by_state($state, $pending_payload, 30 * MINUTE_IN_SECONDS);
+    }
+    $return_ok = function_exists("ups_audit_oauth_crm_success_url")
+        ? ups_audit_oauth_crm_success_url(0)
+        : home_url("/crm-app/?view=ca-accounts&connected=1");
+    // Bezpośredni OAuth → redirect na CRM (często już w Google Cloud); most REST wymaga osobnego wpisu wp-json.
+    if (function_exists("ups_audit_oauth_start_direct")) {
+        return ups_audit_oauth_start_direct((string) $label, $include_ads, $reconnect_account_id);
+    }
+
+    if ($managed && function_exists("upsellio_google_managed_oauth_build_start_url")) {
+        return upsellio_google_managed_oauth_build_start_url($state, $return_ok, $uid);
+    }
+
+    return function_exists("ups_audit_oauth_crm_error_url")
+        ? ups_audit_oauth_crm_error_url("Logowanie Google (Connect) nie jest skonfigurowane. Uzupełnij Client ID i Secret w Analityce SEO.")
+        : home_url("/crm-app/?view=ca-accounts");
 }
 
 function ups_audit_get_oauth_for_account($google_account_id)
@@ -148,11 +403,89 @@ function ups_audit_fetch_email_from_token($refresh, $client_id, $client_secret)
     return is_email($email) ? $email : "";
 }
 
+function ups_audit_gacc_fetch_error_meta_key(string $type): string
+{
+    return "_ups_gacc_" . sanitize_key($type) . "_fetch_error";
+}
+
+function ups_audit_set_gacc_fetch_error(int $google_account_id, string $type, string $message): void
+{
+    $google_account_id = (int) $google_account_id;
+    $message = trim($message);
+    if ($google_account_id <= 0 || $message === "") {
+        return;
+    }
+    update_post_meta($google_account_id, ups_audit_gacc_fetch_error_meta_key($type), $message);
+}
+
+function ups_audit_clear_gacc_fetch_error(int $google_account_id, string $type): void
+{
+    $google_account_id = (int) $google_account_id;
+    if ($google_account_id <= 0) {
+        return;
+    }
+    delete_post_meta($google_account_id, ups_audit_gacc_fetch_error_meta_key($type));
+}
+
+function ups_audit_account_has_oauth_scope(int $google_account_id, string $needle): bool
+{
+    $scopes = get_post_meta((int) $google_account_id, "_ups_gacc_scopes", true);
+    if (!is_array($scopes)) {
+        return false;
+    }
+    $needle = strtolower(trim($needle));
+    foreach ($scopes as $scope) {
+        if (stripos((string) $scope, $needle) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Podpowiedź w UI, gdy lista GA4/Ads jest pusta.
+ */
+function ups_audit_get_gacc_fetch_error_hint(int $google_account_id, string $type): string
+{
+    $google_account_id = (int) $google_account_id;
+    $type = sanitize_key($type);
+    $stored = trim((string) get_post_meta($google_account_id, ups_audit_gacc_fetch_error_meta_key($type), true));
+    if ($stored !== "") {
+        return $stored;
+    }
+
+    if ($type === "ga4") {
+        return "GA4: włącz w Google Cloud API „Google Analytics Admin API” dla projektu OAuth (936412824129), "
+            . "potem kliknij „Odśwież zasoby”. Link: "
+            . "https://console.developers.google.com/apis/api/analyticsadmin.googleapis.com/overview?project=936412824129";
+    }
+
+    if ($type === "ads") {
+        $gads = function_exists("upsellio_google_ads_get_settings") ? upsellio_google_ads_get_settings() : [];
+        $has_token = trim((string) ($gads["developer_token"] ?? "")) !== "";
+        $has_scope = ups_audit_account_has_oauth_scope($google_account_id, "adwords");
+        if (!$has_token) {
+            return "Ads: Developer Token jest tylko na koncie menedżera (MCC), nie na zwykłym koncie reklamowym. "
+                . "Załóż MCC, podłącz konta, token z Centrum API → WP Analityka SEO. Potem połącz ponownie z „Uwzględnij Google Ads”.";
+        }
+        if (!$has_scope) {
+            return "Ads: brak zakresu adwords — użyj przycisku „Dodaj Google Ads” na tej karcie (ten sam Gmail, bez nowego konta).";
+        }
+
+        return "Ads: brak kont w API — sprawdź uprawnienia MCC i Developer Token.";
+    }
+
+    return __("Brak danych — kliknij „Odśwież zasoby”.", "upsellio");
+}
+
 function ups_audit_fetch_ga4_resources($google_account_id)
 {
-    $oauth = ups_audit_get_oauth_for_account((int) $google_account_id);
+    $google_account_id = (int) $google_account_id;
+    $oauth = ups_audit_get_oauth_for_account($google_account_id);
     $access = upsellio_gsc_get_access_token($oauth);
     if (!is_string($access) || $access === "") {
+        ups_audit_set_gacc_fetch_error($google_account_id, "ga4", "GA4: brak ważnego tokena — odłącz konto i zaloguj ponownie.");
         return [];
     }
     $accs_resp = wp_remote_get("https://analyticsadmin.googleapis.com/v1beta/accounts", [
@@ -161,12 +494,22 @@ function ups_audit_fetch_ga4_resources($google_account_id)
         "headers" => ["Authorization" => "Bearer " . $access],
     ]);
     if (is_wp_error($accs_resp)) {
+        ups_audit_set_gacc_fetch_error($google_account_id, "ga4", "GA4: " . $accs_resp->get_error_message());
         return [];
     }
+    $code = (int) wp_remote_retrieve_response_code($accs_resp);
     $accs = json_decode((string) wp_remote_retrieve_body($accs_resp), true);
-    if (!is_array($accs)) {
+    if ($code >= 400 || !is_array($accs)) {
+        $api_msg = is_array($accs) && isset($accs["error"]["message"])
+            ? (string) $accs["error"]["message"]
+            : "HTTP {$code}";
+        if (stripos($api_msg, "analyticsadmin") !== false || stripos($api_msg, "SERVICE_DISABLED") !== false) {
+            $api_msg = "Włącz Google Analytics Admin API w Google Cloud (projekt 936412824129), potem „Odśwież zasoby”.";
+        }
+        ups_audit_set_gacc_fetch_error($google_account_id, "ga4", "GA4: " . $api_msg);
         return [];
     }
+    ups_audit_clear_gacc_fetch_error($google_account_id, "ga4");
     $tree = [];
     foreach ((array) ($accs["accounts"] ?? []) as $acc) {
         if (!is_array($acc)) {
@@ -200,6 +543,14 @@ function ups_audit_fetch_ga4_resources($google_account_id)
             "properties" => $children,
         ];
     }
+    if ($tree === []) {
+        ups_audit_set_gacc_fetch_error(
+            $google_account_id,
+            "ga4",
+            "GA4: konto Google nie ma żadnych usług Analytics (lub brak uprawnień do ich listy)."
+        );
+    }
+
     return $tree;
 }
 
@@ -207,6 +558,7 @@ function ups_audit_fetch_gsc_resources($google_account_id)
 {
     $oauth = ups_audit_get_oauth_for_account((int) $google_account_id);
     $access = upsellio_gsc_get_access_token($oauth);
+    $google_account_id = (int) $google_account_id;
     if (!is_string($access) || $access === "") {
         return [];
     }
@@ -231,6 +583,10 @@ function ups_audit_fetch_gsc_resources($google_account_id)
             "is_verified" => in_array($perm, ["siteOwner", "siteFullUser"], true),
         ];
     }
+    if ($sites !== []) {
+        ups_audit_clear_gacc_fetch_error($google_account_id, "gsc");
+    }
+
     return $sites;
 }
 
@@ -241,22 +597,26 @@ function ups_audit_fetch_ads_customer_name($oauth_credentials, $customer_id)
     if (!is_string($access) || $access === "") {
         return "";
     }
-    $developer_token = (string) get_option("ups_google_ads_developer_token", "");
-    $manager_id = preg_replace("/\D+/", "", (string) get_option("ups_google_ads_login_customer_id", ""));
-    if ($developer_token === "" || $manager_id === "") {
+    $gads_cfg = function_exists("upsellio_google_ads_get_settings") ? upsellio_google_ads_get_settings() : [];
+    $developer_token = (string) ($gads_cfg["developer_token"] ?? "");
+    $manager_id = (string) ($gads_cfg["login_customer_id"] ?? "");
+    if ($developer_token === "") {
         return "";
     }
     $url = "https://googleads.googleapis.com/v18/customers/" . rawurlencode((string) $customer_id) . "/googleAds:search";
     $query = "SELECT customer.descriptive_name FROM customer LIMIT 1";
+    $headers = [
+        "Authorization" => "Bearer " . $access,
+        "developer-token" => $developer_token,
+        "Content-Type" => "application/json",
+    ];
+    if ($manager_id !== "") {
+        $headers["login-customer-id"] = $manager_id;
+    }
     $r = wp_remote_post($url, [
         "timeout" => 35,
         "sslverify" => true,
-        "headers" => [
-            "Authorization" => "Bearer " . $access,
-            "developer-token" => $developer_token,
-            "login-customer-id" => $manager_id,
-            "Content-Type" => "application/json",
-        ],
+        "headers" => $headers,
         "body" => wp_json_encode(["query" => $query]),
     ]);
     if (is_wp_error($r)) {
@@ -268,7 +628,26 @@ function ups_audit_fetch_ads_customer_name($oauth_credentials, $customer_id)
 
 function ups_audit_fetch_ads_resources($google_account_id)
 {
-    $oauth = ups_audit_get_oauth_for_account((int) $google_account_id);
+    $google_account_id = (int) $google_account_id;
+    $gads_cfg = function_exists("upsellio_google_ads_get_settings") ? upsellio_google_ads_get_settings() : [];
+    if (trim((string) ($gads_cfg["developer_token"] ?? "")) === "") {
+        ups_audit_set_gacc_fetch_error(
+            $google_account_id,
+            "ads",
+            "Ads: brak Developer Token w Analityce SEO (WP). Uzupełnij i połącz konto ponownie z „Uwzględnij Google Ads”."
+        );
+        return [];
+    }
+    if (!ups_audit_account_has_oauth_scope($google_account_id, "adwords")) {
+        ups_audit_set_gacc_fetch_error(
+            $google_account_id,
+            "ads",
+            "Ads: brak zakresu OAuth adwords — odłącz konto i zaloguj ponownie z zaznaczonym Google Ads."
+        );
+        return [];
+    }
+
+    $oauth = ups_audit_get_oauth_for_account($google_account_id);
     $backup = upsellio_get_gsc_credentials();
     upsellio_save_gsc_credentials(
         (string) ($oauth["client_id"] ?? ""),
@@ -284,6 +663,8 @@ function ups_audit_fetch_ads_resources($google_account_id)
         (string) ($backup["property"] ?? "")
     );
     if (!is_array($customers)) {
+        $err = is_wp_error($customers) ? $customers->get_error_message() : "Brak odpowiedzi Google Ads API.";
+        ups_audit_set_gacc_fetch_error($google_account_id, "ads", "Ads: " . $err);
         return [];
     }
     $list = [];
@@ -297,7 +678,138 @@ function ups_audit_fetch_ads_resources($google_account_id)
             "name" => ups_audit_fetch_ads_customer_name($oauth, $cid),
         ];
     }
+    if ($list === []) {
+        ups_audit_set_gacc_fetch_error(
+            $google_account_id,
+            "ads",
+            "Ads: API nie zwróciło kont — uzupełnij Login Customer ID (ID MCC) w Analityce SEO i upewnij się, że konto Google ma dostęp do tych kont pod MCC."
+        );
+    } else {
+        ups_audit_clear_gacc_fetch_error($google_account_id, "ads");
+    }
+
     return $list;
+}
+
+/**
+ * Czy zasób z cache jest już zaimportowany do crm_audit_resource.
+ */
+function ups_audit_find_imported_resource_id(int $google_account_id, string $type, string $external_id): int
+{
+    $google_account_id = (int) $google_account_id;
+    $type = sanitize_key($type);
+    $external_id = sanitize_text_field($external_id);
+    if ($google_account_id <= 0 || $type === "" || $external_id === "") {
+        return 0;
+    }
+    $existing = get_posts([
+        "post_type" => "crm_audit_resource",
+        "posts_per_page" => 1,
+        "post_status" => ["publish", "draft"],
+        "fields" => "ids",
+        "meta_query" => [
+            "relation" => "AND",
+            ["key" => "_ups_resource_google_account_id", "value" => $google_account_id],
+            ["key" => "_ups_resource_type", "value" => $type],
+            ["key" => "_ups_resource_external_id", "value" => $external_id],
+        ],
+    ]);
+
+    return !empty($existing) ? (int) $existing[0] : 0;
+}
+
+function ups_audit_get_google_account_resources(int $google_account_id, string $type = ""): array
+{
+    $google_account_id = (int) $google_account_id;
+    $type = sanitize_key($type);
+    if ($google_account_id <= 0) {
+        return [];
+    }
+    $meta_query = [[
+        "key" => "_ups_resource_google_account_id",
+        "value" => $google_account_id,
+        "compare" => "=",
+        "type" => "NUMERIC",
+    ]];
+    if ($type !== "") {
+        $meta_query[] = ["key" => "_ups_resource_type", "value" => $type];
+        $meta_query["relation"] = "AND";
+    }
+
+    return get_posts([
+        "post_type" => "crm_audit_resource",
+        "posts_per_page" => -1,
+        "post_status" => ["publish", "draft"],
+        "meta_query" => $meta_query,
+        "orderby" => "title",
+        "order" => "ASC",
+    ]);
+}
+
+/**
+ * Główny klient CRM przypisany do zasobów konta (jeśli jeden dominujący).
+ */
+function ups_audit_google_account_primary_client_id(int $google_account_id): int
+{
+    $google_account_id = (int) $google_account_id;
+    if ($google_account_id <= 0) {
+        return 0;
+    }
+    $counts = [];
+    foreach (ups_audit_get_google_account_resources($google_account_id) as $r) {
+        if (!($r instanceof WP_Post)) {
+            continue;
+        }
+        $cid = (int) get_post_meta((int) $r->ID, "_ups_resource_client_id", true);
+        if ($cid > 0) {
+            $counts[$cid] = (int) ($counts[$cid] ?? 0) + 1;
+        }
+    }
+    if ($counts === []) {
+        return 0;
+    }
+    arsort($counts);
+
+    return (int) key($counts);
+}
+
+function ups_audit_google_account_setup_status(int $google_account_id): array
+{
+    $google_account_id = (int) $google_account_id;
+    $ga4 = count(ups_audit_get_google_account_resources($google_account_id, "ga4"));
+    $gsc = count(ups_audit_get_google_account_resources($google_account_id, "gsc"));
+    $ads = count(ups_audit_get_google_account_resources($google_account_id, "ads"));
+    $imported = $ga4 + $gsc + $ads;
+    $complete = $ga4 > 0 && $gsc > 0;
+
+    return [
+        "ga4" => $ga4,
+        "gsc" => $gsc,
+        "ads" => $ads,
+        "imported" => $imported,
+        "is_ready" => $complete,
+        "steps" => [
+            ["key" => "ga4", "done" => $ga4 > 0, "label" => "GA4 (" . $ga4 . ")"],
+            ["key" => "gsc", "done" => $gsc > 0, "label" => "GSC (" . $gsc . ")"],
+            ["key" => "ads", "done" => $ads > 0, "label" => "Google Ads (" . $ads . ")"],
+        ],
+    ];
+}
+
+function ups_audit_get_google_account_last_sync(int $google_account_id): int
+{
+    $last = 0;
+    foreach (ups_audit_get_google_account_resources((int) $google_account_id) as $r) {
+        if (!($r instanceof WP_Post)) {
+            continue;
+        }
+        $ts = strtotime((string) get_post_meta((int) $r->ID, "_ups_resource_last_data_sync", true));
+        if ($ts > $last) {
+            $last = $ts;
+        }
+    }
+
+    return $last;
 }
 
 function ups_audit_get_client_resources($client_id, $type = "")
@@ -383,6 +895,142 @@ function ups_audit_format_sync_time($ts)
     return floor($diff / DAY_IN_SECONDS) . "d";
 }
 
+/**
+ * Makro-konwersje (lead/zakup) — konfigurowalne per zasób/kient.
+ *
+ * @return array<int, string>
+ */
+function ups_audit_ga4_macro_event_names(int $resource_id = 0, int $client_id = 0): array
+{
+    $raw = "";
+    if ($resource_id > 0) {
+        $raw = (string) get_post_meta($resource_id, "_ups_resource_ga4_macro_events", true);
+    }
+    if ($raw === "" && $client_id > 0) {
+        $raw = (string) get_post_meta($client_id, "_ups_client_ga4_macro_events", true);
+    }
+    if ($raw !== "") {
+        $parts = array_filter(array_map("trim", preg_split("/[\s,;]+/", $raw) ?: []));
+        if ($parts !== []) {
+            return array_values(array_unique(array_map("strtolower", $parts)));
+        }
+    }
+
+    return [
+        "purchase",
+        "generate_lead",
+        "lead",
+        "contact",
+        "quote_request",
+        "zapytanie",
+    ];
+}
+
+/**
+ * Zdarzenia zaangażowania (nie KPI konwersji).
+ *
+ * @return array<int, string>
+ */
+function ups_audit_ga4_engagement_event_patterns(): array
+{
+    return [
+        "form_submit",
+        "form_start",
+        "submit_form",
+        "formularz",
+        "wyslij_formularz",
+        "add_to_cart",
+        "begin_checkout",
+        "view_item",
+    ];
+}
+
+/**
+ * @return array<int, string>
+ */
+function ups_audit_ga4_micro_event_patterns(): array
+{
+    return [
+        "page_view",
+        "scroll",
+        "session_start",
+        "user_engagement",
+        "click",
+        "file_download",
+        "begin_checkout",
+        "first_visit",
+        "phone_click",
+        "mail_click",
+        "tel",
+        "mailto",
+    ];
+}
+
+function ups_audit_ga4_classify_event(string $event_name, array $macro_events, array $micro_patterns, array $engagement_patterns = []): string
+{
+    $event_name = strtolower(trim($event_name));
+    if ($event_name === "") {
+        return "other";
+    }
+    if (in_array($event_name, $macro_events, true)) {
+        return "macro";
+    }
+    foreach ($macro_events as $macro) {
+        if ($macro !== "" && strpos($event_name, $macro) !== false) {
+            return "macro";
+        }
+    }
+    foreach ($engagement_patterns as $pattern) {
+        if ($pattern !== "" && strpos($event_name, $pattern) !== false) {
+            return "engagement";
+        }
+    }
+    foreach ($micro_patterns as $pattern) {
+        if ($pattern !== "" && strpos($event_name, $pattern) !== false) {
+            return "micro";
+        }
+    }
+
+    return "other";
+}
+
+function ups_audit_ga4_is_not_set_source(string $source, string $medium): bool
+{
+    $source = strtolower(trim($source));
+    $medium = strtolower(trim($medium));
+
+    if ($source === "(not set)" || $medium === "(not set)") {
+        return true;
+    }
+    if ($source === "not set" || $medium === "not set") {
+        return true;
+    }
+    if ($source === "(not set)" && ($medium === "" || $medium === "(not set)" || $medium === "not set")) {
+        return true;
+    }
+
+    return $source === "(direct)" && ($medium === "(not set)" || $medium === "" || $medium === "(none)");
+}
+
+function ups_audit_ga4_run_report(string $property_id, string $access, array $body, int $sync_days = 30)
+{
+    $timeout = $sync_days > 90 ? 120 : 45;
+    $r = wp_remote_post(
+        "https://analyticsdata.googleapis.com/v1beta/properties/" . $property_id . ":runReport",
+        [
+            "timeout" => $timeout,
+            "sslverify" => true,
+            "headers" => ["Authorization" => "Bearer " . $access, "Content-Type" => "application/json"],
+            "body" => wp_json_encode($body),
+        ]
+    );
+    if (is_wp_error($r)) {
+        return $r;
+    }
+
+    return json_decode((string) wp_remote_retrieve_body($r), true);
+}
+
 function ups_audit_ga4_fetch($property_id, $oauth_credentials, $sync_days = 30)
 {
     $property_id = preg_replace("/\D+/", "", (string) $property_id);
@@ -390,176 +1038,265 @@ function ups_audit_ga4_fetch($property_id, $oauth_credentials, $sync_days = 30)
     if (!is_string($access) || $access === "") {
         return new WP_Error("ups_audit_no_access", "Brak tokena access.");
     }
+    $sync_days = max(1, min(365, (int) $sync_days));
     $body = [
-        "dateRanges" => [["startDate" => "-" . (int) $sync_days . "d", "endDate" => "yesterday"]],
+        "dateRanges" => [["startDate" => $sync_days . "daysAgo", "endDate" => "yesterday"]],
         "dimensions" => [["name" => "sessionSource"], ["name" => "sessionMedium"], ["name" => "date"]],
         "metrics" => [["name" => "sessions"], ["name" => "conversions"], ["name" => "totalRevenue"]],
         "limit" => 250000,
     ];
-    $r = wp_remote_post("https://analyticsdata.googleapis.com/v1beta/properties/" . $property_id . ":runReport", [
-        "timeout" => 45,
-        "sslverify" => true,
-        "headers" => ["Authorization" => "Bearer " . $access, "Content-Type" => "application/json"],
-        "body" => wp_json_encode($body),
-    ]);
-    if (is_wp_error($r)) {
-        return $r;
-    }
-    return json_decode((string) wp_remote_retrieve_body($r), true);
+
+    return ups_audit_ga4_run_report($property_id, $access, $body, $sync_days);
 }
 
-function ups_audit_sync_ga4_resource($resource_id)
+/**
+ * Rozkład eventów GA4 (mikro vs makro).
+ *
+ * @return array<string, mixed>|\WP_Error
+ */
+function ups_audit_ga4_fetch_events($property_id, $oauth_credentials, $sync_days = 30, int $resource_id = 0, int $client_id = 0)
 {
-    $resource_id = (int) $resource_id;
-    $ext_id = (string) get_post_meta($resource_id, "_ups_resource_external_id", true);
-    $account_id = (int) get_post_meta($resource_id, "_ups_resource_google_account_id", true);
-    $oauth = ups_audit_get_oauth_for_account($account_id);
-    $raw = ups_audit_ga4_fetch($ext_id, $oauth, 30);
-    if (is_wp_error($raw) || !is_array($raw)) {
-        return;
+    $property_id = preg_replace("/\D+/", "", (string) $property_id);
+    $access = upsellio_gsc_get_access_token((array) $oauth_credentials);
+    if (!is_string($access) || $access === "") {
+        return new WP_Error("ups_audit_no_access", "Brak tokena access.");
     }
-    $sessions = 0;
-    $conversions = 0;
-    $revenue = 0.0;
+    $sync_days = max(1, min(365, (int) $sync_days));
+    $body = [
+        "dateRanges" => [["startDate" => $sync_days . "daysAgo", "endDate" => "yesterday"]],
+        "dimensions" => [["name" => "eventName"]],
+        "metrics" => [["name" => "eventCount"], ["name" => "eventValue"]],
+        "limit" => 10000,
+    ];
+    $raw = ups_audit_ga4_run_report($property_id, $access, $body, $sync_days);
+    if (is_wp_error($raw)) {
+        return $raw;
+    }
+    if (!is_array($raw) || isset($raw["error"])) {
+        return is_array($raw) ? $raw : new WP_Error("ga4_events", "Błąd GA4 events API.");
+    }
+
+    $macro_events = ups_audit_ga4_macro_event_names($resource_id, $client_id);
+    $micro_patterns = ups_audit_ga4_micro_event_patterns();
+    $engagement_patterns = ups_audit_ga4_engagement_event_patterns();
+    $breakdown = [];
+    $macro_total = 0;
+    $micro_total = 0;
+    $engagement_total = 0;
+    $other_total = 0;
+
     foreach ((array) ($raw["rows"] ?? []) as $row) {
         if (!is_array($row)) {
             continue;
         }
-        $m = (array) ($row["metricValues"] ?? []);
-        $sessions += (int) ($m[0]["value"] ?? 0);
-        $conversions += (int) ($m[1]["value"] ?? 0);
-        $revenue += (float) ($m[2]["value"] ?? 0);
+        $dims = (array) ($row["dimensionValues"] ?? []);
+        $mets = (array) ($row["metricValues"] ?? []);
+        $event = sanitize_text_field((string) ($dims[0]["value"] ?? ""));
+        $count = (int) round((float) ($mets[0]["value"] ?? 0));
+        $revenue = (float) ($mets[1]["value"] ?? 0);
+        if ($event === "" || $count <= 0) {
+            continue;
+        }
+        $kind = ups_audit_ga4_classify_event($event, $macro_events, $micro_patterns, $engagement_patterns);
+        if ($kind === "macro") {
+            $macro_total += $count;
+        } elseif ($kind === "micro") {
+            $micro_total += $count;
+        } elseif ($kind === "engagement") {
+            $engagement_total += $count;
+        } else {
+            $other_total += $count;
+        }
+        $breakdown[] = [
+            "event" => $event,
+            "count" => $count,
+            "revenue" => round($revenue, 2),
+            "kind" => $kind,
+        ];
     }
-    $current_cache = get_post_meta($resource_id, "_ups_resource_data_cache", true);
-    if (is_array($current_cache) && !empty($current_cache)) {
-        update_post_meta($resource_id, "_ups_resource_data_cache_previous", $current_cache);
-    }
-    update_post_meta($resource_id, "_ups_resource_data_cache", [
-        "sessions" => $sessions,
-        "conversions" => $conversions,
-        "revenue" => $revenue,
-    ]);
-    update_post_meta($resource_id, "_ups_resource_last_data_sync", current_time("mysql"));
+
+    usort($breakdown, static function ($a, $b) {
+        return ((int) ($b["count"] ?? 0)) <=> ((int) ($a["count"] ?? 0));
+    });
+
+    return [
+        "macro_total" => $macro_total,
+        "micro_total" => $micro_total,
+        "engagement_total" => $engagement_total,
+        "other_total" => $other_total,
+        "breakdown" => array_slice($breakdown, 0, 40),
+        "macro_events_config" => $macro_events,
+    ];
 }
 
-function ups_audit_sync_gsc_resource($resource_id)
+/**
+ * Oficjalne metryki e-commerce GA4 (purchase only — nie totalRevenue z sesji).
+ *
+ * @return array<string, float|int|string>|\WP_Error
+ */
+function ups_audit_ga4_fetch_ecommerce_kpi($property_id, $oauth_credentials, int $period_days, string $start_date = "", string $end_date = "")
 {
-    $resource_id = (int) $resource_id;
-    $site_url = (string) get_post_meta($resource_id, "_ups_resource_external_id", true);
-    $account_id = (int) get_post_meta($resource_id, "_ups_resource_google_account_id", true);
-    $oauth = ups_audit_get_oauth_for_account($account_id);
-    $rows = upsellio_gsc_fetch_rows(array_merge($oauth, ["property" => $site_url]), 30);
-    if (!is_array($rows)) {
-        return;
+    $property_id = preg_replace("/\D+/", "", (string) $property_id);
+    $access = upsellio_gsc_get_access_token((array) $oauth_credentials);
+    if (!is_string($access) || $access === "") {
+        return new WP_Error("ups_audit_no_access", "Brak tokena access.");
     }
-    $clicks = 0;
-    $impressions = 0;
-    $pos_sum = 0.0;
-    $pos_n = 0;
-    foreach ($rows as $row) {
+    $period_days = max(1, min(365, (int) $period_days));
+    if ($start_date !== "" && $end_date !== "" && preg_match("/^\d{4}-\d{2}-\d{2}$/", $start_date) && preg_match("/^\d{4}-\d{2}-\d{2}$/", $end_date)) {
+        $date_range = [["startDate" => $start_date, "endDate" => $end_date]];
+    } else {
+        $date_range = [["startDate" => $period_days . "daysAgo", "endDate" => "yesterday"]];
+    }
+    $body = [
+        "dateRanges" => $date_range,
+        "metrics" => [
+            ["name" => "purchaseRevenue"],
+            ["name" => "ecommercePurchases"],
+            ["name" => "totalRevenue"],
+        ],
+    ];
+    $raw = ups_audit_ga4_run_report($property_id, $access, $body, $period_days);
+    if (is_wp_error($raw)) {
+        return $raw;
+    }
+    if (!is_array($raw) || isset($raw["error"])) {
+        return is_array($raw) ? $raw : new WP_Error("ga4_ecom", "Błąd GA4 ecommerce API.");
+    }
+
+    $row = (array) (($raw["rows"][0] ?? []));
+    $mets = (array) ($row["metricValues"] ?? []);
+
+    return [
+        "purchase_revenue" => round((float) ($mets[0]["value"] ?? 0), 2),
+        "purchase_count" => (int) round((float) ($mets[1]["value"] ?? 0)),
+        "total_revenue" => round((float) ($mets[2]["value"] ?? 0), 2),
+    ];
+}
+
+/**
+ * KPI konwersji: purchase > leady makro (bez sumowania wszystkich makro-eventów).
+ *
+ * @param list<array<string, mixed>> $breakdown
+ */
+function ups_audit_ga4_resolve_kpi_conversions(array $breakdown, array $ecommerce_kpi): int
+{
+    $purchase_api = (int) ($ecommerce_kpi["purchase_count"] ?? 0);
+    if ($purchase_api > 0) {
+        return $purchase_api;
+    }
+
+    $purchase_ev = 0;
+    $lead_ev = 0;
+    $lead_names = ["generate_lead", "lead", "contact", "quote_request", "zapytanie", "submit_lead"];
+    foreach ($breakdown as $row) {
         if (!is_array($row)) {
             continue;
         }
-        $clicks += (int) ($row["clicks"] ?? 0);
-        $impressions += (int) ($row["impressions"] ?? 0);
-        $pos_sum += (float) ($row["position"] ?? 0);
-        $pos_n++;
+        $name = strtolower((string) ($row["event"] ?? ""));
+        $cnt = (int) ($row["count"] ?? 0);
+        if ($name === "purchase" || strpos($name, "purchase") !== false) {
+            $purchase_ev += $cnt;
+        } elseif (in_array($name, $lead_names, true)) {
+            $lead_ev += $cnt;
+        } elseif ((string) ($row["kind"] ?? "") === "macro" && $name !== "purchase") {
+            foreach ($lead_names as $ln) {
+                if ($ln !== "" && strpos($name, $ln) !== false) {
+                    $lead_ev += $cnt;
+                    break;
+                }
+            }
+        }
     }
-    $current_cache = get_post_meta($resource_id, "_ups_resource_data_cache", true);
-    if (is_array($current_cache) && !empty($current_cache)) {
-        update_post_meta($resource_id, "_ups_resource_data_cache_previous", $current_cache);
+
+    if ($purchase_ev > 0) {
+        return $purchase_ev;
     }
-    update_post_meta($resource_id, "_ups_resource_data_cache", [
-        "clicks" => $clicks,
-        "impressions" => $impressions,
-        "avg_position" => $pos_n > 0 ? round($pos_sum / $pos_n, 2) : 0,
-    ]);
-    update_post_meta($resource_id, "_ups_resource_last_data_sync", current_time("mysql"));
+
+    return $lead_ev;
 }
 
-function ups_audit_sync_ads_resource($resource_id)
-{
-    $resource_id = (int) $resource_id;
-    $account_id = (int) get_post_meta($resource_id, "_ups_resource_google_account_id", true);
-    $oauth = ups_audit_get_oauth_for_account($account_id);
-    $backup = upsellio_get_gsc_credentials();
-    upsellio_save_gsc_credentials(
-        (string) ($oauth["client_id"] ?? ""),
-        (string) ($oauth["client_secret"] ?? ""),
-        (string) ($oauth["refresh_token"] ?? ""),
-        (string) ($backup["property"] ?? "")
-    );
-    $campaigns = upsellio_google_ads_fetch_campaigns("LAST_30_DAYS");
-    upsellio_save_gsc_credentials(
-        (string) ($backup["client_id"] ?? ""),
-        (string) ($backup["client_secret"] ?? ""),
-        (string) ($backup["refresh_token"] ?? ""),
-        (string) ($backup["property"] ?? "")
-    );
-    if (!is_array($campaigns)) {
-        return;
+/**
+ * @param list<array<string, mixed>> $breakdown
+ * @return list<string>
+ */
+function ups_audit_ga4_build_revenue_quality_notes(
+    array $breakdown,
+    array $ecommerce_kpi,
+    int $sessions,
+    int $kpi_conversions,
+    float $session_revenue_sum
+): array {
+    $notes = [];
+    $purchase_rev = (float) ($ecommerce_kpi["purchase_revenue"] ?? 0);
+    $purchase_cnt = (int) ($ecommerce_kpi["purchase_count"] ?? 0);
+    $total_rev_api = (float) ($ecommerce_kpi["total_revenue"] ?? 0);
+
+    if ($purchase_rev > 0 && $session_revenue_sum > 0 && $session_revenue_sum > $purchase_rev * 1.25) {
+        $notes[] = sprintf(
+            __("Przychód sesji (%.0f PLN) zawyża purchaseRevenue (%.0f PLN) — KPI używa tylko zakupów.", "upsellio"),
+            $session_revenue_sum,
+            $purchase_rev
+        );
     }
-    $cost = 0.0;
-    $clicks = 0;
-    $conversions = 0.0;
-    foreach ($campaigns as $c) {
-        if (!is_array($c)) {
+
+    if ($purchase_cnt > 0 && $sessions > 0) {
+        $cr = ($purchase_cnt / $sessions) * 100;
+        if ($cr > 8) {
+            $notes[] = sprintf(
+                __("CR zakupów %.1f%% (%d purchase / %d sesji) — sprawdź duplikaty eventu purchase na thank-you.", "upsellio"),
+                $cr,
+                $purchase_cnt,
+                $sessions
+            );
+        }
+    }
+
+    $checkout = 0;
+    $purchase_ev = 0;
+    $engagement_with_rev = [];
+    foreach ($breakdown as $row) {
+        if (!is_array($row)) {
             continue;
         }
-        $cost += (float) ($c["cost_pln"] ?? 0);
-        $clicks += (int) ($c["clicks"] ?? 0);
-        $conversions += (float) ($c["conversions"] ?? 0);
+        $name = strtolower((string) ($row["event"] ?? ""));
+        $cnt = (int) ($row["count"] ?? 0);
+        $rev = (float) ($row["revenue"] ?? 0);
+        if ($name === "begin_checkout") {
+            $checkout = $cnt;
+        }
+        if ($name === "purchase") {
+            $purchase_ev = $cnt;
+        }
+        if ($rev > 0 && (string) ($row["kind"] ?? "") === "engagement") {
+            $engagement_with_rev[] = $name . " (" . number_format($rev, 0, ",", " ") . " PLN)";
+        }
     }
-    $current_cache = get_post_meta($resource_id, "_ups_resource_data_cache", true);
-    if (is_array($current_cache) && !empty($current_cache)) {
-        update_post_meta($resource_id, "_ups_resource_data_cache_previous", $current_cache);
+
+    if ($purchase_cnt > 0 && $checkout > 0 && $purchase_cnt > $checkout * 2) {
+        $notes[] = sprintf(
+            __("purchase (%d) >> begin_checkout (%d) — prawdopodobne wielokrotne odpalanie purchase.", "upsellio"),
+            $purchase_cnt,
+            $checkout
+        );
     }
-    update_post_meta($resource_id, "_ups_resource_data_cache", [
-        "cost" => $cost,
-        "clicks" => $clicks,
-        "conversions" => $conversions,
-    ]);
-    update_post_meta($resource_id, "_ups_resource_last_data_sync", current_time("mysql"));
+
+    if ($engagement_with_rev !== []) {
+        $notes[] = __("Eventy engagement z revenue > 0: ", "upsellio") . implode(", ", array_slice($engagement_with_rev, 0, 4))
+            . __(" — nie powinny zawyżać przychodu e-commerce.", "upsellio");
+    }
+
+    if ($kpi_conversions > 0 && $purchase_cnt <= 0 && $total_rev_api > 10000) {
+        $notes[] = __("Brak ecommercePurchases, ale wysoki totalRevenue — zweryfikuj definicję konwersji w GA4.", "upsellio");
+    }
+
+    return $notes;
 }
 
-function ups_audit_sync_resource_action($resource_id)
-{
-    $resource_id = (int) $resource_id;
-    $type = (string) get_post_meta($resource_id, "_ups_resource_type", true);
-    if ($type === "ga4") {
-        ups_audit_sync_ga4_resource($resource_id);
-    } elseif ($type === "gsc") {
-        ups_audit_sync_gsc_resource($resource_id);
-    } elseif ($type === "ads") {
-        ups_audit_sync_ads_resource($resource_id);
-    }
-}
 add_action("ups_audit_sync_resource_action", "ups_audit_sync_resource_action");
 
 function ups_audit_daily_sync_job()
 {
-    $resources = get_posts([
-        "post_type" => "crm_audit_resource",
-        "posts_per_page" => -1,
-        "post_status" => ["publish", "draft"],
-        "meta_query" => [[
-            "key" => "_ups_resource_client_id",
-            "compare" => "EXISTS",
-        ]],
-    ]);
-    foreach ($resources as $r) {
-        if (!($r instanceof WP_Post)) {
-            continue;
-        }
-        try {
-            ups_audit_sync_resource_action((int) $r->ID);
-        } catch (Exception $e) {
-            if (function_exists("upsellio_gsc_log")) {
-                upsellio_gsc_log("audit.sync.error", ["resource_id" => (int) $r->ID, "msg" => $e->getMessage()]);
-            }
-        }
-        sleep(1);
-    }
+    ups_audit_sync_all_mapped_resources(0);
 }
 add_action("ups_audit_daily_sync", "ups_audit_daily_sync_job");
 
@@ -570,61 +1307,6 @@ function ups_audit_schedule_daily_sync()
     }
 }
 add_action("init", "ups_audit_schedule_daily_sync");
-
-function ups_audit_aggregate_client_data($client_id, $days = 30, $offset = 0)
-{
-    $client_id = (int) $client_id;
-    $resources = ups_audit_get_client_resources($client_id);
-    $agg = [
-        "ga4_sessions" => 0,
-        "ga4_conversions" => 0,
-        "ga4_revenue" => 0.0,
-        "gsc_clicks" => 0,
-        "gsc_impressions" => 0,
-        "gsc_avg_position" => 0.0,
-        "ads_cost" => 0.0,
-        "ads_clicks" => 0,
-        "ads_conversions" => 0.0,
-        "roas" => 0.0,
-        "sources" => ["ga4" => [], "gsc" => [], "ads" => []],
-    ];
-    $gsc_pos_weight = 0;
-    foreach ($resources as $r) {
-        if (!($r instanceof WP_Post)) {
-            continue;
-        }
-        $type = (string) get_post_meta((int) $r->ID, "_ups_resource_type", true);
-        $cache_key = ((int) $offset > 0) ? "_ups_resource_data_cache_previous" : "_ups_resource_data_cache";
-        $cache = get_post_meta((int) $r->ID, $cache_key, true);
-        if (!is_array($cache) || empty($cache)) {
-            $cache = get_post_meta((int) $r->ID, "_ups_resource_data_cache", true);
-        }
-        if (!is_array($cache)) {
-            continue;
-        }
-        if ($type === "ga4") {
-            $agg["ga4_sessions"] += (int) ($cache["sessions"] ?? 0);
-            $agg["ga4_conversions"] += (int) ($cache["conversions"] ?? 0);
-            $agg["ga4_revenue"] += (float) ($cache["revenue"] ?? 0);
-            $agg["sources"]["ga4"][] = $cache;
-        } elseif ($type === "gsc") {
-            $imp = (int) ($cache["impressions"] ?? 0);
-            $agg["gsc_clicks"] += (int) ($cache["clicks"] ?? 0);
-            $agg["gsc_impressions"] += $imp;
-            $agg["gsc_avg_position"] += ((float) ($cache["avg_position"] ?? 0)) * $imp;
-            $gsc_pos_weight += $imp;
-            $agg["sources"]["gsc"][] = $cache;
-        } elseif ($type === "ads") {
-            $agg["ads_cost"] += (float) ($cache["cost"] ?? 0);
-            $agg["ads_clicks"] += (int) ($cache["clicks"] ?? 0);
-            $agg["ads_conversions"] += (float) ($cache["conversions"] ?? 0);
-            $agg["sources"]["ads"][] = $cache;
-        }
-    }
-    $agg["gsc_avg_position"] = $gsc_pos_weight > 0 ? round($agg["gsc_avg_position"] / $gsc_pos_weight, 2) : 0;
-    $agg["roas"] = $agg["ads_cost"] > 0 ? round($agg["ga4_revenue"] / $agg["ads_cost"], 2) : 0;
-    return $agg;
-}
 
 function ups_audit_ai_model_from_option($option_name, $fallback)
 {
@@ -643,7 +1325,26 @@ function ups_audit_build_monthly_report_prompt($cur, $prev, $client, $ctx)
         $b = (float) $b;
         return $b > 0 ? round((($a - $b) / $b) * 100, 1) : 0;
     };
-    return "Jesteś senior account managerem agencji marketingowej. Pisz po polsku, profesjonalnie, dla klienta.\n\nKLIENT: {$client_name}\nOKRES: ostatnie 30 dni\n\nDANE:\n- Sesje GA4: " . (int) ($cur["ga4_sessions"] ?? 0) . " vs " . (int) ($prev["ga4_sessions"] ?? 0) . " (" . $delta($cur["ga4_sessions"] ?? 0, $prev["ga4_sessions"] ?? 0) . "%)\n- Kliknięcia GSC: " . (int) ($cur["gsc_clicks"] ?? 0) . " vs " . (int) ($prev["gsc_clicks"] ?? 0) . "\n- Wydatek Ads: " . round((float) ($cur["ads_cost"] ?? 0), 2) . " PLN\n- Konwersje Ads: " . round((float) ($cur["ads_conversions"] ?? 0), 1) . "\n- ROAS: " . round((float) ($cur["roas"] ?? 0), 2) . "x\n\nKONTEKST CRM:\n" . (string) $ctx . "\n\nWygeneruj raport HTML z sekcjami: podsumowanie, źródła danych, rekomendacje, największe zmiany. Bez bloków markdown.";
+    $revenue_q = function_exists("ups_audit_revenue_quality") ? ups_audit_revenue_quality($cur) : ["trusted" => true];
+    $ga4_trusted = !empty($revenue_q["trusted"]);
+    $crm_funnel = (array) (($cur["intelligence"]["crm_revenue"]["funnel_totals"] ?? []));
+    $crm_rev = (float) ($crm_funnel["revenue"] ?? 0);
+    $crm_leads = (int) ($crm_funnel["leads"] ?? 0);
+    $crm_won = (int) ($crm_funnel["won"] ?? 0);
+    $ads_cost = round((float) ($cur["ads_cost"] ?? 0), 2);
+    $crm_roas = $ads_cost > 0 && $crm_rev > 0 ? round($crm_rev / $ads_cost, 2) : 0;
+
+    $roas_line = $ga4_trusted
+        ? "- ROAS GA4 (purchase): " . round((float) ($cur["roas"] ?? 0), 2) . "x\n"
+        : "- UWAGA: Przychód GA4 NIEJEST WIARYGODNY — NIE cytuj ROAS GA4 ani przychodu e-commerce.\n"
+            . "- ROAS CRM (wygrane / koszt Ads): " . $crm_roas . "x\n"
+            . "- Leady CRM: " . $crm_leads . " · Wygrane: " . $crm_won . " · Przychód CRM: " . round($crm_rev, 0) . " PLN\n";
+
+    $attr_conf = (int) (($cur["attribution_confidence"]["score"] ?? 0));
+    $attr_line = $attr_conf > 0 ? "- Attribution Confidence: {$attr_conf}%\n" : "";
+
+    return "Jesteś senior account managerem agencji marketingowej. Pisz po polsku, profesjonalnie, dla klienta.\n\nKLIENT: {$client_name}\nOKRES: ostatnie 30 dni\n\nDANE:\n- Sesje GA4: " . (int) ($cur["ga4_sessions"] ?? 0) . " vs " . (int) ($prev["ga4_sessions"] ?? 0) . " (" . $delta($cur["ga4_sessions"] ?? 0, $prev["ga4_sessions"] ?? 0) . "%)\n- Kliknięcia GSC: " . (int) ($cur["gsc_clicks"] ?? 0) . " vs " . (int) ($prev["gsc_clicks"] ?? 0) . "\n- Wydatek Ads: {$ads_cost} PLN\n- Konwersje Ads: " . round((float) ($cur["ads_conversions"] ?? 0), 1) . "\n{$roas_line}{$attr_line}\nKONTEKST CRM:\n" . (string) $ctx . "\n\nWygeneruj raport HTML z sekcjami: podsumowanie, źródła danych, rekomendacje, największe zmiany. Bez bloków markdown."
+        . ($ga4_trusted ? "" : "\n\nKRYTYCZNE: Nie rekomenduj skalowania na podstawie ROAS GA4. Używaj wyłącznie metryk CRM.");
 }
 
 function ups_audit_generate_monthly_report($client_id)
@@ -654,7 +1355,9 @@ function ups_audit_generate_monthly_report($client_id)
         return ["id" => 0, "html" => ""];
     }
     $cur = ups_audit_aggregate_client_data($client_id, 30, 0);
-    $prev = ups_audit_aggregate_client_data($client_id, 30, 30);
+    $prev = function_exists("ups_audit_aggregate_previous_slice")
+        ? ups_audit_aggregate_previous_slice($cur)
+        : ups_audit_aggregate_client_data($client_id, 30, 30);
     $ctx = function_exists("upsellio_ai_master_context") ? (string) upsellio_ai_master_context("client_audit", $client_id) : "";
     $prompt = ups_audit_build_monthly_report_prompt($cur, $prev, $client, $ctx);
     $model = ups_audit_ai_model_from_option("ups_audit_anthropic_model_reports", "sonnet");
@@ -742,7 +1445,9 @@ function ups_audit_generate_comparison($client_id)
         return ["id" => 0, "html" => ""];
     }
     $cur = ups_audit_aggregate_client_data($client_id, 30, 0);
-    $prev = ups_audit_aggregate_client_data($client_id, 30, 30);
+    $prev = function_exists("ups_audit_aggregate_previous_slice")
+        ? ups_audit_aggregate_previous_slice($cur)
+        : ups_audit_aggregate_client_data($client_id, 30, 30);
     $prompt = "Porównaj okres-do-okresu dla klienta " . $client->post_title . ". Current: " . wp_json_encode($cur) . " Previous: " . wp_json_encode($prev) . ". Wyjaśnij 3 największe zmiany i rekomendacje. Format HTML.";
     $html = ups_audit_generate_with_ai($prompt, 1600, 55, "ups_audit_anthropic_model_audits", "<h2>Porównanie okresów</h2><p>Brak odpowiedzi AI.</p>");
     $report_id = ups_audit_create_report_post($client_id, "comparison", "Porównanie okresów - " . wp_date("Y-m-d") . " - " . $client->post_title, $html, ["current" => $cur, "previous" => $prev]);
@@ -779,6 +1484,12 @@ function ups_audit_generate_report_by_type($client_id, $type)
     if ($type === "brief") {
         return ups_audit_generate_brief($client_id);
     }
+    if ($type === "seo_roadmap" && function_exists("ups_audit_generate_seo_roadmap_ai")) {
+        return ups_audit_generate_seo_roadmap_ai($client_id);
+    }
+    if ($type === "ux_audit" && function_exists("ups_audit_generate_ux_audit_ai")) {
+        return ups_audit_generate_ux_audit_ai($client_id);
+    }
     return ups_audit_generate_monthly_report($client_id);
 }
 
@@ -791,6 +1502,8 @@ function ups_audit_ensure_default_options()
         "ups_audit_pdf_brand_color" => "#0ABFA3",
         "ups_audit_anthropic_model_reports" => "sonnet",
         "ups_audit_anthropic_model_audits" => "haiku",
+        "ups_audit_alert_email" => "",
+        "ups_audit_slack_webhook_url" => "",
     ];
     foreach ($defaults as $key => $value) {
         if (get_option($key, null) === null) {

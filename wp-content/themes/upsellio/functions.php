@@ -4,6 +4,22 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
+/**
+ * Hosting cyber_Folks + WP_DEBUG: notice przy zbyt długim post type nie może psuć całej witryny.
+ */
+add_filter(
+    "doing_it_wrong_trigger_error",
+    static function ($trigger, $function_name) {
+        if ($function_name === "register_post_type") {
+            return false;
+        }
+
+        return $trigger;
+    },
+    10,
+    2
+);
+
 function upsellio_upsert_page_with_template($slug, $title, $template_file)
 {
     $slug = trim((string) $slug, "/");
@@ -1262,10 +1278,24 @@ require_once get_template_directory() . "/inc/seo-automation.php";
 require_once get_template_directory() . "/inc/data-schema.php";
 require_once get_template_directory() . "/inc/batch-api.php";
 require_once get_template_directory() . "/inc/site-analytics.php";
+require_once get_template_directory() . "/inc/rankmath-bridge.php";
 require_once get_template_directory() . "/inc/server-side-tracking.php";
 require_once get_template_directory() . "/inc/gsc-keyword-analysis.php";
 require_once get_template_directory() . "/inc/google-oauth-managed.php";
+require_once get_template_directory() . "/inc/google-oauth-bridge.php";
+require_once get_template_directory() . "/inc/client-audit-data.php";
+require_once get_template_directory() . "/inc/client-audit-insights.php";
 require_once get_template_directory() . "/inc/client-audit.php";
+require_once get_template_directory() . "/inc/client-audit-oauth.php";
+require_once get_template_directory() . "/inc/client-audit-sync.php";
+require_once get_template_directory() . "/inc/client-audit-features.php";
+require_once get_template_directory() . "/inc/client-audit-intelligence.php";
+require_once get_template_directory() . "/inc/client-audit-crm-attribution.php";
+require_once get_template_directory() . "/inc/client-audit-trust-scores.php";
+require_once get_template_directory() . "/inc/client-audit-clarity.php";
+require_once get_template_directory() . "/inc/meta-ads-api.php";
+require_once get_template_directory() . "/inc/client-audit-meta.php";
+require_once get_template_directory() . "/inc/client-audit-meta-oauth.php";
 require_once get_template_directory() . "/inc/breadcrumbs.php";
 require_once get_template_directory() . "/inc/advanced-tests.php";
 require_once get_template_directory() . "/inc/portfolio-seed.php";
