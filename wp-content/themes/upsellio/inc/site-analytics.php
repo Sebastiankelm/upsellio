@@ -832,7 +832,7 @@ function upsellio_gsc_fetch_rows($credentials, $days = 30, $trace_id = "")
             $rows[] = [
                 "keyword" => $keyword,
                 "url" => $page_url,
-                "position" => max(1, round($position, 2)),
+                "position" => round(max(0, $position), 2),
                 "impressions" => max(0, $impressions),
                 "clicks" => max(0, $clicks),
                 "ctr" => round(max(0, $ctr), 2),
@@ -920,6 +920,21 @@ add_action("admin_init", "upsellio_handle_gsc_sync_submit");
 
 function upsellio_gsc_daily_sync_job()
 {
+    if (function_exists("upsellio_rankmath_sync_gsc_into_upsellio")) {
+        $sync_days = (int) get_option("upsellio_gsc_sync_days_last", 30);
+        $result = upsellio_rankmath_sync_gsc_into_upsellio($sync_days);
+        if (!empty($result["ok"])) {
+            upsellio_gsc_log("gsc.cron.success", $result, "gsc_cron_bridge");
+
+            return;
+        }
+        if (!empty($result["error"])) {
+            upsellio_gsc_log("gsc.cron.failed", $result, "gsc_cron_bridge");
+        }
+
+        return;
+    }
+
     $credentials = upsellio_get_gsc_credentials();
     if (
         !is_array($credentials) ||
@@ -1173,6 +1188,21 @@ add_action("rest_api_init", "upsellio_register_google_oauth_rest_callback");
 
 function upsellio_handle_google_oauth_rest_callback(WP_REST_Request $request)
 {
+    $state_probe = sanitize_text_field((string) $request->get_param("state"));
+    $code_probe = trim((string) $request->get_param("code"));
+    $use_bridge = $state_probe !== ""
+        && $code_probe !== ""
+        && function_exists("upsellio_google_managed_oauth_is_active")
+        && upsellio_google_managed_oauth_is_active()
+        && function_exists("upsellio_handle_google_oauth_bridge_callback");
+    if (!$use_bridge && $state_probe !== "" && function_exists("upsellio_google_managed_oauth_bridge_load_session")) {
+        $use_bridge = upsellio_google_managed_oauth_bridge_load_session($state_probe) !== null
+            && function_exists("upsellio_handle_google_oauth_bridge_callback");
+    }
+    if ($use_bridge) {
+        return upsellio_handle_google_oauth_bridge_callback($request);
+    }
+
     $args = array_filter(
         [
             "page" => upsellio_site_analytics_page_slug(),
@@ -1187,6 +1217,10 @@ function upsellio_handle_google_oauth_rest_callback(WP_REST_Request $request)
     );
 
     $target = add_query_arg($args, admin_url("admin.php"));
+    $uid = get_current_user_id();
+    if ($uid > 0) {
+        $target = (string) apply_filters("upsellio_google_oauth_rest_callback_redirect", $target, $args, $uid);
+    }
     if (!is_user_logged_in()) {
         wp_safe_redirect(wp_login_url($target));
         exit;
@@ -1244,14 +1278,14 @@ function upsellio_google_ads_normalize_customer_id(string $value): string
 }
 
 /**
- * Wersja Google Ads API (ścieżka REST), np. v17.
+ * Wersja Google Ads API (ścieżka REST), np. v21.
  */
 function upsellio_google_ads_api_version(): string
 {
-    $v = apply_filters("upsellio_google_ads_api_version", "v17");
+    $v = apply_filters("upsellio_google_ads_api_version", "v21");
     $v = trim((string) $v);
     if ($v === "" || !preg_match('/^v\d+$/', $v)) {
-        return "v17";
+        return "v21";
     }
 
     return $v;
@@ -1295,6 +1329,23 @@ function upsellio_google_ads_api_ready(): bool
     if ($cfg["developer_token"] === "" || $cfg["customer_id"] === "") {
         return false;
     }
+
+    $token = upsellio_gsc_get_access_token($c);
+    if (is_wp_error($token) || !is_string($token) || $token === "") {
+        return false;
+    }
+
+    if (function_exists("ups_audit_fetch_scopes")) {
+        $scopes = ups_audit_fetch_scopes($token);
+        foreach ((array) $scopes as $scope) {
+            if (stripos((string) $scope, "adwords") !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     $snap = upsellio_google_get_permission_snapshot();
 
     return !empty($snap["has_google_ads"]);
@@ -1484,6 +1535,59 @@ function upsellio_google_oauth_get_pending($user_id)
     ];
 }
 
+/**
+ * Google OAuth wraca na /crm-app/?view=analytics (redirect URI), a wymiana kodu działa w wp-admin.
+ * Przekieruj code/state na admin.php?page=upsellio-site-analytics zanim odpali się szablon CRM.
+ */
+function upsellio_google_oauth_bridge_crm_callback_to_admin(): void
+{
+    if (is_admin()) {
+        return;
+    }
+    $view = isset($_GET["view"]) ? sanitize_key((string) wp_unslash($_GET["view"])) : "";
+    if ($view !== "analytics") {
+        return;
+    }
+    $has_code = isset($_GET["code"], $_GET["state"]);
+    $has_error = isset($_GET["error"]);
+    if (!$has_code && !$has_error) {
+        return;
+    }
+
+    $args = ["page" => upsellio_site_analytics_page_slug()];
+    if ($has_code) {
+        $args["code"] = (string) wp_unslash($_GET["code"]);
+        $args["state"] = (string) wp_unslash($_GET["state"]);
+    }
+    if ($has_error) {
+        $args["error"] = sanitize_text_field((string) wp_unslash($_GET["error"]));
+        if (isset($_GET["error_description"])) {
+            $args["error_description"] = sanitize_text_field((string) wp_unslash($_GET["error_description"]));
+        }
+        if (isset($_GET["state"])) {
+            $args["state"] = (string) wp_unslash($_GET["state"]);
+        }
+    }
+
+    $target = add_query_arg($args, admin_url("admin.php"));
+    if (!is_user_logged_in()) {
+        wp_safe_redirect(wp_login_url($target));
+        exit;
+    }
+    if (!current_user_can("edit_posts")) {
+        wp_safe_redirect(
+            upsellio_site_analytics_admin_url([
+                "upsellio_google_oauth_error" => rawurlencode("Brak uprawnień do dokończenia połączenia Google."),
+            ])
+        );
+        exit;
+    }
+
+    wp_safe_redirect($target);
+    exit;
+}
+add_action("init", "upsellio_google_oauth_bridge_crm_callback_to_admin", 1);
+
 function upsellio_google_oauth_handle_callback()
 {
     if (!is_admin() || !current_user_can("edit_posts")) {
@@ -1530,6 +1634,9 @@ function upsellio_google_oauth_handle_callback()
         exit;
     }
 
+    $pending_raw = get_transient(upsellio_google_oauth_transient_key($uid));
+    $conn_type = is_array($pending_raw) ? sanitize_key((string) ($pending_raw["conn_type"] ?? "main")) : "main";
+    $conn_label = is_array($pending_raw) ? sanitize_text_field((string) ($pending_raw["label"] ?? "")) : "";
     delete_transient(upsellio_google_oauth_transient_key($uid));
 
     $creds = upsellio_get_gsc_credentials();
@@ -1547,6 +1654,59 @@ function upsellio_google_oauth_handle_callback()
     $trace_id = upsellio_gsc_debug_trace_id();
     upsellio_gsc_log("google.oauth.code_exchange.started", ["trace_id" => $trace_id], $trace_id);
 
+    $redirect_for_exchange = $conn_type === "audit" && function_exists("ups_audit_oauth_redirect_uri")
+        ? ups_audit_oauth_redirect_uri()
+        : upsellio_google_oauth_redirect_uri();
+
+    if ($conn_type === "audit" && function_exists("ups_audit_oauth_exchange_code")) {
+        $exchange = ups_audit_oauth_exchange_code($code, $redirect_for_exchange, $client_id, $client_secret);
+        if (is_wp_error($exchange)) {
+            wp_safe_redirect(function_exists("ups_audit_oauth_crm_error_url")
+                ? ups_audit_oauth_crm_error_url($exchange->get_error_message())
+                : home_url("/crm-app/?view=ca-accounts&ups_audit_error=" . rawurlencode($exchange->get_error_message())));
+            exit;
+        }
+        $account_id = ups_audit_oauth_create_account_from_tokens(
+            (string) $exchange["refresh_token"],
+            $client_id,
+            $client_secret,
+            $conn_label,
+            $uid
+        );
+        if ($account_id <= 0) {
+            wp_safe_redirect(function_exists("ups_audit_oauth_crm_error_url")
+                ? ups_audit_oauth_crm_error_url("Nie udało się utworzyć konta audytowego.")
+                : home_url("/crm-app/?view=ca-accounts&ups_audit_error=" . rawurlencode("Nie udało się utworzyć konta.")));
+            exit;
+        }
+        if (function_exists("ups_audit_oauth_prime_account_resources")) {
+            $prime_account_id = $account_id;
+            add_action(
+                "shutdown",
+                static function () use ($prime_account_id): void {
+                    if ($prime_account_id <= 0 || !function_exists("ups_audit_oauth_prime_account_resources")) {
+                        return;
+                    }
+                    if (function_exists("set_time_limit")) {
+                        @set_time_limit(120);
+                    }
+                    try {
+                        ups_audit_oauth_prime_account_resources($prime_account_id);
+                    } catch (Throwable $e) {
+                        if (function_exists("error_log")) {
+                            error_log("ups_audit oauth prime: " . $e->getMessage());
+                        }
+                    }
+                },
+                1
+            );
+        }
+        wp_safe_redirect(function_exists("ups_audit_oauth_crm_success_url")
+            ? ups_audit_oauth_crm_success_url($account_id)
+            : home_url("/crm-app/?view=ca-accounts&connected=1&account_id=" . $account_id));
+        exit;
+    }
+
     $response = wp_remote_post("https://oauth2.googleapis.com/token", [
         "timeout" => 25,
         "sslverify" => true,
@@ -1554,7 +1714,7 @@ function upsellio_google_oauth_handle_callback()
             "code" => $code,
             "client_id" => $client_id,
             "client_secret" => $client_secret,
-            "redirect_uri" => upsellio_google_oauth_redirect_uri(),
+            "redirect_uri" => $redirect_for_exchange,
             "grant_type" => "authorization_code",
         ],
     ]);
@@ -2218,6 +2378,19 @@ function upsellio_ga4_daily_oauth_sync_job()
     if ((string) get_option("ups_automation_ga4_sync_enabled", "1") !== "1") {
         return;
     }
+    if (function_exists("upsellio_rankmath_sync_ga4_into_upsellio")) {
+        $result = upsellio_rankmath_sync_ga4_into_upsellio(30);
+        if (!empty($result["ok"])) {
+            upsellio_gsc_log("ga4.cron.success", $result, "ga4_cron_bridge");
+
+            return;
+        }
+        if (!empty($result["error"])) {
+            upsellio_gsc_log("ga4.cron.failed", $result, "ga4_cron_bridge");
+        }
+
+        return;
+    }
     $pid = upsellio_get_ga4_property_id();
     if ($pid === "") {
         return;
@@ -2294,20 +2467,24 @@ function upsellio_get_keyword_metrics_for_url($url, $rows)
         ];
     }
 
-    $position_sum = 0;
+    $agg_for_url = function_exists("upsellio_gsc_aggregate_keywords")
+        ? upsellio_gsc_aggregate_keywords($matched)
+        : [];
+    $keywords = [];
     $impressions = 0;
     $clicks = 0;
-    $keywords = [];
-    foreach ($matched as $row) {
-        $position_sum += (float) $row["position"];
-        $impressions += (int) $row["impressions"];
-        $clicks += (int) $row["clicks"];
+    $position_weighted = 0.0;
+    foreach ($agg_for_url as $row) {
+        $impr = (int) ($row["impressions"] ?? 0);
+        $impressions += $impr;
+        $clicks += (int) ($row["clicks"] ?? 0);
+        $position_weighted += (float) ($row["position"] ?? 0) * $impr;
         $keywords[] = [
-            "keyword" => (string) $row["keyword"],
-            "position" => (float) $row["position"],
-            "impressions" => (int) $row["impressions"],
-            "clicks" => (int) $row["clicks"],
-            "ctr" => (float) $row["ctr"],
+            "keyword" => (string) ($row["keyword"] ?? ""),
+            "position" => (float) ($row["position"] ?? 0),
+            "impressions" => $impr,
+            "clicks" => (int) ($row["clicks"] ?? 0),
+            "ctr" => (float) ($row["ctr"] ?? 0),
         ];
     }
 
@@ -2316,7 +2493,7 @@ function upsellio_get_keyword_metrics_for_url($url, $rows)
     });
 
     return [
-        "avg_position" => round($position_sum / count($matched), 1),
+        "avg_position" => $impressions > 0 ? round($position_weighted / $impressions, 1) : 0,
         "impressions" => $impressions,
         "clicks" => $clicks,
         "keywords" => array_slice($keywords, 0, 6),
@@ -3694,37 +3871,21 @@ function upsellio_render_site_analytics_page()
         if (!is_array($kw_raw_all)) {
             $kw_raw_all = [];
         }
-        $kw_best = [];
-        foreach ($kw_raw_all as $r) {
-            if (!is_array($r)) {
-                continue;
-            }
-            $kw = strtolower(trim((string) ($r["keyword"] ?? "")));
-            $url = (string) ($r["url"] ?? "");
-            if ($kw === "" || $url === "") {
-                continue;
-            }
-            $key = $kw . "|" . $url;
-            $pos = (float) ($r["position"] ?? 99);
-            if (!isset($kw_best[$key]) || $pos < $kw_best[$key]) {
-                $kw_best[$key] = $pos;
-            }
-        }
-        $kw_total = count($kw_best);
-        $kw_top3 = count(array_filter($kw_best, static function ($p) {
-            return $p <= 3;
-        }));
-        $kw_top10 = count(array_filter($kw_best, static function ($p) {
-            return $p <= 10;
-        }));
-        $kw_top50 = count(array_filter($kw_best, static function ($p) {
-            return $p <= 50;
-        }));
+        $kw_vis_admin = function_exists("upsellio_gsc_visibility_stats")
+            ? upsellio_gsc_visibility_stats($kw_raw_all)
+            : ["total" => 0, "top3" => 0, "top10" => 0, "top50" => 0, "aggregated" => []];
+        $kw_agg_admin = (array) ($kw_vis_admin["aggregated"] ?? []);
+        $kw_total = (int) ($kw_vis_admin["total"] ?? 0);
+        $kw_top3 = (int) ($kw_vis_admin["top3"] ?? 0);
+        $kw_top10 = (int) ($kw_vis_admin["top10"] ?? 0);
+        $kw_top50 = (int) ($kw_vis_admin["top50"] ?? 0);
         $kw_rest = $kw_total - $kw_top50;
-        $kw_seg_11_20 = count(array_filter($kw_best, static function ($p) {
+        $kw_seg_11_20 = count(array_filter($kw_agg_admin, static function ($r) {
+            $p = (float) ($r["position"] ?? 99);
             return $p > 10 && $p <= 20;
         }));
-        $kw_seg_21_50 = count(array_filter($kw_best, static function ($p) {
+        $kw_seg_21_50 = count(array_filter($kw_agg_admin, static function ($r) {
+            $p = (float) ($r["position"] ?? 99);
             return $p > 20 && $p <= 50;
         }));
         $kw_nonce = wp_create_nonce("upsellio_gsc_keywords_full_nonce");
@@ -4334,7 +4495,46 @@ function upsellio_render_site_analytics_page()
             <div class="notice notice-success inline"><p>Odpowiedź <code>customers:listAccessibleCustomers</code>:</p><pre style="max-height:200px;overflow:auto;background:#f6f8fa;padding:8px;"><?php echo esc_html($gads_test_ok_body); ?></pre></div>
           <?php endif; ?>
           <?php if ($ups_managed_google_oauth) : ?>
-            <div class="notice notice-success inline" style="max-width:720px;"><p style="margin:0;font-size:13px;"><strong>Tryb Upsellio Connect (zarządzany OAuth)</strong> — nie musisz tworzyć projektu ani redirectów w Google Cloud. Po kliknięciu „Zaloguj przez Google” otworzy się most Upsellio; po zalogowaniu kontem Google token zapisze się w WordPressie. Wymaga wdrożonego serwera mostu i stałych <code>UPSELLIO_MANAGED_GOOGLE_OAUTH_*</code> w <code>wp-config.php</code>.</p></div>
+            <?php
+            $ups_managed_self = function_exists("upsellio_google_managed_oauth_is_self_hosted") && upsellio_google_managed_oauth_is_self_hosted();
+            $ups_managed_bridge_uri = function_exists("upsellio_google_managed_oauth_bridge_callback_uri")
+                ? upsellio_google_managed_oauth_bridge_callback_uri()
+                : "";
+            ?>
+            <div class="notice notice-success inline" style="max-width:720px;">
+              <p style="margin:0;font-size:13px;">
+                <strong>Upsellio Connect (jak Rank Math)</strong> —
+                <?php if ($ups_managed_self) : ?>
+                  wbudowany most na tej domenie. W Google Cloud dodaj <strong>jeden</strong> redirect URI mostu (poniżej) do tego samego Client ID co w polach OAuth. CRM i Analityka SEO używają tego samego przycisku „Zaloguj przez Google”.
+                <?php else : ?>
+                  zewnętrzny most OAuth. Po kliknięciu „Zaloguj przez Google” token wraca przez zabezpieczony webhook (<code>UPSELLIO_MANAGED_GOOGLE_OAUTH_*</code> w <code>wp-config.php</code>).
+                <?php endif; ?>
+              </p>
+            </div>
+            <?php
+            $ups_google_redirect_required = function_exists("upsellio_google_oauth_required_redirect_uris_for_google_console")
+                ? upsellio_google_oauth_required_redirect_uris_for_google_console()
+                : ($ups_managed_bridge_uri !== "" ? [$ups_managed_bridge_uri] : []);
+            ?>
+            <div style="margin:10px 0 14px;padding:12px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;max-width:720px;">
+              <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#b91c1c;">
+                Błąd <code>redirect_uri_mismatch</code>? W Google Cloud → OAuth client → <strong>Authorized redirect URIs</strong> dodaj <em>dokładnie</em> poniższy adres (bez końcowego <code>/</code>):
+              </p>
+              <?php if ($ups_managed_bridge_uri !== "") : ?>
+              <p style="margin:0 0 8px;font-size:12px;color:#444;">
+                <strong>Upsellio Connect (wymagany przy „Zaloguj przez Google”):</strong>
+              </p>
+              <input type="text" readonly="readonly" class="large-text code" style="font-size:13px;max-width:100%;margin-bottom:10px;border-color:#f87171;" value="<?php echo esc_attr($ups_managed_bridge_uri); ?>" onclick="this.select();" onfocus="this.select();" />
+              <?php endif; ?>
+              <p style="margin:0 0 6px;font-size:12px;color:#444;">Opcjonalnie (inne ścieżki w Upsellio) — ten sam Client ID:</p>
+              <ul style="margin:0;padding-left:18px;font-size:12px;line-height:1.6;">
+                <?php foreach ($ups_google_redirect_required as $one_uri) : ?>
+                  <?php if ($one_uri === $ups_managed_bridge_uri) { continue; } ?>
+                  <li><code style="word-break:break-all;"><?php echo esc_html($one_uri); ?></code></li>
+                <?php endforeach; ?>
+              </ul>
+              <p style="margin:8px 0 0;font-size:11px;color:#666;">Zapisz w Google, odczekaj 1–2 min. URI z <code>/google-oauth/callback</code> (ukośnik) to <strong>nie</strong> to samo co <code>/google-oauth-callback</code> (myślnik).</p>
+            </div>
           <?php else : ?>
           <p style="font-size:13px;color:#3f3f39;">
             W <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console</a> → <strong>APIs &amp; Services</strong> → <strong>Credentials</strong> → wybierz <strong>ten sam</strong> projekt i ten sam <strong>OAuth 2.0 Client ID</strong>, którego numer masz w polu Client ID poniżej (typ klienta: <strong>Web application</strong>). W sekcji klienta dodaj wpisy w polu <strong>Authorized redirect URIs</strong> — <em>nie</em> myl z polem „Authorized JavaScript origins” (to osobna lista; dla mismatch liczy się wyłącznie redirect URIs). Zapisz w Google (Save) i odczekaj ok. minutę.
@@ -4460,8 +4660,18 @@ function upsellio_render_site_analytics_page()
           <?php endif; ?>
           <hr />
           <h2 style="margin-top:0;">Google Ads API — przygotowanie (OAuth + Developer token)</h2>
+          <div class="notice notice-info inline" style="margin:0 0 12px;padding:10px 12px;">
+            <p style="margin:0;font-size:13px;line-height:1.55;">
+              <strong>Centrum API (Developer token) jest tylko na koncie menedżera (MCC).</strong>
+              Zwykłe konto reklamowe nie ma tej sekcji — to normalne. Załóż darmowe konto menedżera,
+              <a href="https://ads.google.com/home/tools/manager-accounts/" target="_blank" rel="noopener noreferrer">połącz pod nim swoje konta reklamowe</a>,
+              token skopiuj z MCC: <strong>Narzędzia → Konfiguracja → Centrum API</strong>.
+              W polu <strong>Login Customer ID</strong> wpisz ID MCC (10 cyfr); w <strong>Customer ID</strong> — ID konkretnego konta reklamowego (kampanie).
+              <a href="https://developers.google.com/google-ads/api/docs/get-started/dev-token" target="_blank" rel="noopener noreferrer">Przewodnik Google</a>
+            </p>
+          </div>
           <p style="font-size:13px;color:#3f3f39;">
-            Do wywołań Google Ads API potrzebny jest <strong>Developer token</strong> z konta Google Ads (API Center), opcjonalnie <strong>login-customer-id</strong> dla konta menedżerskiego (MCC) oraz <strong>Customer ID</strong> konta reklamowego (10 cyfr).
+            Do wywołań API potrzebny jest <strong>Developer token</strong> z MCC, <strong>Login Customer ID</strong> (ID MCC) oraz <strong>Customer ID</strong> konta reklamowego (10 cyfr, bez myślników).
             Token OAuth musi obejmować zakres <code>adwords</code> — włącz go w preferencji powyżej i ponownie zaloguj przez Google.
           </p>
           <p style="font-size:12px;color:#5f6368;">
@@ -4481,8 +4691,8 @@ function upsellio_render_site_analytics_page()
               </label>
             </p>
             <p>
-              <label><strong>Login Customer ID</strong> (opcjonalnie; MCC — gdy pracujesz z kontem podrzędnym)<br />
-                <input type="text" name="upsellio_gads_login_customer_id" class="regular-text" value="<?php echo esc_attr($gads_cfg["login_customer_id"]); ?>" placeholder="puste jeśli nie używasz MCC" inputmode="numeric" />
+              <label><strong>Login Customer ID</strong> (ID konta menedżera MCC — wymagane przy kontach podpiętych pod MCC)<br />
+                <input type="text" name="upsellio_gads_login_customer_id" class="regular-text" value="<?php echo esc_attr($gads_cfg["login_customer_id"]); ?>" placeholder="np. ID MCC z Centrum API" inputmode="numeric" />
               </label>
             </p>
             <p>
@@ -4738,8 +4948,32 @@ function upsellio_google_ads_parse_search_stream_body(string $body_raw): array
     }
 
     $single = json_decode($body_raw, true);
-    if (is_array($single) && isset($single["results"]) && is_array($single["results"])) {
+    if (!is_array($single)) {
+        return [];
+    }
+
+    if (isset($single["results"]) && is_array($single["results"])) {
         return $single["results"];
+    }
+
+    $rows = [];
+    $is_list = array_keys($single) === range(0, count($single) - 1);
+    if ($is_list) {
+        foreach ($single as $chunk) {
+            if (!is_array($chunk)) {
+                continue;
+            }
+            if (isset($chunk["results"]) && is_array($chunk["results"])) {
+                foreach ($chunk["results"] as $r) {
+                    if (is_array($r)) {
+                        $rows[] = $r;
+                    }
+                }
+            }
+        }
+        if ($rows !== []) {
+            return $rows;
+        }
     }
 
     $rows = [];
@@ -4769,6 +5003,41 @@ function upsellio_google_ads_parse_search_stream_body(string $body_raw): array
     }
 
     return $rows;
+}
+
+/**
+ * GAQL: tylko LAST_7/14/30_DAYS są presetami — dłuższe okna przez BETWEEN.
+ *
+ * @param int|string $date_range Liczba dni lub preset LAST_*_DAYS
+ */
+function upsellio_google_ads_gaql_resolve_date_filter($date_range): string
+{
+    if (is_int($date_range) || (is_string($date_range) && ctype_digit(trim((string) $date_range)))) {
+        $day_count = max(1, min(365, (int) $date_range));
+        if ($day_count <= 7) {
+            return "segments.date DURING LAST_7_DAYS";
+        }
+        if ($day_count <= 14) {
+            return "segments.date DURING LAST_14_DAYS";
+        }
+        if ($day_count <= 30) {
+            return "segments.date DURING LAST_30_DAYS";
+        }
+        $until = gmdate("Y-m-d", strtotime("-1 day"));
+        $since = gmdate("Y-m-d", strtotime("-" . $day_count . " days"));
+
+        return "segments.date BETWEEN '" . $since . "' AND '" . $until . "'";
+    }
+
+    $preset = strtoupper(trim((string) $date_range));
+    if (in_array($preset, ["LAST_7_DAYS", "LAST_14_DAYS", "LAST_30_DAYS"], true)) {
+        return "segments.date DURING {$preset}";
+    }
+    if (preg_match("/^LAST_(\d+)_DAYS$/", $preset, $m)) {
+        return upsellio_google_ads_gaql_resolve_date_filter((int) $m[1]);
+    }
+
+    return "segments.date DURING LAST_30_DAYS";
 }
 
 /**
@@ -4824,8 +5093,9 @@ function upsellio_google_ads_gaql_search_stream(string $query)
  *
  * @return array<int, array<string, mixed>>|\WP_Error
  */
-function upsellio_google_ads_fetch_campaigns(string $date_range = "LAST_30_DAYS")
+function upsellio_google_ads_fetch_campaigns($date_range = "LAST_30_DAYS")
 {
+    $date_filter = upsellio_google_ads_gaql_resolve_date_filter($date_range);
     $query = "SELECT
       campaign.id,
       campaign.name,
@@ -4835,12 +5105,9 @@ function upsellio_google_ads_fetch_campaigns(string $date_range = "LAST_30_DAYS"
       metrics.cost_micros,
       metrics.clicks,
       metrics.impressions,
-      metrics.conversions,
-      metrics.ctr,
-      metrics.average_cpc
+      metrics.conversions
     FROM campaign
-    WHERE campaign.status = 'ENABLED'
-      AND segments.date DURING {$date_range}";
+    WHERE {$date_filter}";
 
     $rows = upsellio_google_ads_gaql_search_stream($query);
     if (is_wp_error($rows)) {
@@ -4895,11 +5162,14 @@ function upsellio_google_ads_fetch_campaigns(string $date_range = "LAST_30_DAYS"
     $campaigns = [];
     foreach ($agg as $a) {
         $cost_pln = round((int) $a["cost_micros"] / 1000000, 2);
-        $avg_ctr = $a["ctr_weighted_den"] > 0 ? ($a["ctr_weighted_num"] / $a["ctr_weighted_den"]) : 0.0;
-        $avg_cpc_micros = $a["cpc_micros_weighted_den"] > 0
-            ? (int) round($a["cpc_micros_weighted_num"] / $a["cpc_micros_weighted_den"])
-            : 0;
-        $avg_cpc_pln = round($avg_cpc_micros / 1000000, 2);
+        $clicks_total = (int) $a["clicks"];
+        $impr_total = (int) $a["impressions"];
+        $avg_ctr = $a["ctr_weighted_den"] > 0
+            ? ($a["ctr_weighted_num"] / $a["ctr_weighted_den"])
+            : ($impr_total > 0 ? ($clicks_total / $impr_total) : 0.0);
+        $avg_cpc_pln = $a["cpc_micros_weighted_den"] > 0
+            ? round(((int) round($a["cpc_micros_weighted_num"] / $a["cpc_micros_weighted_den"])) / 1000000, 2)
+            : ($clicks_total > 0 ? round($cost_pln / $clicks_total, 2) : 0.0);
         $conv_total = (float) $a["conversions"];
         $cpa_pln = $conv_total > 0.0001 ? round($cost_pln / $conv_total, 2) : 0.0;
 
@@ -4925,6 +5195,163 @@ function upsellio_google_ads_fetch_campaigns(string $date_range = "LAST_30_DAYS"
     );
 
     return array_slice($campaigns, 0, 80);
+}
+
+/**
+ * Dzienne wiersze kampanii (do przeliczania okna 60/90 dni bez ponownego sync).
+ *
+ * @return list<array<string, mixed>>|\WP_Error
+ */
+function upsellio_google_ads_fetch_campaign_daily_rows($date_range = "LAST_30_DAYS")
+{
+    $date_filter = upsellio_google_ads_gaql_resolve_date_filter($date_range);
+    $query = "SELECT
+      campaign.id,
+      campaign.name,
+      campaign.advertising_channel_type,
+      segments.date,
+      metrics.cost_micros,
+      metrics.clicks,
+      metrics.impressions,
+      metrics.conversions
+    FROM campaign
+    WHERE {$date_filter}";
+
+    $rows = upsellio_google_ads_gaql_search_stream($query);
+    if (is_wp_error($rows)) {
+        return $rows;
+    }
+
+    $out = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $c = (array) ($row["campaign"] ?? []);
+        $segments = (array) ($row["segments"] ?? []);
+        $metrics = (array) ($row["metrics"] ?? []);
+        $id = (string) ($c["id"] ?? "");
+        $date_key = (string) ($segments["date"] ?? "");
+        if ($id === "" || !preg_match("/^\d{4}-\d{2}-\d{2}$/", $date_key)) {
+            continue;
+        }
+        $out[] = [
+            "d" => $date_key,
+            "id" => $id,
+            "name" => (string) ($c["name"] ?? ""),
+            "type" => (string) ($c["advertisingChannelType"] ?? ""),
+            "cost" => round(((int) ($metrics["costMicros"] ?? 0)) / 1000000, 2),
+            "clk" => (int) ($metrics["clicks"] ?? 0),
+            "imp" => (int) ($metrics["impressions"] ?? 0),
+            "conv" => (float) ($metrics["conversions"] ?? 0),
+        ];
+    }
+
+    return $out;
+}
+
+/**
+ * Dzienne wiersze search terms (do przeliczania okna 60/90 dni).
+ *
+ * @return list<array<string, mixed>>|\WP_Error
+ */
+function upsellio_google_ads_fetch_search_term_daily_rows($date_range = "LAST_30_DAYS")
+{
+    $date_filter = upsellio_google_ads_gaql_resolve_date_filter($date_range);
+    $query = "SELECT
+      search_term_view.search_term,
+      campaign.name,
+      ad_group.name,
+      segments.date,
+      metrics.cost_micros,
+      metrics.clicks,
+      metrics.impressions,
+      metrics.conversions
+    FROM search_term_view
+    WHERE {$date_filter}
+    LIMIT 2000";
+
+    $rows = upsellio_google_ads_gaql_search_stream($query);
+    if (is_wp_error($rows)) {
+        return $rows;
+    }
+
+    $out = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $segments = (array) ($row["segments"] ?? []);
+        $date_key = (string) ($segments["date"] ?? "");
+        $term = sanitize_text_field((string) (($row["searchTermView"]["searchTerm"] ?? "")));
+        if ($term === "" || !preg_match("/^\d{4}-\d{2}-\d{2}$/", $date_key)) {
+            continue;
+        }
+        $metrics = (array) ($row["metrics"] ?? []);
+        $out[] = [
+            "d" => $date_key,
+            "term" => $term,
+            "camp" => sanitize_text_field((string) (($row["campaign"]["name"] ?? ""))),
+            "ag" => sanitize_text_field((string) (($row["adGroup"]["name"] ?? ""))),
+            "cost" => round(((int) ($metrics["costMicros"] ?? 0)) / 1000000, 2),
+            "clk" => (int) ($metrics["clicks"] ?? 0),
+            "imp" => (int) ($metrics["impressions"] ?? 0),
+            "conv" => (float) ($metrics["conversions"] ?? 0),
+        ];
+    }
+
+    return $out;
+}
+
+/**
+ * Dzienne metryki konta Ads (serie czasowe kosztu / klików).
+ *
+ * @return array<string, array{cost:float,clicks:int,impressions:int,conversions:float}>|\WP_Error
+ */
+function upsellio_google_ads_fetch_daily_metrics($date_range = "LAST_30_DAYS")
+{
+    $date_filter = upsellio_google_ads_gaql_resolve_date_filter($date_range);
+    $query = "SELECT
+      segments.date,
+      metrics.cost_micros,
+      metrics.clicks,
+      metrics.impressions,
+      metrics.conversions
+    FROM campaign
+    WHERE {$date_filter}";
+
+    $rows = upsellio_google_ads_gaql_search_stream($query);
+    if (is_wp_error($rows)) {
+        return $rows;
+    }
+
+    $by_date = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $date_key = (string) (($row["segments"]["date"] ?? ""));
+        if (!preg_match("/^\d{4}-\d{2}-\d{2}$/", $date_key)) {
+            continue;
+        }
+        $metrics = (array) ($row["metrics"] ?? []);
+        if (!isset($by_date[$date_key])) {
+            $by_date[$date_key] = [
+                "cost" => 0.0,
+                "clicks" => 0,
+                "impressions" => 0,
+                "conversions" => 0.0,
+            ];
+        }
+        $by_date[$date_key]["cost"] += round(((int) ($metrics["costMicros"] ?? 0)) / 1000000, 2);
+        $by_date[$date_key]["clicks"] += (int) ($metrics["clicks"] ?? 0);
+        $by_date[$date_key]["impressions"] += (int) ($metrics["impressions"] ?? 0);
+        $by_date[$date_key]["conversions"] += (float) ($metrics["conversions"] ?? 0);
+    }
+
+    ksort($by_date);
+
+    return $by_date;
 }
 
 /**
@@ -5023,8 +5450,9 @@ function upsellio_google_ads_fetch_auction_insights(string $campaign_id = "")
     return array_slice($competitors, 0, 40);
 }
 
-function upsellio_google_ads_fetch_search_terms(string $date_range = "LAST_30_DAYS")
+function upsellio_google_ads_fetch_search_terms($date_range = "LAST_30_DAYS")
 {
+    $date_filter = upsellio_google_ads_gaql_resolve_date_filter($date_range);
     $query = "SELECT
       search_term_view.search_term,
       campaign.name,
@@ -5034,7 +5462,7 @@ function upsellio_google_ads_fetch_search_terms(string $date_range = "LAST_30_DA
       metrics.impressions,
       metrics.conversions
     FROM search_term_view
-    WHERE segments.date DURING {$date_range}
+    WHERE {$date_filter}
     LIMIT 600";
 
     $rows = upsellio_google_ads_gaql_search_stream($query);
@@ -5085,6 +5513,12 @@ function upsellio_google_ads_sync_campaigns(): void
     update_option("ups_ads_campaigns_data", $campaigns, false);
     update_option("ups_ads_campaigns_synced", current_time("mysql"), false);
     delete_option("ups_ads_campaigns_sync_error");
+
+    $daily = upsellio_google_ads_fetch_daily_metrics("LAST_90_DAYS");
+    if (!is_wp_error($daily) && is_array($daily)) {
+        update_option("ups_ads_daily_timeseries", $daily, false);
+        update_option("ups_ads_daily_timeseries_synced", current_time("mysql"), false);
+    }
 
     $auction = upsellio_google_ads_fetch_auction_insights("");
     if (!is_wp_error($auction)) {
@@ -5892,42 +6326,15 @@ add_action("wp_ajax_upsellio_gsc_keywords_full", static function (): void {
         ]);
     }
 
-    $by_kw_url = [];
-    foreach ($raw as $r) {
-        if (!is_array($r)) {
-            continue;
-        }
-        $kw = strtolower(trim((string) ($r["keyword"] ?? "")));
-        $url = (string) ($r["url"] ?? "");
-        if ($kw === "" || $url === "") {
-            continue;
-        }
-
-        $key = $kw . "|" . $url;
-        if (!isset($by_kw_url[$key])) {
-            $by_kw_url[$key] = [
-                "keyword" => (string) ($r["keyword"] ?? $kw),
-                "url" => $url,
-                "url_path" => (string) (wp_parse_url($url, PHP_URL_PATH) ?: $url),
-                "position" => (float) ($r["position"] ?? 99),
-                "impressions" => (int) ($r["impressions"] ?? 0),
-                "clicks" => (int) ($r["clicks"] ?? 0),
-                "days" => 0,
-            ];
-        } else {
-            $pos = (float) ($r["position"] ?? 99);
-            if ($pos < $by_kw_url[$key]["position"]) {
-                $by_kw_url[$key]["position"] = $pos;
-            }
-            $by_kw_url[$key]["impressions"] += (int) ($r["impressions"] ?? 0);
-            $by_kw_url[$key]["clicks"] += (int) ($r["clicks"] ?? 0);
-        }
-        $by_kw_url[$key]["days"]++;
-    }
+    $aggregated = function_exists("upsellio_gsc_aggregate_keywords")
+        ? upsellio_gsc_aggregate_keywords($raw)
+        : [];
 
     $rows = [];
-    foreach ($by_kw_url as $row) {
-        $row["position"] = round((float) ($row["position"] ?? 99), 1);
+    foreach ($aggregated as $row) {
+        $url = (string) ($row["url"] ?? "");
+        $row["url_path"] = (string) (wp_parse_url($url, PHP_URL_PATH) ?: $url);
+        $row["position"] = round((float) ($row["position"] ?? 0), 1);
         $imp = (int) ($row["impressions"] ?? 0);
         $clk = (int) ($row["clicks"] ?? 0);
         $row["ctr"] = $imp > 0 ? round($clk / $imp * 100, 2) : 0.0;
@@ -5963,5 +6370,39 @@ add_action("wp_ajax_upsellio_gsc_keywords_full", static function (): void {
         "total" => $total_full,
         "last_sync" => (string) get_option("upsellio_keyword_metrics_last_sync", ""),
     ]);
+});
+
+/**
+ * Codzienna synchronizacja Google (CLI). Uzupełnia GSC/GA4 gdy brak natywnego refresh tokena Upsellio.
+ */
+function upsellio_spawn_google_sync_cli(): void
+{
+    $script = get_template_directory() . "/tools/run-google-sync.php";
+    if (!is_readable($script)) {
+        return;
+    }
+    $log = WP_CONTENT_DIR . "/uploads/ups-google-sync.log";
+    $php = defined("PHP_BINARY") && is_string(PHP_BINARY) && PHP_BINARY !== "" ? PHP_BINARY : "php";
+    $cmd = "cd " . escapeshellarg(ABSPATH) . " && " . escapeshellarg($php) . " " . escapeshellarg($script)
+        . " >> " . escapeshellarg($log) . " 2>&1 &";
+    if (function_exists("exec")) {
+        @exec($cmd);
+    }
+}
+
+/** Sync Google w PHP (rankmath-bridge); CLI tylko ręcznie: tools/run-google-sync.php */
+
+add_action(
+    "init",
+    static function () {
+        if (!wp_next_scheduled("upsellio_google_bridge_sync")) {
+            wp_schedule_event(time() + (2 * HOUR_IN_SECONDS), "daily", "upsellio_google_bridge_sync");
+        }
+    },
+    25
+);
+
+add_action("switch_theme", static function () {
+    wp_clear_scheduled_hook("upsellio_google_bridge_sync");
 });
 

@@ -873,7 +873,7 @@ function upsellio_blog_bot_content_has_external_http_link(string $content): bool
     }
     foreach ($m[1] as $url) {
         $url = trim((string) $url);
-        if ($url === "" || preg_match("#^(mailto:|tel:|#)#i", $url)) {
+        if ($url === "" || preg_match('#^(mailto:|tel:|javascript:)#i', $url)) {
             continue;
         }
         if (!preg_match("#^https?://#i", $url)) {

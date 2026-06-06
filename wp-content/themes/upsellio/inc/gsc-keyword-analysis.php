@@ -21,7 +21,7 @@ function upsellio_gsc_strtolower_utf8(string $s): string
  */
 function upsellio_gsc_analyze_full(bool $force = false): array
 {
-    $cache_key = "ups_gsc_analysis_cache";
+    $cache_key = "ups_gsc_analysis_cache_v2";
     $built_key = "ups_gsc_analysis_built";
 
     if (!$force) {
@@ -79,7 +79,35 @@ function upsellio_gsc_analyze_full(bool $force = false): array
 }
 
 /**
- * Agregacja wierszy GSC (ta sama fraza + URL): suma impr/klików, najlepsza pozycja.
+ * Średnia pozycja GSC ważona wyświetleniami (zgodnie z API Search Console).
+ *
+ * @param list<array<string, mixed>> $rows
+ */
+function upsellio_gsc_weighted_position_from_rows(array $rows): float
+{
+    $weighted = 0.0;
+    $impressions = 0;
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $impr = max(0, (int) ($row["impressions"] ?? 0));
+        if ($impr <= 0) {
+            continue;
+        }
+        $weighted += (float) ($row["position"] ?? 0) * $impr;
+        $impressions += $impr;
+    }
+
+    if ($impressions <= 0) {
+        return 0.0;
+    }
+
+    return round($weighted / $impressions, 2);
+}
+
+/**
+ * Agregacja wierszy GSC (ta sama fraza + URL): suma impr/klików, średnia pozycja ważona impr.
  *
  * @param array<int, array<string, mixed>> $raw
  *
@@ -93,11 +121,12 @@ function upsellio_gsc_aggregate_keywords(array $raw): array
         if (!is_array($row)) {
             continue;
         }
-        $kw = trim(upsellio_gsc_strtolower_utf8((string) ($row["keyword"] ?? "")));
+        $kw_display = trim((string) ($row["keyword"] ?? ""));
+        $kw = trim(upsellio_gsc_strtolower_utf8($kw_display));
         $url = (string) ($row["url"] ?? $row["page"] ?? "");
-        $pos = (float) ($row["position"] ?? 99);
-        $impr = (int) ($row["impressions"] ?? 0);
-        $clicks = (int) ($row["clicks"] ?? 0);
+        $pos = (float) ($row["position"] ?? 0);
+        $impr = max(0, (int) ($row["impressions"] ?? 0));
+        $clicks = max(0, (int) ($row["clicks"] ?? 0));
 
         if ($kw === "") {
             continue;
@@ -107,32 +136,67 @@ function upsellio_gsc_aggregate_keywords(array $raw): array
 
         if (!isset($by_keyword[$key])) {
             $by_keyword[$key] = [
-                "keyword" => $kw,
+                "keyword" => $kw_display !== "" ? $kw_display : $kw,
                 "url" => $url,
-                "position" => $pos,
+                "position_weighted" => 0.0,
                 "impressions" => 0,
                 "clicks" => 0,
                 "days" => 0,
             ];
         }
 
-        if ($pos < (float) $by_keyword[$key]["position"]) {
-            $by_keyword[$key]["position"] = $pos;
-        }
-
+        $by_keyword[$key]["position_weighted"] += $pos * $impr;
         $by_keyword[$key]["impressions"] += $impr;
         $by_keyword[$key]["clicks"] += $clicks;
         $by_keyword[$key]["days"]++;
     }
 
     foreach ($by_keyword as &$r) {
-        $r["ctr"] = $r["impressions"] > 0
-            ? round(($r["clicks"] / $r["impressions"]) * 100, 2)
+        $imp = (int) ($r["impressions"] ?? 0);
+        $r["position"] = $imp > 0
+            ? round((float) ($r["position_weighted"] ?? 0) / $imp, 2)
             : 0.0;
+        unset($r["position_weighted"]);
+        $r["ctr"] = $imp > 0
+            ? round(((int) ($r["clicks"] ?? 0) / $imp) * 100, 2)
+            : 0.0;
+        $r["low_sample"] = $imp > 0 && $imp < 10;
     }
     unset($r);
 
     return array_values($by_keyword);
+}
+
+/**
+ * KPI widoczności (TOP 3/10/50) z poprawnie zagregowanych fraz.
+ *
+ * @param array<int, array<string, mixed>> $raw
+ *
+ * @return array{total:int,top3:int,top10:int,top50:int,aggregated:list<array<string,mixed>>}
+ */
+function upsellio_gsc_visibility_stats(array $raw): array
+{
+    $aggregated = upsellio_gsc_aggregate_keywords($raw);
+    $stats = ["total" => 0, "top3" => 0, "top10" => 0, "top50" => 0, "aggregated" => $aggregated];
+
+    foreach ($aggregated as $row) {
+        $p = (float) ($row["position"] ?? 99);
+        if ($p <= 0) {
+            continue;
+        }
+        $stats["total"]++;
+        if ($p <= 3) {
+            $stats["top3"]++;
+        }
+        if ($p <= 10) {
+            $stats["top10"]++;
+        }
+        if ($p <= 50) {
+            $stats["top50"]++;
+        }
+    }
+
+    return $stats;
 }
 
 /**
@@ -163,8 +227,7 @@ function upsellio_gsc_build_clusters(array $aggregated): array
         }
         $total_impr = (int) array_sum(array_column($rows, "impressions"));
         $total_clicks = (int) array_sum(array_column($rows, "clicks"));
-        $positions = array_column($rows, "position");
-        $best_pos = $positions !== [] ? (float) min($positions) : 99.0;
+        $best_pos = upsellio_gsc_weighted_position_from_rows($rows);
         $keywords = array_unique(array_column($rows, "keyword"));
 
         $clusters[] = [
@@ -203,8 +266,7 @@ function upsellio_gsc_build_clusters(array $aggregated): array
         if (count($service_rows) >= 2) {
             $total_impr = (int) array_sum(array_column($service_rows, "impressions"));
             $total_clicks = (int) array_sum(array_column($service_rows, "clicks"));
-            $positions = array_column($service_rows, "position");
-            $best_pos = $positions !== [] ? (float) min($positions) : 99.0;
+            $best_pos = upsellio_gsc_weighted_position_from_rows($service_rows);
 
             $clusters[] = [
                 "name" => str_replace("_", " ", ucfirst((string) $service_key)),
@@ -346,8 +408,7 @@ function upsellio_gsc_detect_cannibalization(array $aggregated): array
             continue;
         }
 
-        $positions = array_column($rows, "position");
-        $best_pos = $positions !== [] ? (float) min($positions) : 99.0;
+        $best_pos = upsellio_gsc_weighted_position_from_rows($rows);
 
         $cannibalization[] = [
             "keyword" => $kw,
