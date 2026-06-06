@@ -21,29 +21,14 @@ $idx_color = $idx_ratio >= 90 ? "var(--success)" : ($idx_ratio >= 70 ? "var(--wa
 
 // Keyword summary
 $kw_raw = (array) get_option("upsellio_keyword_metrics_rows", []);
-$kw_best = [];
-foreach ($kw_raw as $r) {
-    if (!is_array($r)) {
-        continue;
-    }
-    $k = strtolower(trim((string) ($r["keyword"] ?? "")));
-    $u = (string) ($r["url"] ?? "");
-    if ($k === "" || $u === "") {
-        continue;
-    }
-    $key = $k . "|" . $u;
-    $pos = (float) ($r["position"] ?? 99);
-    if (!isset($kw_best[$key]) || $pos < $kw_best[$key]) {
-        $kw_best[$key] = $pos;
-    }
-}
-$kw_total = count($kw_best);
-$kw_top3 = count(array_filter($kw_best, static function ($p) {
-    return $p <= 3;
-}));
-$kw_top10 = count(array_filter($kw_best, static function ($p) {
-    return $p <= 10;
-}));
+$kw_vis_today = function_exists("upsellio_gsc_visibility_stats")
+    ? upsellio_gsc_visibility_stats($kw_raw)
+    : ["total" => 0, "top3" => 0, "top10" => 0];
+$kw_total = (int) ($kw_vis_today["total"] ?? 0);
+$kw_top3 = (int) ($kw_vis_today["top3"] ?? 0);
+$kw_top10 = (int) ($kw_vis_today["top10"] ?? 0);
+$rm_summary_today = function_exists("upsellio_rankmath_get_dashboard_summary") ? upsellio_rankmath_get_dashboard_summary(30) : [];
+$gsc_src_label = (string) get_option("upsellio_keyword_metrics_source", "");
 ?>
 <section class="card">
   <h3 style="margin:0 0 14px">Dziś</h3>
@@ -141,6 +126,35 @@ $kw_top10 = count(array_filter($kw_best, static function ($p) {
     <div style="background:var(--border);border-radius:999px;height:6px;margin-bottom:14px">
       <div style="background:<?php echo esc_attr($idx_color); ?>;border-radius:999px;height:6px;width:<?php echo esc_attr((string) $idx_ratio); ?>%"></div>
     </div>
+  <?php endif; ?>
+
+  <?php if (!empty($rm_summary_today["clicks"])) : ?>
+  <h4 style="margin:0 0 8px;font-size:13px">GSC (jak Rank Math, 30 dni)</h4>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+    <?php
+    foreach ([
+        ["Kliknięcia", "clicks", false],
+        ["Wyświetlenia", "impressions", false],
+        ["Pozycja", "position", true],
+        ["Frazy", "keywords", false],
+    ] as $rmk) :
+        $m = (array) ($rm_summary_today[$rmk[1]] ?? []);
+        $diff = (float) ($m["difference"] ?? 0);
+        $col = $diff >= 0 && !$rmk[2] ? "var(--success)" : ($diff < 0 && !$rmk[2] ? "var(--danger)" : "var(--text-main)");
+        if ($rmk[2]) {
+            $col = $diff <= 0 ? "var(--success)" : "var(--danger)";
+        }
+        ?>
+    <div style="background:var(--bg);border-radius:var(--r-sm);padding:8px;text-align:center">
+      <div style="font-size:10px;color:var(--text-3);text-transform:uppercase"><?php echo esc_html($rmk[0]); ?></div>
+      <div style="font-size:16px;font-weight:800;"><?php echo esc_html(number_format((float) ($m["total"] ?? 0), $rmk[1] === "position" ? 1 : 0, ",", " ")); ?></div>
+      <div style="font-size:10px;color:<?php echo esc_attr($col); ?>"><?php echo ($diff > 0 ? "+" : "") . esc_html((string) $diff); ?>%</div>
+    </div>
+    <?php endforeach; ?>
+  </div>
+  <?php if ($gsc_src_label !== "") : ?>
+    <p style="margin:0 0 14px;font-size:11px;color:var(--text-3)">Źródło danych: <?php echo esc_html($gsc_src_label); ?></p>
+  <?php endif; ?>
   <?php endif; ?>
 
   <!-- Widoczność keywords -->

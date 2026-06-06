@@ -62,14 +62,42 @@ function upsellio_crm_app_template_redirect()
     if (!upsellio_crm_app_is_crm_app_view()) {
         return;
     }
+
+    if (function_exists("wp_raise_memory_limit")) {
+        wp_raise_memory_limit("admin");
+    }
+
     if (!upsellio_crm_app_user_can_access()) {
         auth_redirect();
     }
     upsellio_crm_app_handle_post_actions();
 
     $view = isset($_GET["view"]) ? sanitize_key((string) wp_unslash($_GET["view"])) : "dashboard";
-    if (!in_array($view, ["dashboard", "leads", "account-360", "clients", "client-edit", "contacts", "offers", "deals", "offer_analytics", "template-studio", "services", "pipeline", "contracts", "contract-detail", "followups", "tasks", "calendar", "prospecting", "inbox", "alerts", "analytics", "insights", "research", "suggestions", "engine", "settings", "contact-queue", "search", "ca-clients", "ca-dashboard", "ca-reports", "ca-plan", "ca-library", "ca-accounts"], true)) {
+
+    if ($view === "offer_analytics") {
+        wp_safe_redirect(upsellio_crm_url("analytics", ["atab" => "sales"]));
+        exit;
+    }
+
+    $view_redirects = upsellio_crm_view_redirects();
+    if (isset($view_redirects[$view])) {
+        wp_safe_redirect(upsellio_crm_url($view_redirects[$view]));
+        exit;
+    }
+
+    if (!in_array($view, upsellio_crm_allowed_views(), true)) {
         $view = "dashboard";
+    }
+
+    if ($view === "ca-dashboard") {
+        $ca_redirect_cid = isset($_GET["cid"]) ? (int) wp_unslash($_GET["cid"]) : 0;
+        if ($ca_redirect_cid <= 0 && function_exists("ups_audit_default_profile_client_id")) {
+            $ca_default_cid = ups_audit_default_profile_client_id();
+            if ($ca_default_cid > 0) {
+                wp_safe_redirect(upsellio_crm_url("ca-dashboard", ["cid" => $ca_default_cid]));
+                exit;
+            }
+        }
     }
     $template_studio_tab = isset($_GET["tab"]) ? sanitize_key((string) wp_unslash($_GET["tab"])) : "offer";
     if (!in_array($template_studio_tab, ["offer", "contract"], true)) {
@@ -363,6 +391,12 @@ function upsellio_crm_app_template_redirect()
       <meta name="viewport" content="width=device-width,initial-scale=1" />
       <title>CRM App — Upsellio</title>
       <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&display=swap" rel="stylesheet"/>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/dist/tabler-icons.min.css" />
+      <link rel="stylesheet" href="<?php echo esc_url(get_template_directory_uri() . "/assets/css/crm-shell.css"); ?>?ver=<?php echo esc_attr((string) filemtime(get_template_directory() . "/assets/css/crm-shell.css")); ?>" />
+      <?php $crm_favicon = get_site_icon_url(32); ?>
+      <?php if (is_string($crm_favicon) && $crm_favicon !== "") : ?>
+      <link rel="icon" href="<?php echo esc_url($crm_favicon); ?>" sizes="32x32" />
+      <?php endif; ?>
       <style>
         :root{--bg:#fafaf6;--surface:#fff;--text:#0d0d0b;--text-2:#3a3a35;--text-3:#7a7a72;--border:#e8e8e0;--border-s:#c8c2b5;--teal:#0d9488;--teal-hover:#0a7a70;--teal-h:#0a7a70;--teal-dark:#0a7a70;--teal-soft:#e0f5f2;--teal-line:#99f6e4;--teal-s:var(--teal-soft);--teal-l:var(--teal-line);--danger:#c0392b;--warn:#b45309;--success:#15803d;--sidebar:216px;--r-sm:8px;--r-md:12px;--r-lg:18px;--r-xl:24px;--font-display:'Bricolage Grotesque',sans-serif;--font-body:'DM Sans',sans-serif;--f:'DM Sans',sans-serif;--ac:#0ABFA3;--ac-light:#E6F9F6;--ac-dark:#078A76;--ac-text:#056358;--sb:#16202C;--sb2:#1E2D3D;--sb-act:#1E3A4A;--sb-txt:#8BA3B8;--sb-act-txt:#E0F9F5;--sb-top:#0F1923;--text-main:#0D1F2D;--text-muted:#7A96A8;--bg-main:#F2FAF8;--bg-row:#EAF5F2;--stage-aw:#E6F1FB;--stage-aw-t:#0C447C;--stage-co:#EDE9FE;--stage-co-t:#5B21B6;--stage-de:#FAEEDA;--stage-de-t:#633806;--stage-se:#E6F9F6;--stage-se-t:#056358;--stage-won:#EAF3DE;--stage-won-t:#3B6D11;--stage-lost:#FCEBEB;--stage-lost-t:#A32D2D;--sla-ok:#0ABFA3;--sla-warn:#D97706;--sla-over:#E24B4A;--cst-draft:var(--bg-row);--cst-sent:#E6F1FB;--cst-sign:#EAF3DE;--cst-cancel:#FCEBEB}
         *{box-sizing:border-box;margin:0;padding:0}
@@ -419,7 +453,14 @@ function upsellio_crm_app_template_redirect()
         .muted{color:var(--text-3)}
         .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px;min-width:0}
         /* Nested dashboard grid must span all 12 columns of the outer .grid (otherwise it defaults to 1 column). */
-        .grid > .crm-dash{grid-column:1 / -1;width:100%;min-width:0}
+        .grid > .crm-dash,
+        .grid > .crm-content,
+        .grid > .crm-analytics-shell{grid-column:1 / -1;width:100%;min-width:0}
+        .crm-analytics-shell{display:flex;flex-direction:column;gap:11px}
+        .grid > .crm-page-tabs,
+        .grid > .crm-analytics-toolbar{grid-column:1 / -1;width:100%;min-width:0}
+        .crm-stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+        .crm-stat-grid .crm-stat-card{grid-column:auto!important;width:auto!important}
         .crm-dash{max-width:1440px;margin:0 auto;width:100%}
         .crm-dash-pulse{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:6px}
         .crm-dash-pulse h1{font-family:var(--font-display);font-size:24px;margin:0 0 4px}
@@ -443,7 +484,9 @@ function upsellio_crm_app_template_redirect()
         .crm-score-cold{color:#7a7a72}
         .crm-mini-chart{width:100%;height:220px;display:block}
         .crm-app-shell,.crm-app-shell *{font-family:var(--f)}
-        .crm-app-shell{display:grid;grid-template-columns:216px 1fr}
+        .layout.crm-app-shell{display:flex!important;flex-direction:row!important;height:100vh;overflow:hidden;width:100%}
+        .layout.crm-app-shell>.side,.layout.crm-app-shell>.crm-sidebar{flex:0 0 var(--sidebar);width:var(--sidebar);min-width:var(--sidebar)}
+        .layout.crm-app-shell>.main,.layout.crm-app-shell>.crm-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;overflow:hidden}
         .crm-sidebar{background:var(--sb)!important;color:var(--sb-txt)}
         .crm-sb-top{background:var(--sb-top);padding:15px 16px;display:flex;align-items:center;gap:9px;border-bottom:1px solid rgba(255,255,255,.05)}
         .crm-sb-mark{width:30px;height:30px;border-radius:8px;background:var(--ac);display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -651,7 +694,9 @@ function upsellio_crm_app_template_redirect()
         .pipeline-card.sla-over{border-left:2px solid var(--sla-over);border-radius:0 10px 10px 0}
         .pipeline-card.dragging{opacity:.55}
         .pipeline-col.is-over{outline:2px dashed var(--teal)}
-        .chart-wrap{height:260px}
+        .chart-wrap{height:260px;position:relative}
+        .ups-crm-chart-box{position:relative;height:200px;min-height:160px;width:100%}
+        .ups-crm-chart-box canvas{cursor:crosshair}
         .crm-modal-overlay{position:fixed;inset:0;background:rgba(10,20,16,.48);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:24px;overflow:auto;backdrop-filter:blur(4px)}
         .crm-modal-overlay.open{display:flex}
         .crm-modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;max-width:940px;width:100%;max-height:calc(100vh - 40px);overflow:auto;padding:22px 24px 28px;box-shadow:0 28px 70px rgba(0,0,0,.14)}
@@ -678,7 +723,23 @@ function upsellio_crm_app_template_redirect()
       $_ups_crm_theme_css_v = file_exists($_ups_crm_theme_css) ? (string) filemtime($_ups_crm_theme_css) : "1";
       ?>
       <link rel="stylesheet" href="<?php echo esc_url(get_template_directory_uri() . "/assets/css/upsellio.css"); ?>?ver=<?php echo esc_attr($_ups_crm_theme_css_v); ?>" />
-      <?php if ($view === "dashboard") : ?>
+      <?php
+      $_ups_crm_load_charts = in_array($view, ["dashboard", "analytics", "ca-dashboard"], true);
+      if ($_ups_crm_load_charts) :
+          $_ups_chart_js = get_template_directory_uri() . "/inc/crm-app/assets/js";
+          $_ups_chart_v = (string) filemtime(get_template_directory() . "/inc/crm-app/assets/js/crm-charts.js");
+          ?>
+      <script>
+      window.upsCrmPendingChartInits = window.upsCrmPendingChartInits || [];
+      window.upsCrmScheduleChartInit = function (fn) {
+        if (typeof fn !== "function") return;
+        if (window.upsCrmChart) {
+          window.upsCrmChart.whenReady(fn);
+          return;
+        }
+        window.upsCrmPendingChartInits.push(fn);
+      };
+      </script>
       <script>
       (function(){
         var s=document.createElement("script");
@@ -687,6 +748,17 @@ function upsellio_crm_app_template_redirect()
         document.head.appendChild(s);
       })();
       </script>
+      <script src="<?php echo esc_url($_ups_chart_js . "/crm-charts.js"); ?>?ver=<?php echo esc_attr($_ups_chart_v); ?>" defer></script>
+      <?php
+      if ($view === "ca-dashboard") :
+          $_ups_audit_viz_css = get_template_directory() . "/inc/crm-app/assets/css/audit-dashboard-viz.css";
+          if (file_exists($_ups_audit_viz_css)) :
+              ?>
+      <link rel="stylesheet" href="<?php echo esc_url(get_template_directory_uri() . "/inc/crm-app/assets/css/audit-dashboard-viz.css"); ?>?ver=<?php echo esc_attr((string) filemtime($_ups_audit_viz_css)); ?>" />
+              <?php
+          endif;
+      endif;
+      ?>
       <?php endif; ?>
       <style id="upsellio-crm-width-fix">
         /* Theme upsellio.css defines .content { width: min(var(--content),100%); } (--content: 760px) for marketing pages; CRM reuses .content and must stay full width of .main. */
@@ -696,7 +768,11 @@ function upsellio_crm_app_template_redirect()
         .layout.crm-app-shell .crm-mid-row,
         .layout.crm-app-shell .crm-bot-row,
         .layout.crm-app-shell .crm-kpi-row { width: 100%; }
-        .layout.crm-app-shell .grid > .crm-content { grid-column: 1 / -1; }
+        .layout.crm-app-shell .grid > .crm-content { grid-column: 1 / -1 !important; width: 100% !important; max-width: none !important; min-width: 0; }
+        .layout.crm-app-shell .grid > .crm-context-strip,
+        .layout.crm-app-shell .grid > #ups-audit-dash-root,
+        .layout.crm-app-shell .grid > .crm-audit-page { grid-column: 1 / -1 !important; width: 100% !important; max-width: none !important; min-width: 0; }
+        .layout.crm-app-shell .main > .content { flex: 1 1 auto; min-height: 0; }
         .layout.crm-app-shell #crm-pane-list,
         .layout.crm-app-shell #crm-pane-cal {
           grid-column: 1 / -1;
@@ -874,70 +950,20 @@ function upsellio_crm_app_template_redirect()
       } else {
           $crm_notice_flash = null;
       }
-      $view_titles = [
-          "dashboard" => "Pulpit",
-          "leads" => "Leady",
-          "account-360" => "Karta 360",
-          "clients" => "Klienci",
-          "client-edit" => "Edycja klienta",
-          "contacts" => "Kontakty",
-          "offers" => "Oferty",
-          "deals" => "Deale",
-          "offer_analytics" => "Analityka oferty",
-          "template-studio" => "Generator szablonów",
-          "services" => "Katalog usług",
-          "pipeline" => "Pipeline",
-          "contracts" => "Umowy",
-          "contract-detail" => "Szczegóły umowy",
-          "followups" => "Szablony follow-up",
-          "tasks" => "Zadania",
-          "calendar" => "Kalendarz",
-          "prospecting" => "Produkcja",
-          "inbox" => "Inbox",
-          "alerts" => "Alerty",
-          "analytics" => "Analityka",
-          "research" => "Research Centrum",
-          "suggestions" => "Sugestie AI",
-          "engine" => "Silnik sprzedaży",
-          "settings" => "Ustawienia",
-          "contact-queue" => "Do kontaktu",
-          "search" => "Wyniki wyszukiwania",
-          "ca-clients" => "Klienci-Audyt",
-          "ca-dashboard" => "Dashboard klienta",
-          "ca-reports" => "Raporty AI",
-          "ca-plan" => "Plan AI",
-          "ca-library" => "Biblioteka",
-          "ca-accounts" => "Konta Google",
+      $crm_nav_ctx = [
+          "atab" => isset($_GET["atab"]) ? sanitize_key((string) wp_unslash($_GET["atab"])) : "today",
+          "settings_tab" => $settings_tab,
+          "suggestions_tab" => $suggestions_tab,
+          "cid" => isset($_GET["cid"]) ? (int) wp_unslash($_GET["cid"]) : 0,
       ];
-      $current_view_title = isset($view_titles[$view]) ? (string) $view_titles[$view] : "CRM App";
-      $crm_settings_tab_labels = [
-          "general" => "Główne",
-          "email" => "Poczta",
-          "ai" => "AI",
-          "pipeline" => "Pipeline",
-          "templates" => "Szablony",
-      ];
-      $crm_topbar_title = $current_view_title;
-      if ($view === "settings") {
-          $crm_topbar_title = isset($crm_settings_tab_labels[$settings_tab])
-              ? "Ustawienia · " . $crm_settings_tab_labels[$settings_tab]
-              : "Ustawienia";
-      }
-      if ($view === "suggestions") {
-          $crm_suggestions_tab_labels = [
-              "seo" => "SEO",
-              "blog" => "Blog",
-              "ads" => "Google Ads",
-              "keywords" => __("Słowa kluczowe", "upsellio"),
-          ];
-          $crm_topbar_title = "Sugestie AI · " . ($crm_suggestions_tab_labels[$suggestions_tab] ?? "");
-      }
+      $crm_breadcrumbs = upsellio_crm_breadcrumbs($view, $crm_nav_ctx);
+      $crm_topbar_title = upsellio_crm_page_title($view, $crm_nav_ctx);
       $crm_search_q = isset($_GET["crm_q"]) ? sanitize_text_field(wp_unslash($_GET["crm_q"])) : "";
       $crm_search_q = trim((string) $crm_search_q);
       $crm_sales_view = $view === "offer_analytics" ? "oa" : $view;
       $crm_sales_views = ["leads", "pipeline", "offers", "oa", "clients", "contracts"];
       $crm_analytics_views = ["analytics", "insights", "suggestions", "research"];
-      $crm_audit_views = ["ca-clients", "ca-dashboard", "ca-reports", "ca-plan", "ca-library", "ca-accounts"];
+      $crm_audit_views = ["ca-clients", "ca-dashboard", "ca-command-center", "ca-reports", "ca-plan", "ca-library", "ca-accounts", "ca-meta-accounts"];
       $crm_is_sales_view = in_array($crm_sales_view, $crm_sales_views, true);
       $crm_quick_actions_view = $crm_is_sales_view ? $crm_sales_view : $view;
       $crm_has_quick_actions = $crm_is_sales_view || in_array($view, $crm_analytics_views, true) || in_array($view, $crm_audit_views, true);
@@ -962,66 +988,7 @@ function upsellio_crm_app_template_redirect()
       }
       ?>
       <div class="layout crm-app-shell">
-        <aside class="side crm-sidebar">
-          <div class="side-brand crm-sb-top">
-            <div class="crm-sb-mark"><i class="ti ti-chart-dots" aria-hidden="true"></i></div>
-            <div>
-              <div class="crm-sb-brand">Upsellio</div>
-              <div class="crm-sb-user"><?php echo esc_html(wp_get_current_user()->display_name ?: __("Ty", "upsellio")); ?></div>
-            </div>
-          </div>
-          <nav class="side-nav crm-side-nav crm-sb-body" aria-label="<?php esc_attr_e("Nawigacja CRM", "upsellio"); ?>">
-            <a class="side-link crm-si <?php echo $view === "dashboard" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "dashboard"], home_url("/crm-app/"))); ?>"><i class="ti ti-layout-dashboard" aria-hidden="true"></i> <?php esc_html_e("Pulpit", "upsellio"); ?></a>
-            <a class="side-link crm-si <?php echo $view === "inbox" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "inbox"], home_url("/crm-app/"))); ?>"><i class="ti ti-mail" aria-hidden="true"></i> <?php esc_html_e("Inbox", "upsellio"); ?><?php if ($crm_inbox_unread_total > 0) : ?><span class="side-badge hot crm-sb-badge warn"><?php echo (int) $crm_inbox_unread_total; ?></span><?php endif; ?></a>
-            <a class="side-link crm-si <?php echo $view === "tasks" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "tasks"], home_url("/crm-app/"))); ?>"><i class="ti ti-checkbox" aria-hidden="true"></i> <?php esc_html_e("Zadania", "upsellio"); ?><?php if ($crm_tasks_open_count > 0) : ?><span class="crm-sb-badge"><?php echo (int) min(99, $crm_tasks_open_count); ?></span><?php endif; ?></a>
-            <div class="side-section crm-sb-sep"><?php esc_html_e("Sprzedaż", "upsellio"); ?></div>
-            <a id="crm-si-leads" class="side-link crm-si <?php echo $view === "leads" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "leads"], home_url("/crm-app/"))); ?>"><i class="ti ti-user-plus" aria-hidden="true"></i> <?php esc_html_e("Leady", "upsellio"); ?></a>
-            <a id="crm-si-pipeline" class="side-link crm-si <?php echo $view === "pipeline" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "pipeline"], home_url("/crm-app/"))); ?>"><i class="ti ti-git-merge" aria-hidden="true"></i> <?php esc_html_e("Pipeline", "upsellio"); ?></a>
-            <a id="crm-si-offers" class="side-link crm-si <?php echo in_array($view, ["offers", "deals"], true) ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "offers"], home_url("/crm-app/"))); ?>"><i class="ti ti-file-description" aria-hidden="true"></i> <?php esc_html_e("Oferty", "upsellio"); ?></a>
-            <a id="crm-si-oa" class="side-link crm-si <?php echo $view === "offer_analytics" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "offer_analytics"], home_url("/crm-app/"))); ?>"><i class="ti ti-chart-line" aria-hidden="true"></i> <?php esc_html_e("Analityka oferty", "upsellio"); ?></a>
-            <a id="crm-si-clients" class="side-link crm-si <?php echo $view === "clients" || $view === "client-edit" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "clients"], home_url("/crm-app/"))); ?>"><i class="ti ti-building" aria-hidden="true"></i> <?php esc_html_e("Klienci", "upsellio"); ?></a>
-            <a id="crm-si-contracts" class="side-link crm-si <?php echo $view === "contracts" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "contracts"], home_url("/crm-app/"))); ?>"><i class="ti ti-writing" aria-hidden="true"></i> <?php esc_html_e("Umowy", "upsellio"); ?></a>
-            <div class="side-section crm-sb-sep"><?php esc_html_e("Klienci-Audyt", "upsellio"); ?></div>
-            <a class="side-link crm-si <?php echo $view === "ca-clients" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "ca-clients"], home_url("/crm-app/"))); ?>"><i class="ti ti-users" aria-hidden="true"></i> <?php esc_html_e("Lista klientów", "upsellio"); ?><?php $ca_cnt = function_exists("ups_audit_count_active_clients") ? (int) ups_audit_count_active_clients() : 0; ?><?php if ($ca_cnt > 0) : ?><span class="crm-sb-badge"><?php echo (int) min(99, $ca_cnt); ?></span><?php endif; ?></a>
-            <a class="side-link crm-si <?php echo $view === "ca-dashboard" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "ca-dashboard"], home_url("/crm-app/"))); ?>"><i class="ti ti-chart-arcs" aria-hidden="true"></i> <?php esc_html_e("Dashboard klienta", "upsellio"); ?></a>
-            <a class="side-link crm-si <?php echo $view === "ca-reports" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "ca-reports"], home_url("/crm-app/"))); ?>"><i class="ti ti-file-text" aria-hidden="true"></i> <?php esc_html_e("Raporty", "upsellio"); ?></a>
-            <a class="side-link crm-si <?php echo $view === "ca-plan" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "ca-plan"], home_url("/crm-app/"))); ?>"><i class="ti ti-target-arrow" aria-hidden="true"></i> <?php esc_html_e("Plan AI", "upsellio"); ?></a>
-            <a class="side-link crm-si <?php echo $view === "ca-library" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "ca-library"], home_url("/crm-app/"))); ?>"><i class="ti ti-archive" aria-hidden="true"></i> <?php esc_html_e("Biblioteka", "upsellio"); ?></a>
-            <a class="side-link crm-si <?php echo $view === "ca-accounts" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "ca-accounts"], home_url("/crm-app/"))); ?>"><i class="ti ti-key" aria-hidden="true"></i> <?php esc_html_e("Konta Google", "upsellio"); ?></a>
-            <div class="side-section crm-sb-sep"><?php esc_html_e("Analityka", "upsellio"); ?></div>
-            <?php
-            $current_atab = isset($_GET["atab"]) ? sanitize_key((string) wp_unslash($_GET["atab"])) : "today";
-            $is_analytics_section = $view === "analytics";
-            ?>
-            <a class="side-link crm-si <?php echo $is_analytics_section ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "analytics", "atab" => "today"], home_url("/crm-app/"))); ?>"><i class="ti ti-chart-line" aria-hidden="true"></i> <?php esc_html_e("Analityka", "upsellio"); ?></a>
-            <?php if ($is_analytics_section) : ?>
-              <div class="side-subnav">
-                <?php
-                $atabs = [
-                    "today" => "📅 Dziś",
-                    "traffic" => "🌐 Ruch",
-                    "seo" => "🔎 SEO",
-                    "paid" => "💰 Płatne",
-                    "sales" => "🎯 Sprzedaż",
-                    "roas" => "📈 ROAS",
-                ];
-                foreach ($atabs as $key => $label) :
-                    $url = add_query_arg(["view" => "analytics", "atab" => $key], home_url("/crm-app/"));
-                    $active = $current_atab === $key ? "is-active" : "";
-                    ?>
-                    <a class="side-sublink <?php echo esc_attr($active); ?>" href="<?php echo esc_url($url); ?>"><?php echo esc_html($label); ?></a>
-                <?php endforeach; ?>
-              </div>
-              <?php endif; ?>
-            <a class="side-link crm-si <?php echo $view === "insights" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "insights"], home_url("/crm-app/"))); ?>"><i class="ti ti-sparkles" aria-hidden="true"></i> <?php esc_html_e("Insights AI", "upsellio"); ?></a>
-            <a class="side-link crm-si <?php echo $view === "suggestions" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "suggestions", "suggestions_tab" => "seo"], home_url("/crm-app/"))); ?>"><i class="ti ti-bulb" aria-hidden="true"></i> <?php esc_html_e("Sugestie AI", "upsellio"); ?></a>
-            <div class="side-section crm-sb-sep"><?php esc_html_e("Narzędzia", "upsellio"); ?></div>
-            <a class="side-link crm-si <?php echo $view === "research" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "research", "research_tab" => "keywords"], home_url("/crm-app/"))); ?>"><i class="ti ti-telescope" aria-hidden="true"></i> <?php esc_html_e("Research", "upsellio"); ?></a>
-          </nav>
-          <div class="crm-sb-foot">
-            <a class="side-link crm-si <?php echo $view === "settings" ? "active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "general"], home_url("/crm-app/"))); ?>"><i class="ti ti-settings" aria-hidden="true"></i> <?php esc_html_e("Ustawienia", "upsellio"); ?></a>
-          </div>
-        </aside>
+        <?php require __DIR__ . "/partials/crm-sidebar.php"; ?>
         <main class="main crm-main">
           <?php if ($view === "dashboard") : ?>
           <div class="topbar crm-topbar">
@@ -1052,7 +1019,7 @@ function upsellio_crm_app_template_redirect()
                   "offers" => [
                       ["label" => "Follow-up nieotwartych", "icon" => "ti-sparkles", "js" => "crmAI('Follow-upy nieotwartych ofert CRM Upsellio')"],
                       ["label" => "Raport otwarć", "icon" => "ti-chart-line", "js" => "crmAI('Raport otwarć ofert CRM Upsellio')"],
-                      ["label" => "Analityka oferty", "icon" => "ti-eye", "js" => "crmSwitchView('oa')"],
+                      ["label" => "Lejek ofert", "icon" => "ti-funnel", "js" => "crmSwitchView('oa')"],
                   ],
                   "oa" => [
                       ["label" => "Skrypt rozmowy AI", "icon" => "ti-phone", "js" => "crmAI('Skrypt rozmowy dla aktywnej oferty CRM Upsellio')"],
@@ -1112,8 +1079,12 @@ function upsellio_crm_app_template_redirect()
                       ["label" => "Odśwież szablony", "icon" => "ti-refresh", "js" => "upsAuditRefreshTemplates()"],
                   ],
                   "ca-accounts" => [
-                      ["label" => "Połącz konto", "icon" => "ti-plus", "js" => "upsAuditConnectAccount()"],
+                      ["label" => "Połącz konto", "icon" => "ti-plus", "js" => "(window.upsAuditOpenConnectModal||window.upsAuditConnectAccount)()"],
                       ["label" => "Odśwież zasoby", "icon" => "ti-refresh", "js" => "upsAuditRefreshAllAccounts()"],
+                  ],
+                  "ca-meta-accounts" => [
+                      ["label" => "Połącz Meta", "icon" => "ti-brand-facebook", "js" => "window.location.href='" . esc_js(function_exists("ups_audit_meta_oauth_connect_url") ? ups_audit_meta_oauth_connect_url() : "") . "'"],
+                      ["label" => "Odśwież konta", "icon" => "ti-refresh", "js" => "upsAuditRefreshAllMetaAccounts()"],
                   ],
               ];
               $crm_quick_actions = $crm_quick_action_map[$crm_quick_actions_view] ?? [];
@@ -1121,6 +1092,7 @@ function upsellio_crm_app_template_redirect()
           ?>
           <div class="topbar crm-topbar">
             <div class="topbar-zone topbar-zone--title">
+              <?php require __DIR__ . "/partials/crm-breadcrumbs.php"; ?>
               <div class="topbar-title" id="crm-tb-title"><?php echo esc_html($crm_topbar_title); ?></div>
               <form class="crm-global-search" method="get" action="<?php echo esc_url(home_url("/crm-app/")); ?>">
                 <input type="hidden" name="view" value="search" />
@@ -1364,8 +1336,13 @@ function upsellio_crm_app_template_redirect()
             <?php endif; ?>
             <?php if ($view === "dashboard") : ?>
               <?php
-              $global_activity = upsellio_crm_app_collect_recent_activity_entries(48, false);
-              $recent_activity = array_slice($global_activity, 0, 14);
+              $recent_activity = [];
+              try {
+                  $global_activity = upsellio_crm_app_collect_recent_activity_entries(48, false);
+                  $recent_activity = array_slice($global_activity, 0, 14);
+              } catch (Throwable $crm_dash_activity_err) {
+                  $recent_activity = [];
+              }
               $DK = is_array($crm_dashboard_payload) ? $crm_dashboard_payload : [];
               $kpi = isset($DK["kpi"]) && is_array($DK["kpi"]) ? $DK["kpi"] : [];
               $prio_list = isset($DK["priorities"]) && is_array($DK["priorities"]) ? $DK["priorities"] : [];
@@ -1395,7 +1372,7 @@ function upsellio_crm_app_template_redirect()
               <?php $ups_new_dashboard_layout = true; ?>
               <?php if ($ups_new_dashboard_layout) : ?>
                 <?php $dashboard_hot_offers = function_exists("upsellio_offers_active_today") ? upsellio_offers_active_today(3) : []; ?>
-                <div class="crm-content">
+                <div class="crm-content" style="grid-column:1/-1;width:100%;min-width:0">
                 <div class="crm-card-hd" style="margin-bottom:0">
                   <span><?php esc_html_e("Podsumowanie dnia", "upsellio"); ?></span>
                   <a class="crm-card-lnk" href="<?php echo esc_url(add_query_arg(["view" => "alerts"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Alerty →", "upsellio"); ?></a>
@@ -1404,7 +1381,14 @@ function upsellio_crm_app_template_redirect()
                   <?php if ((int) ($kpi["need_contact_overdue"] ?? 0) > 0 || (int) ($kpi["offers_followup_stale"] ?? 0) > 0) : ?>
                     <div class="crm-alert-bar" role="alert">
                       <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-                      <?php echo esc_html(sprintf(__("%1$d leady czekają na kontakt ponad 48h · %2$d oferty bez aktywności od 3 dni", "upsellio"), (int) ($kpi["need_contact_overdue"] ?? 0), (int) ($kpi["offers_followup_stale"] ?? 0))); ?>
+                      <?php
+                      $alert_overdue_n = (int) ($kpi["need_contact_overdue"] ?? 0);
+                      $alert_stale_n = (int) ($kpi["offers_followup_stale"] ?? 0);
+                      echo esc_html(
+                          $alert_overdue_n . " " . __("leady czekają na kontakt ponad 48h ·", "upsellio") . " "
+                          . $alert_stale_n . " " . __("oferty bez aktywności od 3 dni", "upsellio")
+                      );
+                      ?>
                       <a href="<?php echo esc_url(add_query_arg(["view" => "leads", "lead_tab" => "contact"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Zobacz →", "upsellio"); ?></a>
                     </div>
                   <?php endif; ?>
@@ -5891,7 +5875,7 @@ function upsellio_crm_app_template_redirect()
               $use_new_analytics = true;
               if ($use_new_analytics) :
                   $atab = isset($_GET["atab"]) ? sanitize_key((string) wp_unslash($_GET["atab"])) : "today";
-                  $allowed_atabs = ["today", "traffic", "seo", "paid", "sales", "roas"];
+                  $allowed_atabs = ["today", "marketing", "traffic", "seo", "paid", "sales", "roas"];
                   if (!in_array($atab, $allowed_atabs, true)) {
                       $atab = "today";
                   }
@@ -5900,22 +5884,43 @@ function upsellio_crm_app_template_redirect()
                       $range_days = 30;
                   }
                   ?>
-                  <section class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-                      <h2 style="margin:0">Analityka</h2>
-                      <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                        <input type="hidden" name="view" value="analytics" />
-                        <input type="hidden" name="atab" value="<?php echo esc_attr($atab); ?>" />
-                        <label>Okres:
-                          <select name="range" onchange="this.form.submit()">
-                            <?php foreach ([7, 14, 30, 60, 90, 365] as $rng) : ?>
-                              <option value="<?php echo (int) $rng; ?>" <?php selected($range_days, $rng); ?>><?php echo esc_html((string) $rng); ?> dni</option>
-                            <?php endforeach; ?>
-                          </select>
-                        </label>
-                      </form>
-                    </div>
-                  </section>
+                  <div class="crm-analytics-shell">
+                  <?php require __DIR__ . "/partials/crm-analytics-tabs.php"; ?>
+                  <?php
+                  $crm_oauth_err = "";
+                  if (isset($_GET["upsellio_managed_oauth_error"])) {
+                      $crm_oauth_err = rawurldecode(sanitize_text_field((string) wp_unslash($_GET["upsellio_managed_oauth_error"])));
+                  } elseif (isset($_GET["upsellio_google_oauth_error"])) {
+                      $crm_oauth_err = rawurldecode(sanitize_text_field((string) wp_unslash($_GET["upsellio_google_oauth_error"])));
+                  }
+                  ?>
+                  <?php if ($crm_oauth_err !== "") : ?>
+                    <section class="card" style="border-color:var(--danger,#dc2626);margin-bottom:12px;">
+                      <p style="margin:0;color:var(--danger,#dc2626);font-size:13px;">
+                        <strong>Google OAuth:</strong> <?php echo esc_html($crm_oauth_err); ?>
+                      </p>
+                      <p class="muted" style="margin:8px 0 0;font-size:12px;">Wróć do Analityki SEO w CRM i kliknij ponownie <strong>Zaloguj przez Google</strong> (nie używaj przycisku Wstecz w przeglądarce po stronie Google).</p>
+                    </section>
+                  <?php endif; ?>
+                  <?php if (isset($_GET["upsellio_managed_oauth_return"])) : ?>
+                    <section class="card" style="border-color:var(--ok,#16a34a);margin-bottom:12px;">
+                      <p style="margin:0;color:var(--ok,#16a34a);font-size:13px;"><strong>Google:</strong> Konto połączone pomyślnie.</p>
+                    </section>
+                  <?php endif; ?>
+                  <div class="crm-analytics-toolbar">
+                    <h2><?php esc_html_e("Raporty marketingowe", "upsellio"); ?></h2>
+                    <form method="get" class="crm-analytics-range">
+                      <input type="hidden" name="view" value="analytics" />
+                      <input type="hidden" name="atab" value="<?php echo esc_attr($atab); ?>" />
+                      <label><?php esc_html_e("Okres:", "upsellio"); ?>
+                        <select name="range" onchange="this.form.submit()">
+                          <?php foreach ([7, 14, 30, 60, 90, 365] as $rng) : ?>
+                            <option value="<?php echo (int) $rng; ?>" <?php selected($range_days, $rng); ?>><?php echo esc_html((string) $rng); ?> <?php esc_html_e("dni", "upsellio"); ?></option>
+                          <?php endforeach; ?>
+                        </select>
+                      </label>
+                    </form>
+                  </div>
                   <?php
                   $view_file = __DIR__ . "/views/analytics-" . $atab . ".php";
                   if (file_exists($view_file)) {
@@ -5923,7 +5928,9 @@ function upsellio_crm_app_template_redirect()
                   } else {
                       echo '<section class="card"><p>Widok niedostępny.</p></section>';
                   }
-              else :
+                  ?>
+                  </div>
+              <?php else : ?>
               ?>
               <?php
               $status_counts = ["open" => 0, "won" => 0, "lost" => 0];
@@ -6210,32 +6217,23 @@ function upsellio_crm_app_template_redirect()
               </section>
               <script>
                 (function () {
-                  function drawBars(canvasId, labels, values, color) {
-                    const canvas = document.getElementById(canvasId);
-                    if (!canvas) return;
-                    const ctx = canvas.getContext("2d");
-                    const w = canvas.width = canvas.parentElement.clientWidth;
-                    const h = canvas.height = 240;
-                    const pad = 24;
-                    ctx.clearRect(0, 0, w, h);
-                    const max = Math.max(1, ...values);
-                    const colW = (w - pad * 2) / Math.max(1, values.length);
-                    values.forEach((value, index) => {
-                      const x = pad + index * colW + 6;
-                      const bh = ((h - pad * 2 - 36) * value) / max;
-                      const y = h - pad - bh - 18;
-                      ctx.fillStyle = color;
-                      ctx.fillRect(x, y, Math.max(8, colW - 12), bh);
-                      ctx.fillStyle = "#3d3d38";
-                      ctx.font = "11px sans-serif";
-                      ctx.fillText(String(value), x, y - 4);
-                      ctx.fillText(String(labels[index]).slice(0, 10), x, h - 6);
+                  function initSalesCharts() {
+                    if (!window.upsCrmChart) return;
+                    var specs = [
+                      ["ups-chart-status", <?php echo wp_json_encode(array_keys($status_counts)); ?>, <?php echo wp_json_encode(array_values($status_counts)); ?>, "Status ofert", "#0d9488"],
+                      ["ups-chart-stage", <?php echo wp_json_encode(array_keys($stage_counts)); ?>, <?php echo wp_json_encode(array_values($stage_counts)); ?>, "Etapy lejka", "#2563eb"],
+                      ["ups-chart-revenue", <?php echo wp_json_encode(array_keys($monthly_revenue)); ?>, <?php echo wp_json_encode(array_values($monthly_revenue)); ?>, "Przychód (mies.)", "#15803d"],
+                      ["ups-chart-inbound", <?php echo wp_json_encode(array_keys($inbound_class_counts)); ?>, <?php echo wp_json_encode(array_values($inbound_class_counts)); ?>, "Inbound", "#0a7a70"],
+                    ];
+                    specs.forEach(function (s) {
+                      window.upsCrmChart.bar(s[0], s[1], s[2], s[3], s[4]);
                     });
                   }
-                  drawBars("ups-chart-status", <?php echo wp_json_encode(array_keys($status_counts)); ?>, <?php echo wp_json_encode(array_values($status_counts)); ?>, "#0d9488");
-                  drawBars("ups-chart-stage", <?php echo wp_json_encode(array_keys($stage_counts)); ?>, <?php echo wp_json_encode(array_values($stage_counts)); ?>, "#2563eb");
-                  drawBars("ups-chart-revenue", <?php echo wp_json_encode(array_keys($monthly_revenue)); ?>, <?php echo wp_json_encode(array_values($monthly_revenue)); ?>, "#15803d");
-                  drawBars("ups-chart-inbound", <?php echo wp_json_encode(array_keys($inbound_class_counts)); ?>, <?php echo wp_json_encode(array_values($inbound_class_counts)); ?>, "#0a7a70");
+                  if (typeof window.upsCrmScheduleChartInit === "function") {
+                    window.upsCrmScheduleChartInit(initSalesCharts);
+                  } else if (window.upsCrmChart) {
+                    window.upsCrmChart.whenReady(initSalesCharts);
+                  }
                 })();
               </script>
               <?php endif; ?>
@@ -6419,202 +6417,57 @@ function upsellio_crm_app_template_redirect()
               ?>
             <?php endif; ?>
             <?php if ($view === "ca-accounts") : ?>
-              <?php
-              $ca_accounts = get_posts([
-                  "post_type" => "crm_google_account",
-                  "posts_per_page" => -1,
-                  "post_status" => ["publish", "draft"],
-                  "orderby" => "date",
-                  "order" => "DESC",
-              ]);
-              ?>
-              <section class="card">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-                  <h2 style="margin:0"><?php esc_html_e("Konta Google i zasoby", "upsellio"); ?></h2>
-                  <button type="button" class="btn" onclick="upsAuditConnectAccount()"><i class="ti ti-plus" aria-hidden="true"></i><?php esc_html_e("Połącz konto Google", "upsellio"); ?></button>
-                </div>
-                <p class="muted" style="margin:8px 0 0;"><?php esc_html_e("Flow: konto OAuth -> wybór zasobów -> mapowanie do klienta.", "upsellio"); ?></p>
-              </section>
-              <?php if (empty($ca_accounts)) : ?>
-                <section class="card"><p><?php esc_html_e("Brak podłączonych kont. Kliknij „Połącz konto Google”.", "upsellio"); ?></p></section>
-              <?php endif; ?>
-              <?php foreach ($ca_accounts as $ca_acc) : ?>
-                <?php if (!($ca_acc instanceof WP_Post)) { continue; } ?>
-                <?php $ca_acc_id = (int) $ca_acc->ID; ?>
-                <?php $ca_cache = get_post_meta($ca_acc_id, "_ups_gacc_resources_cache", true); ?>
-                <?php $ca_cache = is_array($ca_cache) ? $ca_cache : []; ?>
-                <?php $ca_email = (string) get_post_meta($ca_acc_id, "_ups_gacc_email", true); ?>
-                <?php $ca_label = (string) get_post_meta($ca_acc_id, "_ups_gacc_label", true); ?>
-                <?php $ca_exp_raw = (string) get_post_meta($ca_acc_id, "_ups_gacc_token_expires_at", true); ?>
-                <?php $ca_exp_ts = $ca_exp_raw !== "" ? strtotime($ca_exp_raw) : 0; ?>
-                <?php $ca_exp_days = $ca_exp_ts > 0 ? (int) floor(($ca_exp_ts - time()) / DAY_IN_SECONDS) : 0; ?>
-                <section class="card" style="padding:16px;">
-                  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-                    <div>
-                      <strong><?php echo esc_html($ca_email !== "" ? $ca_email : get_the_title($ca_acc_id)); ?></strong>
-                      <div class="muted" style="font-size:12px"><?php echo esc_html($ca_label); ?></div>
-                      <?php if ($ca_exp_ts > 0) : ?>
-                        <div class="muted" style="font-size:12px"><?php echo $ca_exp_days <= 14 ? "Token wygasa za " . (int) max(0, $ca_exp_days) . " dni" : "Token ważny"; ?></div>
-                      <?php endif; ?>
-                    </div>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                      <button type="button" class="btn alt" onclick="upsAuditRefreshAccountResources(<?php echo (int) $ca_acc_id; ?>)"><i class="ti ti-refresh" aria-hidden="true"></i><?php esc_html_e("Odśwież zasoby", "upsellio"); ?></button>
-                      <button type="button" class="btn alt" onclick="upsAuditDisconnectAccount(<?php echo (int) $ca_acc_id; ?>)"><i class="ti ti-trash" aria-hidden="true"></i><?php esc_html_e("Odłącz", "upsellio"); ?></button>
-                    </div>
-                  </div>
-                  <div style="margin-top:10px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">
-                    <?php foreach (["ga4" => "GA4", "gsc" => "GSC", "ads" => "Ads"] as $ca_type => $ca_type_label) : ?>
-                      <?php $items = (array) ($ca_cache[$ca_type] ?? []); ?>
-                      <div style="border:1px solid var(--border);border-radius:10px;padding:10px;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
-                          <strong style="font-size:13px;"><?php echo esc_html($ca_type_label); ?></strong>
-                          <span class="muted"><?php echo (int) count($items); ?></span>
-                        </div>
-                        <?php if (empty($items)) : ?>
-                          <p class="muted" style="margin:0;font-size:12px;"><?php esc_html_e("Brak danych — odśwież listę zasobów.", "upsellio"); ?></p>
-                        <?php else : ?>
-                          <div style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto;">
-                            <?php if ($ca_type === "ga4") : ?>
-                              <?php foreach ($items as $acc_node) : ?>
-                                <?php if (!is_array($acc_node)) { continue; } ?>
-                                <div style="padding:4px 2px 2px;font-size:11px;font-weight:700;color:var(--text-2);"><?php echo esc_html((string) ($acc_node["account_name"] ?? "")); ?> <span class="muted">(<?php echo esc_html((string) ($acc_node["account_id"] ?? "")); ?>)</span></div>
-                                <?php foreach ((array) ($acc_node["properties"] ?? []) as $prop) : ?>
-                                  <?php if (!is_array($prop)) { continue; } ?>
-                                  <?php $ext = (string) ($prop["id"] ?? ""); ?>
-                                  <?php $name = (string) ($prop["display_name"] ?? $ext); ?>
-                                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:7px 8px;">
-                                    <div>
-                                      <div style="font-size:12px;font-weight:600;"><?php echo esc_html($name); ?></div>
-                                      <div class="muted" style="font-size:11px;"><?php echo esc_html($ext); ?></div>
-                                    </div>
-                                    <button type="button" class="btn alt" onclick="upsAuditImportResource(<?php echo (int) $ca_acc_id; ?>, 'ga4', <?php echo wp_json_encode($ext); ?>, <?php echo wp_json_encode($name); ?>, <?php echo wp_json_encode((string) ($acc_node["account_id"] ?? "")); ?>)"><?php esc_html_e("Import", "upsellio"); ?></button>
-                                  </div>
-                                <?php endforeach; ?>
-                              <?php endforeach; ?>
-                            <?php else : ?>
-                            <?php foreach ($items as $it) : ?>
-                              <?php if (!is_array($it)) { continue; } ?>
-                              <?php
-                              $ext = $ca_type === "ga4" ? (string) ($it["id"] ?? "") : ($ca_type === "gsc" ? (string) ($it["site_url"] ?? "") : (string) ($it["customer_id"] ?? ""));
-                              $name = $ca_type === "ga4" ? (string) ($it["display_name"] ?? $ext) : ($ca_type === "gsc" ? (string) ($it["site_url"] ?? "") : (string) ($it["name"] ?? $ext));
-                              ?>
-                              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:7px 8px;">
-                                <div>
-                                  <div style="font-size:12px;font-weight:600;"><?php echo esc_html($name); ?></div>
-                                  <div class="muted" style="font-size:11px;"><?php echo esc_html($ext); ?></div>
-                                </div>
-                                <button type="button" class="btn alt" onclick="upsAuditImportResource(<?php echo (int) $ca_acc_id; ?>, <?php echo wp_json_encode($ca_type); ?>, <?php echo wp_json_encode($ext); ?>, <?php echo wp_json_encode($name); ?>, '')"><?php esc_html_e("Import", "upsellio"); ?></button>
-                              </div>
-                            <?php endforeach; ?>
-                            <?php endif; ?>
-                          </div>
-                        <?php endif; ?>
-                      </div>
-                    <?php endforeach; ?>
-                  </div>
-                </section>
-              <?php endforeach; ?>
+              <?php require get_template_directory() . "/inc/crm-app/views/client-audit-accounts.php"; ?>
+            <?php endif; ?>
+            <?php if ($view === "ca-meta-accounts") : ?>
+              <?php require get_template_directory() . "/inc/crm-app/views/client-audit-meta-accounts.php"; ?>
             <?php endif; ?>
             <?php if ($view === "ca-clients") : ?>
-              <?php $ca_clients = get_posts(["post_type" => "crm_client", "posts_per_page" => -1, "post_status" => ["publish", "draft"]]); ?>
-              <section class="card">
-                <h2><?php esc_html_e("Lista klientów-Audyt", "upsellio"); ?></h2>
-                <table>
-                  <thead><tr><th><?php esc_html_e("Klient", "upsellio"); ?></th><th>GA4</th><th>GSC</th><th>Ads</th><th>MRR</th><th>Sync</th><th><?php esc_html_e("Akcje", "upsellio"); ?></th></tr></thead>
-                  <tbody>
-                    <?php foreach ($ca_clients as $cc) : ?>
-                      <?php if (!($cc instanceof WP_Post)) { continue; } ?>
-                      <?php $ga4 = function_exists("ups_audit_get_client_resources") ? count(ups_audit_get_client_resources((int) $cc->ID, "ga4")) : 0; ?>
-                      <?php $gsc = function_exists("ups_audit_get_client_resources") ? count(ups_audit_get_client_resources((int) $cc->ID, "gsc")) : 0; ?>
-                      <?php $ads = function_exists("ups_audit_get_client_resources") ? count(ups_audit_get_client_resources((int) $cc->ID, "ads")) : 0; ?>
-                      <?php $mrr = (float) get_post_meta((int) $cc->ID, "_ups_client_monthly_value", true); ?>
-                      <?php $ls = function_exists("ups_audit_get_client_last_sync") ? (int) ups_audit_get_client_last_sync((int) $cc->ID) : 0; ?>
-                      <tr>
-                        <td><?php echo esc_html((string) $cc->post_title); ?></td>
-                        <td><?php echo (int) $ga4; ?></td>
-                        <td><?php echo (int) $gsc; ?></td>
-                        <td><?php echo (int) $ads; ?></td>
-                        <td><?php echo esc_html(number_format($mrr, 0, ",", " ")); ?> PLN</td>
-                        <td><?php echo esc_html(function_exists("ups_audit_format_sync_time") ? ups_audit_format_sync_time($ls) : "brak"); ?></td>
-                      <td style="display:flex;gap:6px;flex-wrap:wrap;">
-                        <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "ca-dashboard", "cid" => (int) $cc->ID], home_url("/crm-app/"))); ?>">Dashboard</a>
-                        <button
-                          type="button"
-                          class="btn alt"
-                          onclick="upsAuditOpenMapModal(<?php echo (int) $cc->ID; ?>, <?php echo wp_json_encode((string) $cc->post_title); ?>)"
-                        >Mapuj zasoby</button>
-                      </td>
-                      </tr>
-                    <?php endforeach; ?>
-                  </tbody>
-                </table>
-              </section>
-              <?php
-              $ca_unmapped_resources = get_posts([
-                  "post_type" => "crm_audit_resource",
-                  "posts_per_page" => 200,
-                  "post_status" => ["publish", "draft"],
-                  "orderby" => "date",
-                  "order" => "DESC",
-              ]);
-              ?>
-              <div id="ups-audit-map-modal" style="display:none;position:fixed;inset:0;background:rgba(10,16,25,.45);z-index:9999;align-items:center;justify-content:center;padding:24px;">
-                <div class="card" style="width:min(920px,96vw);max-height:85vh;overflow:auto;">
-                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                    <h3 style="margin:0;">Mapowanie zasobów</h3>
-                    <button type="button" class="btn alt" onclick="upsAuditCloseMapModal()">Zamknij</button>
-                  </div>
-                  <p class="muted" id="ups-audit-map-modal-subtitle" style="margin-top:6px;"></p>
-                  <div id="ups-audit-map-tiles" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
-                    <?php foreach ($ca_unmapped_resources as $res) : ?>
-                      <?php if (!($res instanceof WP_Post)) { continue; } ?>
-                      <?php $rid = (int) $res->ID; ?>
-                      <?php $rtype = (string) get_post_meta($rid, "_ups_resource_type", true); ?>
-                      <?php $rext = (string) get_post_meta($rid, "_ups_resource_external_id", true); ?>
-                      <?php $rclient = (int) get_post_meta($rid, "_ups_resource_client_id", true); ?>
-                      <label style="display:flex;gap:8px;align-items:flex-start;border:1px solid var(--border);border-radius:10px;padding:8px;">
-                        <input type="checkbox" class="ups-audit-map-cb" value="<?php echo (int) $rid; ?>" <?php checked($rclient > 0); ?> />
-                        <span>
-                          <b><?php echo esc_html((string) $res->post_title); ?></b>
-                          <span class="muted" style="display:block;font-size:12px;"><?php echo esc_html(strtoupper($rtype)); ?> · <?php echo esc_html($rext); ?></span>
-                        </span>
-                      </label>
-                    <?php endforeach; ?>
-                  </div>
-                  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
-                    <button type="button" class="btn alt" onclick="upsAuditCloseMapModal()">Anuluj</button>
-                    <button type="button" class="btn" onclick="upsAuditSaveMapping()">Zapisz mapowanie</button>
-                  </div>
-                </div>
-              </div>
+              <?php require get_template_directory() . "/inc/crm-app/views/client-audit-clients.php"; ?>
             <?php endif; ?>
+            <?php if ($view === "ca-command-center") : ?>
+              <?php require get_template_directory() . "/inc/crm-app/views/client-audit-command-center.php"; ?>
+            <?php endif; ?>
+            <?php
+            if (in_array($view, ["ca-clients", "ca-dashboard", "ca-accounts", "ca-meta-accounts", "ca-reports", "ca-plan"], true)
+                && function_exists("upsellio_crm_render_audit_map_modal")) {
+                upsellio_crm_render_audit_map_modal();
+            }
+            ?>
+            <?php
+            if (in_array($view, ["ca-dashboard", "ca-reports", "ca-plan", "ca-library"], true)) {
+                $cid = isset($_GET["cid"]) ? (int) wp_unslash($_GET["cid"]) : 0;
+                require __DIR__ . "/partials/crm-audit-context.php";
+            }
+            ?>
             <?php if ($view === "ca-dashboard") : ?>
               <?php
               $ca_client_id = isset($_GET["cid"]) ? (int) wp_unslash($_GET["cid"]) : 0;
               $ca_client = $ca_client_id > 0 ? get_post($ca_client_id) : null;
               if (!($ca_client instanceof WP_Post) || $ca_client->post_type !== "crm_client") {
-                  echo '<section class="card"><p>Wybierz klienta z listy.</p></section>';
+                  echo '<section class="card"><p class="muted">' . esc_html__("Utwórz profil klienta w sekcji Profile klientów, zmapuj zasoby GA4/GSC, potem otwórz dashboard.", "upsellio") . ' <a href="' . esc_url(upsellio_crm_url("ca-clients")) . '">' . esc_html__("Przejdź do profili →", "upsellio") . '</a></p></section>';
               } else {
-                  $compare_window = (int) get_option("ups_audit_default_compare_window", 30);
-                  $current = function_exists("ups_audit_aggregate_client_data") ? ups_audit_aggregate_client_data($ca_client_id, $compare_window, 0) : [];
-                  $previous = function_exists("ups_audit_aggregate_client_data") ? ups_audit_aggregate_client_data($ca_client_id, $compare_window, $compare_window) : [];
-                  ?>
-                  <script>window.UPS_AUDIT_CLIENT_ID = <?php echo (int) $ca_client_id; ?>;</script>
-                  <section class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-                      <h2 style="margin:0;"><?php echo esc_html((string) $ca_client->post_title); ?></h2>
-                      <button type="button" class="btn" onclick="upsAuditGenReport(<?php echo (int) $ca_client_id; ?>,'monthly')"><i class="ti ti-sparkles" aria-hidden="true"></i>Raport AI</button>
-                    </div>
-                    <p class="muted"><?php echo esc_html($compare_window); ?> dni vs poprzedni okres</p>
-                    <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;">
-                      <div class="kpi"><span class="muted">Sesje GA4</span><b><?php echo (int) ($current["ga4_sessions"] ?? 0); ?></b><span class="muted">vs <?php echo (int) ($previous["ga4_sessions"] ?? 0); ?></span></div>
-                      <div class="kpi"><span class="muted">Klik. GSC</span><b><?php echo (int) ($current["gsc_clicks"] ?? 0); ?></b><span class="muted">vs <?php echo (int) ($previous["gsc_clicks"] ?? 0); ?></span></div>
-                      <div class="kpi"><span class="muted">Wydatek Ads</span><b><?php echo esc_html(number_format((float) ($current["ads_cost"] ?? 0), 0, ",", " ")); ?> PLN</b></div>
-                      <div class="kpi"><span class="muted">Konw. Ads</span><b><?php echo esc_html(number_format((float) ($current["ads_conversions"] ?? 0), 1, ",", " ")); ?></b></div>
-                      <div class="kpi"><span class="muted">ROAS</span><b><?php echo esc_html(number_format((float) ($current["roas"] ?? 0), 2, ",", " ")); ?>x</b></div>
-                    </div>
-                  </section>
-                  <?php
+                  $compare_window = isset($_GET["window"]) ? (int) wp_unslash($_GET["window"]) : (int) get_option("ups_audit_default_compare_window", 30);
+                  $compare_window = in_array($compare_window, [7, 14, 30, 60, 90], true) ? $compare_window : 30;
+                  $current = [];
+                  try {
+                      if (function_exists("ups_audit_aggregate_client_data")) {
+                          $current = ups_audit_aggregate_client_data($ca_client_id, $compare_window, 0, false);
+                          if ($current !== [] && function_exists("ups_audit_attach_dashboard_extras")) {
+                              $current = ups_audit_attach_dashboard_extras($current, $ca_client_id, $compare_window);
+                          }
+                      }
+                  } catch (Throwable $ca_dash_err) {
+                      if (defined("WP_DEBUG") && WP_DEBUG) {
+                          error_log("ups_audit dashboard: " . $ca_dash_err->getMessage());
+                      }
+                      echo '<section class="card"><p class="muted">' . esc_html__("Nie udało się załadować danych dashboardu (limit czasu serwera). Odśwież stronę lub użyj „Sync danych”.", "upsellio") . '</p></section>';
+                  }
+                  if (is_array($current) && $current !== []) {
+                      require get_template_directory() . "/inc/crm-app/views/client-audit-dashboard.php";
+                  } else {
+                      echo '<section class="card"><p class="muted">' . esc_html__("Nie udało się załadować danych dashboardu dla wybranego okna. Odśwież stronę lub użyj „Sync danych”.", "upsellio") . '</p></section>';
+                  }
               }
               ?>
             <?php endif; ?>
@@ -8406,9 +8259,10 @@ function upsellio_crm_app_template_redirect()
           insights: { title: "Insights AI", addLbl: "—", addModal: null, qa: [{l:"Brief tygodniowy",i:"ti-sparkles",f:"crmRefreshWeeklyBrief()"},{l:"Odśwież ICP",i:"ti-user-check",f:'crmAI("Odśwież ICP report CRM Upsellio")'},{l:"Strony do akcji",i:"ti-file-text",f:'crmAI("Strony do działań SEO/UX CRM Upsellio")'},{l:"Plan SEO 30d",i:"ti-calendar",f:'crmAI("Plan SEO 30 dni CRM Upsellio")'}] },
           suggestions: { title: "Sugestie AI", addLbl: "—", addModal: null, qa: [{l:"SEO quick wins",i:"ti-sparkles",f:'crmAI("SEO quick wins na bazie GSC CRM Upsellio")'},{l:"Blog Bot teraz",i:"ti-robot",f:'crmAI("Uruchom Blog Bot teraz CRM Upsellio")'},{l:"Ads optymalizacja",i:"ti-cash",f:'crmAI("Optymalizacja Google Ads CRM Upsellio")'}] },
           research: { title: "Research", addLbl: "—", addModal: null, qa: [{l:"Szukaj fraz",i:"ti-search",f:"var b=document.getElementById('kw-research-btn');if(b)b.click();"},{l:"Klastruj AI",i:"ti-sparkles",f:"var b=document.getElementById('kw-cluster-btn');if(b)b.click();"},{l:"Analiza konkurencji",i:"ti-sword",f:'crmAI("Przeanalizuj konkurentów dla agencji marketingowej Polska CRM Upsellio")'},{l:"Plan dla klienta",i:"ti-user",f:'crmAI("Plan keyword dla aktywnego klienta CRM Upsellio")'}] },
-          "ca-clients": { title: "Lista klientów-Audyt", addLbl: "—", addModal: null, qa: [{l:"Wszystkie raporty miesięczne",i:"ti-sparkles",f:"upsAuditBulkGenerateReports('monthly')"},{l:"Sync wszystkie zasoby",i:"ti-refresh",f:"upsAuditSyncAllResources()"}] },
+          "ca-clients": { title: "Profile klientów", addLbl: "—", addModal: null, qa: [{l:"Sync wszystkie zasoby",i:"ti-refresh",f:"upsAuditSyncAllResources()"}] },
           "ca-dashboard": { title: "Dashboard klienta", addLbl: "—", addModal: null, qa: [{l:"Raport miesięczny AI",i:"ti-sparkles",f:"upsAuditGenReport(window.UPS_AUDIT_CLIENT_ID||0,'monthly')"},{l:"Plan działań AI",i:"ti-target-arrow",f:"upsAuditGenReport(window.UPS_AUDIT_CLIENT_ID||0,'plan')"},{l:"Audyt punktowy",i:"ti-list-check",f:"upsAuditGenReport(window.UPS_AUDIT_CLIENT_ID||0,'audit')"}] },
-          "ca-accounts": { title: "Konta Google", addLbl: "—", addModal: null, qa: [{l:"Połącz nowe konto",i:"ti-plus",f:"upsAuditConnectAccount()"},{l:"Odśwież wszystkie tokeny",i:"ti-refresh",f:"upsAuditRefreshAllAccounts()"}] },
+          "ca-accounts": { title: "Konta Google", addLbl: "—", addModal: null, qa: [{l:"Połącz nowe konto",i:"ti-plus",f:"(window.upsAuditOpenConnectModal||window.upsAuditConnectAccount)()"},{l:"Odśwież wszystkie tokeny",i:"ti-refresh",f:"upsAuditRefreshAllAccounts()"}] },
+          "ca-meta-accounts": { title: "Konta Meta Ads", addLbl: "—", addModal: null, qa: [{l:"Odśwież wszystkie konta",i:"ti-refresh",f:"upsAuditRefreshAllMetaAccounts()"}] },
           "ca-reports": { title: "Raporty AI", addLbl: "—", addModal: null, qa: [{l:"Raport miesięczny",i:"ti-sparkles",f:"upsAuditGenReport(window.UPS_AUDIT_CLIENT_ID||0,'monthly')"},{l:"Eksport PDF",i:"ti-file-text",f:"upsAuditExportLatestPdf()"}] },
           "ca-plan": { title: "Plan AI", addLbl: "—", addModal: null, qa: [{l:"Generuj plan",i:"ti-target-arrow",f:"upsAuditGenReport(window.UPS_AUDIT_CLIENT_ID||0,'plan')"}] },
           "ca-library": { title: "Biblioteka", addLbl: "—", addModal: null, qa: [{l:"Odśwież szablony",i:"ti-refresh",f:"upsAuditRefreshTemplates()"}] }
@@ -8477,22 +8331,24 @@ function upsellio_crm_app_template_redirect()
           }).then(function (r) { return r.json(); });
         };
         window.crmSwitchView = function (viewKey) {
-          var map = { oa: "offer_analytics" };
-          var target = map[viewKey] || viewKey;
           var u = new URL(window.location.href);
-          u.searchParams.set("view", target);
+          if (viewKey === "oa") {
+            u.searchParams.set("view", "analytics");
+            u.searchParams.set("atab", "sales");
+          } else {
+            u.searchParams.set("view", viewKey);
+          }
           window.location.assign(u.toString());
         };
-        window.upsAuditConnectAccount = async function (label) {
-          var body = new URLSearchParams({action: "ups_audit_oauth_start", nonce: window.UPS_CRM_NONCE, label: label || ""}).toString();
-          var res = await fetch(window.CRM_AJAX_URL, {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: body});
-          var json = await res.json();
-          if (json && json.success && json.data && json.data.redirect_url) {
-            window.location.href = json.data.redirect_url;
-            return;
-          }
-          alert("Nie udało się rozpocząć OAuth.");
-        };
+        if (typeof window.upsAuditConnectAccount !== "function") {
+          window.upsAuditConnectAccount = function (label) {
+            if (typeof window.upsAuditOpenConnectModal === "function") {
+              window.upsAuditOpenConnectModal(label);
+              return;
+            }
+            alert("Ładowanie skryptu audytu — odśwież stronę (F5) i spróbuj ponownie.");
+          };
+        }
         window.upsAuditDisconnectAccount = async function (accountId) {
           if (!accountId) return;
           if (!window.confirm("Odłączyć konto i usunąć jego zasoby?")) return;
@@ -8507,54 +8363,41 @@ function upsellio_crm_app_template_redirect()
           await fetch(window.CRM_AJAX_URL, {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: body});
           window.location.reload();
         };
-        window.upsAuditImportResource = async function (googleAccountId, type, externalId, displayName, parentAccountId) {
-          var body = new URLSearchParams({
-            action: "ups_audit_resource_import",
-            nonce: window.UPS_CRM_NONCE,
-            google_account_id: String(googleAccountId || 0),
-            type: String(type || ""),
-            external_id: String(externalId || ""),
-            display_name: String(displayName || ""),
-            parent_account_id: String(parentAccountId || "")
-          }).toString();
-          await fetch(window.CRM_AJAX_URL, {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: body});
-          window.location.reload();
-        };
+        if (typeof window.upsAuditImportResource !== "function") {
+          window.upsAuditImportResource = async function (googleAccountId, type, externalId, displayName, parentAccountId, triggerBtn) {
+            var btn = triggerBtn || null;
+            var prev = btn ? btn.textContent : "";
+            if (btn) { btn.disabled = true; btn.textContent = "Importuję…"; }
+            var body = new URLSearchParams({
+              action: "ups_audit_resource_import",
+              nonce: window.UPS_CRM_NONCE,
+              google_account_id: String(googleAccountId || 0),
+              type: String(type || ""),
+              external_id: String(externalId || ""),
+              display_name: String(displayName || ""),
+              parent_account_id: String(parentAccountId || "")
+            }).toString();
+            try {
+              var res = await fetch(window.CRM_AJAX_URL, {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: body});
+              var json = await res.json();
+              if (json && json.success) {
+                window.location.reload();
+                return;
+              }
+              alert((json && json.data && json.data.msg) ? json.data.msg : "Import nie powiódł się.");
+            } catch (e) {
+              alert("Błąd sieci podczas importu.");
+            }
+            if (btn) { btn.disabled = false; btn.textContent = prev || "Import"; }
+          };
+        }
         window.UPS_AUDIT_MAP_CLIENT_ID = 0;
-        window.upsAuditOpenMapModal = function (clientId, clientName) {
-          window.UPS_AUDIT_MAP_CLIENT_ID = Number(clientId || 0);
-          var modal = document.getElementById("ups-audit-map-modal");
-          var subtitle = document.getElementById("ups-audit-map-modal-subtitle");
-          if (subtitle) subtitle.textContent = "Klient: " + String(clientName || "");
-          if (modal) modal.style.display = "flex";
-        };
-        window.upsAuditCloseMapModal = function () {
-          var modal = document.getElementById("ups-audit-map-modal");
-          if (modal) modal.style.display = "none";
-          window.UPS_AUDIT_MAP_CLIENT_ID = 0;
-        };
-        window.upsAuditSaveMapping = async function () {
-          var clientId = Number(window.UPS_AUDIT_MAP_CLIENT_ID || 0);
-          if (!clientId) return;
-          var selected = Array.prototype.slice.call(document.querySelectorAll(".ups-audit-map-cb:checked")).map(function (el) {
-            return {resource_id: Number(el.value || 0)};
-          }).filter(function (r) { return r.resource_id > 0; });
-          if (!selected.length) { alert("Wybierz minimum jeden zasób."); return; }
-          var body = new URLSearchParams({
-            action: "ups_audit_map_to_client",
-            nonce: window.UPS_CRM_NONCE,
-            client_id: String(clientId),
-            resources: JSON.stringify(selected)
-          }).toString();
-          var res = await fetch(window.CRM_AJAX_URL, {method: "POST", credentials: "same-origin", headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: body});
-          var json = await res.json();
-          if (json && json.success) {
-            window.upsAuditCloseMapModal();
-            window.location.reload();
-          } else {
-            alert("Nie udało się zapisać mapowania.");
-          }
-        };
+        window.UPS_AUDIT_MAP_ACCOUNT_ID = 0;
+        if (typeof window.upsAuditOpenMapModal !== "function") {
+          window.upsAuditOpenMapModal = function () {
+            alert("Skrypt audytu się jeszcze ładuje — odśwież stronę (F5).");
+          };
+        }
         window.upsAuditGenReport = async function (clientId, reportType) {
           if (!clientId) return;
           var body = new URLSearchParams({action: "ups_audit_generate_report", nonce: window.UPS_CRM_NONCE, client_id: String(clientId), report_type: String(reportType || "monthly")}).toString();
@@ -8578,9 +8421,28 @@ function upsellio_crm_app_template_redirect()
           var json = await res.json();
           if (json && json.success) alert("Wysłano raport email.");
         };
-        window.upsAuditBulkGenerateReports = function () { alert("Uruchamianie batch raportów AI..."); };
-        window.upsAuditSyncAllResources = function () { alert("Uruchomiono synchronizację zasobów."); };
-        window.upsAuditRefreshAllAccounts = function () { alert("Odśwież wszystkie konta z listy."); };
+        if (!window.upsAuditSyncAllResources) {
+          window.upsAuditSyncAllResources = async function (clientId, googleAccountId) {
+            var msg = "Sync wszystkich zasobów z kont Google?";
+            if (googleAccountId) msg = "Sync zasobów tego konta Google?";
+            else if (clientId) msg = "Sync zasobów klienta CRM?";
+            if (!confirm(msg)) return;
+            var p = { action: "ups_audit_sync_all", nonce: window.UPS_CRM_NONCE };
+            if (googleAccountId) p.google_account_id = String(googleAccountId);
+            else if (clientId) p.client_id = String(clientId);
+            var res = await fetch(window.CRM_AJAX_URL, {method:"POST", credentials:"same-origin", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body: new URLSearchParams(p).toString()});
+            var json = await res.json();
+            if (json && json.success) window.location.reload();
+          };
+        }
+        if (!window.upsAuditRefreshAllAccounts) {
+          window.upsAuditRefreshAllAccounts = async function () {
+            var res = await fetch(window.CRM_AJAX_URL, {method:"POST", credentials:"same-origin", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body: new URLSearchParams({action:"ups_audit_refresh_all_accounts", nonce: window.UPS_CRM_NONCE}).toString()});
+            var json = await res.json();
+            if (json && json.success) window.location.reload();
+          };
+        }
+        window.upsAuditBulkGenerateReports = function () { alert("Masowe raporty — użyj Dashboard → Raport AI per klient."); };
         window.upsAuditExportLatestPdf = function () { alert("Wybierz raport w historii i kliknij eksport PDF."); };
         window.upsAuditRefreshTemplates = function () { alert("Szablony promptów odświeżone."); };
         window.crmSetStatusBtn = function (gridId, value) {
@@ -8643,8 +8505,8 @@ function upsellio_crm_app_template_redirect()
         };
       })();
       </script>
-      <?php if (in_array($view, ["ca-clients", "ca-dashboard", "ca-reports", "ca-plan", "ca-library", "ca-accounts"], true)) : ?>
-      <script src="<?php echo esc_url(get_template_directory_uri() . "/inc/crm-app/assets/js/audit.js"); ?>"></script>
+      <?php if (in_array($view, ["ca-clients", "ca-dashboard", "ca-reports", "ca-plan", "ca-library", "ca-accounts", "ca-meta-accounts"], true)) : ?>
+      <script src="<?php echo esc_url(get_template_directory_uri() . "/inc/crm-app/assets/js/audit.js"); ?>?ver=<?php echo esc_attr((string) filemtime(get_template_directory() . "/inc/crm-app/assets/js/audit.js")); ?>" defer></script>
       <?php endif; ?>
       <?php if ($view === "settings" && isset($settings_tab) && $settings_tab === "email") : ?>
       <script>

@@ -45,7 +45,7 @@ foreach ($kpi_cards as $k) {
 
   <!-- ── SPRZEDAŻ KPI ────────────────────────────────── -->
   <h3 style="margin:0 0 12px;font-size:15px;font-weight:700">Sprzedaż</h3>
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
+  <div class="crm-stat-grid" style="margin-bottom:20px">
     <?php
     $sales_kpis = [
       ["Win rate",      number_format($win_rate,1) . "%", $win_rate >= 30 ? "var(--success)" : ($win_rate > 0 ? "var(--warn)" : "var(--text-3)"), "ti-trophy"],
@@ -54,7 +54,7 @@ foreach ($kpi_cards as $k) {
       ["Time-to-close", number_format($ttc,1) . " dni", "var(--text-main)", "ti-clock"],
     ];
     foreach ($sales_kpis as [$lbl, $val, $col, $ico]): ?>
-    <div class="kpi" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;position:relative">
+    <div class="crm-stat-card" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;position:relative">
       <i class="ti <?php echo esc_attr($ico); ?>" style="position:absolute;top:12px;right:12px;font-size:18px;color:var(--border)"></i>
       <div class="muted" style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:4px"><?php echo esc_html($lbl); ?></div>
       <div style="font-size:22px;font-weight:800;color:<?php echo esc_attr($col); ?>"><?php echo esc_html($val); ?></div>
@@ -124,7 +124,7 @@ foreach ($kpi_cards as $k) {
         </div>
         <?php endif; ?>
       </div>
-      <canvas id="<?php echo esc_attr($d["id"]); ?>" height="60" style="width:100%;display:block"></canvas>
+      <div class="ups-crm-chart-box"><canvas id="<?php echo esc_attr($d["id"]); ?>"></canvas></div>
     </div>
     <?php endforeach; ?>
   </div>
@@ -141,43 +141,41 @@ foreach ($kpi_cards as $k) {
   <?php endif; ?>
 
   <script>
-  (function(){
-    var D=[
-      {id:"ups-tc-v",color:"#0d9488",cur:<?php echo wp_json_encode($views_cur);  ?>,prev:<?php echo wp_json_encode($views_prev);  ?>},
-      {id:"ups-tc-l",color:"#2271b1",cur:<?php echo wp_json_encode($leads_cur);  ?>,prev:<?php echo wp_json_encode($leads_prev);  ?>},
-      {id:"ups-tc-i",color:"#8b5cf6",cur:<?php echo wp_json_encode($impr_cur);   ?>,prev:<?php echo wp_json_encode($impr_prev);   ?>},
-      {id:"ups-tc-c",color:"#f59e0b",cur:<?php echo wp_json_encode($clk_cur);    ?>,prev:<?php echo wp_json_encode($clk_prev);    ?>},
+  (function () {
+    var labels = <?php echo wp_json_encode($labels); ?>;
+    var charts = [
+      { id: "ups-tc-v", label: "Wyświetlenia", color: "#0d9488", cur: <?php echo wp_json_encode($views_cur); ?>, prev: <?php echo wp_json_encode($views_prev); ?> },
+      { id: "ups-tc-l", label: "Leady", color: "#2271b1", cur: <?php echo wp_json_encode($leads_cur); ?>, prev: <?php echo wp_json_encode($leads_prev); ?> },
+      { id: "ups-tc-i", label: "Impressions GSC", color: "#8b5cf6", cur: <?php echo wp_json_encode($impr_cur); ?>, prev: <?php echo wp_json_encode($impr_prev); ?> },
+      { id: "ups-tc-c", label: "Kliknięcia GSC", color: "#f59e0b", cur: <?php echo wp_json_encode($clk_cur); ?>, prev: <?php echo wp_json_encode($clk_prev); ?> },
     ];
-    function h2r(h){var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return r+","+g+","+b;}
-    function draw(cfg){
-      var el=document.getElementById(cfg.id);
-      if(!el) return;
-      var W=el.parentElement.offsetWidth-28||280;
-      el.width=W; el.height=60;
-      var ctx=el.getContext("2d");
-      var cur=cfg.cur||[],prev=cfg.prev||[];
-      var all=cur.concat(prev),maxV=all.length?Math.max.apply(null,all):1;
-      if(!maxV)maxV=1;
-      var n=cur.length; if(!n)return;
-      var pad=4,cW=W-pad*2,cH=60-pad*2,step=cW/n;
-      if(prev.length){
-        ctx.beginPath();
-        prev.forEach(function(v,i){var x=pad+(i+.5)*step,y=pad+cH-(v/maxV)*cH;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
-        ctx.strokeStyle="rgba(150,150,150,.25)";ctx.lineWidth=1.5;ctx.stroke();
-      }
-      ctx.beginPath();
-      cur.forEach(function(v,i){var x=pad+(i+.5)*step,y=pad+cH-(v/maxV)*cH;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
-      var lastX=pad+(n-.5)*step;
-      ctx.lineTo(lastX,pad+cH);ctx.lineTo(pad+.5*step,pad+cH);ctx.closePath();
-      var g=ctx.createLinearGradient(0,pad,0,pad+cH);
-      g.addColorStop(0,"rgba("+h2r(cfg.color)+",.18)");g.addColorStop(1,"rgba("+h2r(cfg.color)+",.01)");
-      ctx.fillStyle=g;ctx.fill();
-      ctx.beginPath();
-      cur.forEach(function(v,i){var x=pad+(i+.5)*step,y=pad+cH-(v/maxV)*cH;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
-      ctx.strokeStyle=cfg.color;ctx.lineWidth=2;ctx.stroke();
+    function init() {
+      if (!window.upsCrmChart) return;
+      charts.forEach(function (c) {
+        window.upsCrmChart.lineCompare(c.id, labels, c.cur, c.prev, c.label, c.color);
+      });
     }
-    if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",function(){D.forEach(draw);});}
-    else{setTimeout(function(){D.forEach(draw);},50);}
+    if (typeof window.upsCrmScheduleChartInit === "function") {
+      window.upsCrmScheduleChartInit(init);
+    } else if (window.upsCrmChart) {
+      window.upsCrmChart.whenReady(init);
+    } else {
+      document.addEventListener("DOMContentLoaded", function () {
+        var n = 0;
+        var t = setInterval(function () {
+          n++;
+          if (typeof window.upsCrmScheduleChartInit === "function") {
+            clearInterval(t);
+            window.upsCrmScheduleChartInit(init);
+          } else if (window.upsCrmChart) {
+            clearInterval(t);
+            window.upsCrmChart.whenReady(init);
+          } else if (n > 100) {
+            clearInterval(t);
+          }
+        }, 40);
+      });
+    }
   })();
   </script>
 

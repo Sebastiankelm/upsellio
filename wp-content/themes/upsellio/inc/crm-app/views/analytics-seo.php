@@ -25,39 +25,33 @@ $idx_problems = count(array_filter($idx_pages, static function ($r) {
 
 // --- Keyword visibility ---
 $kw_raw = (array) get_option("upsellio_keyword_metrics_rows", []);
+$kw_vis = function_exists("upsellio_gsc_visibility_stats")
+    ? upsellio_gsc_visibility_stats($kw_raw)
+    : ["total" => 0, "top3" => 0, "top10" => 0, "top50" => 0, "aggregated" => []];
+$kw_agg = (array) ($kw_vis["aggregated"] ?? []);
 $kw_best = [];
-foreach ($kw_raw as $r) {
+foreach ($kw_agg as $r) {
     if (!is_array($r)) {
         continue;
     }
-    $k = strtolower(trim((string) ($r["keyword"] ?? "")));
-    $url = (string) ($r["url"] ?? "");
-    if ($k === "" || $url === "") {
+    $p = (float) ($r["position"] ?? 0);
+    if ($p <= 0) {
         continue;
     }
-    $key = $k . "|" . $url;
-    $pos = (float) ($r["position"] ?? 99);
-    if (!isset($kw_best[$key]) || $pos < $kw_best[$key]) {
-        $kw_best[$key] = $pos;
-    }
+    $kw_best[] = $p;
 }
-$kw_total = count($kw_best);
-$kw_top3 = count(array_filter($kw_best, static function ($p) {
-    return $p <= 3;
-}));
-$kw_top10 = count(array_filter($kw_best, static function ($p) {
-    return $p <= 10;
-}));
-$kw_top50 = count(array_filter($kw_best, static function ($p) {
-    return $p <= 50;
-}));
+$kw_total = (int) ($kw_vis["total"] ?? 0);
+$kw_top3 = (int) ($kw_vis["top3"] ?? 0);
+$kw_top10 = (int) ($kw_vis["top10"] ?? 0);
+$kw_top50 = (int) ($kw_vis["top50"] ?? 0);
 $kw_last = (string) get_option("upsellio_keyword_metrics_last_sync", "");
 $kw_nonce = wp_create_nonce("upsellio_gsc_keywords_full_nonce");
 $idx_nonce_val = wp_create_nonce("upsellio_gsc_indexation_nonce");
 $can_refresh_idx = current_user_can("manage_options");
 ?>
+<?php require __DIR__ . "/rankmath-seo-widgets.php"; ?>
 <section class="card">
-  <h3 style="margin:0 0 16px">SEO</h3>
+  <h3 style="margin:0 0 16px">SEO — szczegóły</h3>
 
   <!-- ── WIDOCZNOŚĆ KEYWORDS ──────────────────────────────────────────── -->
   <div style="border:1px solid var(--border);border-radius:var(--r-md);padding:16px;margin-bottom:16px">
@@ -67,6 +61,7 @@ $can_refresh_idx = current_user_can("manage_options");
         <div class="muted" style="font-size:12px">
           <?php echo $kw_last ? esc_html($kw_last) : "Brak danych — włącz sync i poczekaj na cron."; ?>
           <?php if ($kw_total > 0) : ?> · <?php echo esc_html(number_format($kw_total)); ?> fraz<?php endif; ?>
+          · Pozycja = średnia GSC (nie ręczny SERP). * = &lt;10 wyświetleń
         </div>
       </div>
       <?php if ($kw_total > 0) : ?>
@@ -106,10 +101,12 @@ $can_refresh_idx = current_user_can("manage_options");
       $segs = [
           [$kw_top3, "#15803d", "TOP 1-3"],
           [$kw_top10 - $kw_top3, "#0369a1", "4-10"],
-          [count(array_filter($kw_best, static function ($p) {
+          [count(array_filter($kw_agg, static function ($r) {
+              $p = (float) ($r["position"] ?? 99);
               return $p > 10 && $p <= 20;
           })), "#d97706", "11-20"],
-          [count(array_filter($kw_best, static function ($p) {
+          [count(array_filter($kw_agg, static function ($r) {
+              $p = (float) ($r["position"] ?? 99);
               return $p > 20 && $p <= 50;
           })), "#9333ea", "21-50"],
           [$kw_total - $kw_top50, "#9ca3af", "51+"],
@@ -173,7 +170,10 @@ $can_refresh_idx = current_user_can("manage_options");
           <tr style="background:var(--bg);border-bottom:2px solid var(--border)">
             <th style="text-align:left;padding:7px 10px">Fraza</th>
             <th style="text-align:left;padding:7px 8px">URL</th>
-            <th style="text-align:center;padding:7px 8px">Pozycja</th>
+            <th style="text-align:center;padding:7px 8px">
+              Pozycja
+              <span class="ups-tip" tabindex="0" data-tip="Średnia pozycja z GSC (ważona wyświetleniami), nie to samo co ręczne wyszukiwanie w Google — wynik zależy od kraju, urządzenia i personalizacji. Przy małej liczbie wyświetleń pozycja bywa niestabilna.">?</span>
+            </th>
             <th style="text-align:right;padding:7px 8px">Wyświetl.</th>
             <th style="text-align:right;padding:7px 8px">Klikn.</th>
             <th style="text-align:right;padding:7px 8px">CTR%</th>
@@ -357,7 +357,8 @@ $can_refresh_idx = current_user_can("manage_options");
        +"<td style='padding:5px 8px;font-size:11px;color:var(--text-3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>"
        +"<a href='"+esc(r.url)+"' target='_blank' rel='noopener noreferrer' style='color:var(--teal)'>"+esc(r.url_path||r.url)+"</a></td>"
        +"<td style='padding:5px 8px;text-align:center'><span style='padding:2px 8px;border-radius:999px;font-weight:700;font-size:11px;"
-       +"background:"+posC(r.position)+"20;color:"+posC(r.position)+"'>"+Number(r.position).toFixed(1)+"</span></td>"
+       +"background:"+posC(r.position)+"20;color:"+posC(r.position)+"' title='"+(r.low_sample?"Mała próba (<10 wyśw.) — pozycja może odbiegać od ręcznego sprawdzenia":"Średnia GSC (ważona wyświetleniami)")+"'>"
+       +Number(r.position).toFixed(1)+(r.low_sample?"*":"")+"</span></td>"
        +"<td style='text-align:right;padding:5px 8px'>"+r.impressions.toLocaleString("pl-PL")+"</td>"
        +"<td style='text-align:right;padding:5px 8px;font-weight:600'>"+r.clicks.toLocaleString("pl-PL")+"</td>"
        +"<td style='text-align:right;padding:5px 8px'>"+Number(r.ctr).toFixed(2)+"%</td>"

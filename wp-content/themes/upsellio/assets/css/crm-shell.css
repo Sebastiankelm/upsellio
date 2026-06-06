@@ -1,0 +1,313 @@
+/* Upsellio CRM shell — nawigacja, breadcrumb, zakładki widoków */
+
+:root {
+  --crm-sidebar-w: 232px;
+}
+
+.layout.crm-app-shell > .side,
+.layout.crm-app-shell > .crm-sidebar {
+  width: var(--crm-sidebar-w);
+  min-width: var(--crm-sidebar-w);
+  flex: 0 0 var(--crm-sidebar-w);
+}
+
+.crm-sidebar .side-nav {
+  padding: 8px 6px 16px;
+}
+
+.crm-sb-sep {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.32);
+  padding: 14px 12px 6px;
+  margin-top: 4px;
+}
+
+.crm-sb-sep:first-child {
+  margin-top: 0;
+  padding-top: 4px;
+}
+
+.side-link.crm-si {
+  padding: 9px 11px;
+  border-radius: 10px;
+  font-size: 13px;
+  gap: 10px;
+}
+
+.side-link.crm-si .crm-si-label {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.side-link.crm-si .crm-si-hint {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.38);
+  margin-top: 1px;
+}
+
+.side-link.crm-si.active .crm-si-hint {
+  color: rgba(94, 234, 212, 0.75);
+}
+
+.crm-crumb-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 4px;
+  font-size: 12px;
+  color: var(--text-3);
+  margin-bottom: 2px;
+}
+
+.crm-crumb-bar a {
+  color: var(--teal);
+  font-weight: 600;
+}
+
+.crm-crumb-bar a:hover {
+  text-decoration: underline;
+}
+
+.crm-crumb-sep {
+  opacity: 0.45;
+  user-select: none;
+}
+
+.crm-crumb-bar .crm-crumb-current {
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.crm-page-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 0 14px;
+  margin: 0 0 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.crm-page-tabs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  transition: border-color 0.14s, background 0.14s, color 0.14s;
+}
+
+.crm-page-tabs a:hover {
+  border-color: var(--teal-line);
+  color: var(--text);
+}
+
+.crm-page-tabs a.is-active {
+  background: rgba(13, 148, 136, 0.12);
+  border-color: rgba(13, 148, 136, 0.35);
+  color: var(--teal-hover);
+}
+
+.crm-page-tabs a i {
+  font-size: 15px;
+  opacity: 0.85;
+}
+
+.crm-analytics-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.crm-analytics-toolbar h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+
+.crm-analytics-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.crm-analytics-range select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: var(--surface);
+}
+
+/* Analityka wewnątrz .grid — pełna szerokość (bez tego zakładki lądują w 1 kolumnie siatki 12-col). */
+.grid > .crm-analytics-shell,
+.grid > .crm-page-tabs,
+.grid > .crm-analytics-toolbar {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+
+.crm-analytics-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.crm-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.crm-stat-grid .crm-stat-card {
+  grid-column: auto !important;
+  width: auto !important;
+}
+
+.crm-audit-portfolio-table td {
+  vertical-align: top;
+}
+
+.crm-audit-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 200px;
+}
+
+.crm-context-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  background: var(--teal-soft);
+  border: 1px solid var(--teal-line);
+  border-radius: var(--r-md);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.crm-context-strip a {
+  color: var(--teal-hover);
+  font-weight: 700;
+}
+
+/* Audyt: elementy bezpośrednio w .grid muszą zajmować całą szerokość (domyślnie = 1 kolumna z 12). */
+.layout.crm-app-shell .grid > .crm-context-strip,
+.layout.crm-app-shell .grid > #ups-audit-dash-root,
+.layout.crm-app-shell .grid > .crm-audit-page {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+#ups-audit-dash-root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 1440px;
+}
+
+.ups-audit-map-modal,
+#ups-audit-map-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(10, 16, 25, 0.45);
+}
+
+#ups-audit-map-modal.is-open {
+  display: flex;
+}
+
+.ups-audit-connect-modal,
+#ups-audit-connect-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(10, 16, 25, 0.5);
+}
+
+#ups-audit-connect-modal.is-open {
+  display: flex;
+}
+
+.crm-audit-profile-switch {
+  margin-left: auto;
+}
+
+@media (max-width: 768px) {
+  .crm-audit-profile-switch {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .crm-audit-profile-switch select {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.topbar.crm-topbar .crm-crumb-bar {
+  flex: 1 1 100%;
+  order: -1;
+}
+
+.topbar-zone--title {
+  flex-direction: column;
+  align-items: flex-start !important;
+  gap: 4px !important;
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --crm-sidebar-w: 100%;
+  }
+
+  .layout.crm-app-shell {
+    flex-direction: column;
+  }
+
+  .crm-page-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .crm-page-tabs a {
+    flex-shrink: 0;
+  }
+}
+
+.btn.ups-audit-import-btn.is-loading,
+.btn.is-loading {
+  opacity: 0.72;
+  pointer-events: none;
+  cursor: wait;
+}
