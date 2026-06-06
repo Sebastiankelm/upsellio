@@ -7,16 +7,16 @@ if (!defined("ABSPATH")) {
 /**
  * Scentralizowany OAuth Google (model jak Rank Math) — użytkownik strony NIE konfiguruje Google Cloud.
  *
- * Wymaga osobnej usługi HTTPS (most Upsellio) z:
- * - jednym projektem Google Cloud + typem Web application,
- * - stałymi Authorized redirect URI wskazującymi na domenę mostu (np. https://oauth.upsellio.pl/.../callback),
- * - po sukcesie: bezpieczne przekazanie refresh tokena do WordPressa (poniżej: POST + HMAC).
+ * Tryb Rank Math (Upsellio Connect):
+ * - **Wbudowany most** (domyślnie): gdy są Client ID/Secret (Analityka SEO lub wp-config) — REST
+ *   `/wp-json/upsellio/v1/google-oauth/start` + `/google-oauth/callback`. W Google Cloud dodaj callback mostu.
+ * - **Zewnętrzny most** (opcjonalnie): `UPSELLIO_MANAGED_GOOGLE_OAUTH_BASE` + `WEBHOOK_SECRET` na osobnej domenie.
  *
- * Włączenie: w wp-config.php (lub filtr):
- *   define( 'UPSELLIO_MANAGED_GOOGLE_OAUTH_BASE', 'https://oauth.upsellio.pl' );
- *   define( 'UPSELLIO_MANAGED_GOOGLE_OAUTH_WEBHOOK_SECRET', 'wspólny-sekret-z-mostu' );
- *
- * Most musi implementować start URL (przekierowanie do Google) i po OAuth POST na handoff poniżej.
+ * Opcjonalnie w wp-config.php:
+ *   define( 'UPSELLIO_MANAGED_GOOGLE_OAUTH_CLIENT_ID', '…' );
+ *   define( 'UPSELLIO_MANAGED_GOOGLE_OAUTH_CLIENT_SECRET', '…' );
+ *   define( 'UPSELLIO_MANAGED_GOOGLE_OAUTH_WEBHOOK_SECRET', '…' ); // puste = auto w opcji WP
+ *   define( 'UPSELLIO_MANAGED_GOOGLE_OAUTH_BASE', 'https://oauth.upsellio.pl' ); // tylko zewnętrzny most
  */
 function upsellio_google_managed_oauth_bridge_base(): string
 {
@@ -28,11 +28,31 @@ function upsellio_google_managed_oauth_bridge_base(): string
 
     $b = (string) apply_filters("upsellio_google_managed_oauth_bridge_base", $b);
     $b = rtrim($b, "/");
+
+    if ($b === "" && function_exists("upsellio_google_managed_oauth_bridge_credentials_ready")) {
+        upsellio_google_managed_oauth_ensure_webhook_secret();
+        if (
+            upsellio_google_managed_oauth_bridge_credentials_ready()
+            && upsellio_google_managed_oauth_webhook_secret() !== ""
+        ) {
+            $b = rtrim((string) rest_url("upsellio/v1"), "/");
+        }
+    }
+
     if ($b !== "" && stripos($b, "https://") !== 0) {
         return "";
     }
 
     return $b;
+}
+
+function upsellio_google_managed_oauth_start_path(): string
+{
+    if (function_exists("upsellio_google_managed_oauth_is_self_hosted") && upsellio_google_managed_oauth_is_self_hosted()) {
+        return "/google-oauth/start";
+    }
+
+    return (string) apply_filters("upsellio_google_managed_oauth_start_path", "/v1/google-oauth/start");
 }
 
 function upsellio_google_managed_oauth_is_active(): bool
@@ -41,7 +61,17 @@ function upsellio_google_managed_oauth_is_active(): bool
         return false;
     }
 
-    return upsellio_google_managed_oauth_bridge_base() !== "";
+    if (upsellio_google_managed_oauth_bridge_base() === "") {
+        return false;
+    }
+
+    if (!function_exists("upsellio_google_managed_oauth_bridge_credentials_ready") || !upsellio_google_managed_oauth_bridge_credentials_ready()) {
+        return false;
+    }
+
+    upsellio_google_managed_oauth_ensure_webhook_secret();
+
+    return upsellio_google_managed_oauth_webhook_secret() !== "";
 }
 
 function upsellio_google_managed_oauth_webhook_secret(): string
@@ -61,7 +91,7 @@ function upsellio_google_managed_oauth_webhook_secret(): string
 function upsellio_google_managed_oauth_build_start_url(string $state, string $return_success_url, int $wp_user_id): string
 {
     $base = upsellio_google_managed_oauth_bridge_base();
-    $path = (string) apply_filters("upsellio_google_managed_oauth_start_path", "/v1/google-oauth/start");
+    $path = upsellio_google_managed_oauth_start_path();
 
     return add_query_arg(
         [
@@ -70,6 +100,7 @@ function upsellio_google_managed_oauth_build_start_url(string $state, string $re
             "state" => $state,
             "wp_user_id" => (string) $wp_user_id,
             "scope_mode" => (string) get_option("upsellio_google_ads_include_scope", "0") === "1" ? "with_ads" : "default",
+            "_ups_cb" => (string) time(),
         ],
         $base . $path
     );
@@ -224,35 +255,19 @@ function upsellio_handle_google_managed_oauth_handoff_rest(WP_REST_Request $requ
     delete_transient(upsellio_google_oauth_transient_key($wp_user_id));
 
     if ($conn_type === "audit") {
-        $email = function_exists("ups_audit_fetch_email_from_token")
-            ? ups_audit_fetch_email_from_token($refresh, $client_id, $client_secret)
-            : "";
-        $title = $email !== "" ? $email : "Konto " . substr(md5($refresh), 0, 8);
-        $account_id = wp_insert_post([
-            "post_type" => "crm_google_account",
-            "post_title" => $title,
-            "post_status" => "publish",
-        ]);
+        $account_id = function_exists("ups_audit_upsert_google_account_from_tokens")
+            ? ups_audit_upsert_google_account_from_tokens($refresh, $client_id, $client_secret, $conn_label, $wp_user_id)
+            : 0;
         if ($account_id <= 0) {
             return new WP_Error("upsellio_managed_oauth_audit_create_failed", "Nie udało się utworzyć konta audytowego.", ["status" => 500]);
         }
-        update_post_meta($account_id, "_ups_gacc_email", $email);
-        update_post_meta($account_id, "_ups_gacc_label", $conn_label);
-        update_post_meta($account_id, "_ups_gacc_oauth_client_id", $client_id);
-        update_post_meta($account_id, "_ups_gacc_oauth_client_secret", function_exists("ups_audit_encrypt") ? ups_audit_encrypt($client_secret) : $client_secret);
-        update_post_meta($account_id, "_ups_gacc_oauth_refresh_token", function_exists("ups_audit_encrypt") ? ups_audit_encrypt($refresh) : $refresh);
-        $expires_at_ts = $refresh_expires_in > 0 ? (time() + $refresh_expires_in) : (time() + (180 * DAY_IN_SECONDS));
-        update_post_meta($account_id, "_ups_gacc_token_expires_at", gmdate("Y-m-d H:i:s", $expires_at_ts));
-        update_post_meta($account_id, "_ups_gacc_last_sync_at", current_time("mysql"));
-        $access_probe_audit = upsellio_gsc_get_access_token([
-            "client_id" => $client_id,
-            "client_secret" => $client_secret,
-            "refresh_token" => $refresh,
-        ]);
-        if (is_string($access_probe_audit) && $access_probe_audit !== "") {
-            $scopes = function_exists("ups_audit_fetch_scopes") ? ups_audit_fetch_scopes($access_probe_audit) : [];
-            update_post_meta($account_id, "_ups_gacc_scopes", is_array($scopes) ? $scopes : []);
+        if ($refresh_expires_in > 0) {
+            update_post_meta($account_id, "_ups_gacc_token_expires_at", gmdate("Y-m-d H:i:s", time() + $refresh_expires_in));
         }
+        if (function_exists("ups_audit_oauth_prime_account_resources")) {
+            ups_audit_oauth_prime_account_resources((int) $account_id);
+        }
+        set_transient("ups_audit_last_connected_" . $wp_user_id, (int) $account_id, 10 * MINUTE_IN_SECONDS);
         upsellio_gsc_log("google.oauth.managed_handoff.audit.success", [
             "user_id" => $wp_user_id,
             "account_id" => (int) $account_id,
