@@ -98,6 +98,20 @@ The dashboard **does not hide bad data**. When tracking is broken, scores reflec
 | **Clarity UX** | UX score with **Confidence: Low** when API data is suspicious |
 | **Health trend** | Monthly snapshots (6 months) on sync |
 
+**Confidence bands** (both Attribution and Revenue):
+
+| Range | Label |
+|-------|-------|
+| 0–20% | krytyczne |
+| 20–40% | bardzo niskie |
+| 40–60% | średnie |
+| 60–80% | dobre |
+| 80–100% | wysokie |
+
+Catastrophic raw scores are floored to **5–12%** when data exists (avoids misleading absolute 0% while keeping warnings active).
+
+The **Data Quality** panel also shows per-source ratings (GSC, Ads, Search Terms, GA4, Clarity, CRM) on a **0–10** scale with an overall average.
+
 When `revenue_trusted = NO`, ROAS and revenue KPIs are dimmed and AI reports are blocked from using inflated GA4 revenue.
 
 ### Revenue model

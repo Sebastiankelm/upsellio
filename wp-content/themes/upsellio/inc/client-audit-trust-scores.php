@@ -5,6 +5,78 @@ if (!defined("ABSPATH")) {
 }
 
 /**
+ * 5-poziomowa skala confidence (0–100%).
+ *
+ * @return array{band:string, label:string}
+ */
+function ups_audit_confidence_band(int $score): array
+{
+    $score = max(0, min(100, $score));
+
+    if ($score >= 80) {
+        return ["band" => "high", "label" => __("wysokie", "upsellio")];
+    }
+    if ($score >= 60) {
+        return ["band" => "good", "label" => __("dobre", "upsellio")];
+    }
+    if ($score >= 40) {
+        return ["band" => "medium", "label" => __("średnie", "upsellio")];
+    }
+    if ($score >= 20) {
+        return ["band" => "very_low", "label" => __("bardzo niskie", "upsellio")];
+    }
+
+    return ["band" => "critical", "label" => __("krytyczne", "upsellio")];
+}
+
+/**
+ * Miękkie minimum 5–12% gdy są dane, ale surowy wynik spadł do 0.
+ * Unika mylącego „0%” przy katastrofalnym, lecz zmierzonym pomiarze.
+ */
+function ups_audit_confidence_finalize(int $raw_score, bool $has_signal, int $factor_count = 0): int
+{
+    $raw = max(0, min(100, $raw_score));
+    if (!$has_signal || $raw >= 20) {
+        return $raw;
+    }
+    if ($raw >= 5) {
+        return $raw;
+    }
+
+    $floor = max(5, min(12, 12 - (int) floor($factor_count / 2)));
+
+    return $raw > 0 ? max($floor, $raw) : $floor;
+}
+
+/**
+ * @param array<string, mixed> $band
+ */
+function ups_audit_confidence_result(int $score, int $raw_score, array $band, array $factors, string $context_label): array
+{
+    $label = (string) ($band["label"] ?? "");
+    if ($raw_score < 5 && $score !== $raw_score && $score >= 5) {
+        $factors[] = sprintf(
+            __("wyświetlany wynik %d%% (surowy %d%%) — %s", "upsellio"),
+            $score,
+            $raw_score,
+            $label
+        );
+    }
+
+    return [
+        "score" => $score,
+        "raw_score" => $raw_score,
+        "band" => (string) ($band["band"] ?? "critical"),
+        "label" => $context_label !== ""
+            ? sprintf("%s — %s", $label, $context_label)
+            : $label,
+        "band_label" => $label,
+        "factors" => $factors,
+        "summary" => sprintf("%d%% — %s", $score, $label),
+    ];
+}
+
+/**
  * Wiarygodność przychodu GA4 — blokuje wnioski AI przy zawyżonych metrykach.
  *
  * @param array<string, mixed> $agg
@@ -126,19 +198,18 @@ function ups_audit_attribution_confidence(array $agg, int $client_id = 0): array
         $factors[] = sprintf("Tracking %d/100 (−10)", $tracking);
     }
 
-    $score = max(0, min(100, $score));
-    $band = $score >= 80 ? "high" : ($score >= 55 ? "medium" : "low");
-    $band_label = $score >= 80
-        ? __("wysoka wiarygodność", "upsellio")
-        : ($score >= 55 ? __("umiarkowana wiarygodność", "upsellio") : __("niska wiarygodność", "upsellio"));
+    $raw_score = max(0, min(100, $score));
+    $has_signal = (int) ($agg["ga4_sessions"] ?? 0) > 0 || (float) ($agg["ga4_not_set_pct"] ?? 0) > 0;
+    $final_score = ups_audit_confidence_finalize($raw_score, $has_signal, count($factors));
+    $band = ups_audit_confidence_band($final_score);
 
-    return [
-        "score" => $score,
-        "band" => $band,
-        "label" => $band_label,
-        "factors" => $factors,
-        "summary" => sprintf("%d%% — %s", $score, $band_label),
-    ];
+    return ups_audit_confidence_result(
+        $final_score,
+        $raw_score,
+        $band,
+        $factors,
+        __("wiarygodność atrybucji", "upsellio")
+    );
 }
 
 /**
@@ -353,20 +424,23 @@ function ups_audit_revenue_confidence(array $agg, int $client_id = 0): array
         }
     }
 
-    $score = max(0, min(100, $score));
-    $band = $score >= 70 ? "high" : ($score >= 45 ? "medium" : "low");
-    $band_label = $score >= 70
-        ? __("wysoka wiarygodność przychodu", "upsellio")
-        : ($score >= 45 ? __("umiarkowana wiarygodność przychodu", "upsellio") : __("niska wiarygodność przychodu", "upsellio"));
+    $raw_score = max(0, min(100, $score));
+    $has_signal = (int) ($agg["ga4_sessions"] ?? 0) > 0
+        || $kpi_rev > 0
+        || $non_purchase_rev > 0
+        || $purchase_event_rev > 0;
+    $final_score = ups_audit_confidence_finalize($raw_score, $has_signal, count($factors));
+    $band = ups_audit_confidence_band($final_score);
+    $result = ups_audit_confidence_result(
+        $final_score,
+        $raw_score,
+        $band,
+        $factors,
+        __("wiarygodność przychodu", "upsellio")
+    );
+    $result["suspicious_events"] = array_values(array_unique($suspicious));
 
-    return [
-        "score" => $score,
-        "band" => $band,
-        "label" => $band_label,
-        "factors" => $factors,
-        "suspicious_events" => array_values(array_unique($suspicious)),
-        "summary" => sprintf("%d%% — %s", $score, $band_label),
-    ];
+    return $result;
 }
 
 /**
@@ -550,15 +624,19 @@ function ups_audit_data_quality_panel(array $agg, int $client_id = 0, array $set
     }
 
     $warnings = [];
-    if ((int) ($attr["score"] ?? 100) < 50) {
+    if (in_array((string) ($attr["band"] ?? ""), ["critical", "very_low"], true)) {
         $warnings[] = __("Atrybucja kanałowa niewiarygodna — nie optymalizuj ROAS/CPA na GA4.", "upsellio");
     }
-    if ((int) ($rev_conf["score"] ?? 100) < 50) {
-        $warnings[] = __("Przychód GA4 zawyżony przez WooCommerce/GTM — używaj purchaseRevenue i CRM.", "upsellio");
+    if (in_array((string) ($rev_conf["band"] ?? ""), ["critical", "very_low"], true)) {
+        $warnings[] = __("Przychód GA4 zawyżony przez WooCommerce/GTM — ignoruj eventValue, używaj purchaseRevenue i CRM.", "upsellio");
     }
     if ((string) ($clarity_conf["band"] ?? "") === "low") {
         $warnings[] = __("Clarity: Confidence Low — UX Score ma obniżoną wagę.", "upsellio");
     }
+
+    $source_ratings = function_exists("ups_audit_source_quality_ratings")
+        ? ups_audit_source_quality_ratings($agg, $attr, $rev_conf, $clarity_conf, $client_id)
+        : [];
 
     return [
         "has_data" => true,
@@ -569,10 +647,145 @@ function ups_audit_data_quality_panel(array $agg, int $client_id = 0, array $set
         "health_trend" => $health_trend,
         "health_history" => $health_history,
         "items" => $items,
+        "source_ratings" => $source_ratings,
         "warnings" => $warnings,
         "summary" => $warnings !== []
             ? implode(" ", array_slice($warnings, 0, 2))
             : __("Jakość danych w normie dla tego okna.", "upsellio"),
+    ];
+}
+
+/**
+ * Ocena wiarygodności per źródło (skala 0–10) — do sekcji Data Quality.
+ *
+ * @param array<string, mixed> $agg
+ * @param array<string, mixed> $attr
+ * @param array<string, mixed> $rev_conf
+ * @param array<string, mixed> $clarity_conf
+ *
+ * @return array{sources:list<array<string,mixed>>, average:float, average_label:string}
+ */
+function ups_audit_source_quality_ratings(array $agg, array $attr, array $rev_conf, array $clarity_conf, int $client_id = 0): array
+{
+    $sources = [];
+
+    $gsc_clicks = (int) ($agg["gsc_clicks"] ?? 0);
+    $gsc_score = 0.0;
+    if ($gsc_clicks > 0) {
+        $gsc_score += 5.0;
+    }
+    if ((int) ($agg["gsc_impressions"] ?? 0) > 50) {
+        $gsc_score += 2.0;
+    }
+    if (count((array) ($agg["top_keywords"] ?? [])) >= 5) {
+        $gsc_score += 1.5;
+    }
+    $sources[] = [
+        "key" => "gsc",
+        "label" => __("SEO (GSC)", "upsellio"),
+        "score" => min(10.0, round($gsc_score, 1)),
+        "note" => $gsc_clicks > 0 ? sprintf(__("%d klik.", "upsellio"), $gsc_clicks) : __("brak kliknięć", "upsellio"),
+    ];
+
+    $ads_cost = (float) ($agg["ads_cost"] ?? 0);
+    $ads_conv = (float) ($agg["ads_conversions"] ?? 0);
+    $ads_clicks = (int) ($agg["ads_clicks"] ?? 0);
+    $ads_score = 0.0;
+    if ($ads_cost > 0 && $ads_clicks > 0) {
+        $ads_score += 5.5;
+        $cpa = $ads_conv > 0 ? $ads_cost / $ads_conv : 0;
+        if ($cpa >= 20 && $cpa <= 500) {
+            $ads_score += 2.5;
+        } elseif ($cpa > 0) {
+            $ads_score += 1.0;
+        }
+        if ($ads_clicks >= 50) {
+            $ads_score += 0.5;
+        }
+    }
+    $sources[] = [
+        "key" => "ads",
+        "label" => __("Google Ads", "upsellio"),
+        "score" => min(10.0, round($ads_score, 1)),
+        "note" => $ads_cost > 0
+            ? sprintf("%.0f zł · %d konw.", $ads_cost, (int) $ads_conv)
+            : __("brak kosztu", "upsellio"),
+    ];
+
+    $st_count = count((array) ($agg["search_terms"] ?? []));
+    $st_score = $st_count >= 20 ? 9.0 : ($st_count >= 5 ? 7.0 : ($st_count > 0 ? 5.0 : 0.0));
+    $sources[] = [
+        "key" => "search_terms",
+        "label" => __("Search Terms", "upsellio"),
+        "score" => $st_score,
+        "note" => $st_count > 0 ? sprintf(__("%d fraz", "upsellio"), $st_count) : "",
+    ];
+
+    $ga4_sess = (int) ($agg["ga4_sessions"] ?? 0);
+    $ga4_traffic = $ga4_sess >= 500 ? 7.5 : ($ga4_sess >= 100 ? 7.0 : ($ga4_sess > 0 ? 5.0 : 0.0));
+    $sources[] = [
+        "key" => "ga4_traffic",
+        "label" => __("GA4 ruch", "upsellio"),
+        "score" => $ga4_traffic,
+        "note" => $ga4_sess > 0 ? sprintf(__("%d sesji", "upsellio"), $ga4_sess) : "",
+    ];
+
+    $rev_pct = (int) ($rev_conf["score"] ?? 0);
+    $rev_rating = min(10.0, max(0.0, round($rev_pct / 3.33, 1)));
+    $sources[] = [
+        "key" => "ga4_revenue",
+        "label" => __("GA4 przychód", "upsellio"),
+        "score" => $rev_rating,
+        "note" => sprintf(__("Revenue Confidence %d%%", "upsellio"), $rev_pct),
+    ];
+
+    $clarity_sess = (int) ($agg["clarity_sessions"] ?? 0);
+    $clarity_rating = $clarity_sess <= 0
+        ? 0.0
+        : min(10.0, max(0.0, round(((int) ($clarity_conf["score"] ?? 0)) / 10, 1)));
+    if ($clarity_sess > 0) {
+        $sources[] = [
+            "key" => "clarity",
+            "label" => __("Clarity", "upsellio"),
+            "score" => $clarity_rating,
+            "note" => (string) ($clarity_conf["label"] ?? ""),
+        ];
+    }
+
+    $attr_pct = (int) ($attr["score"] ?? 0);
+    $sources[] = [
+        "key" => "attribution",
+        "label" => __("Attribution", "upsellio"),
+        "score" => min(10.0, max(0.0, round($attr_pct / 10, 1))),
+        "note" => sprintf(__("Attribution Confidence %d%%", "upsellio"), $attr_pct),
+    ];
+
+    $crm_leads = 0;
+    if ($client_id > 0) {
+        $crm_stats = ups_audit_crm_lead_attribution_stats($client_id, (int) ($agg["period_days"] ?? 30));
+        $crm_leads = (int) ($crm_stats["leads"] ?? 0);
+    }
+    $crm_rating = $crm_leads > 0 ? min(10.0, round(((int) (($agg["intelligence"]["crm_quality"]["score"] ?? 0))) / 10, 1)) : 0.0;
+    $sources[] = [
+        "key" => "crm",
+        "label" => __("CRM Attribution", "upsellio"),
+        "score" => $crm_rating,
+        "note" => $crm_leads > 0
+            ? sprintf(__("%d leadów", "upsellio"), $crm_leads)
+            : __("brak leadów w okresie", "upsellio"),
+    ];
+
+    $rated = array_values(array_filter($sources, static fn($s) => (float) ($s["score"] ?? 0) > 0 || (string) ($s["key"] ?? "") === "crm"));
+    $sum = 0.0;
+    foreach ($rated as $row) {
+        $sum += (float) ($row["score"] ?? 0);
+    }
+    $avg = $rated !== [] ? round($sum / count($rated), 1) : 0.0;
+
+    return [
+        "sources" => $sources,
+        "average" => $avg,
+        "average_label" => sprintf(__("Średnia jakość danych: %.1f/10", "upsellio"), $avg),
     ];
 }
 

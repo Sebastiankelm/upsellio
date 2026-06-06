@@ -324,13 +324,21 @@
     if (document.getElementById("ups-intel-gauge-opportunity")) {
       C.scoreGauge("ups-intel-gauge-opportunity", scores.opportunity || 0, 100, scores.opportunity >= 81 ? "#16a34a" : scores.opportunity >= 61 ? "#2563eb" : "#d97706");
     }
+    function confidenceGaugeColor(score) {
+      var s = Number(score) || 0;
+      if (s >= 80) return "#16a34a";
+      if (s >= 60) return "#0d9488";
+      if (s >= 40) return "#d97706";
+      if (s >= 20) return "#ea580c";
+      return "#dc2626";
+    }
     if (document.getElementById("ups-intel-gauge-revenue-conf")) {
       var revC = scores.revenue_confidence || 0;
-      C.scoreGauge("ups-intel-gauge-revenue-conf", revC, 100, revC >= 70 ? "#16a34a" : revC >= 45 ? "#d97706" : "#dc2626");
+      C.scoreGauge("ups-intel-gauge-revenue-conf", revC, 100, confidenceGaugeColor(revC));
     }
     if (document.getElementById("ups-intel-gauge-attribution")) {
       var attr = scores.attribution || 0;
-      C.scoreGauge("ups-intel-gauge-attribution", attr, 100, attr >= 80 ? "#16a34a" : attr >= 55 ? "#d97706" : "#dc2626");
+      C.scoreGauge("ups-intel-gauge-attribution", attr, 100, confidenceGaugeColor(attr));
     }
     if (document.getElementById("ups-intel-gauge-crm-quality")) {
       var crmQ = scores.crm_quality || 0;

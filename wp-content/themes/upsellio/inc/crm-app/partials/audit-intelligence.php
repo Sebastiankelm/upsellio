@@ -313,7 +313,15 @@ $intel_charts_payload = [
       <?php if (!is_array($dq_item)) { continue; } ?>
       <?php
         $dq_band = (string) ($dq_item["band"] ?? "");
-        $dq_color = $dq_band === "high" ? "var(--ok,#16a34a)" : ($dq_band === "medium" ? "#d97706" : "var(--danger,#dc2626)");
+        $dq_colors = [
+            "high" => "var(--ok,#16a34a)",
+            "good" => "#0d9488",
+            "medium" => "#d97706",
+            "very_low" => "#ea580c",
+            "critical" => "var(--danger,#dc2626)",
+            "low" => "var(--danger,#dc2626)",
+        ];
+        $dq_color = $dq_colors[$dq_band] ?? "var(--muted,#64748b)";
         ?>
       <div class="ups-audit-kpi-tile">
         <div class="ups-audit-kpi-tile__lbl"><?php echo esc_html((string) ($dq_item["label"] ?? "")); ?></div>
@@ -324,6 +332,30 @@ $intel_charts_payload = [
       </div>
     <?php endforeach; ?>
   </div>
+  <?php $source_ratings = (array) ($data_quality["source_ratings"] ?? []); ?>
+  <?php if (!empty($source_ratings["sources"])) : ?>
+  <div style="margin-bottom:12px;">
+    <p class="muted" style="margin:0 0 8px;font-size:11px;font-weight:600;">
+      <?php echo esc_html((string) ($source_ratings["average_label"] ?? __("Ocena źródeł (0–10)", "upsellio"))); ?>
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;">
+      <?php foreach ((array) $source_ratings["sources"] as $src_row) : ?>
+        <?php if (!is_array($src_row)) { continue; } ?>
+        <?php
+          $src_score = (float) ($src_row["score"] ?? 0);
+          $src_color = $src_score >= 8 ? "var(--ok,#16a34a)" : ($src_score >= 6 ? "#0d9488" : ($src_score >= 4 ? "#d97706" : "var(--danger,#dc2626)"));
+          ?>
+        <div style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:11px;">
+          <div class="muted" style="font-size:10px;"><?php echo esc_html((string) ($src_row["label"] ?? "")); ?></div>
+          <div style="font-weight:700;color:<?php echo esc_attr($src_color); ?>;"><?php echo esc_html(number_format($src_score, 1, ",", " ")); ?>/10</div>
+          <?php if (!empty($src_row["note"])) : ?>
+            <div class="muted" style="margin-top:2px;font-size:10px;"><?php echo esc_html((string) $src_row["note"]); ?></div>
+          <?php endif; ?>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <?php endif; ?>
   <?php if (!empty($data_quality["warnings"])) : ?>
   <ul style="margin:0;padding-left:18px;font-size:11px;line-height:1.5;color:#b91c1c;">
     <?php foreach ((array) $data_quality["warnings"] as $dq_warn) : ?>
