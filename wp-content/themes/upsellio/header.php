@@ -66,8 +66,11 @@ foreach ((array) $primary_navigation_links as $nav_link) {
   $upsellio_clarity_project_id = defined("UPSELLIO_CLARITY_PROJECT_ID") && (string) UPSELLIO_CLARITY_PROJECT_ID !== ""
       ? (string) UPSELLIO_CLARITY_PROJECT_ID
       : "wm94kd7gyw";
+  if (function_exists("upsellio_print_google_consent_defaults")) {
+      upsellio_print_google_consent_defaults();
+  }
   ?>
-  <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="91229b76-132c-42e8-9021-9542287ad319" data-blockingmode="auto" type="text/javascript"></script>
+  <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="91229b76-132c-42e8-9021-9542287ad319" data-blockingmode="auto" data-culture="pl" type="text/javascript"></script>
   <script type="text/plain" data-cookieconsent="marketing">
     (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":
     new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],

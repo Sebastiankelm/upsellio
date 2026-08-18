@@ -23,7 +23,7 @@ get_header();
 
 <main class="pp-wrap">
   <h1>Polityka Prywatności</h1>
-  <p class="muted"><strong>VePo Sebastian Kelm / Upsellio</strong><br/>Wierzbowa 21A/2 · 62-070 Dopiewiec · NIP: 7773388263<br/>kontakt@upsellio.pl · upsellio.pl<br/>Ostatnia aktualizacja: maj 2026 · Wersja: 2.0</p>
+  <p class="muted"><strong>VePo Sebastian Kelm / Upsellio</strong><br/>Wierzbowa 21A/2 · 62-070 Dopiewiec · NIP: 7773388263<br/>kontakt@upsellio.pl · upsellio.pl<br/>Ostatnia aktualizacja: sierpień 2026 · Wersja: 2.1</p>
 
   <section class="box">
     <h2>1. Administrator danych osobowych</h2>
@@ -77,14 +77,14 @@ get_header();
     <p>Przysługuje Pani/Panu prawo dostępu, sprostowania, usunięcia, ograniczenia, przenoszenia danych, wniesienia sprzeciwu, cofnięcia zgody oraz złożenia skargi do UODO.</p>
 
     <h2>7. Pliki cookies i zarządzanie zgodą</h2>
-    <p>Zarządzanie zgodą na cookies odbywa się za pomocą Cookiebot (Cybot A/S, Havnegade 39, 1058 Kopenhaga, Dania), identyfikator: 91229b76-132c-42e8-9021-9542287ad319.</p>
+    <p>Zarządzanie zgodą na cookies odbywa się za pomocą Cookiebot (Cybot A/S, Havnegade 39, 1058 Kopenhaga, Dania), identyfikator: 91229b76-132c-42e8-9021-9542287ad319. Na landingach (m.in. Marketing dla butiku) pokazujemy własny baner: „Akceptuj wszystkie”, „Odrzuć opcjonalne” i „Ustawienia”. Wybór jest przekazywany do Cookiebot, który blokuje skrypty statystyczne i marketingowe do momentu zgody. Zgodę można cofnąć przyciskiem „Cookies”.</p>
     <p>Pełny rejestr cookies: https://www.cookiebot.com/goto/privacy-policy/</p>
     <table>
       <thead><tr><th>Kategoria</th><th>Cel</th><th>Przykłady</th><th>Zgoda wymagana</th></tr></thead>
       <tbody>
-        <tr><td>Niezbędne</td><td>Działanie strony i bezpieczeństwo</td><td>ups_nonce, PHPSESSID</td><td>NIE</td></tr>
-        <tr><td>Statystyczne</td><td>Analityka ruchu i UX</td><td>_ga, _gid, _clck</td><td>TAK</td></tr>
-        <tr><td>Marketingowe</td><td>Remarketing i konwersje reklamowe</td><td>_fbp, _gcl_au, _fbc</td><td>TAK</td></tr>
+        <tr><td>Niezbędne</td><td>Działanie strony, bezpieczeństwo, zapis wyboru zgody</td><td>CookieConsent, PHPSESSID, wordpress_test_cookie</td><td>NIE</td></tr>
+        <tr><td>Statystyczne</td><td>Analityka ruchu, UX i lejek landingów</td><td>_ga, _gid, _clck, ups_btk_vid / ups_btk_sid (localStorage / sessionStorage)</td><td>TAK</td></tr>
+        <tr><td>Marketingowe</td><td>Remarketing i konwersje reklamowe</td><td>_fbp, _gcl_au, _fbc, GTM</td><td>TAK</td></tr>
       </tbody>
     </table>
 
