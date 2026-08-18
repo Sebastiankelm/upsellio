@@ -964,20 +964,16 @@ get_header();
             <input type="text" id="audit_meta_name" name="lead_name" placeholder="Jan" autocomplete="given-name" required>
           </div>
           <div class="ama-field">
-            <label for="audit_meta_email">Email</label>
+            <label for="audit_meta_phone">Telefon</label>
+            <input type="tel" id="audit_meta_phone" name="lead_phone" placeholder="+48 575 522 595" autocomplete="tel" required>
+          </div>
+          <div class="ama-field ama-field-full">
+            <label for="audit_meta_email">E-mail</label>
             <input type="email" id="audit_meta_email" name="lead_email" placeholder="jan@firma.pl" autocomplete="email" required>
           </div>
           <div class="ama-field ama-field-full">
-            <label for="audit_meta_company">Firma / strona www</label>
-            <input type="text" id="audit_meta_company" name="lead_company" placeholder="firma.pl lub @instagram_handle" autocomplete="organization" required>
-          </div>
-          <div class="ama-field ama-field-full">
-            <label for="audit_meta_budget">Miesięczny budżet w Meta Ads <span class="opt">orientacyjnie</span></label>
-            <input type="text" id="audit_meta_budget" name="lead_budget" placeholder="np. 3 000 zł / mies">
-          </div>
-          <div class="ama-field ama-field-full">
-            <label for="audit_meta_message">Co Cię najbardziej trapi? <span class="opt">opcjonalnie, ale pomaga</span></label>
-            <textarea id="audit_meta_message" name="lead_message" placeholder="np. CPL rośnie z miesiąca na miesiąc i nie wiem dlaczego. Albo: agencja prowadzi konto pół roku, ale wyniki dalej takie same." required></textarea>
+            <label for="audit_meta_message">Wiadomość <span class="opt">opcjonalnie</span></label>
+            <textarea id="audit_meta_message" name="lead_message" placeholder="Opcjonalnie — krótko, o co chodzi"></textarea>
           </div>
         </div>
 
@@ -986,7 +982,7 @@ get_header();
           <span>Wyrażam zgodę na kontakt w sprawie audytu i akceptuję <a href="<?php echo esc_url(home_url("/polityka-prywatnosci/")); ?>" target="_blank" rel="noopener noreferrer">politykę prywatności</a>.</span>
         </label>
 
-        <button type="submit" class="ama-form-submit" data-cta="audyt-meta-final-submit" data-cta-section="final-form" data-cta-position="submit">Umów bezpłatny audyt Meta Ads →</button>
+        <button type="submit" class="ama-form-submit" data-cta="audyt-meta-final-submit" data-cta-section="final-form" data-cta-position="submit">Oddzwonię w ciągu 24h</button>
 
         <p class="ama-form-meta">
           Twoje dane służą wyłącznie do umówienia audytu. Nie zapisuję Cię na newsletter,<br>nie sprzedaję bazy. Po audycie kasuję dane jeśli nie nawiążemy współpracy.

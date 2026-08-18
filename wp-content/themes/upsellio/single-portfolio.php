@@ -412,18 +412,21 @@ add_action("wp_head", static function () use ($post_id, $title, $schema_descript
           <label>Imię
             <input type="text" name="lead_name" required />
           </label>
-          <label>E-mail
-            <input type="email" name="lead_email" required />
+          <label>Telefon
+            <input type="tel" name="lead_phone" placeholder="+48 575 522 595" autocomplete="tel" required />
           </label>
         </div>
-        <label>Wiadomość
-          <textarea name="lead_message" placeholder="Napisz, co chcesz zbudować lub poprawić." required></textarea>
+        <label>E-mail
+          <input type="email" name="lead_email" required />
+        </label>
+        <label>Wiadomość (opcjonalnie)
+          <textarea name="lead_message" placeholder="Opcjonalnie — krótko, o co chodzi"></textarea>
         </label>
         <label class="pf-contact-consent">
           <input type="checkbox" name="lead_consent" value="1" required />
           <span>Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</span>
         </label>
-        <button type="submit" class="pf-contact-submit">Wyślij i umów rozmowę →</button>
+        <button type="submit" class="pf-contact-submit">Oddzwonię w ciągu 24h</button>
       </form>
     </div>
   </section>

@@ -1289,36 +1289,16 @@ get_header();
             <input type="text" id="salon_name" name="lead_name" placeholder="Anna" autocomplete="given-name" required>
           </div>
           <div class="sk-field">
-            <label for="salon_email">Email</label>
+            <label for="salon_phone">Telefon</label>
+            <input type="tel" id="salon_phone" name="lead_phone" placeholder="+48 575 522 595" autocomplete="tel" required>
+          </div>
+          <div class="sk-field sk-field-full">
+            <label for="salon_email">E-mail</label>
             <input type="email" id="salon_email" name="lead_email" placeholder="anna@salon.pl" autocomplete="email" required>
           </div>
           <div class="sk-field sk-field-full">
-            <label for="salon_business">Nazwa salonu i miasto</label>
-            <input type="text" id="salon_business" name="lead_company" placeholder="np. Studio Beauty Anna — Lublin" required>
-          </div>
-          <div class="sk-field">
-            <label for="salon_size">Rozmiar salonu</label>
-            <select id="salon_size" name="lead_goal">
-              <option value="">— wybierz —</option>
-              <option value="Pracuje sama">Pracuję sama</option>
-              <option value="2-3 specjalistki">2–3 specjalistki</option>
-              <option value="4-6 specjalistek">4–6 specjalistek</option>
-              <option value="7+ specjalistek">7 lub więcej</option>
-            </select>
-          </div>
-          <div class="sk-field">
-            <label for="salon_revenue">Miesięczny obrót <span class="opt">orientacyjnie</span></label>
-            <select id="salon_revenue" name="lead_budget">
-              <option value="">— wybierz —</option>
-              <option value="<15k">poniżej 15 000 zł</option>
-              <option value="15-30k">15 000 – 30 000 zł</option>
-              <option value="30-60k">30 000 – 60 000 zł</option>
-              <option value=">60k">powyżej 60 000 zł</option>
-            </select>
-          </div>
-          <div class="sk-field sk-field-full">
-            <label for="salon_message">Co Cię najbardziej trapi? <span class="opt">opcjonalnie, ale pomaga</span></label>
-            <textarea id="salon_message" name="lead_message" placeholder="np. Mam wolne miejsca w środy i czwartki, Instagram nie generuje rezerwacji. Albo: klientki przychodzą tylko na promocje." required></textarea>
+            <label for="salon_message">Wiadomość <span class="opt">opcjonalnie</span></label>
+            <textarea id="salon_message" name="lead_message" placeholder="Opcjonalnie — krótko, o co chodzi"></textarea>
           </div>
         </div>
 
@@ -1327,7 +1307,7 @@ get_header();
           <span>Wyrażam zgodę na kontakt w sprawie konsultacji i akceptuję <a href="<?php echo esc_url(home_url("/polityka-prywatnosci/")); ?>" target="_blank" rel="noopener noreferrer">politykę prywatności</a>.</span>
         </label>
 
-        <button type="submit" class="sk-form-submit" data-cta="salon-final-submit-konsultacja" data-cta-section="final-form" data-cta-position="submit">Umów bezpłatną konsultację →</button>
+        <button type="submit" class="sk-form-submit" data-cta="salon-final-submit-konsultacja" data-cta-section="final-form" data-cta-position="submit">Oddzwonię w ciągu 24h</button>
 
         <p class="sk-form-meta">
           Twoje dane służą wyłącznie do umówienia konsultacji. Nie zapisuję Cię na newsletter,<br>nie sprzedaję bazy. Po konsultacji kasuję dane jeśli nie nawiążemy współpracy.

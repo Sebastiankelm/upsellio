@@ -147,57 +147,29 @@ $contact_faq_items = [
   pointer-events:none
 }
 .ct-hero-form-grid{
-  display:grid;grid-template-columns:1.1fr 1fr;gap:64px;align-items:start;
+  display:grid;grid-template-columns:1.1fr 1fr;gap:64px;align-items:stretch;
   position:relative;
 }
-.ct-hero-copy{position:relative}
+.ct-hero-copy{
+  position:relative;
+  display:flex;flex-direction:column;
+}
+.ct-hero-copy > .ct-eyebrow{margin-bottom:14px}
 .ct-h1{
   font-family:var(--ct-fd);font-weight:800;
-  font-size:clamp(34px,4.4vw,54px);line-height:1.02;letter-spacing:-.03em;
-  margin:0 0 24px;color:var(--ct-ink);
+  font-size:clamp(32px,3.8vw,46px);line-height:1.06;letter-spacing:-.03em;
+  margin:0 0 16px;color:var(--ct-ink);
 }
 .ct-h1-accent{color:var(--ct-teal);font-style:normal;font-weight:800}
 .ct-lead{
-  font-size:18px;line-height:1.6;color:var(--ct-ink2);
-  max-width:58ch;margin:0 0 32px;font-weight:400;
-}
-
-/* === CO KONKRETNIE WYNOSISZ - box z akcentem === */
-.ct-consult-box{
-  margin:0 0 28px;padding:24px;
-  background:var(--ct-surface);
-  border:1px solid var(--ct-border);
-  border-left:3px solid var(--ct-teal);
-  border-radius:var(--ct-rl);
-}
-.ct-consult-box h3{
-  margin:0 0 8px;font-family:var(--ct-fd);font-weight:800;
-  font-size:16px;line-height:1.22;letter-spacing:-.02em;color:var(--ct-ink);
-}
-.ct-consult-box p{
-  margin:0;color:var(--ct-muted);font-size:14.5px;line-height:1.6;
-}
-
-/* === Nie-list (czego klient nie dostanie) === */
-.ct-not-list{display:grid;gap:8px;margin:0 0 28px}
-.ct-not-item{
-  display:flex;align-items:flex-start;gap:12px;
-  padding:14px 18px;
-  background:var(--ct-surface);
-  border:1px solid var(--ct-border);
-  border-radius:var(--ct-r);
-  font-size:14px;color:var(--ct-ink2);line-height:1.5;
-}
-.ct-not-icon{
-  flex:0 0 22px;width:22px;height:22px;border-radius:50%;
-  background:#fef2f2;color:#dc2626;display:grid;place-items:center;
-  font-size:11px;font-weight:800;margin-top:1px;border:1px solid #fee2e2;
+  font-size:17px;line-height:1.55;color:var(--ct-ink2);
+  max-width:48ch;margin:0 0 24px;font-weight:400;
 }
 
 /* === Channels (alternatywne kanaly kontaktu) === */
 .ct-channels{
   display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;
-  margin-top:24px;padding-top:24px;border-top:1px solid var(--ct-line);
+  margin-top:auto;padding-top:24px;border-top:1px solid var(--ct-line);
 }
 a.ct-channel-link,.ct-art a.ct-channel-link{
   display:flex;align-items:center;gap:10px;
@@ -222,7 +194,7 @@ a.ct-channel-link,.ct-art a.ct-channel-link{
   border-radius:var(--ct-rxl);
   padding:32px;
   box-shadow:0 1px 0 rgba(15,17,21,.04),0 4px 12px rgba(15,17,21,.04);
-  position:sticky;top:24px;
+  height:100%;
 }
 .ct-form-head{margin-bottom:22px}
 .ct-form-head .ct-eyebrow{margin-bottom:10px}
@@ -550,11 +522,11 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
 }
 
 /* === Proof/cells - jakies pomocnicze === */
-.ct-proof-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.ct-proof-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .ct-proof-cell{
   background:var(--ct-surface);border:1px solid var(--ct-border);
-  border-radius:var(--ct-rl);padding:20px;
-  font-size:13.5px;color:var(--ct-muted);line-height:1.55;
+  border-radius:var(--ct-rl);padding:14px 12px;
+  font-size:12.5px;color:var(--ct-muted);line-height:1.4;
 }
 .ct-proof-cell strong{
   display:block;font-family:var(--ct-fd);font-weight:800;
@@ -581,11 +553,12 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
 /* === RESPONSIVE === */
 @media (max-width:1024px){
   .ct-hero-form-grid{grid-template-columns:1fr;gap:48px}
-  .ct-form-card{position:static}
+  .ct-form-card{height:auto}
+  .ct-proof-grid{grid-template-columns:repeat(2,1fr);margin-top:8px}
+  .ct-channels{grid-template-columns:1fr 1fr 1fr;margin-top:24px}
   .ct-topic-grid{grid-template-columns:1fr 1fr}
   .ct-testimonial-grid{grid-template-columns:1fr 1fr}
   .ct-process-grid{grid-template-columns:1fr 1fr}
-  .ct-channels{grid-template-columns:1fr 1fr 1fr}
   .ct-final-box{padding:48px 32px}
 }
 @media (max-width:720px){
@@ -601,7 +574,7 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
 <main class="ct-art" id="kontakt">
 
 <!-- ====================================================================
-     SEKCJA 01 — HERO + FORMULARZ (sticky po prawej)
+     SEKCJA 01 — HERO + FORMULARZ (ta sama wysokosc kolumn)
      Jezyk: korzysc dla klienta (mapa problemu), nie obietnica autora.
      ==================================================================== -->
 <section class="ct-hero-form" id="formularz-kontaktowy">
@@ -612,72 +585,42 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
                 <div class="ct-eyebrow">Bezpłatna 30-min diagnoza</div>
 
                 <h1 class="ct-h1">
-                    Opisz sytuację. W 30 minut dostaniesz wskazówki, <span class="ct-h1-accent">co poprawić w pierwszej kolejności.</span>
+                    Opisz sytuację. W 30 minut wskażę, <span class="ct-h1-accent">co poprawić najpierw.</span>
                 </h1>
 
                 <p class="ct-lead">
-                    Wystarczy 2-zdaniowy opis: ile masz ruchu, ile zapytań, gdzie rozmowy się rozsypują.
-                    Jeśli temat ma sens — zadzwonimy. Jeśli nie pasujemy — powiem wprost po 5 minutach,
-                    nie po godzinie pitchu.
+                    Wystarczy krótki opis: ile masz ruchu, ile zapytań i gdzie rozmowy się rozsypują.
+                    Jeśli pasujemy — zadzwonimy. Jeśli nie — powiem wprost po 5 minutach.
                 </p>
-
-                <div class="ct-consult-box">
-                    <strong>Co konkretnie wynosisz z tej rozmowy</strong>
-                    <p>
-                        Trzy rzeczy: konkretne miejsca gdzie pieniądze wyciekają już dziś, hipotezy
-                        co prawdopodobnie jest tego przyczyną, oraz uczciwą ocenę czy w ogóle warto
-                        rozmawiać o współpracy. Bez slajdów, bez „przyślę ofertę po naszej rozmowie",
-                        bez follow-upów typu „a może jednak".
-                    </p>
-                </div>
-
-                <div class="ct-not-list">
-                    <div class="ct-not-item">
-                        <span class="ct-not-icon">🚫</span>
-                        <span>Nie dostaniesz szablonu PDF z innym logo i tych samych zaleceń co konkurencja</span>
-                    </div>
-                    <div class="ct-not-item">
-                        <span class="ct-not-icon">🚫</span>
-                        <span>Nie będziesz tłumaczyć swojego biznesu trzy razy trzem różnym osobom</span>
-                    </div>
-                    <div class="ct-not-item">
-                        <span class="ct-not-icon">🚫</span>
-                        <span>Nie usłyszysz „zwiększymy konwersję 3×" zanim ktokolwiek spojrzy na Twoje dane</span>
-                    </div>
-                    <div class="ct-not-item">
-                        <span class="ct-not-icon">🚫</span>
-                        <span>Nie dostaniesz raportu z 47 wykresami CTR zamiast odpowiedzi „czy zarabiamy"</span>
-                    </div>
-                </div>
 
                 <div class="ct-proof-grid">
                     <div class="ct-proof-cell">
                         <strong>30 min</strong>
-                        <span>rozmowa o Twoim problemie</span>
+                        <span>rozmowa</span>
                     </div>
                     <div class="ct-proof-cell">
                         <strong>0 zł</strong>
-                        <span>pierwsza diagnoza</span>
+                        <span>diagnoza</span>
                     </div>
                     <div class="ct-proof-cell">
                         <strong>24h</strong>
-                        <span>czas odpowiedzi</span>
+                        <span>odpowiedź</span>
                     </div>
                     <div class="ct-proof-cell">
                         <strong>1 osoba</strong>
-                        <span>od pierwszej rozmowy do raportu</span>
+                        <span>cały kontakt</span>
                     </div>
                 </div>
 
                 <div class="ct-channels">
                     <a href="tel:<?php echo esc_attr($contact_phone_href); ?>" class="ct-channel-link">
-                        <span>📞</span><?php echo esc_html($contact_phone); ?>
+                        <?php echo esc_html($contact_phone); ?>
                     </a>
                     <a href="mailto:<?php echo esc_attr($contact_email); ?>" class="ct-channel-link">
-                        <span>✉️</span><?php echo esc_html($contact_email); ?>
+                        <?php echo esc_html($contact_email); ?>
                     </a>
                     <a href="<?php echo esc_url($linkedin_url); ?>" target="_blank" rel="noopener noreferrer" class="ct-channel-link">
-                        <span>💼</span>LinkedIn
+                        LinkedIn
                     </a>
                 </div>
             </div>
@@ -703,14 +646,6 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
                     "form_id" => "contact-page-form",
                 ]);
                 ?>
-
-                <div class="ct-form-after">
-                    <strong>Co stanie się po wysłaniu?</strong>
-                    <p>
-                        Do 2h dostaniesz potwierdzenie, do 24h wstępną ocenę.
-                        Potem umawiamy 30-min rozmowę i wysyłam pisemną mapę problemów.
-                    </p>
-                </div>
             </aside>
 
         </div>
@@ -737,7 +672,6 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
 
         <div class="ct-topic-grid">
             <article class="ct-topic-card">
-                <div class="ct-topic-icon">📢</div>
                 <span class="ct-topic-symptom">Kliknięcia są, rozmów nie ma</span>
                 <h3>Google Ads dla firm B2B</h3>
                 <p>Kampania pochłania budżet, statystyki w panelu wyglądają poprawnie — CTR jest, kliknięcia są, koszt na kliknięcie pod kontrolą. A handlowiec mówi, że telefon milczy. Najczęściej problem nie leży w samej reklamie, tylko w dopasowaniu intencji do oferty i w tym, co dzieje się po kliknięciu. Sprawdzę strukturę kampanii (Search, Performance Max, remarketing), słowa kluczowe, dopasowanie kreacji do landing page'a i ścieżkę konwersji aż do formularza.</p>
@@ -749,7 +683,6 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
             </article>
 
             <article class="ct-topic-card">
-                <div class="ct-topic-icon">📱</div>
                 <span class="ct-topic-symptom">Leady od osób, które nie kupują</span>
                 <h3>Meta Ads (Facebook i Instagram) B2B</h3>
                 <p>Reklamy na Facebooku i Instagramie generują ruch, formularze się wypełniają, ale jakość zapytań jest słaba — głównie ciekawscy, studenci, freelancerzy zamiast docelowych decyzyjnych w firmach B2B. To zwykle kwestia targetowania, kreacji i mechaniki Lead Ads. Sprawdzę audiences (lookalike, custom, retargeting), Pixel i Conversions API, atrybucję po iOS oraz to, czy kreacja faktycznie filtruje niepoważnych zainteresowanych już na poziomie reklamy.</p>
@@ -761,7 +694,6 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
             </article>
 
             <article class="ct-topic-card">
-                <div class="ct-topic-icon">🌐</div>
                 <span class="ct-topic-symptom">Wysoki bounce rate, zero leadów</span>
                 <h3>Strona WWW i landing page B2B</h3>
                 <p>Ruch wchodzi, ale konwersja na formularz jest poniżej 1%. Najczęściej strona za mało precyzyjnie odpowiada na pytanie „dla kogo, po co i co dalej". Klient B2B w 5 sekund decyduje, czy ten dostawca rozumie jego problem. Sprawdzę przekaz strony, hierarchię informacji, sekcje budujące zaufanie, jasność CTA, wydajność (Core Web Vitals) i formularz — od liczby pól po sposób ich opisania. Często wystarczy poprawić te 5-7 elementów żeby konwersja wzrosła kilkukrotnie.</p>
@@ -773,7 +705,6 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
             </article>
 
             <article class="ct-topic-card">
-                <div class="ct-topic-icon">🛒</div>
                 <span class="ct-topic-symptom">Koszyki napełniają się, zamówienia nie wpływają</span>
                 <h3>Sklep internetowy B2B (WooCommerce)</h3>
                 <p>Klienci dodają produkty do koszyka, część rejestruje konto, ale finalizacja zamówienia kuleje. W e-commerce B2B problem zwykle leży w jednym z trzech miejsc: rejestracja jest zbyt skomplikowana, brakuje informacji o cenach hurtowych i dostępności, albo proces zamawiania nie pasuje do tego jak klient B2B faktycznie kupuje (negocjacje, zapytania ofertowe, wielokrotne zamówienia). Sprawdzę cały lejek od wejścia do potwierdzenia zamówienia.</p>
@@ -781,7 +712,6 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
             </article>
 
             <article class="ct-topic-card">
-                <div class="ct-topic-icon">🔍</div>
                 <span class="ct-topic-symptom">Pozycje są, konwersja nie</span>
                 <h3>SEO i ruch organiczny dla firm B2B</h3>
                 <p>Wpisujesz frazy kluczowe w Google, widzisz swoją firmę na pierwszej stronie, ruch z organic wzrósł — ale w skrzynce zapytaniowej cisza. To często rozmijanie się intencji wyszukiwania z treścią strony albo brak ścieżek konwersji w treściach blogowych. Pomogę zlokalizować, czy problem to dobór fraz, struktura treści, brakujące CTA w artykułach, czy może jakość ruchu (klienci końcowi B2C zamiast B2B). Bez tej diagnozy SEO to często wydatek bez zwrotu.</p>
@@ -789,7 +719,6 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
             </article>
 
             <article class="ct-topic-card">
-                <div class="ct-topic-icon">💬</div>
                 <span class="ct-topic-symptom">Dużo rozmów, mało zamkniętych</span>
                 <h3>Oferta i jakość leadów B2B</h3>
                 <p>Reklama działa, formularzy jest dużo, telefon dzwoni, ale rozmowy nie kończą się umowami. Tu marketing kończy swoją robotę, a zaczyna się sprzedaż — i tu często leży faktyczny problem. Sprawdzę jakość leadów na wejściu (czy reklama nie ściąga niewłaściwych klientów), spójność komunikatu od reklamy przez stronę po pierwszą rozmowę, a także sam proces sprzedaży: czy oferta odpowiada na realny ból klienta, czy follow-up nie zabija dynamiki. Tu pomaga moje 10-letnie tło sprzedażowe.</p>
@@ -880,7 +809,7 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
                     <li>Wystarczy opis sytuacji własnymi słowami</li>
                     <li>Możesz dodać link do strony lub panelu reklamowego</li>
                 </ul>
-                <span class="ct-step-timing">⏱ 2 minuty, teraz</span>
+                <span class="ct-step-timing">2 minuty, teraz</span>
             </div>
 
             <div class="ct-step-card">
@@ -892,7 +821,7 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
                     <li>Analiza strony pod kątem konwersji i przekazu</li>
                     <li>Pierwsze hipotezy: gdzie jest największy wyciek</li>
                 </ul>
-                <span class="ct-step-timing">⏱ Odpisuję w 24h roboczych</span>
+                <span class="ct-step-timing">Odpisuję w 24h roboczych</span>
             </div>
 
             <div class="ct-step-card">
@@ -904,7 +833,7 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
                     <li>Co możesz zrobić sam, gdzie warto pomóc</li>
                     <li>Bez „a może jednak" — albo kontynuujemy, albo nie</li>
                 </ul>
-                <span class="ct-step-timing">⏱ Bezpłatnie, bez zobowiązań</span>
+                <span class="ct-step-timing">Bezpłatnie, bez zobowiązań</span>
             </div>
         </div>
     </div>

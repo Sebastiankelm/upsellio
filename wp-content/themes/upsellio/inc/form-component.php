@@ -10,21 +10,18 @@ if (!defined("ABSPATH")) {
  * @param array $args {
  *   @type string $origin               Identyfikator źródła (wymagane). Np. 'contact-page-form'.
  *   @type string $redirect_url         URL po sukcesie. Domyślnie: bieżąca strona.
- *   @type string $variant              Wariant pól: 'full'|'compact'|'micro'|'email-only'. Domyślnie: 'full'.
+ *   @type string $variant              Wariant stylu: 'full'|'compact'|'micro'|'email-only'. Pola są zawsze krótkie.
  *   @type string $heading              Tytuł nad formularzem.
  *   @type string $subheading           Podtytuł.
- *   @type string $submit_label         Tekst przycisku. Domyślnie: 'Wyślij →'.
+ *   @type string $submit_label         Ignorowane — CTA to zawsze „Oddzwonię w ciągu 24h”.
  *   @type string $fineprint            Drobny tekst pod przyciskiem.
- *   @type array  $service_options      Opcje selecta usług.
- *   @type string $hidden_service       Ukryte lead_service (bez selecta usług).
- *   @type bool   $show_budget          Czy pole budżetu.
- *   @type array  $budget_options       Mapa wartość => etykieta dla budżetu (nadpisuje domyślne).
- *   @type bool   $show_goal            Pole lead_goal (np. audyt Meta).
+ *   @type string $hidden_service       Ukryte lead_service.
  *   @type string $css_class            Dodatkowa klasa CSS na <form>.
  *   @type string $form_id              Atrybut id formularza.
  *   @type string $submit_button_id     Atrybut id przycisku wysyłki.
- *   @type string $preset_message       Pre-wypełniona wiadomość.
+ *   @type string $preset_message       Pre-wypełniona wiadomość (opcjonalna).
  *   @type string $message_placeholder  Placeholder pola wiadomości.
+ *   @type bool   $require_shop_url     Wymagane pole „Link do butiku”.
  * }
  */
 function upsellio_render_lead_form(array $args = [])
@@ -36,51 +33,19 @@ function upsellio_render_lead_form(array $args = [])
         : "full";
     $heading = sanitize_text_field((string) ($args["heading"] ?? ""));
     $subheading = sanitize_text_field((string) ($args["subheading"] ?? ""));
-    $submit_label = sanitize_text_field((string) ($args["submit_label"] ?? "Wyślij →"));
+    $submit_label = "Oddzwonię w ciągu 24h";
     $fineprint = sanitize_text_field((string) ($args["fineprint"] ?? ""));
-    $show_budget = !empty($args["show_budget"]);
-    $show_goal = !empty($args["show_goal"]);
     $css_class = sanitize_html_class((string) ($args["css_class"] ?? ""));
     $preset_msg = sanitize_textarea_field((string) ($args["preset_message"] ?? ""));
-    $message_placeholder = sanitize_text_field((string) ($args["message_placeholder"] ?? "Krótko opisz sytuację: co działa, co nie, jaki jest cel."));
+    $message_placeholder = sanitize_text_field((string) ($args["message_placeholder"] ?? "Opcjonalnie — krótko, o co chodzi"));
     $form_id = isset($args["form_id"]) ? sanitize_html_class((string) $args["form_id"]) : "";
     $submit_button_id = isset($args["submit_button_id"]) ? sanitize_html_class((string) $args["submit_button_id"]) : "";
     $hidden_service = isset($args["hidden_service"]) ? sanitize_text_field((string) $args["hidden_service"]) : "";
-    $budget_label = sanitize_text_field((string) ($args["budget_label"] ?? "Orientacyjny budżet (opcjonalnie)"));
-
-    $default_services = [
-        "Kampanie Google Ads",
-        "Kampanie Meta Ads",
-        "Tworzenie strony lub landing page",
-        "Marketing + strona (oba)",
-        "Nie wiem — chcę porozmawiać",
-    ];
-    $raw_service_options = isset($args["service_options"]) && is_array($args["service_options"])
-        ? $args["service_options"]
-        : null;
-    $service_options = $raw_service_options !== null && $raw_service_options !== []
-        ? $raw_service_options
-        : $default_services;
-
-    $default_budget_map = [
-        "" => "Wybierz lub pomiń",
-        "do 2000 zł" => "do 2 000 zł",
-        "2000–5000 zł" => "2 000–5 000 zł",
-        "5000–10000 zł" => "5 000–10 000 zł",
-        "powyżej 10000 zł" => "powyżej 10 000 zł",
-        "nie wiem" => "nie wiem",
-    ];
-    $budget_options = isset($args["budget_options"]) && is_array($args["budget_options"])
-        ? $args["budget_options"]
-        : $default_budget_map;
-
-    $goal_options = [
-        "Lead generation",
-        "Sprzedaż w sklepie",
-        "Ruch na stronę",
-        "Remarketing",
-        "Nie jestem pewien",
-    ];
+    $hidden_fields = is_array($args["hidden_fields"] ?? null) ? $args["hidden_fields"] : [];
+    $require_shop_url = !empty($args["require_shop_url"]);
+    $privacy_url = function_exists("upsellio_cookie_privacy_url")
+        ? upsellio_cookie_privacy_url()
+        : home_url("/polityka-prywatnosci/");
 
     $status = isset($_GET["ups_lead_status"])
         ? sanitize_text_field(wp_unslash($_GET["ups_lead_status"]))
@@ -91,7 +56,8 @@ function upsellio_render_lead_form(array $args = [])
 
     $error_messages = [
         "nonce" => "Sesja wygasła. Odśwież stronę (F5) i wyślij ponownie.",
-        "fields" => "Uzupełnij wymagane pola (imię, e-mail, wiadomość) i zaznacz zgodę.",
+        "fields" => "Uzupełnij wymagane pola (imię, telefon, e-mail) i zaznacz zgodę.",
+        "shop" => "Podaj link do butiku, Facebook albo adres sklepu.",
         "rate" => "Zbyt wiele prób. Spróbuj ponownie za godzinę lub napisz na kontakt@upsellio.pl.",
         "save" => "Błąd serwera. Napisz bezpośrednio na kontakt@upsellio.pl.",
     ];
@@ -103,7 +69,6 @@ function upsellio_render_lead_form(array $args = [])
         class="ups-form ups-form--<?php echo esc_attr($variant); ?><?php echo $variant === "compact" ? " hr-contact-form" : ""; ?><?php echo $css_class !== "" ? " " . esc_attr($css_class) : ""; ?>"
         method="post"
         action="<?php echo esc_url(admin_url("admin-post.php")); ?>"
-        novalidate
         data-upsellio-lead-form="1"
         data-upsellio-server-form="1"
         <?php echo $form_id !== "" ? ' id="' . esc_attr($form_id) . '"' : ""; ?>
@@ -129,6 +94,15 @@ function upsellio_render_lead_form(array $args = [])
         <?php if ($hidden_service !== "") : ?>
             <input type="hidden" name="lead_service" value="<?php echo esc_attr($hidden_service); ?>" />
         <?php endif; ?>
+        <?php foreach ($hidden_fields as $hidden_name => $hidden_value) : ?>
+            <?php
+            $hidden_name = sanitize_key((string) $hidden_name);
+            if ($hidden_name === "") {
+                continue;
+            }
+            ?>
+            <input type="hidden" name="<?php echo esc_attr($hidden_name); ?>" value="<?php echo esc_attr((string) $hidden_value); ?>" />
+        <?php endforeach; ?>
 
         <?php if ($heading !== "") : ?>
             <?php if ($variant === "compact") : ?>
@@ -151,7 +125,7 @@ function upsellio_render_lead_form(array $args = [])
 
         <?php if ($status === "success") : ?>
             <div class="ups-form__notice ups-form__notice--ok" role="alert">
-                Dziękuję! Wiadomość dotarła. Odezwę się w ciągu 24h.
+                Dziękuję! Oddzwonię w ciągu 24h.
             </div>
         <?php elseif ($status === "error") : ?>
             <div class="ups-form__notice ups-form__notice--err" role="alert">
@@ -159,86 +133,45 @@ function upsellio_render_lead_form(array $args = [])
             </div>
         <?php endif; ?>
 
-        <?php if ($variant === "micro") : ?>
-            <div class="ups-form__row">
-                <label class="ups-form__label" for="ups-f-email-<?php echo esc_attr($origin); ?>">
-                    E-mail firmowy <span aria-hidden="true">*</span>
-                </label>
-                <input class="ups-form__input" id="ups-f-email-<?php echo esc_attr($origin); ?>"
-                       type="email" name="lead_email" placeholder="kontakt@firma.pl"
-                       autocomplete="email" required />
-            </div>
-            <input type="hidden" name="lead_name" value="Szybka analiza" />
-            <input type="hidden" name="lead_message" value="Prośba o szybką analizę strony." />
-            <label class="ups-form__consent">
-                <input type="checkbox" name="lead_consent" value="1" required />
-                <span>Wyrażam zgodę na kontakt w celu bezpłatnej analizy strony.
-                    <a href="<?php echo esc_url(home_url("/polityka-prywatnosci/")); ?>" target="_blank" rel="noopener noreferrer">Polityka prywatności</a>.
-                </span>
-            </label>
-
-        <?php elseif ($variant === "email-only") : ?>
-            <?php
-            $email_only_name = sanitize_text_field((string) ($args["hidden_lead_name"] ?? "Materiał — strona główna"));
-            $email_only_msg = sanitize_textarea_field((string) ($args["preset_message"] ?? "Prośba o checklistę PDF ze strony głównej."));
-            ?>
-            <div class="ups-form__row">
-                <label class="ups-form__label" for="ups-f-email-only-<?php echo esc_attr($origin); ?>">
-                    E-mail firmowy <span aria-hidden="true">*</span>
-                </label>
-                <input class="ups-form__input" id="ups-f-email-only-<?php echo esc_attr($origin); ?>"
-                       type="email" name="lead_email" placeholder="kontakt@firma.pl"
-                       autocomplete="email" required />
-            </div>
-            <input type="hidden" name="lead_name" value="<?php echo esc_attr($email_only_name); ?>" />
-            <input type="hidden" name="lead_message" value="<?php echo esc_attr($email_only_msg); ?>" />
-            <label class="ups-form__consent">
-                <input type="checkbox" name="lead_consent" value="1" required />
-                <span>Wyrażam zgodę na kontakt i przesłanie materiału na podany adres e-mail.</span>
-            </label>
-
-        <?php elseif ($variant === "compact") : ?>
-            <?php if ($hidden_service !== "") : ?>
-                <input type="hidden" name="lead_service" value="<?php echo esc_attr($hidden_service); ?>" />
-            <?php endif; ?>
+        <?php if ($variant === "compact") : ?>
             <div class="hr-contact-grid">
                 <div class="hr-contact-field">
                     <label for="ups-f-name-<?php echo esc_attr($origin); ?>">
                         Imię <span aria-hidden="true">*</span>
                     </label>
                     <input id="ups-f-name-<?php echo esc_attr($origin); ?>"
-                           type="text" name="lead_name" placeholder="Sebastian"
+                           type="text" name="lead_name" placeholder="Jan"
                            autocomplete="given-name" required />
                 </div>
                 <div class="hr-contact-field">
+                    <label for="ups-f-phone-<?php echo esc_attr($origin); ?>">
+                        Telefon <span aria-hidden="true">*</span>
+                    </label>
+                    <input id="ups-f-phone-<?php echo esc_attr($origin); ?>"
+                           type="tel" name="lead_phone" placeholder="+48 575 522 595"
+                           autocomplete="tel" inputmode="tel" required />
+                </div>
+                <div class="hr-contact-field full">
                     <label for="ups-f-email-<?php echo esc_attr($origin); ?>">
                         E-mail <span aria-hidden="true">*</span>
                     </label>
                     <input id="ups-f-email-<?php echo esc_attr($origin); ?>"
-                           type="email" name="lead_email" placeholder="kontakt@firma.pl"
+                           type="email" name="lead_email" placeholder="jan@firma.pl"
                            autocomplete="email" required />
                 </div>
                 <div class="hr-contact-field full">
-                    <label for="ups-f-phone-<?php echo esc_attr($origin); ?>">Telefon (opcjonalnie)</label>
-                    <input id="ups-f-phone-<?php echo esc_attr($origin); ?>"
-                           type="tel" name="lead_phone" placeholder="+48..."
-                           autocomplete="tel" />
-                </div>
-                <div class="hr-contact-field full">
-                    <label for="ups-f-msg-<?php echo esc_attr($origin); ?>">
-                        Wiadomość <span aria-hidden="true">*</span>
-                    </label>
+                    <label for="ups-f-msg-<?php echo esc_attr($origin); ?>">Wiadomość (opcjonalnie)</label>
                     <textarea id="ups-f-msg-<?php echo esc_attr($origin); ?>"
-                              name="lead_message" rows="4" required><?php echo esc_textarea($preset_msg); ?></textarea>
+                              name="lead_message" rows="3"
+                              placeholder="<?php echo esc_attr($message_placeholder); ?>"><?php echo esc_textarea($preset_msg); ?></textarea>
                 </div>
                 <div class="hr-contact-field full">
                     <label class="hr-contact-consent">
                         <input type="checkbox" name="lead_consent" value="1" required />
-                        <span>Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</span>
+                        <span>Wyrażam zgodę na kontakt w sprawie zapytania. Szczegóły w <a href="<?php echo esc_url($privacy_url); ?>">polityce prywatności</a>.</span>
                     </label>
                 </div>
             </div>
-
         <?php else : ?>
             <div class="ups-form__row-2">
                 <div>
@@ -246,96 +179,44 @@ function upsellio_render_lead_form(array $args = [])
                         Imię <span aria-hidden="true">*</span>
                     </label>
                     <input class="ups-form__input" id="ups-f-name-<?php echo esc_attr($origin); ?>"
-                           type="text" name="lead_name" placeholder="Sebastian"
+                           type="text" name="lead_name" placeholder="Jan"
                            autocomplete="given-name" required />
                 </div>
                 <div>
-                    <label class="ups-form__label" for="ups-f-company-<?php echo esc_attr($origin); ?>">
-                        Firma
-                    </label>
-                    <input class="ups-form__input" id="ups-f-company-<?php echo esc_attr($origin); ?>"
-                           type="text" name="lead_company" placeholder="Nazwa firmy"
-                           autocomplete="organization" />
-                </div>
-            </div>
-            <div class="ups-form__row-2">
-                <div>
-                    <label class="ups-form__label" for="ups-f-email-<?php echo esc_attr($origin); ?>">
-                        E-mail firmowy <span aria-hidden="true">*</span>
-                    </label>
-                    <input class="ups-form__input" id="ups-f-email-<?php echo esc_attr($origin); ?>"
-                           type="email" name="lead_email" placeholder="kontakt@firma.pl"
-                           autocomplete="email" required />
-                </div>
-                <div>
                     <label class="ups-form__label" for="ups-f-phone-<?php echo esc_attr($origin); ?>">
-                        Telefon (opcjonalnie)
+                        Telefon <span aria-hidden="true">*</span>
                     </label>
                     <input class="ups-form__input" id="ups-f-phone-<?php echo esc_attr($origin); ?>"
-                           type="tel" name="lead_phone" placeholder="+48..."
-                           autocomplete="tel" />
+                           type="tel" name="lead_phone" placeholder="+48 575 522 595"
+                           autocomplete="tel" inputmode="tel" required />
                 </div>
             </div>
-            <?php if ($hidden_service === "" && !empty($service_options)) : ?>
-                <label class="ups-form__label" for="ups-f-service-<?php echo esc_attr($origin); ?>">
-                    Czego szukasz?
+            <div class="ups-form__row">
+                <label class="ups-form__label" for="ups-f-email-<?php echo esc_attr($origin); ?>">
+                    E-mail <span aria-hidden="true">*</span>
                 </label>
-                <select class="ups-form__select" id="ups-f-service-<?php echo esc_attr($origin); ?>"
-                        name="lead_service">
-                    <option value="">Wybierz obszar</option>
-                    <?php foreach ($service_options as $opt) : ?>
-                        <option value="<?php echo esc_attr((string) $opt); ?>">
-                            <?php echo esc_html((string) $opt); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            <?php endif; ?>
-            <?php if ($show_budget) : ?>
-                <label class="ups-form__label" for="ups-f-budget-<?php echo esc_attr($origin); ?>">
-                    <?php echo esc_html($budget_label); ?>
+                <input class="ups-form__input" id="ups-f-email-<?php echo esc_attr($origin); ?>"
+                       type="email" name="lead_email" placeholder="jan@firma.pl"
+                       autocomplete="email" required />
+            </div>
+            <?php if ($require_shop_url) : ?>
+            <div class="ups-form__row">
+                <label class="ups-form__label" for="ups-f-shop-<?php echo esc_attr($origin); ?>">
+                    Link do butiku <span aria-hidden="true">*</span>
                 </label>
-                <select class="ups-form__select" id="ups-f-budget-<?php echo esc_attr($origin); ?>"
-                        name="lead_budget">
-                    <?php foreach ($budget_options as $val => $label) : ?>
-                        <option value="<?php echo esc_attr((string) $val); ?>">
-                            <?php echo esc_html((string) $label); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <input class="ups-form__input" id="ups-f-shop-<?php echo esc_attr($origin); ?>"
+                       type="text" name="lead_shop_url"
+                       placeholder="Facebook lub adres sklepu"
+                       inputmode="url" autocomplete="url" required />
+            </div>
             <?php endif; ?>
-            <?php if ($show_goal) : ?>
-                <label class="ups-form__label" for="ups-f-goal-<?php echo esc_attr($origin); ?>">
-                    Cel kampanii
-                </label>
-                <select class="ups-form__select" id="ups-f-goal-<?php echo esc_attr($origin); ?>"
-                        name="lead_goal">
-                    <option value="">— wybierz —</option>
-                    <?php foreach ($goal_options as $gopt) : ?>
-                        <option value="<?php echo esc_attr($gopt); ?>"><?php echo esc_html($gopt); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            <?php endif; ?>
-            <label class="ups-form__label" for="ups-f-monthly-sales-<?php echo esc_attr($origin); ?>">
-                Twoja miesięczna sprzedaż
-            </label>
-            <select class="ups-form__select" id="ups-f-monthly-sales-<?php echo esc_attr($origin); ?>"
-                    name="lead_monthly_sales">
-                <option value="">— wybierz —</option>
-                <option value="<50k">&lt;50k</option>
-                <option value="50-200k">50-200k</option>
-                <option value="200k-1M">200k-1M</option>
-                <option value="1M+">1M+</option>
-            </select>
-            <label class="ups-form__label" for="ups-f-msg-<?php echo esc_attr($origin); ?>">
-                Wiadomość <span aria-hidden="true">*</span>
-            </label>
+            <label class="ups-form__label" for="ups-f-msg-<?php echo esc_attr($origin); ?>">Wiadomość (opcjonalnie)</label>
             <textarea class="ups-form__textarea" id="ups-f-msg-<?php echo esc_attr($origin); ?>"
-                      name="lead_message"
-                      placeholder="<?php echo esc_attr($message_placeholder); ?>"
-                      rows="5" required><?php echo esc_textarea($preset_msg); ?></textarea>
+                      name="lead_message" rows="3"
+                      placeholder="<?php echo esc_attr($message_placeholder); ?>"><?php echo esc_textarea($preset_msg); ?></textarea>
             <label class="ups-form__consent">
                 <input type="checkbox" name="lead_consent" value="1" required />
-                <span>Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</span>
+                <span>Wyrażam zgodę na kontakt w sprawie zapytania. Szczegóły w <a href="<?php echo esc_url($privacy_url); ?>">polityce prywatności</a>.</span>
             </label>
         <?php endif; ?>
 
@@ -366,7 +247,7 @@ function upsellio_contact_form_shortcode($atts)
             "variant" => "compact",
             "heading" => "Chcesz, żebym przeanalizował Twoją sytuację?",
             "subheading" => "Wyślij krótką wiadomość. Otrzymasz konkretną odpowiedź.",
-            "submit_label" => "Wyślij wiadomość",
+            "submit_label" => "Oddzwonię w ciągu 24h",
             "origin" => "blog-form",
         ],
         $atts,

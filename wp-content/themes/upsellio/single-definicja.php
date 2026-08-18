@@ -495,29 +495,29 @@ while (have_posts()) :
             <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
             <div class="definition-contact-row">
               <label>
-                Imię i firma *
+                Imię *
                 <input type="text" name="lead_name" required />
               </label>
               <label>
-                E-mail *
-                <input type="email" name="lead_email" required />
+                Telefon *
+                <input type="tel" name="lead_phone" placeholder="+48 575 522 595" autocomplete="tel" required />
               </label>
             </div>
             <div class="definition-contact-row">
               <label>
-                Telefon
-                <input type="tel" name="lead_phone" />
+                E-mail *
+                <input type="email" name="lead_email" required />
               </label>
               <label>
-                Co chcesz poprawić? *
-                <textarea name="lead_message" required>Chcę wdrożyć definicję <?php echo esc_textarea($term); ?> w praktyce.</textarea>
+                Wiadomość (opcjonalnie)
+                <textarea name="lead_message" placeholder="Opcjonalnie — krótko, o co chodzi"></textarea>
               </label>
             </div>
             <label class="definition-consent">
               <input type="checkbox" name="lead_consent" value="1" required />
-              <span>Wyrażam zgodę na kontakt w sprawie mojego zapytania.</span>
+              <span>Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</span>
             </label>
-            <button class="definition-tool-btn primary" type="submit">Wyślij formularz</button>
+            <button class="definition-tool-btn primary" type="submit">Oddzwonię w ciągu 24h</button>
           </form>
         </section>
 

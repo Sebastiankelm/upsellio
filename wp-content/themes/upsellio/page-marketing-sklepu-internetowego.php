@@ -599,7 +599,7 @@ get_header();
 
       <form class="shop-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-form="sklep-internetowy">
         <input type="hidden" name="action" value="upsellio_submit_lead">
-        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_unified_lead_nonce"); ?>
+        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
         <input type="hidden" name="lead_form_origin" value="sklep-internetowy-form">
         <input type="hidden" name="lead_source" value="sklep-internetowy-form">
         <input type="hidden" name="lead_service" value="Marketing sklepu internetowego">
@@ -627,51 +627,29 @@ get_header();
 
         <div class="shop-form-grid">
           <div class="shop-field">
-            <label for="shop_name">Imie</label>
+            <label for="shop_name">Imię</label>
             <input type="text" id="shop_name" name="lead_name" placeholder="Jan" required>
           </div>
           <div class="shop-field">
-            <label for="shop_email">Email</label>
+            <label for="shop_phone">Telefon</label>
+            <input type="tel" id="shop_phone" name="lead_phone" placeholder="+48 575 522 595" autocomplete="tel" required>
+          </div>
+          <div class="shop-field shop-field-full">
+            <label for="shop_email">E-mail</label>
             <input type="email" id="shop_email" name="lead_email" placeholder="jan@sklep.pl" required>
           </div>
           <div class="shop-field shop-field-full">
-            <label for="shop_url">Adres sklepu</label>
-            <input type="url" id="shop_url" name="lead_company_url" placeholder="https://twojsklep.pl" required>
-          </div>
-          <div class="shop-field">
-            <label for="shop_platform">Platforma sklepu</label>
-            <select id="shop_platform" name="lead_source_detail">
-              <option value="">— wybierz —</option>
-              <option value="shopify">Shopify</option>
-              <option value="woocommerce">WooCommerce</option>
-              <option value="magento">Magento</option>
-              <option value="prestashop">PrestaShop</option>
-              <option value="custom">Custom / inne</option>
-            </select>
-          </div>
-          <div class="shop-field">
-            <label for="shop_revenue">Miesieczny przychod <span class="opt">orientacyjnie</span></label>
-            <select id="shop_revenue" name="lead_budget">
-              <option value="">— wybierz —</option>
-              <option value="<30k">ponizej 30 000 zl</option>
-              <option value="30-100k">30 000 - 100 000 zl</option>
-              <option value="100-300k">100 000 - 300 000 zl</option>
-              <option value="300-1M">300 000 - 1 000 000 zl</option>
-              <option value=">1M">powyzej 1 mln zl</option>
-            </select>
-          </div>
-          <div class="shop-field shop-field-full">
-            <label for="shop_message">Co Cie najbardziej trapi? <span class="opt">opcjonalnie, ale pomaga</span></label>
-            <textarea id="shop_message" name="lead_message" placeholder="np. ROAS spadl z 4× do 1,8× w 6 miesiecy."></textarea>
+            <label for="shop_message">Wiadomość <span class="opt">opcjonalnie</span></label>
+            <textarea id="shop_message" name="lead_message" placeholder="Opcjonalnie — krótko, o co chodzi"></textarea>
           </div>
         </div>
 
         <div class="shop-field shop-field-full">
           <input type="checkbox" id="shop_consent" name="lead_consent" value="1" required style="margin-right: 8px;">
-          <label for="shop_consent" style="display: inline; font-size: 13px;">Zgadzam sie na przetwarzanie danych osobowych w celu kontaktu.</label>
+          <label for="shop_consent" style="display: inline; font-size: 13px;">Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</label>
         </div>
 
-        <button type="submit" class="shop-form-submit" data-cta="form-submit">Umow bezplatny audyt →</button>
+        <button type="submit" class="shop-form-submit" data-cta="form-submit">Oddzwonię w ciągu 24h</button>
 
         <p class="shop-form-meta">
           Twoje dane sluza wylacznie do umowienia audytu. Nie zapisuje Cie na newsletter i nie sprzedaje bazy.

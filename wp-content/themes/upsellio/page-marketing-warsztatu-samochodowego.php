@@ -521,7 +521,7 @@ get_header();
 
       <form class="war-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-form="warsztat-samochodowy">
         <input type="hidden" name="action" value="upsellio_submit_lead">
-        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_unified_lead_nonce"); ?>
+        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
         <input type="hidden" name="lead_form_origin" value="warsztat-samochodowy-form">
         <input type="hidden" name="lead_source" value="warsztat-samochodowy-form">
         <input type="hidden" name="lead_service" value="Marketing warsztatu samochodowego">
@@ -549,43 +549,29 @@ get_header();
 
         <div class="war-form-grid">
           <div class="war-field">
-            <label for="war_name">Imie</label>
+            <label for="war_name">Imię</label>
             <input type="text" id="war_name" name="lead_name" placeholder="Jan" required>
           </div>
           <div class="war-field">
-            <label for="war_email">Email</label>
+            <label for="war_phone">Telefon</label>
+            <input type="tel" id="war_phone" name="lead_phone" placeholder="+48 575 522 595" autocomplete="tel" required>
+          </div>
+          <div class="war-field war-field-full">
+            <label for="war_email">E-mail</label>
             <input type="email" id="war_email" name="lead_email" placeholder="jan@warsztat.pl" required>
           </div>
           <div class="war-field war-field-full">
-            <label for="war_business">Nazwa warsztatu i miasto</label>
-            <input type="text" id="war_business" name="lead_company" placeholder="np. Auto Serwis Krajewski — Lublin" required>
-          </div>
-          <div class="war-field">
-            <label for="war_size">Rozmiar warsztatu</label>
-            <select id="war_size" name="lead_goal_detail">
-              <option value="">— wybierz —</option>
-              <option value="solo">Solo — pracuje sam</option>
-              <option value="2-3-stanowiska">2-3 stanowiska, 2-3 mechanikow</option>
-              <option value="4-6-stanowisk">4-6 stanowisk, 3-5 mechanikow</option>
-              <option value="7+">7+ stanowisk, wieksza ekipa</option>
-            </select>
-          </div>
-          <div class="war-field">
-            <label for="war_speciality">Glowne specjalizacje</label>
-            <input type="text" id="war_speciality" name="lead_source_detail" placeholder="np. mechanika ogolna, opony, klimatyzacja">
-          </div>
-          <div class="war-field war-field-full">
-            <label for="war_message">Co Cie najbardziej trapi? <span class="opt">opcjonalnie, ale pomaga</span></label>
-            <textarea id="war_message" name="lead_message" placeholder="np. Mam 4 stanowiska, ale piatki sa puste."></textarea>
+            <label for="war_message">Wiadomość <span class="opt">opcjonalnie</span></label>
+            <textarea id="war_message" name="lead_message" placeholder="Opcjonalnie — krótko, o co chodzi"></textarea>
           </div>
         </div>
 
         <div class="war-field war-field-full">
           <input type="checkbox" id="war_consent" name="lead_consent" value="1" required style="margin-right: 8px;">
-          <label for="war_consent" style="display: inline; font-size: 13px;">Zgadzam sie na przetwarzanie danych osobowych w celu kontaktu.</label>
+          <label for="war_consent" style="display: inline; font-size: 13px;">Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</label>
         </div>
 
-        <button type="submit" class="war-form-submit" data-cta="form-submit">Umow bezplatna konsultacje →</button>
+        <button type="submit" class="war-form-submit" data-cta="form-submit">Oddzwonię w ciągu 24h</button>
 
         <p class="war-form-meta">
           Twoje dane sluza wylacznie do umowienia konsultacji. Nie zapisuje Cie na newsletter i nie sprzedaje bazy.

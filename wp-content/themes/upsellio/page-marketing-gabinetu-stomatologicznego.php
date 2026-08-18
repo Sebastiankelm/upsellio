@@ -533,7 +533,7 @@ get_header();
 
       <form class="dent-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-form="gabinet-stomatologiczny">
         <input type="hidden" name="action" value="upsellio_submit_lead">
-        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_unified_lead_nonce"); ?>
+        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
         <input type="hidden" name="lead_form_origin" value="gabinet-stomatologiczny-form">
         <input type="hidden" name="lead_source" value="gabinet-stomatologiczny-form">
         <input type="hidden" name="lead_service" value="Marketing gabinetu stomatologicznego">
@@ -561,43 +561,29 @@ get_header();
 
         <div class="dent-form-grid">
           <div class="dent-field">
-            <label for="dent_name">Imie</label>
+            <label for="dent_name">Imię</label>
             <input type="text" id="dent_name" name="lead_name" placeholder="Anna" required>
           </div>
           <div class="dent-field">
-            <label for="dent_email">Email</label>
+            <label for="dent_phone">Telefon</label>
+            <input type="tel" id="dent_phone" name="lead_phone" placeholder="+48 575 522 595" autocomplete="tel" required>
+          </div>
+          <div class="dent-field dent-field-full">
+            <label for="dent_email">E-mail</label>
             <input type="email" id="dent_email" name="lead_email" placeholder="anna@gabinet.pl" required>
           </div>
           <div class="dent-field dent-field-full">
-            <label for="dent_business">Nazwa gabinetu i miasto</label>
-            <input type="text" id="dent_business" name="lead_company" placeholder="np. Gabinet Dental Pro — Wroclaw" required>
-          </div>
-          <div class="dent-field">
-            <label for="dent_size">Rozmiar gabinetu</label>
-            <select id="dent_size" name="lead_goal_detail">
-              <option value="">— wybierz —</option>
-              <option value="1-fotel">1 fotel (solo)</option>
-              <option value="2-3-foteli">2-3 fotele</option>
-              <option value="4-6-foteli">4-6 foteli</option>
-              <option value="7+">powyzej 7 foteli</option>
-            </select>
-          </div>
-          <div class="dent-field">
-            <label for="dent_speciality">Glowna specjalizacja</label>
-            <input type="text" id="dent_speciality" name="lead_source_detail" placeholder="np. implanty, ortodoncja, protetyka">
-          </div>
-          <div class="dent-field dent-field-full">
-            <label for="dent_message">Co Cie najbardziej trapi? <span class="opt">opcjonalnie, ale pomaga</span></label>
-            <textarea id="dent_message" name="lead_message" placeholder="np. Mam wolne miejsca na implanty, ale pacjenci wpadaja tylko na bole."></textarea>
+            <label for="dent_message">Wiadomość <span class="opt">opcjonalnie</span></label>
+            <textarea id="dent_message" name="lead_message" placeholder="Opcjonalnie — krótko, o co chodzi"></textarea>
           </div>
         </div>
 
         <div class="dent-field dent-field-full">
           <input type="checkbox" id="dent_consent" name="lead_consent" value="1" required style="margin-right: 8px;">
-          <label for="dent_consent" style="display: inline; font-size: 13px;">Zgadzam sie na przetwarzanie danych osobowych w celu kontaktu.</label>
+          <label for="dent_consent" style="display: inline; font-size: 13px;">Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</label>
         </div>
 
-        <button type="submit" class="dent-form-submit" data-cta="form-submit">Umow bezplatna konsultacje →</button>
+        <button type="submit" class="dent-form-submit" data-cta="form-submit">Oddzwonię w ciągu 24h</button>
         <p class="dent-form-meta">Twoje dane sluza wylacznie do umowienia konsultacji. Nie zapisuje Cie na newsletter i nie sprzedaje bazy.</p>
       </form>
     </div>

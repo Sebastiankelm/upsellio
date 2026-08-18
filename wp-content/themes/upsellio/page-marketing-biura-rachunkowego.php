@@ -657,7 +657,7 @@ get_header();
 
       <form class="br-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-form="biuro-rachunkowe">
         <input type="hidden" name="action" value="upsellio_submit_lead">
-        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_unified_lead_nonce"); ?>
+        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
         <input type="hidden" name="lead_form_origin" value="biuro-rachunkowe-form">
         <input type="hidden" name="lead_source" value="biuro-rachunkowe-form">
         <input type="hidden" name="lead_service" value="Marketing biura rachunkowego">
@@ -685,43 +685,29 @@ get_header();
 
         <div class="br-form-grid">
           <div class="br-field">
-            <label for="br_name">Imie</label>
+            <label for="br_name">Imię</label>
             <input type="text" id="br_name" name="lead_name" placeholder="Anna" required>
           </div>
           <div class="br-field">
-            <label for="br_email">Email</label>
+            <label for="br_phone">Telefon</label>
+            <input type="tel" id="br_phone" name="lead_phone" placeholder="+48 575 522 595" autocomplete="tel" required>
+          </div>
+          <div class="br-field br-field-full">
+            <label for="br_email">E-mail</label>
             <input type="email" id="br_email" name="lead_email" placeholder="anna@biuro.pl" required>
           </div>
           <div class="br-field br-field-full">
-            <label for="br_business">Nazwa biura i miasto</label>
-            <input type="text" id="br_business" name="lead_company" placeholder="np. Biuro Rachunkowe Anna Nowak — Poznan" required>
-          </div>
-          <div class="br-field">
-            <label for="br_size">Liczba stalych klientow</label>
-            <select id="br_size" name="lead_goal_detail">
-              <option value="">— wybierz —</option>
-              <option value="<20">ponizej 20 klientow</option>
-              <option value="20-50">20-50 klientow</option>
-              <option value="50-100">50-100 klientow</option>
-              <option value=">100">powyzej 100 klientow</option>
-            </select>
-          </div>
-          <div class="br-field">
-            <label for="br_speciality">Glowna specjalizacja <span class="opt">opcjonalnie</span></label>
-            <input type="text" id="br_speciality" name="lead_source_detail" placeholder="np. spolki z o.o., e-commerce, IT">
-          </div>
-          <div class="br-field br-field-full">
-            <label for="br_message">Co Cie najbardziej trapi? <span class="opt">opcjonalnie, ale pomaga</span></label>
-            <textarea id="br_message" name="lead_message" placeholder="np. Klienci wpadaja tylko z polecenia, nie da sie planowac."></textarea>
+            <label for="br_message">Wiadomość <span class="opt">opcjonalnie</span></label>
+            <textarea id="br_message" name="lead_message" placeholder="Opcjonalnie — krótko, o co chodzi"></textarea>
           </div>
         </div>
 
         <div class="br-field br-field-full">
           <input type="checkbox" id="br_consent" name="lead_consent" value="1" required style="margin-right: 8px;">
-          <label for="br_consent" style="display: inline; font-size: 13px;">Zgadzam sie na przetwarzanie danych osobowych w celu kontaktu.</label>
+          <label for="br_consent" style="display: inline; font-size: 13px;">Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</label>
         </div>
 
-        <button type="submit" class="br-form-submit" data-cta="form-submit">Umow bezplatna konsultacje →</button>
+        <button type="submit" class="br-form-submit" data-cta="form-submit">Oddzwonię w ciągu 24h</button>
         <p class="br-form-meta">Twoje dane sluza wylacznie do umowienia konsultacji. Nie zapisuje Cie na newsletter i nie sprzedaje bazy.</p>
       </form>
     </div>

@@ -826,6 +826,8 @@ function upsellio_crm_send_emails($lead_id, $name, $email, $message)
     $score_reason = (string) get_post_meta($lead_id, "_upsellio_lead_score_reason", true);
     $company = (string) get_post_meta($lead_id, "_upsellio_lead_company", true);
     $service = (string) get_post_meta($lead_id, "_upsellio_lead_service", true);
+    $package = (string) get_post_meta($lead_id, "_upsellio_lead_package", true);
+    $shop_url = (string) get_post_meta($lead_id, "_upsellio_lead_shop_url", true);
     $utm_source = (string) get_post_meta($lead_id, "_upsellio_lead_utm_source", true);
     $gclid = get_post_meta($lead_id, "_upsellio_lead_gclid", true) ? "✓" : "";
     $quiz_industry = (string) get_post_meta($lead_id, "_upsellio_lead_quiz_industry", true);
@@ -839,6 +841,8 @@ function upsellio_crm_send_emails($lead_id, $name, $email, $message)
 <p><strong>Zgłoszenie:</strong></p><blockquote style='border-left:3px solid #e5e7eb;padding:8px 12px;color:#475569;font-style:italic;'>" . nl2br(esc_html($message)) . "</blockquote>
 <p><strong>Kontekst:</strong></p><table style='font-size:13px;border-collapse:collapse;'>
 <tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Usługa:</td><td>" . esc_html($service ?: "—") . "</td></tr>
+<tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Pakiet:</td><td>" . esc_html($package !== "" ? $package : "nie wybrano") . "</td></tr>
+<tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Butik:</td><td>" . ($shop_url !== "" ? esc_html($shop_url) : "—") . "</td></tr>
 <tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Quiz:</td><td>" . esc_html($quiz_problem) . " · " . esc_html($quiz_industry) . " · " . esc_html($quiz_budget) . "</td></tr>
 <tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Źródło:</td><td>" . esc_html($utm_source ?: "organic") . " " . esc_html($gclid) . "</td></tr>
 <tr><td style='padding:3px 12px 3px 0;color:#64748b;'>Zgoda:</td><td>" . esc_html($consent_at !== "" ? $consent_at : "brak daty") . "</td></tr>
@@ -934,11 +938,38 @@ function upsellio_crm_handle_lead_submission()
 
     $name = isset($_POST["lead_name"]) ? sanitize_text_field(wp_unslash($_POST["lead_name"])) : "";
     $email = isset($_POST["lead_email"]) ? sanitize_email(wp_unslash($_POST["lead_email"])) : "";
+    $phone = isset($_POST["lead_phone"]) ? sanitize_text_field(wp_unslash($_POST["lead_phone"])) : "";
     $message = isset($_POST["lead_message"]) ? sanitize_textarea_field(wp_unslash($_POST["lead_message"])) : "";
+    $shop_url = array_key_exists("lead_shop_url", $_POST)
+        ? sanitize_text_field(wp_unslash($_POST["lead_shop_url"]))
+        : "";
     $consent = isset($_POST["lead_consent"]) ? sanitize_text_field(wp_unslash($_POST["lead_consent"])) : "";
+    $phone_digits = preg_replace("/\D+/", "", $phone);
 
-    if ($name === "" || !is_email($email) || $message === "" || $consent !== "1") {
+    if ($name === "" || !is_email($email) || strlen((string) $phone_digits) < 9 || $consent !== "1") {
         upsellio_crm_redirect_lead_form_error($redirectUrl, "fields");
+    }
+    if (array_key_exists("lead_shop_url", $_POST) && $shop_url === "") {
+        upsellio_crm_redirect_lead_form_error($redirectUrl, "shop");
+    }
+    if ($message === "") {
+        $message = "Prośba o oddzwonienie.";
+    }
+    if ($shop_url !== "" && stripos($message, "Link do butiku:") === false) {
+        $message = "Link do butiku: " . $shop_url . "\n\n" . $message;
+    }
+
+    $package = isset($_POST["lead_package"]) ? sanitize_text_field(wp_unslash($_POST["lead_package"])) : "";
+    $service = isset($_POST["lead_service"]) ? sanitize_text_field(wp_unslash($_POST["lead_service"])) : "";
+    if ($package !== "") {
+        if (stripos($message, "Pakiet:") === false) {
+            $message = "Pakiet: " . $package . "\n\n" . $message;
+        }
+        if ($service === "") {
+            $service = $package;
+        } elseif (stripos($service, $package) === false) {
+            $service .= " — " . $package;
+        }
     }
 
     $consentTimestamp = current_time("mysql");
@@ -966,9 +997,9 @@ function upsellio_crm_handle_lead_submission()
         "name" => $name,
         "email" => $email,
         "company" => $company,
-        "phone" => isset($_POST["lead_phone"]) ? sanitize_text_field(wp_unslash($_POST["lead_phone"])) : "",
+        "phone" => $phone,
         "message" => $message,
-        "service" => isset($_POST["lead_service"]) ? sanitize_text_field(wp_unslash($_POST["lead_service"])) : "",
+        "service" => $service,
         "budget" => isset($_POST["lead_budget"]) ? sanitize_text_field(wp_unslash($_POST["lead_budget"])) : "",
         "goal" => isset($_POST["lead_goal"]) ? sanitize_text_field(wp_unslash($_POST["lead_goal"])) : "",
         "monthly_sales" => isset($_POST["lead_monthly_sales"]) ? sanitize_text_field(wp_unslash($_POST["lead_monthly_sales"])) : "",
@@ -1001,6 +1032,14 @@ function upsellio_crm_handle_lead_submission()
     $leadId = upsellio_crm_create_lead($payload);
     if ($leadId <= 0) {
         upsellio_crm_redirect_lead_form_error($redirectUrl, "save");
+    }
+    if ($package !== "") {
+        update_post_meta((int) $leadId, "_upsellio_lead_package", $package);
+        upsellio_crm_add_timeline_event((int) $leadId, "package", "Wybrany pakiet: " . $package);
+    }
+    if ($shop_url !== "") {
+        update_post_meta((int) $leadId, "_upsellio_lead_shop_url", $shop_url);
+        upsellio_crm_add_timeline_event((int) $leadId, "shop", "Link do butiku: " . $shop_url);
     }
 
     if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
@@ -1116,6 +1155,8 @@ function upsellio_crm_render_lead_meta_box($post)
     $email = get_post_meta($post->ID, "_upsellio_lead_email", true);
     $phone = get_post_meta($post->ID, "_upsellio_lead_phone", true);
     $service = get_post_meta($post->ID, "_upsellio_lead_service", true);
+    $package = get_post_meta($post->ID, "_upsellio_lead_package", true);
+    $shop_url = get_post_meta($post->ID, "_upsellio_lead_shop_url", true);
     $budget = get_post_meta($post->ID, "_upsellio_lead_budget", true);
     $goal = get_post_meta($post->ID, "_upsellio_lead_goal", true);
     $monthlySales = get_post_meta($post->ID, "_upsellio_lead_monthly_sales", true);
@@ -1154,6 +1195,16 @@ function upsellio_crm_render_lead_meta_box($post)
     <p>
       <label><strong>Usługa</strong><br />
         <input type="text" name="upsellio_lead_service" value="<?php echo esc_attr((string) $service); ?>" class="widefat" />
+      </label>
+    </p>
+    <p>
+      <label><strong>Pakiet z landingu</strong><br />
+        <input type="text" name="upsellio_lead_package" value="<?php echo esc_attr((string) $package); ?>" class="widefat" />
+      </label>
+    </p>
+    <p>
+      <label><strong>Link do butiku</strong><br />
+        <input type="text" name="upsellio_lead_shop_url" value="<?php echo esc_attr((string) $shop_url); ?>" class="widefat" />
       </label>
     </p>
     <p>
@@ -1261,6 +1312,12 @@ function upsellio_crm_save_lead_meta($post_id)
     update_post_meta($post_id, "_upsellio_lead_email", sanitize_email(wp_unslash($_POST["upsellio_lead_email"] ?? "")));
     update_post_meta($post_id, "_upsellio_lead_phone", sanitize_text_field(wp_unslash($_POST["upsellio_lead_phone"] ?? "")));
     update_post_meta($post_id, "_upsellio_lead_service", sanitize_text_field(wp_unslash($_POST["upsellio_lead_service"] ?? "")));
+    if (isset($_POST["upsellio_lead_package"])) {
+        update_post_meta($post_id, "_upsellio_lead_package", sanitize_text_field(wp_unslash($_POST["upsellio_lead_package"])));
+    }
+    if (isset($_POST["upsellio_lead_shop_url"])) {
+        update_post_meta($post_id, "_upsellio_lead_shop_url", sanitize_text_field(wp_unslash($_POST["upsellio_lead_shop_url"])));
+    }
     update_post_meta($post_id, "_upsellio_lead_budget", sanitize_text_field(wp_unslash($_POST["upsellio_lead_budget"] ?? "")));
     update_post_meta($post_id, "_upsellio_lead_goal", sanitize_text_field(wp_unslash($_POST["upsellio_lead_goal"] ?? "")));
     update_post_meta($post_id, "_upsellio_lead_monthly_sales", sanitize_text_field(wp_unslash($_POST["upsellio_lead_monthly_sales"] ?? "")));

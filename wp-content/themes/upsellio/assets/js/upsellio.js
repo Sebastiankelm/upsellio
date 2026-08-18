@@ -751,6 +751,7 @@
     if (o === "landing-reklama-form") return "lead_form_submit";
     if (o === "landing-www-form") return "lead_form_submit";
     if (o === "landing-b2c-form") return "lead_form_submit";
+    if (o === "landing-butik-form") return "lead_form_submit";
     if (o === "audit-form") return "lead_audit_form";
     if (o === "blog-form") return "lead_blog_form";
     if (o === "home-lead-magnet" || o === "lead-magnet-single") return "";
@@ -858,7 +859,8 @@
     if (
       formOrigin === "landing-reklama-form" ||
       formOrigin === "landing-www-form" ||
-      formOrigin === "landing-b2c-form"
+      formOrigin === "landing-b2c-form" ||
+      formOrigin === "landing-butik-form"
     ) {
       payload.form_type = "free_consultation";
     }
@@ -867,6 +869,9 @@
     }
     if (formOrigin === "landing-b2c-form") {
       payload.service_category = "b2c_marketing";
+    }
+    if (formOrigin === "landing-butik-form") {
+      payload.service_category = "boutique_marketing";
     }
     return payload;
   }
@@ -1139,7 +1144,7 @@
     var byReason = {
       nonce:
         "Sesja formularza wygasła (strona otwarta długo lub z pamięci podręcznej). Odśwież stronę (F5) i wyślij ponownie.",
-      fields: "Uzupełnij wymagane pola (imię, e-mail, wiadomość) i zaznacz zgodę na kontakt.",
+      fields: "Uzupełnij wymagane pola (imię, telefon, e-mail) i zaznacz zgodę na kontakt.",
       rate: "Zbyt wiele prób z tej sieci lub adresu e-mail. Spróbuj ponownie za około godzinę albo napisz na kontakt@upsellio.pl.",
       save: "Nie udało się zapisać zgłoszenia. Napisz na kontakt@upsellio.pl — odbiorę wiadomość.",
     };
@@ -1250,6 +1255,23 @@
         event.preventDefault();
         const defaultText = serverSubmit.textContent || serverSubmit.value || "Wyślij";
         let feedback = serverForm.querySelector("[data-form-feedback]");
+        const nameVal = ((serverForm.querySelector("[name='lead_name']") || {}).value || "").trim();
+        const emailVal = ((serverForm.querySelector("[name='lead_email']") || {}).value || "").trim();
+        const phoneVal = ((serverForm.querySelector("[name='lead_phone']") || {}).value || "").replace(/\D+/g, "");
+        const consentEl = serverForm.querySelector("[name='lead_consent']");
+        if (!nameVal || !emailVal || phoneVal.length < 9 || !(consentEl && consentEl.checked)) {
+          if (!feedback) {
+            feedback = document.createElement("div");
+            feedback.setAttribute("data-form-feedback", "1");
+            feedback.setAttribute("role", "status");
+            feedback.className = "form-feedback";
+            serverForm.insertBefore(feedback, serverForm.firstChild);
+          }
+          feedback.textContent = "Uzupełnij wymagane pola (imię, telefon, e-mail) i zaznacz zgodę na kontakt.";
+          feedback.classList.remove("is-success");
+          feedback.classList.add("is-error");
+          return;
+        }
         if (!feedback) {
           feedback = document.createElement("div");
           feedback.setAttribute("data-form-feedback", "1");
@@ -1291,7 +1313,7 @@
             throw new Error(msg || "Nie udało się wysłać formularza. Odśwież stronę i spróbuj ponownie.");
           }
 
-          feedback.textContent = "Dziękuję! Wiadomość została zapisana i odezwę się możliwie szybko.";
+          feedback.textContent = "Dziękuję! Oddzwonię w ciągu 24h.";
           feedback.classList.add("is-success");
           if (!skipAnalytics && typeof window.gtag === "function") {
             window.gtag("event", "lead_form_submitted", {
@@ -1400,7 +1422,7 @@
             throw new Error(msgOffer || "Nie udało się wysłać formularza. Odśwież stronę i spróbuj ponownie.");
           }
 
-          feedback.textContent = "Dziękuję! Wiadomość została zapisana i odezwę się możliwie szybko.";
+          feedback.textContent = "Dziękuję! Oddzwonię w ciągu 24h.";
           feedback.style.display = "block";
           feedback.style.border = "1px solid #c3eddd";
           feedback.style.background = "#e8f8f2";

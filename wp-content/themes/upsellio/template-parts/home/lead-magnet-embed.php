@@ -52,7 +52,6 @@ $lead_magnet_format_label = !empty($lead_magnet_format_parts) ? "Format: " . imp
           <input type="hidden" name="lead_form_origin" value="home-lead-magnet" />
           <input type="hidden" name="lead_source" value="home-lead-magnet" />
           <input type="hidden" name="lead_service" value="<?php echo esc_attr($lead_magnet_title); ?>" />
-          <input type="hidden" name="lead_message" value="<?php echo esc_attr("Pobranie materiału: " . $lead_magnet_title); ?>" />
           <input type="hidden" name="lead_magnet_name" value="<?php echo esc_attr($lead_magnet_title); ?>" />
           <input type="hidden" name="utm_source" data-ups-utm="source" value="" />
           <input type="hidden" name="utm_medium" data-ups-utm="medium" value="" />
@@ -63,13 +62,17 @@ $lead_magnet_format_label = !empty($lead_magnet_format_parts) ? "Format: " . imp
           <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
           <label for="home-lm-name">Imię *</label>
           <input id="home-lm-name" class="input" type="text" name="lead_name" required />
+          <label for="home-lm-phone">Telefon *</label>
+          <input id="home-lm-phone" class="input" type="tel" name="lead_phone" autocomplete="tel" placeholder="+48 575 522 595" required />
           <label for="home-lm-email">E-mail *</label>
           <input id="home-lm-email" class="input" type="email" name="lead_email" required />
+          <label for="home-lm-message">Wiadomość (opcjonalnie)</label>
+          <textarea id="home-lm-message" class="input" name="lead_message" rows="3" placeholder="Opcjonalnie — krótko, o co chodzi"></textarea>
           <label class="hero-consent">
             <input type="checkbox" name="lead_consent" value="1" required />
-            <span>Wyrażam zgodę na kontakt w sprawie pobranego materiału.</span>
+            <span>Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</span>
           </label>
-          <button type="submit" class="btn btn-primary">Pobierz materiał</button>
+          <button type="submit" class="btn btn-primary">Oddzwonię w ciągu 24h</button>
         </form>
       </div>
     </div>

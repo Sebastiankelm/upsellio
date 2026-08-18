@@ -1099,20 +1099,16 @@ get_header();
             <input type="text" id="audit_www_name" name="lead_name" placeholder="Jan" autocomplete="given-name" required>
           </div>
           <div class="asw-field">
-            <label for="audit_www_email">Email</label>
+            <label for="audit_www_phone">Telefon</label>
+            <input type="tel" id="audit_www_phone" name="lead_phone" placeholder="+48 575 522 595" autocomplete="tel" required>
+          </div>
+          <div class="asw-field asw-field-full">
+            <label for="audit_www_email">E-mail</label>
             <input type="email" id="audit_www_email" name="lead_email" placeholder="jan@firma.pl" autocomplete="email" required>
           </div>
           <div class="asw-field asw-field-full">
-            <label for="audit_www_url">Adres strony www</label>
-            <input type="text" id="audit_www_url" name="lead_company" placeholder="https://twoja-firma.pl" required>
-          </div>
-          <div class="asw-field asw-field-full">
-            <label for="audit_www_goal">Główny cel strony <span class="opt">opcjonalnie</span></label>
-            <input type="text" id="audit_www_goal" name="lead_goal" placeholder="np. zapytania ofertowe, rezerwacja konsultacji, sprzedaż produktów">
-          </div>
-          <div class="asw-field asw-field-full">
-            <label for="audit_www_message">Co Cię najbardziej trapi? <span class="opt">opcjonalnie, ale pomaga</span></label>
-            <textarea id="audit_www_message" name="lead_message" placeholder="np. Wydaję 3000 zł na Google Ads, ruch jest, ale formularzy mało. Albo: konkurencja konwertuje lepiej i nie wiem czemu." required></textarea>
+            <label for="audit_www_message">Wiadomość <span class="opt">opcjonalnie</span></label>
+            <textarea id="audit_www_message" name="lead_message" placeholder="Opcjonalnie — krótko, o co chodzi"></textarea>
           </div>
         </div>
 
@@ -1121,7 +1117,7 @@ get_header();
           <span>Wyrażam zgodę na kontakt w sprawie audytu i akceptuję <a href="<?php echo esc_url(home_url("/polityka-prywatnosci/")); ?>" target="_blank" rel="noopener noreferrer">politykę prywatności</a>.</span>
         </label>
 
-        <button type="submit" class="asw-form-submit" data-cta="audyt-www-final-submit" data-cta-section="final-form" data-cta-position="submit">Umów bezpłatny audyt strony →</button>
+        <button type="submit" class="asw-form-submit" data-cta="audyt-www-final-submit" data-cta-section="final-form" data-cta-position="submit">Oddzwonię w ciągu 24h</button>
 
         <p class="asw-form-meta">
           Twoje dane służą wyłącznie do umówienia audytu. Nie zapisuję Cię na newsletter,<br>nie sprzedaję bazy. Po audycie kasuję dane jeśli nie nawiążemy współpracy.

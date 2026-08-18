@@ -327,7 +327,6 @@ add_action("wp_head", static function () use ($post_id, $title, $lead_magnet_des
           <input type="hidden" name="landing_url" data-ups-context="landing" value="" />
           <input type="hidden" name="referrer" data-ups-context="referrer" value="" />
           <input type="hidden" name="lead_service" value="<?php echo esc_attr($title); ?>" />
-          <input type="hidden" name="lead_message" value="<?php echo esc_attr("Pobranie materiału: " . $title); ?>" />
           <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;" />
           <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
           <div class="field">
@@ -335,16 +334,24 @@ add_action("wp_head", static function () use ($post_id, $title, $lead_magnet_des
             <input id="lms-name" name="lead_name" type="text" autocomplete="given-name" inputmode="text" required />
           </div>
           <div class="field">
+            <label for="lms-phone">Telefon *</label>
+            <input id="lms-phone" name="lead_phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="+48 575 522 595" required />
+          </div>
+          <div class="field">
             <label for="lms-email">E-mail *</label>
             <input id="lms-email" name="lead_email" type="email" autocomplete="email" inputmode="email" required />
           </div>
           <div class="field">
+            <label for="lms-message">Wiadomość (opcjonalnie)</label>
+            <textarea id="lms-message" name="lead_message" rows="3" placeholder="Opcjonalnie — krótko, o co chodzi"></textarea>
+          </div>
+          <div class="field">
             <label style="display:flex;gap:8px;align-items:flex-start;">
               <input type="checkbox" name="lead_consent" value="1" required style="width:auto;min-height:auto;margin-top:3px;" />
-              <span>Wyrażam zgodę na kontakt w sprawie pobranego materiału.</span>
+              <span>Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</span>
             </label>
           </div>
-          <button class="lms-submit" type="submit">Pobierz materiał</button>
+          <button class="lms-submit" type="submit">Oddzwonię w ciągu 24h</button>
           <div class="lms-form-trust">Bez spamu. Wypis jednym kliknięciem. Materiał trafi na podany e-mail.</div>
         </form>
       </aside>

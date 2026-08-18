@@ -1259,7 +1259,7 @@ get_header();
 
       <form class="rest-form" method="post" action="<?php echo esc_url(admin_url("admin-post.php")); ?>" data-form="restauracja">
         <input type="hidden" name="action" value="upsellio_submit_lead">
-        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_unified_lead_nonce"); ?>
+        <?php wp_nonce_field("upsellio_unified_lead_form", "upsellio_lead_form_nonce"); ?>
         <input type="hidden" name="lead_form_origin" value="restauracja-form">
         <input type="hidden" name="lead_source" value="restauracja-form">
         <input type="hidden" name="lead_service" value="Marketing restauracji">
@@ -1287,49 +1287,29 @@ get_header();
 
         <div class="rest-form-grid">
           <div class="rest-field">
-            <label for="rest_name">Imie</label>
+            <label for="rest_name">Imię</label>
             <input type="text" id="rest_name" name="lead_name" placeholder="Jan" required>
           </div>
           <div class="rest-field">
-            <label for="rest_email">Email</label>
+            <label for="rest_phone">Telefon</label>
+            <input type="tel" id="rest_phone" name="lead_phone" placeholder="+48 575 522 595" autocomplete="tel" required>
+          </div>
+          <div class="rest-field rest-field-full">
+            <label for="rest_email">E-mail</label>
             <input type="email" id="rest_email" name="lead_email" placeholder="jan@restauracja.pl" required>
           </div>
           <div class="rest-field rest-field-full">
-            <label for="rest_business">Nazwa lokalu i miasto</label>
-            <input type="text" id="rest_business" name="lead_company" placeholder="np. Restauracja Bellevue — Wroclaw" required>
-          </div>
-          <div class="rest-field">
-            <label for="rest_size">Liczba miejsc</label>
-            <select id="rest_size" name="lead_goal_detail">
-              <option value="">— wybierz —</option>
-              <option value="<25">ponizej 25 miejsc</option>
-              <option value="25-50">25-50 miejsc</option>
-              <option value="50-100">50-100 miejsc</option>
-              <option value=">100">powyzej 100 miejsc</option>
-            </select>
-          </div>
-          <div class="rest-field">
-            <label for="rest_revenue">Miesieczny obrot <span class="opt">orientacyjnie</span></label>
-            <select id="rest_revenue" name="lead_budget">
-              <option value="">— wybierz —</option>
-              <option value="<50k">ponizej 50 000 zl</option>
-              <option value="50-100k">50 000 - 100 000 zl</option>
-              <option value="100-200k">100 000 - 200 000 zl</option>
-              <option value=">200k">powyzej 200 000 zl</option>
-            </select>
-          </div>
-          <div class="rest-field rest-field-full">
-            <label for="rest_message">Co Cie najbardziej trapi? <span class="opt">opcjonalnie, ale pomaga</span></label>
-            <textarea id="rest_message" name="lead_message" placeholder="np. Weekend pelny, ale wtorki i srody sa tragiczne."></textarea>
+            <label for="rest_message">Wiadomość <span class="opt">opcjonalnie</span></label>
+            <textarea id="rest_message" name="lead_message" placeholder="Opcjonalnie — krótko, o co chodzi"></textarea>
           </div>
         </div>
 
         <div class="rest-field rest-field-full">
           <input type="checkbox" id="rest_consent" name="lead_consent" value="1" required style="margin-right: 8px;">
-          <label for="rest_consent" style="display: inline; font-size: 13px;">Zgadzam sie na przetwarzanie danych osobowych w celu kontaktu.</label>
+          <label for="rest_consent" style="display: inline; font-size: 13px;">Wyrażam zgodę na kontakt w sprawie przesłanego zapytania.</label>
         </div>
 
-        <button type="submit" class="rest-form-submit" data-cta="form-submit">Umow bezplatna konsultacje →</button>
+        <button type="submit" class="rest-form-submit" data-cta="form-submit">Oddzwonię w ciągu 24h</button>
 
         <p class="rest-form-meta">
           Twoje dane sluza wylacznie do umowienia konsultacji. Nie zapisuje Cie na newsletter i nie sprzedaje bazy.
