@@ -25,7 +25,7 @@ $contact_email_href = function_exists("upsellio_get_mailto_href") ? upsellio_get
 $contact_email_display = function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address($contact_email) : $contact_email;
 $founder = function_exists("upsellio_get_trust_seo_section") ? upsellio_get_trust_seo_section("founder") : [];
 $founder_name = (string) ($founder["name"] ?? "Sebastian Kelm");
-$founder_role = (string) ($founder["role"] ?? "Konsultant marketingu i sprzedaży B2B");
+$founder_role = "Konsultant marketingu i sprzedaży";
 $founder_photo = "";
 $hero_portrait_slot = function_exists("upsellio_get_home_media_slot") ? upsellio_get_home_media_slot("hero_portrait") : [];
 if (is_array($hero_portrait_slot) && !empty($hero_portrait_slot["attachment_id"])) {
@@ -135,16 +135,16 @@ get_header();
   <section class="am-hero">
     <div class="am-wrap am-hero-grid">
       <div>
-        <div class="am-eyebrow">O mnie · marketing B2B</div>
+        <div class="am-eyebrow">O mnie · marketing i sprzedaż</div>
         <h1 class="am-h1"><?php echo esc_html($founder_name); ?> - łączę marketing z wynikiem sprzedaży.</h1>
-        <p class="am-lead">Pomagam firmom usługowym i B2B budować system pozyskiwania klientów oparty o Google Ads, Meta Ads i strony internetowe nastawione na konwersję. Bez przypadkowych działań i bez raportów, które nic nie zmieniają.</p>
-        <p class="am-body">Moje podejście wyrasta ze sprzedaży, nie tylko z samej reklamy. Dlatego zaczynam od zrozumienia oferty, procesu handlowego i jakości leadów. Dopiero potem optymalizuję kampanie i stronę tak, aby ruch zamieniał się w realne rozmowy handlowe i klientów.</p>
+        <p class="am-lead">Pomagam różnym firmom budować system pozyskiwania klientów oparty o Google Ads, Meta Ads i strony internetowe nastawione na konwersję. Pracuję z biznesem usługowym i produktowym, lokalnym i ogólnopolskim, B2B i B2C oraz e-commerce. Bez przypadkowych działań i bez raportów, które nic nie zmieniają.</p>
+        <p class="am-body">Moje podejście wyrasta ze sprzedaży, nie tylko z samej reklamy. Dlatego zaczynam od zrozumienia oferty, procesu sprzedaży i jakości zapytań. Dopiero potem optymalizuję kampanie i stronę tak, aby ruch zamieniał się w realne rozmowy i klientów.</p>
         <div class="am-btn-row">
           <a class="am-btn am-btn-primary" href="<?php echo esc_url($contact_url); ?>">Umów rozmowę strategiczną →</a>
           <a class="am-btn am-btn-ghost" href="<?php echo esc_url($offer_url); ?>">Zobacz ofertę</a>
         </div>
         <div class="am-proof">
-          <div><strong>10+</strong><span>lat praktyki sprzedaży i marketingu B2B</span></div>
+          <div><strong>10+</strong><span>lat praktyki sprzedaży i marketingu</span></div>
           <div><strong>Google + Meta</strong><span>kampanie z naciskiem na jakość leadów</span></div>
           <div><strong>SEO + CRO</strong><span>strony, które wspierają decyzję zakupową</span></div>
         </div>
@@ -175,10 +175,11 @@ get_header();
   <section class="am-section">
     <div class="am-wrap">
       <div class="am-eyebrow">Specjalizacje</div>
-      <h2 class="am-h2">W czym wspieram firmy najczęściej.</h2>
+      <h2 class="am-h2">W czym wspieram różne firmy najczęściej.</h2>
+      <p class="am-body" style="margin-bottom:24px">Ten sam system działa w różnych branżach: reklama, strona i pomiar zapytań. Dopasowuję kanał i komunikat do modelu biznesu — usług, produkcji, sklepu albo sprzedaży lokalnej.</p>
       <div class="am-grid-3">
         <article class="am-card">
-          <h3 class="am-h3">Google Ads dla firm B2B</h3>
+          <h3 class="am-h3">Google Ads dla firm</h3>
           <ul class="am-list">
             <li>kampanie Search i Performance Max</li>
             <li>dobór słów kluczowych pod intencję zakupową</li>
@@ -216,7 +217,7 @@ get_header();
       <h2 class="am-h2">Najczęstsze pytania o współpracę.</h2>
       <div class="am-faq">
         <details><summary>Czy współpraca jest tylko dla dużych budżetów?</summary><p>Nie. Kluczowe jest dopasowanie strategii do etapu firmy i realnych zasobów. Często zaczynamy od uporządkowania jednego obszaru, który blokuje wyniki najbardziej.</p></details>
-        <details><summary>Czy pracujesz także z firmami usługowymi lokalnie?</summary><p>Tak. Wspieram zarówno firmy lokalne, jak i marki działające ogólnopolsko w modelu B2B i e-commerce.</p></details>
+        <details><summary>Dla jakich firm pracujesz?</summary><p>Dla różnych firm: usługowych i produkcyjnych, lokalnych i ogólnopolskich, B2B i B2C, e-commerce i tradycyjnego biznesu. Ważne, żeby dało się mierzyć zapytania i sprzedaż — nie branża sama w sobie.</p></details>
         <details><summary>Od czego najlepiej zacząć?</summary><p>Najlepiej od krótkiej diagnozy. Wtedy wiadomo, czy najpierw poprawiać kampanie, stronę, ofertę, czy proces kwalifikacji leadów.</p></details>
       </div>
     </div>

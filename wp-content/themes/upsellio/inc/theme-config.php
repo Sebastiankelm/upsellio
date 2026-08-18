@@ -77,10 +77,10 @@ function upsellio_get_theme_config_defaults()
                 "twitter_card" => "summary_large_image",
             ],
             "about" => [
-                "title" => "O mnie | Sebastian Kelm - marketing B2B i sprzedaż | Upsellio",
-                "description" => "Poznaj doświadczenie Sebastiana Kelma: marketing B2B, Google Ads, Meta Ads, SEO i strony internetowe nastawione na leady, sprzedaż i konwersję.",
+                "title" => "O mnie | Sebastian Kelm - marketing i sprzedaż | Upsellio",
+                "description" => "Poznaj doświadczenie Sebastiana Kelma: Google Ads, Meta Ads, SEO i strony internetowe nastawione na leady i sprzedaż. Marketing dla różnych firm — usługowych, produkcyjnych, lokalnych i e-commerce.",
                 "og_title" => "O mnie | Sebastian Kelm | Upsellio",
-                "og_description" => "Praktyczne doświadczenie w marketingu i sprzedaży B2B: Google Ads, Meta Ads, SEO, CRO i strony internetowe dla firm.",
+                "og_description" => "Praktyczne doświadczenie w marketingu i sprzedaży: Google Ads, Meta Ads, SEO, CRO i strony internetowe dla różnych firm.",
                 "og_type" => "website",
                 "og_url" => "/o-mnie/",
                 "twitter_card" => "summary_large_image",
