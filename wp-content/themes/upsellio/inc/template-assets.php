@@ -252,11 +252,15 @@ function upsellio_render_template_asset_image($slot_key, $args = [])
     $size = (string) ($args["size"] ?? "large");
     $loading = (string) ($args["loading"] ?? "lazy");
     $attachment_id = (int) ($slot["attachment_id"] ?? 0);
+    $alt = trim((string) ($args["alt"] ?? ""));
+    if ($alt === "") {
+        $alt = upsellio_get_template_asset_alt($slot);
+    }
 
     if ($attachment_id > 0) {
         $image = wp_get_attachment_image($attachment_id, $size, false, [
             "class" => $class_name,
-            "alt" => upsellio_get_template_asset_alt($slot),
+            "alt" => $alt,
             "loading" => $loading,
             "decoding" => "async",
         ]);
@@ -267,7 +271,6 @@ function upsellio_render_template_asset_image($slot_key, $args = [])
 
     $url = trim((string) ($slot["url"] ?? ""));
     if ($url !== "") {
-        $alt = upsellio_get_template_asset_alt($slot);
         return '<img class="' . esc_attr($class_name) . '" src="' . esc_url($url) . '" alt="' . esc_attr($alt) . '" loading="' . esc_attr($loading) . '" decoding="async" />';
     }
 

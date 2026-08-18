@@ -327,8 +327,63 @@ function upsellio_ensure_offer_page_exists()
     upsellio_upsert_page_with_template("marketing-meta-ads", "Meta Ads", "page-marketing-meta-ads.php");
     upsellio_upsert_page_with_template("marketing-google-ads", "Google Ads", "page-marketing-google-ads.php");
     upsellio_upsert_page_with_template("tworzenie-stron-internetowych", "Tworzenie stron internetowych", "page-tworzenie-stron-internetowych.php");
+    upsellio_upsert_page_with_template("marketing-dla-butiku", "Marketing dla butiku", "page-marketing-butiku.php");
 }
 add_action("admin_init", "upsellio_ensure_offer_page_exists");
+
+function upsellio_ensure_butik_in_primary_menu()
+{
+    if (!is_admin() || !current_user_can("edit_theme_options")) {
+        return;
+    }
+
+    $locations = get_nav_menu_locations();
+    $menu_id = isset($locations["primary"]) ? (int) $locations["primary"] : 0;
+    if ($menu_id <= 0) {
+        return;
+    }
+
+    $page = get_page_by_path("marketing-dla-butiku");
+    if (!($page instanceof WP_Post) || $page->post_status !== "publish") {
+        return;
+    }
+    $page_id = (int) $page->ID;
+
+    $items = wp_get_nav_menu_items($menu_id, ["post_status" => "any"]);
+    if (is_array($items)) {
+        foreach ($items as $item) {
+            if ((int) ($item->object_id ?? 0) === $page_id) {
+                return;
+            }
+            $url = (string) ($item->url ?? "");
+            if ($url !== "" && strpos($url, "/marketing-dla-butiku") !== false) {
+                return;
+            }
+        }
+    }
+
+    $position = 4;
+    if (is_array($items)) {
+        foreach ($items as $item) {
+            $url = (string) ($item->url ?? "");
+            if (strpos($url, "/tworzenie-stron-internetowych") !== false) {
+                $position = (int) $item->menu_order + 1;
+                break;
+            }
+        }
+    }
+
+    wp_update_nav_menu_item($menu_id, 0, [
+        "menu-item-title" => "Marketing dla butiku",
+        "menu-item-object-id" => $page_id,
+        "menu-item-object" => "page",
+        "menu-item-type" => "post_type",
+        "menu-item-status" => "publish",
+        "menu-item-parent-id" => 0,
+        "menu-item-position" => $position,
+    ]);
+}
+add_action("admin_init", "upsellio_ensure_butik_in_primary_menu");
 
 function upsellio_ensure_blog_page_exists()
 {
@@ -1033,6 +1088,7 @@ function upsellio_render_unified_footer($args = [])
     if ($brand_description === "") {
         $brand_description = "Marketing i sprzedaż dla firm, które chcą realnych klientów - nie wykresów na slajdach. Pracuję z producentami, dystrybutorami i firmami usługowymi z całej Polski.";
     }
+    $brand_description = (string) apply_filters("upsellio_footer_brand_description", $brand_description);
     $brand_address = trim((string) ($brand_config["address"] ?? "Wierzbowa 21A/2, Dopiewiec"));
 
     $normalized_sections = [];
@@ -1096,6 +1152,7 @@ function upsellio_render_unified_footer($args = [])
             $normalized_city_links[] = ["label" => $city_label, "url" => $city_url];
         }
     }
+    $show_cities = (bool) apply_filters("upsellio_footer_show_cities", true);
 
     ob_start();
     ?>
@@ -1130,8 +1187,9 @@ function upsellio_render_unified_footer($args = [])
         .nf-foot-social a:hover{color:#5eead4}
         @media (max-width:1100px){.nf-footer-grid{grid-template-columns:1fr 1fr;gap:30px}}
         @media (max-width:720px){.nf-wrap{width:min(1240px,100% - 24px)}.nf-footer-grid{grid-template-columns:1fr;padding:44px 0 36px}}
+        .nf-footer-grid.is-no-cities{grid-template-columns:1.3fr 1fr 1fr}
       </style>
-      <div class="nf-wrap nf-footer-grid">
+      <div class="nf-wrap nf-footer-grid<?php echo $show_cities ? "" : " is-no-cities"; ?>">
         <div class="nf-foot-brand">
           <a href="<?php echo esc_url(home_url("/")); ?>" class="nf-logo">
             <?php if ($brand_logo_url !== "") : ?>
@@ -1180,6 +1238,7 @@ function upsellio_render_unified_footer($args = [])
           <?php endforeach; ?>
         </div>
 
+        <?php if ($show_cities) : ?>
         <div class="nf-foot-col nf-foot-cities">
           <div class="nf-foot-h"><?php echo esc_html($city_title); ?></div>
           <ul class="nf-cities-grid">
@@ -1189,6 +1248,7 @@ function upsellio_render_unified_footer($args = [])
           </ul>
           <?php if ($city_all_url !== "") : ?><a class="nf-cities-all" href="<?php echo esc_url($city_all_url); ?>"><?php echo esc_html($city_all_label); ?></a><?php endif; ?>
         </div>
+        <?php endif; ?>
       </div>
 
       <div class="nf-foot-bar">
@@ -1274,6 +1334,8 @@ require_once get_template_directory() . "/inc/definitions-seed.php";
 require_once get_template_directory() . "/inc/blog-seo-tool.php";
 require_once get_template_directory() . "/inc/crm.php";
 require_once get_template_directory() . "/inc/analytics-internal-exclude.php";
+require_once get_template_directory() . "/inc/cookie-consent.php";
+require_once get_template_directory() . "/inc/landing-butik-analytics.php";
 require_once get_template_directory() . "/inc/seo-automation.php";
 require_once get_template_directory() . "/inc/data-schema.php";
 require_once get_template_directory() . "/inc/batch-api.php";

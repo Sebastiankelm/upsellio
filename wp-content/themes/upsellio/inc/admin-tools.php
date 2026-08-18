@@ -25,7 +25,7 @@ function upsellio_admin_url($page)
         "upsellio-seo-blog-tool" => "edit.php?page=upsellio-seo-blog-tool",
         "upsellio-seo-brief" => "edit.php?page=upsellio-seo-brief",
         "upsellio-content-refresh" => "edit.php?page=upsellio-content-refresh",
-        "upsellio-site-analytics" => "admin.php?page=upsellio-site-analytics",
+        "upsellio-butik-landing-analytics" => "admin.php?page=upsellio-butik-landing-analytics",
         "upsellio-crm-app" => "admin.php?page=upsellio-crm-app-entry",
         "upsellio-logo-tool" => "themes.php?page=upsellio-logo-tool",
         "upsellio-server-files" => "themes.php?page=upsellio-server-files",
@@ -132,6 +132,7 @@ function upsellio_render_admin_hub_screen()
           ["Generator briefu SEO", "Tworzenie briefów pod wpisy i klastry treści.", upsellio_admin_url("upsellio-seo-brief")],
           ["Content Refresh", "Lista wpisów wymagających odświeżenia.", upsellio_admin_url("upsellio-content-refresh")],
           ["Analityka SEO", "Widoki, trendy, pozycje i rekomendacje per URL.", upsellio_admin_url("upsellio-site-analytics")],
+          ["Landing butik", "Sekcje, CTA, leady ze zgodą (e-mail) i wnioski z landingu Marketing dla butiku.", upsellio_admin_url("upsellio-butik-landing-analytics")],
       ]);
 
       upsellio_admin_hub_section("Techniczne", [

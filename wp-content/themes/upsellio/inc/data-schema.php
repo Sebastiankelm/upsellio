@@ -6,7 +6,7 @@ if (!defined("ABSPATH")) {
 
 function upsellio_get_data_schema_version()
 {
-    return "2026.05.06.1";
+    return "2026.08.18.1";
 }
 
 function upsellio_create_custom_tables()
@@ -66,9 +66,47 @@ function upsellio_create_custom_tables()
         KEY processed_at (processed_at)
     ) {$charsetCollate};";
 
+    $landingEventsTable = $wpdb->prefix . "ups_landing_events";
+    $landingSessionsTable = $wpdb->prefix . "ups_landing_sessions";
+
+    $landingEventsSql = "CREATE TABLE {$landingEventsTable} (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        landing_key VARCHAR(32) NOT NULL DEFAULT 'butik',
+        event_date DATE NOT NULL,
+        event_name VARCHAR(40) NOT NULL,
+        section_id VARCHAR(40) NOT NULL DEFAULT '',
+        extra VARCHAR(80) NOT NULL DEFAULT '',
+        hits INT UNSIGNED NOT NULL DEFAULT 0,
+        PRIMARY KEY  (id),
+        UNIQUE KEY agg_key (landing_key, event_date, event_name, section_id, extra),
+        KEY landing_date (landing_key, event_date)
+    ) {$charsetCollate};";
+
+    $landingSessionsSql = "CREATE TABLE {$landingSessionsTable} (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        landing_key VARCHAR(32) NOT NULL DEFAULT 'butik',
+        session_key CHAR(32) NOT NULL,
+        visitor_key CHAR(32) NOT NULL DEFAULT '',
+        first_at DATETIME NOT NULL,
+        last_at DATETIME NOT NULL,
+        device VARCHAR(16) NOT NULL DEFAULT '',
+        utm_source VARCHAR(80) NOT NULL DEFAULT '',
+        utm_medium VARCHAR(80) NOT NULL DEFAULT '',
+        utm_campaign VARCHAR(120) NOT NULL DEFAULT '',
+        sections LONGTEXT NULL,
+        converted TINYINT(1) NOT NULL DEFAULT 0,
+        convert_type VARCHAR(16) NOT NULL DEFAULT '',
+        time_sec SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+        PRIMARY KEY  (id),
+        UNIQUE KEY landing_session (landing_key, session_key),
+        KEY landing_first (landing_key, first_at)
+    ) {$charsetCollate};";
+
     dbDelta($leadEventsSql);
     dbDelta($batchJobsSql);
     dbDelta($batchItemsSql);
+    dbDelta($landingEventsSql);
+    dbDelta($landingSessionsSql);
 }
 
 function upsellio_ensure_postmeta_indexes()

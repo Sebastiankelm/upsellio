@@ -140,6 +140,7 @@ get_header();
   .hub-card:hover { transform: translateY(-6px); box-shadow: 0 24px 48px rgba(15, 23, 42, 0.1); color: var(--text); }
   .hub-card:hover::before { transform: scaleX(1); }
   .hub-card.is-salon { --card-color: #ec4899; --card-bg: #fce7f3; --card-text: #be185d; }
+  .hub-card.is-butik { --card-color: #e83a7a; --card-bg: #fde8f0; --card-text: #be185d; }
   .hub-card.is-rest { --card-color: #ea580c; --card-bg: #fff7ed; --card-text: #c2410c; }
   .hub-card.is-warsztat { --card-color: #b91c1c; --card-bg: #fee2e2; --card-text: #7f1d1d; }
   .hub-card.is-bud { --card-color: #c2410c; --card-bg: #ffedd5; --card-text: #9a3412; }
@@ -402,8 +403,8 @@ get_header();
   <nav class="hub-filter-bar" aria-label="Filtruj branże">
     <div class="hub-container">
       <div class="hub-filter-wrap">
-        <a href="#wszystkie" class="hub-filter is-active" data-cta="hub-branze-filtr-wszystkie">Wszystkie <span class="hub-filter-count">8</span></a>
-        <a href="#b2c-lokalne" class="hub-filter" data-cta="hub-branze-filtr-b2c-lokalne">B2C lokalne <span class="hub-filter-count">4</span></a>
+        <a href="#wszystkie" class="hub-filter is-active" data-cta="hub-branze-filtr-wszystkie">Wszystkie <span class="hub-filter-count">9</span></a>
+        <a href="#b2c-lokalne" class="hub-filter" data-cta="hub-branze-filtr-b2c-lokalne">B2C lokalne <span class="hub-filter-count">5</span></a>
         <a href="#b2c-premium" class="hub-filter" data-cta="hub-branze-filtr-b2c-premium">B2C premium <span class="hub-filter-count">2</span></a>
         <a href="#b2b" class="hub-filter" data-cta="hub-branze-filtr-b2b">B2B usługi <span class="hub-filter-count">1</span></a>
         <a href="#ecommerce" class="hub-filter" data-cta="hub-branze-filtr-ecommerce">E-commerce <span class="hub-filter-count">1</span></a>
@@ -428,6 +429,12 @@ get_header();
           <div class="hub-card-icon">💅</div><span class="hub-card-tag">B2C lokalne</span><h3>Salon kosmetyczny</h3>
           <p class="hub-card-pitch">Wypełniony grafik nawet w środy i czwartki. Reklama Google + Meta + Booksy które dowożą klientki, plus mailing przypominający o powrocie.</p>
           <div class="hub-card-stats"><div><div class="hub-card-stat-label">Cena pakietu</div><div class="hub-card-stat-val">1 800<small>zł/mc</small></div></div><div><div class="hub-card-stat-label">Pierwsi klienci</div><div class="hub-card-stat-val">14-30<small>dni</small></div></div></div>
+          <span class="hub-card-cta">Zobacz pakiet</span>
+        </a>
+        <a href="/marketing-dla-butiku" class="hub-card is-butik" data-cta="hub-branze-karta-butik">
+          <div class="hub-card-icon">👗</div><span class="hub-card-tag">B2C lokalne</span><h3>Butik odzieżowy</h3>
+          <p class="hub-card-pitch">Więcej klientek w sklepie i więcej zamówień online. Instagram, Meta Ads i Google Ads pod kolekcje, a nie pod puste serduszka.</p>
+          <div class="hub-card-stats"><div><div class="hub-card-stat-label">Cena pakietu</div><div class="hub-card-stat-val">2 000<small>zł/mc</small></div></div><div><div class="hub-card-stat-label">Pierwsze klientki</div><div class="hub-card-stat-val">14-30<small>dni</small></div></div></div>
           <span class="hub-card-cta">Zobacz pakiet</span>
         </a>
         <a href="/marketing-dla-restauracji" class="hub-card is-rest" data-cta="hub-branze-karta-restauracja">
@@ -508,6 +515,7 @@ get_header();
         <span class="hub-quadrant-label hub-quadrant-label-br">Tani · Wolny</span>
         <a href="/marketing-dla-warsztatu-samochodowego" class="hub-bubble" style="--bubble-color: #b91c1c; top: 80%; left: 18%;" data-cta="hub-branze-mapa-warsztat">🔧 Warsztat</a>
         <a href="/marketing-dla-salonu-kosmetycznego" class="hub-bubble" style="--bubble-color: #ec4899; top: 73%; left: 30%;" data-cta="hub-branze-mapa-salon">💅 Salon</a>
+        <a href="/marketing-dla-butiku" class="hub-bubble" style="--bubble-color: #e83a7a; top: 70%; left: 12%;" data-cta="hub-branze-mapa-butik">👗 Butik</a>
         <a href="/marketing-dla-restauracji" class="hub-bubble" style="--bubble-color: #ea580c; top: 62%; left: 36%;" data-cta="hub-branze-mapa-restauracja">🍝 Restauracja</a>
         <a href="/marketing-dla-firmy-budowlanej" class="hub-bubble" style="--bubble-color: #c2410c; top: 53%; left: 62%;" data-cta="hub-branze-mapa-budowlana">🏗️ Budowlana</a>
         <a href="/marketing-dla-biura-rachunkowego" class="hub-bubble" style="--bubble-color: #1e40af; top: 47%; left: 72%;" data-cta="hub-branze-mapa-rachunkowe">📊 Rachunkowe</a>

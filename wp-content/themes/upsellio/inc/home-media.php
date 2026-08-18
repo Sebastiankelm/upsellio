@@ -169,10 +169,14 @@ function upsellio_render_home_media_image($slot_key, $args = [])
     $sizes = trim((string) ($args["sizes"] ?? ""));
     $fetchpriority = trim((string) ($args["fetchpriority"] ?? ""));
     $attachment_id = (int) ($slot["attachment_id"] ?? 0);
+    $alt = trim((string) ($args["alt"] ?? ""));
+    if ($alt === "") {
+        $alt = upsellio_get_home_media_slot_alt($slot);
+    }
     if ($attachment_id > 0) {
         $image_attrs = [
             "class" => $class_name,
-            "alt" => upsellio_get_home_media_slot_alt($slot),
+            "alt" => $alt,
             "loading" => (string) ($args["loading"] ?? "lazy"),
             "decoding" => "async",
         ];
