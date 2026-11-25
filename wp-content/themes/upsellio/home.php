@@ -894,6 +894,8 @@ get_header();
   .ups-blog :is(a,button,input):focus-visible{outline:3px solid #06745f;outline-offset:3px}
   @media(max-width:720px){.ups-blog .wrap{width:calc(100% - 40px)}.ups-blog .ups-blog-title{font-size:clamp(32px,8.5vw,40px)}.ups-blog .ups-blog-grid{grid-template-columns:minmax(0,1fr)}.ups-blog .ups-blog-card.is-wide{grid-column:auto}.ups-blog .ups-blog-list-wrap{padding:48px 0 64px}}
   @media(prefers-reduced-motion:reduce){.ups-blog *{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+.up-blog-filter-disclosure{margin:12px 0;color:#3a3d44}.up-blog-filter-disclosure summary{cursor:pointer;font-weight:700;min-height:44px;line-height:44px}.up-blog-filter-disclosure summary:focus-visible{outline:3px solid #06745f;outline-offset:2px}@media(max-width:979px){.ups-blog .ups-blog-category-list{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:8px}.ups-blog .ups-blog-category-list a{flex:0 0 auto;white-space:nowrap}.ups-blog .ups-blog-search input{font-size:16px;min-height:52px}}
 </style>
 
 <main class="ups-blog js-ups-blog-root" data-current-category="<?php echo esc_attr($selected_category); ?>" data-current-tags="<?php echo esc_attr(implode(",", $selected_tags)); ?>" data-current-page="<?php echo esc_attr((string) $paged); ?>">
@@ -927,7 +929,7 @@ get_header();
             <input type="hidden" name="tags" value="<?php echo esc_attr(implode(",", $selected_tags)); ?>" />
           <?php endif; ?>
         </div>
-        <div class="ups-blog-search-note">Najnowsze wpisy, checklisty, analizy kampanii i odpowiedzi na pytania firm B2B</div>
+        <div class="ups-blog-search-note">Porady o reklamach, sklepach internetowych i sprzedaży.</div>
       </form>
     </div>
   </section>
@@ -974,7 +976,8 @@ get_header();
           </a>
         <?php endforeach; ?>
       </div>
-      <div class="ups-blog-tag-filter-wrap">
+      <details class="up-blog-filter-disclosure"<?php echo !empty($selected_tags) ? ' open' : ''; ?>><summary>Więcej filtrów — tagi</summary>
+<div class="ups-blog-tag-filter-wrap">
         <div class="ups-blog-tag-filter-label">Tagi:</div>
         <div class="ups-blog-tag-filter-list">
           <?php
@@ -1014,6 +1017,7 @@ get_header();
           <?php endforeach; ?>
         </div>
       </div>
+      </details>
       <div class="ups-blog-filter-tools">
         <div class="ups-blog-active-filters js-ups-blog-active-filters">
           <?php if ($selected_category !== "") : ?>
@@ -1108,10 +1112,10 @@ get_header();
   <section class="ups-blog-cta">
     <div class="wrap">
       <div class="ups-blog-cta-shell">
-        <div class="eyebrow" style="color: var(--teal-dark); margin-bottom: 0;">CTA pod blogiem</div>
-        <h2 class="ups-blog-cta-title">Wolisz, żeby ktoś spojrzał na Twoje kampanie, a nie czytać kolejny artykuł?</h2>
+        <div class="eyebrow" style="color: var(--teal-dark); margin-bottom: 0;">Bezpłatna diagnoza</div>
+        <h2 class="ups-blog-cta-title">Sprawdźmy, gdzie uciekają Twoi klienci.</h2>
         <p class="ups-blog-cta-text">
-          Artykuły dają kontekst i wiedzę. Ale jeśli masz wrażenie, że Twoje kampanie Meta Ads lub Google Ads coś robią, a nie masz pewności czy dobrze, potrzebujesz spojrzeć na konkretne dane, kampanie i ofertę. Bezpłatna rozmowa lub audyt to 30-45 minut, po których wiesz, co blokuje wyniki i który element warto naprawić najpierw.
+          30 minut rozmowy. Bez prezentacji i bez zobowiązań. Na podstawie Twojej sytuacji wskażę, co poprawić najpierw.
         </p>
         <div class="ups-blog-cta-actions">
           <a class="ups-blog-btn-primary" href="<?php echo esc_url(home_url("/#kontakt")); ?>">Umów bezpłatną rozmowę</a>
