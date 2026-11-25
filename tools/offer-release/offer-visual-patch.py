@@ -136,6 +136,13 @@ def renderer(s):
                           <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view"=>"tasks","offer_task_id"=>$oa_offer_id],home_url("/crm-app/"))); ?>">Utwórz zadanie</a>
                         </div>
                       </div>''')
+    # The attention map now sits next to the score in the overview; don't duplicate it.
+    x=t.index('                      <div style="margin-bottom:24px">\n                        <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px"><?php esc_html_e("Mapa uwagi')
+    y=t.index('                      <div style="margin-bottom:24px">',x+10)
+    t=t[:x]+t[y:]
+    t=replace(t,'<?php esc_html_e("Etap:", "upsellio"); ?> <strong><?php echo esc_html((string) ($oa["stage"] ?? "—")); ?></strong>','''<?php esc_html_e("Etap:", "upsellio"); ?> <strong><?php echo esc_html(["awareness"=>"Świadomość","consideration"=>"Rozważanie","decision"=>"Decyzja","won"=>"Wygrana"][$oa_status === "won" ? "won" : (string) ($oa["stage"] ?? "")] ?? "—"); ?></strong>
+                        · Ważna do: <strong><?php echo $oa_expiry > 0 ? esc_html(wp_date("d.m.Y", $oa_expiry)) : "do uzgodnienia"; ?></strong>
+                        · Wersja: <strong><?php echo max(1, (int) get_post_meta($oa_offer_id, "_ups_offer_current_version", true)); ?></strong>''')
     s=s[:a]+t+s[b:]
     # On the standard tasks screen, preselect a permitted offer, without creating a record.
     s=replace(s,'<input class="crm-inp" type="text" name="task_title" placeholder=','<input class="crm-inp" type="text" name="task_title" value="<?php echo esc_attr(isset($_GET["offer_task_id"]) && is_scalar($_GET["offer_task_id"]) && get_post_type((int) $_GET["offer_task_id"]) === "crm_offer" && current_user_can("edit_post", (int) $_GET["offer_task_id"]) ? "Kontakt w sprawie oferty #" . (int) $_GET["offer_task_id"] : ""); ?>" placeholder=')
@@ -146,6 +153,31 @@ def renderer(s):
     body[data-crm-view="offer_analytics"] .offer-analytics-report{grid-column:1/-1;min-width:0}
     .offer-analytics-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:12px;padding:18px 24px;background:#f8faf9;border-bottom:1px solid var(--border)}
     .offer-analytics-kpi{padding:16px;background:var(--surface,#fff);border:1px solid var(--border);border-radius:12px;min-width:0;overflow-wrap:anywhere}
+    .offer-analytics-overview{padding:20px 24px;background:#f8faf9;border-bottom:1px solid var(--border)}
+    .offer-analytics-panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+    .offer-analytics-panel{min-width:0;border:1px solid var(--border);border-radius:16px;padding:20px;background:#fff}
+    .offer-analytics-panel h3{margin:0 0 16px;padding-bottom:12px;border-bottom:1px solid var(--border);font-size:15px}
+    .offer-analytics-score-layout{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+    .offer-analytics-ring{position:relative;width:110px;height:110px;flex:none}
+    .offer-analytics-ring svg{width:100%;height:100%}
+    .offer-analytics-ring>strong{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:30px;line-height:1.05}
+    .offer-analytics-ring small{font-size:12px;color:var(--text-3)}
+    .offer-analytics-score-parts{flex:1;min-width:150px}
+    .offer-analytics-score-parts>div{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:4px 0}
+    .offer-analytics-stage-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin-top:16px}
+    .offer-analytics-stage-row>div{padding:8px 4px;text-align:center;background:#f1f3f5;border-radius:9px;font-size:11px;overflow-wrap:anywhere}
+    .offer-analytics-stage-row small{display:block;color:var(--text-3);font-size:10px}
+    .offer-analytics-stage-row>.is-current{background:#dff5ef;color:#06745f}
+    .offer-analytics-attention{display:grid;grid-template-columns:minmax(72px,115px) minmax(30px,1fr) minmax(80px,100px);gap:10px;align-items:center;margin:12px 0;font-size:12px}
+    .offer-analytics-attention strong{text-align:right;font-size:11px}
+    .offer-analytics-attention-track{display:block;height:9px;border-radius:5px;background:#eef0f3;overflow:hidden}
+    .offer-analytics-attention-track>span{display:block;height:100%;background:#06745f;border-radius:5px}
+    .offer-analytics-muted{color:var(--text-3);font-size:12px;line-height:1.5}
+    .offer-analytics-events{grid-column:1/-1}
+    .offer-analytics-event{display:grid;grid-template-columns:10px minmax(90px,145px) minmax(0,1fr);align-items:start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px}
+    .offer-analytics-event-dot{width:8px;height:8px;border-radius:50%;background:#06745f;margin-top:5px}
+    @media(max-width:1000px){.offer-analytics-panels{grid-template-columns:minmax(0,1fr)}}
+    @media(max-width:580px){.offer-analytics-overview{padding:12px}.offer-analytics-panel{padding:14px}.offer-analytics-stage-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
     .offer-analytics-actions{display:flex;flex-wrap:wrap;gap:8px}
     body[data-crm-view="offer_analytics"] .crm-view-heading{grid-column:1/-1}
     @media(max-width:700px){.offer-analytics-kpis{padding:12px;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.offer-analytics-kpi{padding:12px}.offer-analytics-tabs{overflow-x:auto}.offer-analytics-report{overflow-wrap:anywhere}}
@@ -165,8 +197,75 @@ def renderer(s):
     s=replace(s,'    <?php endif; ?>\n    <body class=','    <?php endif; ?>\n    </head>\n    <body class=')
     return s
 
+def analytics(s):
+    a=s.index('function upsellio_offer_render_intent_dashboard(')
+    b=s.index('\nfunction upsellio_offer_build_full_analytics(',a)
+    t=s[a:b]
+    t=replace(t,'    $steps = (array) ($report["accept_steps"] ?? []);','''    $steps = (array) ($report["accept_steps"] ?? []);
+    $score = max(0, min(100, (int) ($report["score"] ?? 0)));
+    $current_stage = $status === "won" ? "won" : (string) ($report["stage"] ?? "");
+    $stages = ["awareness"=>"Świadomość","consideration"=>"Rozważanie","decision"=>"Decyzja","won"=>"Wygrana"];
+    $section_labels = ["zakres"=>"Zakres","szczegoly"=>"Szczegóły","etapy"=>"Etapy","pytania"=>"Pytania","pricing"=>"Cennik","faq"=>"FAQ"];
+    $section_times = (array) ($report["all_section_times"] ?? []);
+    $section_counts = (array) ($report["all_sections_viewed"] ?? []);
+    $max_time = max(1, (int) max(array_values($section_times) ?: [0]));
+    $max_count = max(1, (int) max(array_values($section_counts) ?: [0]));''')
+    t=replace(t,'<div style="padding:20px 24px;border-bottom:1px solid var(--border)">','<div class="offer-analytics-overview">')
+    t=replace(t,'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px">','<div class="offer-analytics-panels">')
+    x=t.index('        <section style="border:1px solid var(--border);border-radius:12px;padding:16px">')
+    y=t.index('        <section style="border:1px solid var(--border);border-radius:12px;padding:16px">',x+10)
+    t=t[:x]+'''        <section class="offer-analytics-panel">
+          <h3>Wynik zaangażowania</h3>
+          <div class="offer-analytics-score-layout">
+            <div class="offer-analytics-ring" role="img" aria-label="<?php echo esc_attr("Wynik zaangażowania " . $score . " na 100"); ?>">
+              <svg viewBox="0 0 110 110" aria-hidden="true"><circle cx="55" cy="55" r="46" stroke="#eceef1" stroke-width="10" fill="none"/><circle cx="55" cy="55" r="46" fill="none" stroke="#06745f" stroke-width="10" pathLength="100" stroke-dasharray="<?php echo $score; ?> 100" transform="rotate(-90 55 55)"/></svg>
+              <strong><?php echo $score; ?><small>/100</small></strong>
+            </div>
+            <div class="offer-analytics-score-parts">
+              <?php foreach ($labels as $key => $item) : $points = max(0, min((int) $item[1], (int) ($report["score_components"][$key] ?? 0))); ?>
+              <div><span><?php echo esc_html($item[0]); ?></span><strong><?php echo $points; ?>/<?php echo (int) $item[1]; ?></strong></div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+          <div class="offer-analytics-stage-row">
+            <?php foreach ($stages as $key => $label) : $active = $current_stage === $key; ?>
+              <div<?php echo $active ? ' class="is-current" aria-current="step"' : ""; ?>><strong><?php echo esc_html($label); ?></strong><small><?php echo $active ? "Aktualny etap" : "—"; ?></small></div>
+            <?php endforeach; ?>
+          </div>
+          <p class="offer-analytics-muted"><?php echo !empty($report["is_hot"]) ? "Gorąca oferta — wykryto sygnał intencji." : "Brak wystarczającego sygnału do oznaczenia jako gorąca."; ?></p>
+        </section>
+        <section class="offer-analytics-panel">
+          <h3>Czytane sekcje</h3>
+          <?php foreach ($section_labels as $key => $label) :
+              if (!in_array($key, (array) ($report["section_ids"] ?? []), true)) { continue; }
+              $count = max(0, (int) ($section_counts[$key] ?? 0));
+              $seconds = max(0, (int) ($section_times[$key] ?? 0));
+              $width = (int) round($seconds / $max_time * 100);
+              if (!$seconds && $count) { $width = (int) round($count / $max_count * 100); }
+          ?>
+          <div class="offer-analytics-attention">
+            <span><?php echo esc_html($label); ?></span>
+            <span class="offer-analytics-attention-track" aria-hidden="true"><span style="width:<?php echo $width; ?>%"></span></span>
+            <strong><?php echo $count; ?> sesj. · <?php echo $seconds ? esc_html(sprintf("%d:%02d", intdiv($seconds, 60), $seconds % 60)) : "—"; ?></strong>
+          </div>
+          <?php endforeach; ?>
+          <p class="offer-analytics-muted"><?php echo empty($report["sessions"]) ? "Brak zmierzonej aktywności." : "Czas aktywny i liczba sesji, w których zarejestrowano daną sekcję. Długość paska odpowiada czasowi; przy braku czasu — liczbie sesji."; ?></p>
+        </section>
+'''+t[y:]
+    t=t.replace('<section style="border:1px solid var(--border);border-radius:12px;padding:16px">','<section class="offer-analytics-panel">')
+    t=replace(t,'              "Ostatnie źródło" => (string) get_post_meta($offer_id, "_ups_offer_last_utm_source", true),','''              "Ostatnie źródło" => (string) get_post_meta($offer_id, "_ups_offer_last_utm_source", true),
+              "Pierwsza kampania" => (string) get_post_meta($offer_id, "_ups_offer_utm_campaign", true),
+              "Ostatnia kampania" => (string) get_post_meta($offer_id, "_ups_offer_last_utm_campaign", true),
+              "GCLID" => (string) get_post_meta($offer_id, "_ups_offer_gclid", true),''')
+    t=replace(t,'      </div>\n      <section style="margin-top:20px">','      <section class="offer-analytics-panel offer-analytics-events">')
+    t=replace(t,'<div style="display:grid;grid-template-columns:minmax(110px,150px) 1fr;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px">','<div class="offer-analytics-event">')
+    t=replace(t,'<span style="color:var(--text-3)"><?php echo esc_html((string) ($event["ts"] ?? "—")); ?></span>','<span class="offer-analytics-event-dot" aria-hidden="true"></span><span class="offer-analytics-muted"><?php echo esc_html((string) ($event["ts"] ?? "—")); ?></span>')
+    t=replace(t,'      </section>\n    </div>\n    <?php','      </section>\n      </div>\n    </div>\n    <?php')
+    return s[:a]+t+s[b:]
+
 def apply(rel,data):
     s=data.decode("utf-8")
     if rel=="inc/offer-landing.php": return landing(s).encode("utf-8")
     if rel=="inc/crm-app/render.php": return renderer(s).encode("utf-8")
+    if rel=="inc/offers.php": return analytics(s).encode("utf-8")
     return data
