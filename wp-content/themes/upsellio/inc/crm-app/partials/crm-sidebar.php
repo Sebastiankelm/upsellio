@@ -100,6 +100,15 @@ $hints = [
       <i class="ti ti-settings" aria-hidden="true"></i>
       <span class="crm-si-label"><?php esc_html_e("Ustawienia", "upsellio"); ?></span>
     </a>
+    <div class="crm-sidebar-account">
+      <span class="crm-sidebar-avatar" aria-hidden="true"><i class="ti ti-user"></i></span>
+      <div class="crm-sidebar-account-name">
+        <strong><?php echo esc_html(wp_get_current_user()->display_name ?: __("Ty", "upsellio")); ?></strong>
+        <a href="<?php echo esc_url(admin_url("profile.php")); ?>"><?php esc_html_e("Profil", "upsellio"); ?></a>
+        <span aria-hidden="true"> · </span>
+        <a href="<?php echo esc_url(wp_logout_url(upsellio_crm_base_url())); ?>"><?php esc_html_e("Wyloguj", "upsellio"); ?></a>
+      </div>
+    </div>
   </div>
 </aside>
 <script>
