@@ -1453,7 +1453,9 @@ function upsellio_crm_app_template_redirect()
               $dash_url = static function (array $extra) use ($dash_base_q) {
                   return esc_url(add_query_arg(array_merge($dash_base_q, $extra), home_url("/crm-app/")));
               };
-              $k_new_delta = (int) ($kpi["new_leads_delta_pct"] ?? 0);
+              $k_new_delta = isset($kpi["new_leads_delta_pct"]) ? (int) $kpi["new_leads_delta_pct"] : null;
+              $k_delta_text = $k_new_delta === null ? __("Brak dodatniej bazy porównania", "upsellio") : sprintf(__("%+d%% vs poprzedni okres", "upsellio"), $k_new_delta);
+              $tasks_due = (int) ($DK["tasks_due_today_or_overdue"] ?? 0);
               $k_tone = (string) ($kpi["new_leads_tone"] ?? "neutral");
               $kpi_lead_class = $k_tone === "up" ? "crm-kpi-ton-up" : ($k_tone === "down" ? "crm-kpi-ton-down" : "crm-kpi-ton-neutral");
               $cur_u = wp_get_current_user();
@@ -1469,7 +1471,7 @@ function upsellio_crm_app_template_redirect()
                 <?php $dashboard_hot_offers = function_exists("upsellio_offers_active_today") ? upsellio_offers_active_today(3) : []; ?>
 
                 <div class="crm-content" style="grid-column:1/-1;width:100%;min-width:0">
-                  <div class="crm-page-heading crm-view-heading"><div><h1><?php echo esc_html(sprintf(__("Dzień dobry, %s", "upsellio"), $pulse_name)); ?></h1><p><?php echo esc_html(wp_date("l, j F Y")); ?> · <?php echo (int) $actions_hint; ?> zadań do dziś · <?php echo count($dash_alerts); ?> alertów</p></div><div class="crm-heading-actions"><a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("contact-queue")); ?>"><i class="ti ti-phone" aria-hidden="true"></i> Kolejka kontaktu</a><a class="btn" href="<?php echo esc_url(upsellio_crm_url("leads", ["lead_tab" => "new"])); ?>"><i class="ti ti-plus" aria-hidden="true"></i> Leady</a></div></div>
+                  <div class="crm-page-heading crm-view-heading"><div><h1><?php echo esc_html(sprintf(__("Dzień dobry, %s", "upsellio"), $pulse_name)); ?></h1><p><?php echo esc_html(wp_date("l, j F Y")); ?> · <?php echo $tasks_due; ?> zadań na dziś lub zaległych · <?php echo count($dash_alerts); ?> alertów</p></div><div class="crm-heading-actions"><a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("contact-queue")); ?>"><i class="ti ti-phone" aria-hidden="true"></i> Kolejka kontaktu</a><a class="btn" href="<?php echo esc_url(upsellio_crm_url("leads", ["lead_tab" => "new"])); ?>"><i class="ti ti-plus" aria-hidden="true"></i> Leady</a></div></div>
 
 
                   <?php if ((int) ($kpi["need_contact_overdue"] ?? 0) > 0 || (int) ($kpi["offers_followup_stale"] ?? 0) > 0) : ?>
@@ -1491,7 +1493,7 @@ function upsellio_crm_app_template_redirect()
                     <a class="crm-kpi hl" href="<?php echo esc_url(add_query_arg(["view" => "leads", "lead_tab" => "new"], home_url("/crm-app/"))); ?>">
                       <div class="crm-kpi-lbl"><i class="ti ti-user-plus" aria-hidden="true"></i><?php esc_html_e("Nowe leady", "upsellio"); ?></div>
                       <div class="crm-kpi-val"><?php echo esc_html((string) (int) ($kpi["new_leads"] ?? 0)); ?></div>
-                      <div class="crm-kpi-sub <?php echo $k_new_delta >= 0 ? "up" : "down"; ?>"><i class="ti ti-trending-up" aria-hidden="true"></i><?php echo esc_html(sprintf(__("%+d%% vs poprzedni okres", "upsellio"), $k_new_delta)); ?></div>
+                      <div class="crm-kpi-sub <?php echo $k_new_delta === null || $k_new_delta === 0 ? "" : ($k_new_delta > 0 ? "up" : "down"); ?>"><i class="ti ti-trending-up" aria-hidden="true"></i><?php echo esc_html($k_delta_text); ?></div>
                     </a>
                     <a class="crm-kpi" href="<?php echo esc_url(add_query_arg(["view" => "leads", "lead_tab" => "contact"], home_url("/crm-app/"))); ?>">
                       <div class="crm-kpi-lbl"><i class="ti ti-phone-call" aria-hidden="true"></i><?php esc_html_e("Do kontaktu", "upsellio"); ?></div>
@@ -1501,7 +1503,7 @@ function upsellio_crm_app_template_redirect()
                     <a class="crm-kpi" href="<?php echo esc_url(add_query_arg(["view" => "pipeline"], home_url("/crm-app/"))); ?>">
                       <div class="crm-kpi-lbl"><i class="ti ti-cash" aria-hidden="true"></i><?php esc_html_e("Wartość pipeline", "upsellio"); ?></div>
                       <div class="crm-kpi-val"><?php echo esc_html(number_format((float) ($kpi["pipeline_open_value"] ?? 0), 0, ",", " ")); ?> <span>PLN</span></div>
-                      <div class="crm-kpi-sub up"><i class="ti ti-chart-line" aria-hidden="true"></i><?php esc_html_e("Ważone", "upsellio"); ?>: <?php echo esc_html(number_format((float) ($kpi["nearest_win_value"] ?? 0), 0, ",", " ")); ?> PLN</div>
+                      <div class="crm-kpi-sub up"><i class="ti ti-chart-line" aria-hidden="true"></i><?php esc_html_e("Prognoza ważona pipeline", "upsellio"); ?>: <?php echo esc_html(number_format((float) ($kpi["pipeline_weighted_value"] ?? 0), 0, ",", " ")); ?> PLN</div>
                     </a>
                     <a class="crm-kpi" href="<?php echo esc_url(add_query_arg(["view" => "pipeline"], home_url("/crm-app/"))); ?>">
                       <div class="crm-kpi-lbl"><i class="ti ti-file-description" aria-hidden="true"></i><?php esc_html_e("Oferty do follow-up", "upsellio"); ?></div>
@@ -1512,7 +1514,7 @@ function upsellio_crm_app_template_redirect()
                   <div class="crm-mid-row">
                     <div style="display:flex;flex-direction:column;gap:11px">
                       <div class="crm-card crm-day-plan">
-                        <div class="crm-card-hd"><span>Plan na dziś</span><a class="crm-card-lnk" href="<?php echo esc_url(upsellio_crm_url("calendar")); ?>">Kalendarz</a></div>
+                        <div class="crm-card-hd"><span>Plan na dziś i zaległości</span><a class="crm-card-lnk" href="<?php echo esc_url(upsellio_crm_url("calendar")); ?>">Kalendarz</a></div>
                         <?php
                         $day_end = (new DateTimeImmutable("tomorrow", wp_timezone()))->getTimestamp();
                         $plan_tasks = array_values(array_filter($tasks, static function ($task) use ($day_end) {
@@ -1525,9 +1527,9 @@ function upsellio_crm_app_template_redirect()
                         <?php foreach (array_slice($plan_tasks, 0, 5) as $task_item) : $tdue = (int) get_post_meta($task_item->ID, "_upsellio_task_due_at", true); ?>
                           <div class="crm-plan-item"><time><?php echo esc_html(wp_date($tdue < (new DateTimeImmutable("today", wp_timezone()))->getTimestamp() ? "d.m H:i" : "H:i", $tdue)); ?></time><span><?php echo esc_html($task_item->post_title); ?></span></div>
                         <?php endforeach; ?>
-                        <?php if (!$plan_tasks) : ?><p class="muted">Brak zadań wymagających działania do końca dnia.</p><?php endif; ?>
+                        <?php if (!$plan_tasks) : ?><p class="muted">Brak zadań wymagających działania do końca dnia.</p><?php elseif (count($plan_tasks) > 5) : ?><p class="muted"><a href="<?php echo esc_url(upsellio_crm_url("tasks")); ?>">Pozostałe zadania: <?php echo count($plan_tasks) - 5; ?></a></p><?php endif; ?>
                       </div>
-                      <div class="crm-ai-card"><div class="crm-ai-badge"><i class="ti ti-sparkles" aria-hidden="true"></i><?php esc_html_e("Brief AI · dzisiaj", "upsellio"); ?></div><div class="crm-ai-txt"><?php echo esc_html($diag_txt !== "" ? $diag_txt : __("Brak diagnozy AI.", "upsellio")); ?></div></div>
+                      <div class="crm-ai-card"><div class="crm-ai-badge"><i class="ti ti-sparkles" aria-hidden="true"></i><?php esc_html_e("Automatyczna diagnoza wskaźników", "upsellio"); ?></div><div class="crm-ai-txt"><?php echo esc_html($diag_txt !== "" ? $diag_txt : __("Brak diagnozy AI.", "upsellio")); ?></div></div>
                       <div class="crm-card">
                         <div class="crm-card-hd"><span><?php esc_html_e("Gorące leady", "upsellio"); ?></span><a class="crm-card-lnk" href="<?php echo esc_url(add_query_arg(["view" => "leads"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Wszystkie →", "upsellio"); ?></a></div>
                         <?php foreach (array_slice($hot_leads_d, 0, 4) as $hl) : if (!is_array($hl) || !isset($hl["post"]) || !($hl["post"] instanceof WP_Post)) { continue; } $hlid = (int) $hl["post"]->ID; $hls = (int) ($hl["score"] ?? 0); ?>
@@ -1552,8 +1554,8 @@ function upsellio_crm_app_template_redirect()
                 (function(){
                   var c = document.getElementById("crm-dash-trend-v2");
                   if (!c || !window.Chart) return;
-                  var trendData = <?php echo wp_json_encode(["labels" => $trend["labels"] ?? [], "leads" => $trend["leads"] ?? [], "qualified" => $trend["qualified"] ?? [], "sent" => $trend["sent"] ?? [], "won" => $trend["won"] ?? []], JSON_UNESCAPED_UNICODE); ?>;
-                  new Chart(c,{type:"line",data:{labels:trendData.labels,datasets:[{label:"Leady",data:trendData.leads,borderColor:"#0ABFA3",backgroundColor:"rgba(10,191,163,.08)",borderWidth:2,pointRadius:3,tension:.35,fill:true},{label:"Zakwalifik.",data:trendData.qualified,borderColor:"#5DCFC0",borderWidth:1.5,pointRadius:2,tension:.35,borderDash:[4,3]},{label:"Oferty",data:trendData.sent,borderColor:"#D97706",borderWidth:1.5,pointRadius:2,tension:.35,borderDash:[2,4]},{label:"Wygrane",data:trendData.won,borderColor:"#639922",borderWidth:1.5,pointRadius:2,tension:.35,borderDash:[6,2]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{family:"DM Sans",size:10},color:"#7A96A8"}},y:{min:0,grid:{color:"rgba(0,0,0,.04)"},ticks:{font:{family:"DM Sans",size:10},color:"#7A96A8",stepSize:3}}}}});
+                  var trendData = <?php echo wp_json_encode(["labels" => $trend["labels"] ?? [], "leads" => $trend["leads"] ?? [], "qualified" => $trend["qualified"] ?? [], "sent" => $trend["sent"] ?? [], "won" => $trend["won"] ?? []], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+                  new Chart(c,{type:"line",data:{labels:trendData.labels,datasets:[{label:"Leady",data:trendData.leads,borderColor:"#0ABFA3",backgroundColor:"rgba(10,191,163,.08)",borderWidth:2,pointRadius:3,tension:.35,fill:true},{label:"Leady dziś zakwalifikowane wg daty pozyskania",data:trendData.qualified,borderColor:"#5DCFC0",borderWidth:1.5,pointRadius:2,tension:.35,borderDash:[4,3]},{label:"Oferty",data:trendData.sent,borderColor:"#D97706",borderWidth:1.5,pointRadius:2,tension:.35,borderDash:[2,4]},{label:"Wygrane",data:trendData.won,borderColor:"#639922",borderWidth:1.5,pointRadius:2,tension:.35,borderDash:[6,2]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{family:"DM Sans",size:10},color:"#7A96A8"}},y:{min:0,grid:{color:"rgba(0,0,0,.04)"},ticks:{font:{family:"DM Sans",size:10},color:"#7A96A8",stepSize:3}}}}});
                 })();
                 </script>
               <?php else : ?>
@@ -1561,7 +1563,7 @@ function upsellio_crm_app_template_redirect()
                 <div class="crm-dash-pulse card" style="grid-column:1/-1;padding:18px 20px">
                   <div>
                     <h1><?php echo esc_html(sprintf(/* translators: %s: first name */ __("Witaj, %s", "upsellio"), $pulse_name !== "" ? $pulse_name : __("operatorze", "upsellio"))); ?></h1>
-                    <p class="muted" style="margin:0;font-size:14px"><?php echo esc_html(sprintf(/* translators: %d: action count */ __("Masz ok. %d działań sprzedażowych do rozpatrzenia (lead / oferta / zadanie).", "upsellio"), max(1, $actions_hint))); ?></p>
+                    <p class="muted" style="margin:0;font-size:14px"><?php echo esc_html(sprintf(/* translators: %d: action count */ __("Masz ok. %d działań sprzedażowych do rozpatrzenia (lead / oferta / zadanie).", "upsellio"), max(0, $actions_hint))); ?></p>
                   </div>
                   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
                     <div class="crm-dash-filters" aria-label="<?php esc_attr_e("Zakres", "upsellio"); ?>">
@@ -1712,7 +1714,7 @@ function upsellio_crm_app_template_redirect()
                 <a class="card kpi <?php echo esc_attr($kpi_lead_class); ?>" style="text-decoration:none;color:inherit;transition:transform .15s, box-shadow .15s;" href="<?php echo esc_url(add_query_arg(["view" => "leads", "lead_tab" => "new"], home_url("/crm-app/"))); ?>">
                   <span class="muted"><?php esc_html_e("Nowe leady", "upsellio"); ?></span>
                   <b><?php echo esc_html((string) (int) ($kpi["new_leads"] ?? 0)); ?></b>
-                  <span class="muted" style="font-size:12px"><?php echo esc_html(sprintf(/* translators: 1: percent */ __("vs poprzedni okres: %+d%%", "upsellio"), $k_new_delta)); ?></span>
+                  <span class="muted" style="font-size:12px"><?php echo esc_html($k_delta_text); ?></span>
                 </a>
                 <a class="card kpi" style="text-decoration:none;color:inherit;transition:transform .15s, box-shadow .15s;" href="<?php echo esc_url(add_query_arg(["view" => "leads", "lead_tab" => "contact"], home_url("/crm-app/"))); ?>">
                   <span class="muted"><?php esc_html_e("Leady do kontaktu", "upsellio"); ?></span>
