@@ -28,7 +28,10 @@ $views_cur = _ups_mkt_pairs((array) (($charts["views"]["current"] ?? [])));
 $leads_cur = _ups_mkt_pairs((array) (($charts["leads"]["current"] ?? [])));
 $impr_cur = _ups_mkt_pairs((array) (($charts["impressions"]["current"] ?? [])));
 $clk_cur = _ups_mkt_pairs((array) (($charts["clicks"]["current"] ?? [])));
-$labels = _ups_mkt_lbls((array) (($charts["views"]["current"] ?? [])));
+$labels = [];
+foreach (["views", "leads", "impressions", "clicks"] as $metric) {
+    $labels[$metric] = _ups_mkt_lbls((array) ($charts[$metric]["current"] ?? []));
+}
 $health = (int) ($m["health_score"] ?? 0);
 ?>
 <section class="card">
@@ -39,25 +42,22 @@ $health = (int) ($m["health_score"] ?? 0);
     <strong>Ads</strong> (<?php echo esc_html((string) ($sources["ads"] ?? "—")); ?>).
     Health score: <strong style="color:<?php echo $health >= 75 ? "var(--success)" : ($health >= 50 ? "var(--warn)" : "var(--danger)"); ?>"><?php echo isset($m["health_score"]) && is_numeric($m["health_score"]) ? (int) $health . "/100" : "—"; ?></strong>
   </p>
+  <?php if (!$m) : ?><p class="muted">Brak dostępnych danych z integracji marketingowej. Nie oznacza to zerowej aktywności.</p><?php endif; ?>
   <div class="crm-report-kpis">
     <?php
     $kpis = [
-        ["Sesje GA4", (int) ($m["ga4_sessions"] ?? 0), "ga4_sessions"],
-        ["Konwersje GA4", (float) ($m["ga4_conversions"] ?? 0), "ga4_conversions"],
-        ["CR%", (float) ($derived["ga4_conversion_rate"] ?? 0), ""],
-        ["GSC klik.", (int) ($m["gsc_clicks"] ?? 0), "gsc_clicks"],
-        ["GSC CTR", (float) ($derived["gsc_ctr"] ?? 0), ""],
-        ["Ads koszt", (float) ($m["ads_cost"] ?? 0), "ads_cost"],
-        ["ROAS", (float) ($m["roas"] ?? 0), "roas"],
+        ["Sesje GA4", $m["ga4_sessions"] ?? null, "ga4_sessions", 0, ""],
+        ["Konwersje GA4", $m["ga4_conversions"] ?? null, "ga4_conversions", 2, ""],
+        ["CR%", $derived["ga4_conversion_rate"] ?? null, "", 2, "%"],
+        ["GSC klik.", $m["gsc_clicks"] ?? null, "gsc_clicks", 0, ""],
+        ["GSC CTR", $derived["gsc_ctr"] ?? null, "", 2, "%"],
+        ["Ads koszt", $m["ads_cost"] ?? null, "ads_cost", 2, " PLN"],
+        ["ROAS", is_numeric($m["ads_cost"] ?? null) && (float) $m["ads_cost"] > 0 ? ($m["roas"] ?? null) : null, "roas", 2, "x"],
     ];
     foreach ($kpis as $k) :
         $dkey = $k[2];
-        $d = $dkey !== "" && isset($deltas[$dkey]) && is_numeric($deltas[$dkey]) ? (float) $deltas[$dkey] : null;
-        $val = is_float($k[1]) && $k[0] !== "GSC klik." && strpos($k[0], "koszt") === false &&  $k[0] !== "Konwersje GA4" && strpos($k[0], "Wyśw") === false
-            ? number_format($k[1], 2, ",", " ") . (strpos($k[0], "%") !== false || $k[0] === "CR%" || $k[0] === "GSC CTR" || $k[0] === "ROAS" ? (strpos($k[0], "ROAS") !== false ? "x" : "%") : "")
-            : (strpos($k[0], "koszt") !== false
-                ? number_format($k[1], 0, ",", " ") . " PLN"
-                : number_format($k[1], $k[0] === "Konwersje GA4" ? 2 : 0, ",", " "));
+        $d = is_numeric($k[1]) && $dkey !== "" && isset($deltas[$dkey]) && is_numeric($deltas[$dkey]) ? (float) $deltas[$dkey] : null;
+        $val = is_numeric($k[1]) ? number_format((float) $k[1], $k[3], ",", " ") . $k[4] : "—";
         ?>
       <div style="padding:12px;border:1px solid var(--border);border-radius:var(--r-md);">
         <div class="muted" style="font-size:10px;font-weight:700;text-transform:uppercase;"><?php echo esc_html($k[0]); ?></div>
@@ -78,19 +78,19 @@ require __DIR__ . "/partials/audit-recommendations.php";
 <div class="crm-report-charts">
   <section class="card">
     <h4 style="margin:0 0 8px;font-size:13px;">Ruch na stronie</h4>
-    <div class="ups-crm-chart-box"><canvas id="ups-mkt-chart-views"></canvas></div>
+    <?php if ($views_cur !== []) : ?><div class="ups-crm-chart-box"><canvas id="ups-mkt-chart-views" aria-label="Wykres views"></canvas></div><?php else : ?><p class="muted">Brak serii danych w tym okresie.</p><?php endif; ?>
   </section>
   <section class="card">
     <h4 style="margin:0 0 8px;font-size:13px;">Leady</h4>
-    <div class="ups-crm-chart-box"><canvas id="ups-mkt-chart-leads"></canvas></div>
+    <?php if ($leads_cur !== []) : ?><div class="ups-crm-chart-box"><canvas id="ups-mkt-chart-leads" aria-label="Wykres leads"></canvas></div><?php else : ?><p class="muted">Brak serii danych w tym okresie.</p><?php endif; ?>
   </section>
   <section class="card">
     <h4 style="margin:0 0 8px;font-size:13px;">GSC — wyświetlenia</h4>
-    <div class="ups-crm-chart-box"><canvas id="ups-mkt-chart-impr"></canvas></div>
+    <?php if ($impr_cur !== []) : ?><div class="ups-crm-chart-box"><canvas id="ups-mkt-chart-impr" aria-label="Wykres impr"></canvas></div><?php else : ?><p class="muted">Brak serii danych w tym okresie.</p><?php endif; ?>
   </section>
   <section class="card">
     <h4 style="margin:0 0 8px;font-size:13px;">GSC — kliknięcia</h4>
-    <div class="ups-crm-chart-box"><canvas id="ups-mkt-chart-clicks"></canvas></div>
+    <?php if ($clk_cur !== []) : ?><div class="ups-crm-chart-box"><canvas id="ups-mkt-chart-clicks" aria-label="Wykres clicks"></canvas></div><?php else : ?><p class="muted">Brak serii danych w tym okresie.</p><?php endif; ?>
   </section>
 </div>
 
@@ -129,13 +129,14 @@ require __DIR__ . "/partials/audit-recommendations.php";
     if (!window.upsCrmChart) return;
     var labels = parse("ups-mkt-labels");
     var specs = [
-      ["ups-mkt-chart-views", parse("ups-mkt-views"), "Wyświetlenia", "#0d9488"],
-      ["ups-mkt-chart-leads", parse("ups-mkt-leads"), "Leady", "#2271b1"],
-      ["ups-mkt-chart-impr", parse("ups-mkt-impr"), "Impressions GSC", "#8b5cf6"],
-      ["ups-mkt-chart-clicks", parse("ups-mkt-clicks"), "Kliknięcia GSC", "#f59e0b"],
+      ["ups-mkt-chart-views", labels.views, parse("ups-mkt-views"), "Wyświetlenia", "#0d9488"],
+      ["ups-mkt-chart-leads", labels.leads, parse("ups-mkt-leads"), "Leady", "#2271b1"],
+      ["ups-mkt-chart-impr", labels.impressions, parse("ups-mkt-impr"), "Impressions GSC", "#8b5cf6"],
+      ["ups-mkt-chart-clicks", labels.clicks, parse("ups-mkt-clicks"), "Kliknięcia GSC", "#f59e0b"],
     ];
     specs.forEach(function (s) {
-      window.upsCrmChart.line(s[0], labels, [{ label: s[2], data: s[1], color: s[3], fill: true }], { legend: false });
+      if (!document.getElementById(s[0]) || !Array.isArray(s[1]) || !s[1].length || s[1].length !== s[2].length) return;
+      window.upsCrmChart.line(s[0], s[1], [{ label: s[3], data: s[2], color: s[4], fill: true }], { legend: false });
     });
   }
   if (typeof window.upsCrmScheduleChartInit === "function") {
