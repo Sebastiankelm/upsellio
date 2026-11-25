@@ -4530,8 +4530,8 @@ function upsellio_crm_app_template_redirect()
                                       continue;
                                   }
                                   ?>
-                                  <article class="ups-cal-task-tasks" draggable="true" data-task-id="<?php echo esc_attr((string) $item_w["id"]); ?>" data-duration="<?php echo esc_attr((string) ($item_w["duration"] ?? 60)); ?>">
-                                    <?php echo esc_html((string) $item_w["title"]); ?>
+                                  <article class="ups-cal-task-tasks" draggable="<?php echo in_array($item_w["status"] ?? "", ["done", "cancelled"], true) ? "false" : "true"; ?>" data-task-id="<?php echo esc_attr((string) $item_w["id"]); ?>" data-duration="<?php echo esc_attr((string) ($item_w["duration"] ?? 60)); ?>">
+                                    <a href="<?php echo esc_url(upsellio_crm_url("tasks", ["task_id" => (int) $item_w["id"], "task_tab" => "all"])); ?>"><?php echo esc_html((string) $item_w["title"]); ?></a>
                                     <small><?php echo esc_html((string) ($item_w["time"] ?? "")); ?> • <?php echo esc_html((string) ($item_w["duration"] ?? 60)); ?> min</small>
                                   </article>
                                 <?php endforeach; ?>
@@ -4548,6 +4548,7 @@ function upsellio_crm_app_template_redirect()
                     const slots = Array.from(document.querySelectorAll(".ups-cal-slot-tasks"));
                     const cards = Array.from(document.querySelectorAll(".ups-cal-task-tasks"));
                     let dragged = null;
+                    let saving = false;
                     cards.forEach((card) => {
                       card.addEventListener("dragstart", () => {
                         dragged = card;
@@ -4578,7 +4579,8 @@ function upsellio_crm_app_template_redirect()
                         payload.append("task_id", String(taskId));
                         payload.append("start_at", startAt);
                         payload.append("duration_minutes", String(durationMinutes));
-                        if (slot.dataset.saving === "1") return;
+                        if (saving) return;
+                        saving = true;
                         slot.dataset.saving = "1";
                         try {
                           const res = await fetch("<?php echo esc_url(admin_url("admin-ajax.php")); ?>", {
@@ -4593,6 +4595,7 @@ function upsellio_crm_app_template_redirect()
                         } catch (error) {
                           alert("Nie udało się zapisać terminu zadania. Dotychczasowy termin pozostaje widoczny.");
                         } finally {
+                          saving = false;
                           delete slot.dataset.saving;
                         }
                       });
@@ -4740,8 +4743,8 @@ function upsellio_crm_app_template_redirect()
                                       continue;
                                   }
                                   ?>
-                                  <article class="ups-cal-task" draggable="true" data-task-id="<?php echo esc_attr((string) $item["id"]); ?>" data-duration="<?php echo esc_attr((string) ($item["duration"] ?? 60)); ?>">
-                                    <?php echo esc_html((string) $item["title"]); ?>
+                                  <article class="ups-cal-task" draggable="<?php echo in_array($item["status"] ?? "", ["done", "cancelled"], true) ? "false" : "true"; ?>" data-task-id="<?php echo esc_attr((string) $item["id"]); ?>" data-duration="<?php echo esc_attr((string) ($item["duration"] ?? 60)); ?>">
+                                    <a href="<?php echo esc_url(upsellio_crm_url("tasks", ["task_id" => (int) $item["id"], "task_tab" => "all"])); ?>"><?php echo esc_html((string) $item["title"]); ?></a>
                                     <small><?php echo esc_html((string) ($item["time"] ?? "")); ?> • <?php echo esc_html((string) ($item["duration"] ?? 60)); ?> min</small>
                                   </article>
                                 <?php endforeach; ?>
@@ -4758,6 +4761,7 @@ function upsellio_crm_app_template_redirect()
                     const slots = Array.from(document.querySelectorAll(".ups-cal-slot"));
                     const cards = Array.from(document.querySelectorAll(".ups-cal-task"));
                     let dragged = null;
+                    let saving = false;
                     cards.forEach((card) => {
                       card.addEventListener("dragstart", () => {
                         dragged = card;
@@ -4788,7 +4792,8 @@ function upsellio_crm_app_template_redirect()
                         payload.append("task_id", String(taskId));
                         payload.append("start_at", startAt);
                         payload.append("duration_minutes", String(durationMinutes));
-                        if (slot.dataset.saving === "1") return;
+                        if (saving) return;
+                        saving = true;
                         slot.dataset.saving = "1";
                         try {
                           const res = await fetch("<?php echo esc_url(admin_url("admin-ajax.php")); ?>", {
@@ -4803,6 +4808,7 @@ function upsellio_crm_app_template_redirect()
                         } catch (error) {
                           alert("Nie udało się zapisać terminu zadania. Dotychczasowy termin pozostaje widoczny.");
                         } finally {
+                          saving = false;
                           delete slot.dataset.saving;
                         }
                       });
