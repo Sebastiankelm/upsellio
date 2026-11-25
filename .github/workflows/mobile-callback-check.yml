@@ -1,0 +1,26 @@
+name: Mobile callback validation
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'wp-content/themes/upsellio/inc/crm.php'
+      - 'wp-content/themes/upsellio/assets/js/upsellio-ui.js'
+      - 'tests/mobile-callback-contract.php'
+      - '.github/workflows/mobile-callback-check.yml'
+permissions:
+  contents: read
+jobs:
+  callback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: false
+      - name: Lint and isolated contract checks
+        run: |
+          php -n -l wp-content/themes/upsellio/inc/crm.php
+          php -n -l tests/mobile-callback-contract.php
+          php -n tests/mobile-callback-contract.php
+          node --check wp-content/themes/upsellio/assets/js/upsellio-ui.js
