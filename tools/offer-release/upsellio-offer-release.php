@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Upsellio Offer Release 2.0
  * Description: One-time, pinned release of seven CRM theme files. Administrator-only deployment and rollback; no remote write endpoint.
- * Version: 2.0.0
+ * Version: 2.0.1
  * Requires PHP: 8.1
  */
 if (!defined('ABSPATH')) { exit; }
@@ -161,32 +161,89 @@ final class Upsellio_Offer_Release_200 {
         }
     }
 
+    // Activation intentionally has no filesystem writes to the theme.
     public static function activate(bool $network_wide = false): void {
-        try {
-            if ($network_wide) { throw new RuntimeException('Nie obsługuje aktywacji sieciowej.'); }
-            $state = self::apply(false);
-            update_option('upsellio_offer_release_200', ['state'=>$state,'sha'=>self::RELEASE,'at'=>gmdate('c')], false);
-        } catch (Throwable $e) { wp_die(esc_html($e->getMessage()), 'Upsellio: wdrożenie wstrzymane', ['response'=>409,'back_link'=>true]); }
+        if ($network_wide) { wp_die('Nie obsługuje aktywacji sieciowej.'); }
     }
 
     public static function menu(): void {
         add_management_page('Upsellio Offer Release', 'Upsellio Offer Release', 'update_themes', 'upsellio-offer-release', [self::class,'page']);
     }
 
-    public static function page(): void {
+    private static function inspect(bool $include_source = false): array {
         self::authorize();
-        $m = self::manifest();
         $root = realpath(get_template_directory());
-        echo '<div class="wrap"><h1>Upsellio Offer Release 2.0</h1><p>Release: <code>' . esc_html(self::RELEASE) . '</code></p><ul>';
-        foreach ($m as $rel => $row) {
-            $p = $root . '/' . $rel;
-            $actual = is_file($p) ? hash_file('sha256',$p) : '';
-            $state = hash_equals($row['new']['sha256'],$actual) ? 'WDROŻONY' : (hash_equals($row['old']['sha256'],$actual) ? 'POPRZEDNI' : 'NIEZGODNY');
-            echo '<li>' . esc_html($rel . ': ' . $state) . '</li>';
+        if (!$root || !is_dir($root)) { throw new RuntimeException('Nie znaleziono motywu.'); }
+        $result = [];
+        foreach (self::manifest() as $rel => $row) {
+            $path = $root . '/' . $rel;
+            if (realpath($path) !== $path || is_link($path) || !is_file($path) || !is_readable($path)) {
+                $result[$rel] = ['state'=>'unavailable'];
+                continue;
+            }
+            $data = file_get_contents($path);
+            if (!is_string($data)) { $result[$rel] = ['state'=>'unavailable']; continue; }
+            $actual = hash('sha256', $data);
+            $state = hash_equals($row['new']['sha256'],$actual) ? 'release' : (hash_equals($row['old']['sha256'],$actual) ? 'base' : 'mismatch');
+            $item = ['state'=>$state,'sha256'=>$actual,'bytes'=>strlen($data),'base_sha256'=>$row['old']['sha256'],'release_sha256'=>$row['new']['sha256']];
+            if ($state === 'mismatch') {
+                $normalize = static function(string $bytes): string { return str_replace("\r\n", "\n", $bytes); };
+                $item['matches_base_with_normalized_line_endings'] = $normalize($data) === $normalize(self::payload($row['old']['file'],$row['old']['sha256']));
+                if ($include_source) { $item['source_base64'] = base64_encode($data); }
+            }
+            $result[$rel] = $item;
         }
-        echo '</ul><p>Rollback przywraca wyłącznie poprzednie pliki; nie cofa zapisów CRM ani nie wysyła wiadomości.</p><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
-        wp_nonce_field('upsellio_offer_release_rollback');
-        echo '<input type="hidden" name="action" value="upsellio_offer_release_rollback"><button class="button" type="submit">Przywróć poprzednią wersję</button></form></div>';
+        return $result;
+    }
+
+    public static function page(): void {
+        try {
+            $files = self::inspect();
+            $base = 0; $release = 0;
+            echo '<div class="wrap"><h1>Upsellio Offer Release 2.0.1</h1><p>Release: <code>' . esc_html(self::RELEASE) . '</code></p><table class="widefat striped"><thead><tr><th>Plik</th><th>Stan</th><th>SHA-256 produkcji</th></tr></thead><tbody>';
+            $labels=['release'=>'WDROŻONY','base'=>'ZGODNY Z BAZĄ','mismatch'=>'NIEZGODNY','unavailable'=>'NIEDOSTĘPNY'];
+            foreach ($files as $rel => $item) {
+                $state = $item['state'];
+                $base += (int)($state === 'base');
+                $release += (int)($state === 'release');
+                echo '<tr><td>' . esc_html($rel) . '</td><td>' . esc_html($labels[$state]) . '</td><td><code>' . esc_html($item['sha256'] ?? '') . '</code></td></tr>';
+            }
+            echo '</tbody></table><p>Raport obejmuje wyłącznie siedem plików motywu, nie zawiera bazy CRM, konfiguracji WordPressa ani danych ofert. Kod niezgodnych plików jest pobierany tylko przez uprawnionego administratora. Traktuj raport jako poufny.</p>';
+            self::form('diagnostics','Pobierz raport zgodności (JSON)',false);
+            if ($base === count(self::PATHS)) { self::form('deploy','Wdróż sprawdzone wydanie',true); }
+            elseif ($release === count(self::PATHS)) { self::form('rollback','Przywróć poprzednią wersję',false); }
+            else { echo '<p><strong>Wdrożenie zablokowane:</strong> pobierz raport i porównaj niezgodne pliki. Nie nadpisano motywu.</p>'; }
+            echo '</div>';
+        } catch (Throwable $e) { wp_die(esc_html($e->getMessage()), 'Upsellio: kontrola wstrzymana', ['response'=>409,'back_link'=>true]); }
+    }
+
+    private static function form(string $operation, string $label, bool $primary): void {
+        echo '<form style="margin-top:12px" method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        wp_nonce_field('upsellio_offer_release_' . $operation);
+        echo '<input type="hidden" name="action" value="' . esc_attr('upsellio_offer_release_' . $operation) . '"><button class="button' . ($primary ? ' button-primary' : '') . '" type="submit">' . esc_html($label) . '</button></form>';
+    }
+
+    public static function diagnostics(): void {
+        check_admin_referer('upsellio_offer_release_diagnostics');
+        try {
+            $files = self::inspect(true);
+            $report = wp_json_encode(['format'=>'upsellio-offer-release-diagnostics-v1','release'=>self::RELEASE,'base'=>self::BASE,'generated_at'=>gmdate('c'),'files'=>$files], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            if (!is_string($report)) { throw new RuntimeException('Nie można przygotować raportu.'); }
+            nocache_headers();
+            header('Content-Type: application/json; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="upsellio-offer-production-diagnostics.json"');
+            header('X-Content-Type-Options: nosniff');
+            echo $report; exit;
+        } catch (Throwable $e) { wp_die(esc_html($e->getMessage()), 'Upsellio: eksport wstrzymany', ['response'=>409,'back_link'=>true]); }
+    }
+
+    public static function deploy(): void {
+        check_admin_referer('upsellio_offer_release_deploy');
+        try {
+            $state = self::apply(false);
+            update_option('upsellio_offer_release_200', ['state'=>$state,'sha'=>self::RELEASE,'at'=>gmdate('c')], false);
+            wp_safe_redirect(admin_url('tools.php?page=upsellio-offer-release')); exit;
+        } catch (Throwable $e) { wp_die(esc_html($e->getMessage()), 'Upsellio: wdrożenie wstrzymane', ['response'=>409,'back_link'=>true]); }
     }
 
     public static function rollback(): void {
@@ -201,3 +258,5 @@ final class Upsellio_Offer_Release_200 {
 register_activation_hook(__FILE__, [Upsellio_Offer_Release_200::class,'activate']);
 add_action('admin_menu', [Upsellio_Offer_Release_200::class,'menu']);
 add_action('admin_post_upsellio_offer_release_rollback', [Upsellio_Offer_Release_200::class,'rollback']);
+add_action('admin_post_upsellio_offer_release_diagnostics', [Upsellio_Offer_Release_200::class,'diagnostics']);
+add_action('admin_post_upsellio_offer_release_deploy', [Upsellio_Offer_Release_200::class,'deploy']);
