@@ -74,19 +74,17 @@ function upsellio_crm_app_template_redirect()
 
     $view = isset($_GET["view"]) ? sanitize_key((string) wp_unslash($_GET["view"])) : "dashboard";
 
-    if ($view === "offer_analytics") {
-        wp_safe_redirect(upsellio_crm_url("analytics", ["atab" => "sales"]));
-        exit;
-    }
-
-    $view_redirects = upsellio_crm_view_redirects();
-    if (isset($view_redirects[$view])) {
-        wp_safe_redirect(upsellio_crm_url($view_redirects[$view]));
-        exit;
-    }
-
-    if (!in_array($view, upsellio_crm_allowed_views(), true)) {
-        $view = "dashboard";
+    // The detailed offer analytics view is a real CRM route, not a legacy alias.
+    // Its renderer independently checks edit_post for the requested offer.
+    if ($view !== "offer_analytics") {
+        $view_redirects = upsellio_crm_view_redirects();
+        if (isset($view_redirects[$view])) {
+            wp_safe_redirect(upsellio_crm_url($view_redirects[$view]));
+            exit;
+        }
+        if (!in_array($view, upsellio_crm_allowed_views(), true)) {
+            $view = "dashboard";
+        }
     }
 
     if ($view === "ca-dashboard") {
