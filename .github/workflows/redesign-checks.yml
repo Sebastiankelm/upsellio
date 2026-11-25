@@ -10,9 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
+      - name: Fetch test revision without submodule traversal
+        env:
+          CHECKOUT_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          git init -q
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          auth=$(printf 'x-access-token:%s' "$CHECKOUT_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git -c "http.extraHeader=Authorization: Basic $auth" fetch --depth=1 --no-tags --no-recurse-submodules origin "$GITHUB_SHA"
+          unset auth CHECKOUT_TOKEN
+          git -c submodule.recurse=false checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Check PHP syntax
         run: |
           php -v
