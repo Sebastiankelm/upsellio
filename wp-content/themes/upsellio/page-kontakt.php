@@ -1101,7 +1101,7 @@ echo wp_json_encode([
         var msg = contactForm.querySelector('textarea[name="lead_message"]');
         if (msg) {
             msg.setAttribute('placeholder',
-                'Np. Robimy 12 demo / mc z reklam, 1-2 zamykają się umową. Podejrzewam że strona albo follow-up zabija leady gdzieś w drodze.');
+                'Np. Płacę za reklamy, ale mam mało zamówień. Chcę sprawdzić, co warto poprawić w sklepie lub kampanii.');
         }
     }
 
