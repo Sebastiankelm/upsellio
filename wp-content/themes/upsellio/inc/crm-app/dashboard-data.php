@@ -463,36 +463,58 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
     $series_qualified = [];
     $series_sent = [];
     $series_won = [];
+    // Aggregate once per record instead of rescanning all posts for every day.
+    $days_by_key = [];
+    $today = new DateTimeImmutable("today", $tz);
     for ($i = $trend_days - 1; $i >= 0; $i--) {
-        $day = (new DateTimeImmutable("now", $tz))->modify("-" . $i . " days")->setTime(0, 0, 0);
-        $d0 = $day->getTimestamp();
-        $d1 = $day->modify("+1 day")->getTimestamp() - 1;
+        $day = $today->modify("-" . $i . " days");
+        $key = $day->format("Y-m-d");
+        $days_by_key[$key] = ["leads" => 0, "qualified" => 0, "sent" => 0, "won" => 0];
         $trend_labels[] = $day->format("d.m");
-        $series_leads[] = $count_leads_in_range($leads_f, $d0, $d1);
-        $nq = 0;
-        foreach ($leads_f as $lp) {
-            $ts = strtotime((string) $lp->post_date_gmt);
-            $lid = (int) $lp->ID;
-            if ($ts !== false && $ts >= $d0 && $ts <= $d1 && (string) get_post_meta($lid, "_ups_lead_qualification_status", true) === "qualified") {
-                $nq++;
+    }
+    $key_for_date = static function ($raw, DateTimeZone $source_tz) use ($tz): string {
+        $raw = trim((string) $raw);
+        if ($raw === "" || $raw === "0000-00-00 00:00:00") {
+            return "";
+        }
+        try {
+            return (new DateTimeImmutable($raw, $source_tz))->setTimezone($tz)->format("Y-m-d");
+        } catch (Exception $e) {
+            return "";
+        }
+    };
+    $utc = new DateTimeZone("UTC");
+    foreach ($leads_f as $lp) {
+        $key = $key_for_date($lp->post_date_gmt, $utc);
+        if (!isset($days_by_key[$key])) {
+            continue;
+        }
+        $days_by_key[$key]["leads"]++;
+        if ((string) get_post_meta($lp->ID, "_ups_lead_qualification_status", true) === "qualified") {
+            $days_by_key[$key]["qualified"]++;
+        }
+    }
+    foreach ($offers as $op) {
+        $oid = (int) $op->ID;
+        $status = (string) get_post_meta($oid, "_ups_offer_status", true);
+        $sent_at = (string) get_post_meta($oid, "_ups_offer_first_sent_at", true);
+        $sent_key = $sent_at !== "" ? $key_for_date($sent_at, $tz) : ($status === "sent" ? $key_for_date($op->post_date_gmt, $utc) : "");
+        if (isset($days_by_key[$sent_key])) {
+            $days_by_key[$sent_key]["sent"]++;
+        }
+        if ($status === "won") {
+            $closed_at = (string) get_post_meta($oid, "_ups_offer_closed_at", true);
+            $won_key = $closed_at !== "" ? $key_for_date($closed_at, $tz) : $key_for_date($op->post_modified_gmt, $utc);
+            if (isset($days_by_key[$won_key])) {
+                $days_by_key[$won_key]["won"]++;
             }
         }
-        $series_qualified[] = $nq;
-        $ns = 0;
-        $nw = 0;
-        foreach ($offers as $op) {
-            $oid = (int) $op->ID;
-            $ts = strtotime((string) $op->post_date_gmt);
-            if ($ts !== false && $ts >= $d0 && $ts <= $d1 && (string) get_post_meta($oid, "_ups_offer_status", true) === "sent") {
-                $ns++;
-            }
-            $wm = strtotime((string) $op->post_modified_gmt);
-            if ((string) get_post_meta($oid, "_ups_offer_status", true) === "won" && $wm !== false && $wm >= $d0 && $wm <= $d1) {
-                $nw++;
-            }
-        }
-        $series_sent[] = $ns;
-        $series_won[] = $nw;
+    }
+    foreach ($days_by_key as $counts) {
+        $series_leads[] = $counts["leads"];
+        $series_qualified[] = $counts["qualified"];
+        $series_sent[] = $counts["sent"];
+        $series_won[] = $counts["won"];
     }
 
     $diag_parts = [];
