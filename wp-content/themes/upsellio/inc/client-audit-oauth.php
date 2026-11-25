@@ -562,7 +562,7 @@ function ups_audit_oauth_process_callback(): void
         );
     }
 
-    if (!upsellio_crm_app_user_can_access() || !current_user_can("edit_posts")) {
+    if (!upsellio_crm_app_user_can_access() || !current_user_can("manage_options")) {
         ups_audit_oauth_exit_redirect(ups_audit_oauth_crm_error_url("Brak uprawnień do połączenia Google."));
     }
 
@@ -584,6 +584,10 @@ function ups_audit_oauth_process_callback(): void
         );
     }
 
+    $target_id = (int) ($pending["reconnect_account_id"] ?? 0);
+    if ($target_id !== 0 && ($target_id < 0 || get_post_type($target_id) !== "crm_google_account" || !current_user_can("edit_post", $target_id))) {
+        ups_audit_oauth_exit_redirect(ups_audit_oauth_crm_error_url("Nieprawidłowe konto Google do ponownego połączenia."));
+    }
     $creds = upsellio_get_gsc_credentials();
     $client_id = (string) ($creds["client_id"] ?? "");
     $client_secret = (string) ($creds["client_secret"] ?? "");
@@ -687,18 +691,21 @@ function ups_audit_oauth_handle_start(): void
         ups_audit_oauth_exit_redirect(wp_login_url(ups_audit_oauth_connect_url()));
     }
 
-    if (!upsellio_crm_app_user_can_access() || !current_user_can("edit_posts")) {
+    if (!upsellio_crm_app_user_can_access() || !current_user_can("manage_options")) {
         ups_audit_oauth_exit_redirect(ups_audit_oauth_crm_error_url("Brak uprawnień."));
     }
 
     $include_ads = !isset($_GET["include_ads"]) || (string) wp_unslash($_GET["include_ads"]) !== "0";
     $label = isset($_GET["label"]) ? sanitize_text_field((string) wp_unslash($_GET["label"])) : "";
     $reconnect_id = isset($_GET["reconnect_id"]) ? (int) wp_unslash($_GET["reconnect_id"]) : 0;
+    if ($reconnect_id !== 0 && ($reconnect_id < 0 || get_post_type($reconnect_id) !== "crm_google_account" || !current_user_can("edit_post", $reconnect_id))) {
+        ups_audit_oauth_exit_redirect(ups_audit_oauth_crm_error_url("Nieprawidłowe konto Google do ponownego połączenia."));
+    }
     $url = function_exists("ups_audit_start_oauth_connect")
         ? ups_audit_start_oauth_connect($label, $include_ads, $reconnect_id)
         : ups_audit_oauth_start_direct($label, $include_ads, $reconnect_id);
 
-    if ($url !== "" && strpos($url, "accounts.google.com") !== false) {
+    if (is_string($url) && wp_parse_url($url, PHP_URL_SCHEME) === "https" && wp_parse_url($url, PHP_URL_HOST) === "accounts.google.com") {
         wp_redirect($url);
         exit;
     }
