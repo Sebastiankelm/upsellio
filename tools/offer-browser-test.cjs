@@ -11,7 +11,7 @@ const fs = require('node:fs');
  fs.mkdirSync('artifacts', {recursive:true});
  const context = await browser.newContext({viewport:{width:1440,height:1000}});
  // No external requests (Cookiebot, fonts or any third-party tags).
- await context.route('**/*', route => { const url=route.request().url(); if(url.startsWith('http://127.0.0.1:8080/'))return route.continue(); externalRequests.push(url); return route.abort(); });
+ await context.route(url => url.origin !== 'http://127.0.0.1:8080', route => { externalRequests.push(route.request().url()); return route.abort(); });
  const page = await context.newPage();
  page.on('pageerror', e=>errors.push(e.message));
  page.on('request', req=>{const form=new URLSearchParams(req.postData()||'');if(form.get('action')==='upsellio_offer_track_event')telemetry.push(Object.fromEntries(form));});
@@ -53,11 +53,18 @@ const fs = require('node:fs');
  const offerId = await page.locator('input[name=offer_id]').first().inputValue();
  let result = await context.request.post('http://127.0.0.1:8080/wp-admin/admin-ajax.php',{form:{action:'upsellio_offer_track_event',offer_id:offerId,offer_token:'invalid',event_name:'offer_view'}});
  assert.equal(result.status(),403);
+ phase = 'direct telemetry endpoint';
+ const directForm={action:'upsellio_offer_track_event',offer_id:offerId,offer_token:'ci-offer-synthetic-42',event_name:'offer_view',session_id:'ci-probe-session-123456',event_id:'ci-probe-event-123456',offer_version:'1'};
+ const direct=await context.request.post('http://127.0.0.1:8080/wp-admin/admin-ajax.php',{form:directForm});
+ const directText=await direct.text();
+ console.log('Direct telemetry HTTP:',direct.status(),'type:',direct.headers()['content-type'],'body:',directText.slice(0,600));
+ assert.equal(direct.status(),200,'Direct telemetry HTTP status');
+ assert.equal(JSON.parse(directText).success,true,'Direct telemetry persisted');
  phase = 'consent and telemetry';
  // Inject synthetic consent locally; no external CMP required.
  const [trackingResponse] = await Promise.all([page.waitForResponse(r=>r.url().includes('admin-ajax.php') && (r.request().postData()||'').includes('event_name=offer_view')),page.evaluate(()=>{window.Cookiebot={consent:{statistics:true,marketing:false}};window.dispatchEvent(new Event('CookiebotOnConsentReady'));})]);
  const trackingBody=await trackingResponse.text();
- console.log('Tracking HTTP:',trackingResponse.status(),'Body:',trackingBody.slice(0,600));
+ console.log('Tracking HTTP:',trackingResponse.status(),'URL:',trackingResponse.url(),'type:',(await trackingResponse.allHeaders())['content-type'],'Body:',trackingBody.slice(0,600));
  assert.equal(trackingResponse.status(),200,'Tracking status');
  assert.equal(JSON.parse(trackingBody).success,true,'Consent produces accepted event');
  const event=telemetry.find(e=>e.event_name==='offer_view');
