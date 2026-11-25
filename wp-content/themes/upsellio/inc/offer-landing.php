@@ -205,7 +205,9 @@ function upsellio_offer_merge_payload_into_offer_meta($offer_id, $payload)
 function upsellio_offer_get_landing_payload($offer_id)
 {
     $offer_id = (int) $offer_id;
+    // Templates keep their defaults, but a public offer must not imply unsaved commercial terms.
     $base = upsellio_offer_layout_get_default_payload();
+    foreach (["duration", "billing", "price_note", "proof_lines", "questions_raw", "include_lines", "option_lines"] as $field) { $base[$field] = ""; }
     $meta_map = [
         "lead" => "_ups_offer_lead",
         "duration" => "_ups_offer_duration",
@@ -224,14 +226,9 @@ function upsellio_offer_get_landing_payload($offer_id)
         }
     }
     $base["show_proof"] = (string) get_post_meta($offer_id, "_ups_offer_show_proof", true) === "1";
-    $base["has_google"] = (string) get_post_meta($offer_id, "_ups_offer_has_google", true) !== "0";
-    $base["has_meta"] = (string) get_post_meta($offer_id, "_ups_offer_has_meta", true) !== "0";
+    $base["has_google"] = (string) get_post_meta($offer_id, "_ups_offer_has_google", true) === "1";
+    $base["has_meta"] = (string) get_post_meta($offer_id, "_ups_offer_has_meta", true) === "1";
     $base["has_web"] = (string) get_post_meta($offer_id, "_ups_offer_has_web", true) === "1";
-    if ((string) get_post_meta($offer_id, "_ups_offer_has_google", true) === "" && (string) get_post_meta($offer_id, "_ups_offer_has_meta", true) === "" && (string) get_post_meta($offer_id, "_ups_offer_has_web", true) === "") {
-        $base["has_google"] = true;
-        $base["has_meta"] = true;
-        $base["has_web"] = false;
-    }
     return $base;
 }
 
@@ -867,7 +864,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
       <?php if ($expires_at > 0) : ?>
       <div class="sc-exp">
         <div class="sc-dot"></div>
-        Oferta ważna jeszcze <strong id="days-left"><?php echo esc_html((string) $days_left); ?> dni</strong>
+        Oferta ważna jeszcze <strong id="days-left"><?php echo esc_html((string) $days_left); ?> <?php echo $days_left === 1 ? "dzień" : "dni"; ?></strong>
       </div>
       <?php endif; ?>
 
@@ -894,14 +891,14 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
         <div class="process-track-fill"></div>
         <div class="process-steps">
           <div class="process-step is-done">
-            <span class="process-step-num">Krok 1 · Zakończony</span>
+            <span class="process-step-num">Krok 1 · Diagnoza</span>
             <div class="process-step-name">Diagnoza</div>
             <div class="process-step-desc">Rozpoznanie potrzeb i sytuacji biznesowej.</div>
           </div>
           <div class="process-step is-current">
             <span class="process-step-num">Krok 2 · Teraz</span>
             <div class="process-step-name">Oferta</div>
-            <div class="process-step-desc">Czytasz zakres, etapy i wycenę dopasowane do rozmowy.</div>
+            <div class="process-step-desc">Sprawdź zakres, etapy i warunki propozycji.</div>
           </div>
           <div class="process-step">
             <span class="process-step-num">Krok 3 · Następnie</span>
@@ -1093,11 +1090,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
       <?php if (!$has_include && !$has_option) : ?>
       <div class="pbody-empty-msg">
         <strong>Pełen zakres ustalimy podczas wstępnej rozmowy.</strong>
-        <p>Powyższa cena to widełki wstępne — ostateczna oferta zależy od audytu sytuacji.</p>
+        <p>Szczegóły zakresu i rozliczenia potwierdź z opiekunem przed podjęciem decyzji.</p>
       </div>
       <?php else : ?>
       <div>
-        <div class="incl-title">Zawarte w abonamencie</div>
+        <div class="incl-title">Zawarte w ofercie</div>
         <div class="incl"><?php upsellio_offer_render_lines_as_checklist((string) ($payload["include_lines"] ?? ""), false); ?></div>
       </div>
       <div>
