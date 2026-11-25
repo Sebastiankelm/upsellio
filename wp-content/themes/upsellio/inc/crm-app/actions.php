@@ -1334,7 +1334,7 @@ function upsellio_crm_app_handle_post_actions()
         $redirect_url = add_query_arg(["settings_tab" => $redirect_settings_tab], $redirect_url);
     }
     $redirect_task_tab = isset($_POST["task_tab"]) ? sanitize_key(wp_unslash($_POST["task_tab"])) : "";
-    if ($redirect_view === "tasks" && $redirect_task_tab !== "" && in_array($redirect_task_tab, ["all", "today", "tomorrow", "overdue", "week"], true)) {
+    if ($redirect_view === "tasks" && $redirect_task_tab !== "" && in_array($redirect_task_tab, ["all", "today", "tomorrow", "overdue", "week", "thisweek", "done"], true)) {
         $redirect_url = add_query_arg(["task_tab" => $redirect_task_tab], $redirect_url);
     }
     if ($redirect_view === "tasks" && $redirect_task_tab === "week" && isset($_POST["week_offset"])) {
