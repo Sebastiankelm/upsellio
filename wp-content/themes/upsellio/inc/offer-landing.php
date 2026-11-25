@@ -700,6 +700,14 @@ a{text-decoration:none;color:inherit}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
 @media(max-width:580px){.commit-opts{padding:16px}.commit-opt{grid-template-columns:20px 1fr;padding:14px;gap:8px}.commit-price{grid-column:2;text-align:left}.btn{min-height:44px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+@media(max-width:580px){
+  .nav-in{gap:8px;padding:0 14px}.nav-in .btn{font-size:12px;padding:8px 12px;white-space:nowrap}.brand-logo-nav{max-width:38vw}
+  .snav-in{padding:0 8px}.sc{padding:20px}.ups-modal__box{max-height:calc(100dvh - 32px);overflow-y:auto}
+  .ups-modal-progress{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .ups-modal__actions{flex-wrap:wrap}.ups-modal__actions .btn{flex:1;justify-content:center}
+}
+.ups-modal__err.is-visible{outline:1px solid #b91c1c;border-radius:6px}
+.commit-opt{min-height:72px}
 </style>
 </head>
 <body>
@@ -1288,6 +1296,26 @@ function getSession(){
   return sessionState;
 }
 function canTrack(){return __upsTrackPublic&&!__upsPreviewMode&&window.Cookiebot&&Cookiebot.consent&&Cookiebot.consent.statistics===true;}
+var eventQueue=[], eventBusy=false, retryTimer=null;
+function drainEvents(){
+  if(!canTrack()){eventQueue=[];return;}
+  if(eventBusy||!eventQueue.length)return;
+  eventBusy=true;
+  var item=eventQueue[0];
+  fetch(ajaxUrl,{method:'POST',body:item.body,credentials:'same-origin',keepalive:true})
+    .then(function(r){
+      if(r.status===429||r.status>=500)throw new Error('retry');
+      if(r.ok)return r.json().then(function(data){if(!data||!data.success)throw new Error('retry');});
+    }).then(function(){if(eventQueue[0]===item)eventQueue.shift();})
+    .catch(function(){item.attempts++;if(item.attempts>=4&&eventQueue[0]===item)eventQueue.shift();})
+    .finally(function(){eventBusy=false;clearTimeout(retryTimer);retryTimer=setTimeout(drainEvents,item.attempts?Math.min(15000,1000*Math.pow(2,item.attempts)):0);});
+}
+window.addEventListener('pagehide',function(){
+  if(!canTrack()||!navigator.sendBeacon)return;
+  eventQueue.slice(0,20).forEach(function(item){navigator.sendBeacon(ajaxUrl,item.body);});
+});
+window.addEventListener('online',drainEvents);
+window.addEventListener('CookiebotOnDecline',function(){eventQueue=[];});
 function trackEvent(eventName,extra){
   if(!canTrack())return;
   extra=extra||{};
@@ -1300,22 +1328,23 @@ function trackEvent(eventName,extra){
   body.append('client_id',String(clientId));
   body.append('utm_source',utmSource);
   body.append('utm_campaign',utmCampaign);
-  body.append('gclid',gclid);
+  if(window.Cookiebot&&Cookiebot.consent&&Cookiebot.consent.marketing)body.append('gclid',gclid);
   body.append('event_name',eventName);
   if(extra.section_id)body.append('section_id',String(extra.section_id));
   if(extra.seconds!==undefined&&extra.seconds!==null)body.append('seconds',String(extra.seconds));
-  if(!navigator.sendBeacon || !navigator.sendBeacon(ajaxUrl,body)) fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString(),credentials:'same-origin',keepalive:true}).catch(function(){});
+  if(eventQueue.length>=100)return;
+  eventQueue.push({body:body,attempts:0});drainEvents();
 
 }
 function pushDl(ev,ex){if(!__upsTrackPublic||__upsPreviewMode||!window.Cookiebot||!Cookiebot.consent||!Cookiebot.consent.marketing)return;window.dataLayer=window.dataLayer||[];dataLayer.push(Object.assign({event:ev,page_location:window.location.origin+'/oferta/indywidualna/'},ex||{}));}
-var sections=Array.from(document.querySelectorAll('[data-offer-section]')), seenSections={}, viewSession='', lastActivity=Date.now(), lastTick=Date.now();
+var sections=Array.from(document.querySelectorAll('[data-offer-section]')), seenSections={}, viewSession='', lastActivity=Date.now(), lastTick=Date.now(), pricingTime=0, previousBest=null;
 ['pointerdown','keydown','scroll','touchstart'].forEach(function(type){window.addEventListener(type,function(){lastActivity=Date.now();},{passive:true});});
 function measureSections(){
   var now=Date.now(),delta=Math.min(10,Math.floor((now-lastTick)/1000));
   lastTick=now;
-  if(!canTrack()||document.hidden||now-lastActivity>=60000)return;
+  if(!canTrack()||document.hidden||now-lastActivity>=60000||document.querySelector('.ups-modal.is-open'))return;
   var session=getSession().id;
-  if(viewSession!==session){viewSession=session;seenSections={};trackEvent('offer_view',{});}
+  if(viewSession!==session){viewSession=session;seenSections={};pricingTime=0;previousBest=null;trackEvent('offer_view',{});}
   var viewport=window.innerHeight||document.documentElement.clientHeight;
   var best=null,bestRatio=0;
   sections.forEach(function(el){
@@ -1325,7 +1354,15 @@ function measureSections(){
     if(ratio>=0.4&&!seenSections[id]){seenSections[id]=true;trackEvent('offer_section_view',{section_id:id});}
     if(ratio>=0.5&&ratio>bestRatio){best=id;bestRatio=ratio;}
   });
-  if(best&&delta>0&&now-lastActivity<60000){trackEvent('offer_engagement_tick',{section_id:best,seconds:delta});}
+  if(best&&delta>0&&now-lastActivity<60000){
+    trackEvent('offer_engagement_tick',{section_id:best,seconds:delta});
+    if(best==='pricing'){
+      var before=pricingTime;pricingTime+=delta;
+      [30,60,120].forEach(function(t){if(before<t&&pricingTime>=t)trackEvent('offer_stage_detected',{section_id:'pricing_'+t+'s'});});
+    }
+  }
+  if(previousBest==='pricing'&&best!=='pricing')trackEvent('offer_pricing_exit',{section_id:'pricing'});
+  previousBest=best;
 }
 function startOfferMeasurement(){lastTick=Date.now();measureSections();}
 window.addEventListener('CookiebotOnConsentReady',startOfferMeasurement);
@@ -1526,6 +1563,7 @@ if(elCs)elCs.addEventListener('click',function(){
     .then(function(res){
       if(res&&res.success){
         hasClientEmail=true;
+        [elAccP,elAccF].forEach(function(btn){if(btn){btn.disabled=true;btn.textContent='Oferta zaakceptowana';}});
         closeModals();
         showToast((res.data&&res.data.message)||'Dzięki! Potwierdzenie wysłane, wracamy z kontaktem.');
         pushDl('offer_public_accept',{cta_label:((document.getElementById('acceptCtaSource')||{}).value||'pricing')});
