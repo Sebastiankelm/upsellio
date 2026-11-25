@@ -26,7 +26,7 @@ jobs:
       - name: Check PHP syntax
         run: |
           php -v
-          for file in front-page.php functions.php header.php footer.php home.php single.php ups-blog-core.php page-kontakt.php page-marketing-google-ads.php page-marketing-meta-ads.php page-tworzenie-stron-internetowych.php inc/form-component.php inc/server-side-tracking.php inc/seo-indexing-fixes.php; do
+          for file in front-page.php functions.php header.php footer.php home.php single.php ups-blog-core.php page-kontakt.php page-marketing-google-ads.php page-marketing-meta-ads.php page-tworzenie-stron-internetowych.php inc/form-component.php inc/server-side-tracking.php inc/seo-indexing-fixes.php inc/technical-seo.php; do
             php -l "wp-content/themes/upsellio/$file" || exit 1
           done
       - name: Check shared JavaScript
