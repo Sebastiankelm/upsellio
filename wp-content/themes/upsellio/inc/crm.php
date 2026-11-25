@@ -837,8 +837,9 @@ function upsellio_crm_send_emails($lead_id, $name, $email, $message)
     $quiz_budget = (string) get_post_meta($lead_id, "_upsellio_lead_quiz_budget", true);
     $consent_at = (string) get_post_meta($lead_id, "_upsellio_lead_consent_at", true);
     $edit_url = admin_url("post.php?post=" . (int) $lead_id . "&action=edit");
+    $contactPhone = (string) get_post_meta($lead_id, "_upsellio_lead_phone", true);
     $subject = "🎯 Lead: {$name}" . ($company !== "" ? " ({$company})" : "") . " · score {$score}";
-    $body = "<p><strong>" . esc_html($name) . "</strong>" . ($company !== "" ? " · " . esc_html($company) : "") . "<br><span style='font-size:13px;color:#64748b;'>" . esc_html($email) . "</span></p>
+    $body = "<p><strong>" . esc_html($name) . "</strong>" . ($company !== "" ? " · " . esc_html($company) : "") . "<br><span style='font-size:13px;color:#64748b;'>" . esc_html($email) . "</span><br>Telefon: " . esc_html($contactPhone) . "</p>
 <div style='background:#f0fdfa;border-left:4px solid #0d9488;padding:14px 16px;margin:14px 0;'><strong>AI Score: {$score}/100</strong><p style='margin:6px 0 0;font-size:13px;'>" . esc_html($score_reason) . "</p></div>
 <p><strong>Zgłoszenie:</strong></p><blockquote style='border-left:3px solid #e5e7eb;padding:8px 12px;color:#475569;font-style:italic;'>" . nl2br(esc_html($message)) . "</blockquote>
 <p><strong>Kontekst:</strong></p><table style='font-size:13px;border-collapse:collapse;'>
@@ -917,6 +918,45 @@ function upsellio_crm_redirect_lead_form_error($redirect_url, $reason)
     exit;
 }
 
+/** Keep the relaxed email contract limited to the three diagnosis forms. */
+function upsellio_crm_is_short_diagnosis_origin($origin): bool
+{
+    return in_array($origin, ["home-hero-form", "home-contact-form", "contact-page-form"], true);
+}
+
+function upsellio_crm_normalize_diagnosis_phone(string $rawPhone): string
+{
+    $digits = preg_replace("/\D+/", "", $rawPhone);
+    $phone = "";
+    if (strlen($rawPhone) <= 24 && preg_match("/^\+?[0-9 ()-]+$/D", $rawPhone)) {
+        if (substr($rawPhone, 0, 1) === "+") {
+            $phone = "+" . $digits;
+        } elseif (substr($digits, 0, 2) === "00") {
+            $phone = "+" . substr($digits, 2);
+        } elseif (strlen($digits) === 9) {
+            $phone = "+48" . $digits;
+        } elseif (strlen($digits) === 11 && substr($digits, 0, 2) === "48") {
+            $phone = "+" . $digits;
+        }
+    }
+    if (!preg_match("/^\+[1-9][0-9]{8,14}$/D", $phone)
+        || (substr($phone, 0, 3) === "+48" && !preg_match("/^\+48[1-9][0-9]{8}$/D", $phone))) {
+        return "";
+    }
+    return $phone;
+}
+
+function upsellio_crm_is_phone_rate_limited(string $phone): bool
+{
+    $key = "ups_cb_rl_" . substr(hash_hmac("sha256", $phone, wp_salt("auth")), 0, 40);
+    $attempts = (int) get_transient($key);
+    if ($attempts >= 3) {
+        return true;
+    }
+    set_transient($key, $attempts + 1, HOUR_IN_SECONDS);
+    return false;
+}
+
 function upsellio_crm_handle_lead_submission()
 {
     $rawRedirectUrl = isset($_POST["redirect_url"]) ? wp_unslash($_POST["redirect_url"]) : "";
@@ -948,7 +988,18 @@ function upsellio_crm_handle_lead_submission()
     $consent = isset($_POST["lead_consent"]) ? sanitize_text_field(wp_unslash($_POST["lead_consent"])) : "";
     $phone_digits = preg_replace("/\D+/", "", $phone);
 
-    if ($name === "" || !is_email($email) || strlen((string) $phone_digits) < 9 || $consent !== "1") {
+    $origin = isset($_POST["lead_form_origin"]) && is_string($_POST["lead_form_origin"])
+        ? sanitize_text_field(wp_unslash($_POST["lead_form_origin"])) : "contact-form";
+    $shortDiagnosis = upsellio_crm_is_short_diagnosis_origin($origin)
+        && !array_key_exists("lead_shop_url", $_POST);
+    $rawEmail = isset($_POST["lead_email"]) && is_string($_POST["lead_email"])
+        ? trim(wp_unslash($_POST["lead_email"])) : "";
+    $emailValid = ($shortDiagnosis && $rawEmail === "" && $email === "") || is_email($email);
+    if ($shortDiagnosis) {
+        $phone = upsellio_crm_normalize_diagnosis_phone($phone);
+    }
+    $phoneValid = $shortDiagnosis ? $phone !== "" : strlen((string) $phone_digits) >= 9;
+    if ($name === "" || !$emailValid || !$phoneValid || $consent !== "1") {
         upsellio_crm_redirect_lead_form_error($redirectUrl, "fields");
     }
     if (array_key_exists("lead_shop_url", $_POST) && $shop_url === "") {
@@ -986,7 +1037,7 @@ function upsellio_crm_handle_lead_submission()
         : "contact-form";
     $consentVersion = sanitize_text_field((string) get_option("ups_consent_policy_version", "v1.0"));
 
-    if (upsellio_crm_is_rate_limited($email)) {
+    if (upsellio_crm_is_rate_limited($email) || ($shortDiagnosis && upsellio_crm_is_phone_rate_limited($phone))) {
         upsellio_crm_redirect_lead_form_error($redirectUrl, "rate");
     }
 
@@ -1054,7 +1105,7 @@ function upsellio_crm_handle_lead_submission()
 
     upsellio_crm_send_emails($leadId, $name, $email, $message);
     upsellio_crm_schedule_followup($leadId);
-    if (function_exists("upsellio_server_send_lead_conversion")) {
+    if (!$shortDiagnosis && function_exists("upsellio_server_send_lead_conversion")) {
         if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
             // Skip server-side conversion for internal test submissions.
         } else {
@@ -1100,29 +1151,13 @@ function upsellio_crm_handle_mobile_callback()
     if ($field("lead_website") !== "" || $field("lead_consent") !== "1") {
         wp_send_json_error(["message" => "Sprawdź dane i zgodę na kontakt."], 400);
     }
-    $rawPhone = $field("lead_phone");
-    $digits = preg_replace("/\D+/", "", $rawPhone);
-    $phone = "";
-    if (strlen($rawPhone) <= 24 && preg_match("/^\+?[0-9 ()-]+$/D", $rawPhone)) {
-        if (substr($rawPhone, 0, 1) === "+") {
-            $phone = "+" . $digits;
-        } elseif (substr($digits, 0, 2) === "00") {
-            $phone = "+" . substr($digits, 2);
-        } elseif (strlen($digits) === 9) {
-            $phone = "+48" . $digits;
-        } elseif (strlen($digits) === 11 && substr($digits, 0, 2) === "48") {
-            $phone = "+" . $digits;
-        }
-    }
-    if (!preg_match("/^\+[1-9][0-9]{8,14}$/D", $phone)
-        || (substr($phone, 0, 3) === "+48" && !preg_match("/^\+48[1-9][0-9]{8}$/D", $phone))) {
+    $phone = upsellio_crm_normalize_diagnosis_phone($field("lead_phone"));
+    if ($phone === "") {
         wp_send_json_error(["message" => "Podaj poprawny numer telefonu. Dla numeru zagranicznego użyj prefiksu kraju."], 400);
     }
-    $phoneKey = "ups_cb_rl_" . substr(hash_hmac("sha256", $phone, wp_salt("auth")), 0, 40);
-    if ((int) get_transient($phoneKey) >= 3 || upsellio_crm_is_rate_limited("")) {
+    if (upsellio_crm_is_rate_limited("") || upsellio_crm_is_phone_rate_limited($phone)) {
         wp_send_json_error(["message" => "Za dużo prób. Spróbuj później lub zadzwoń."], 429);
     }
-    set_transient($phoneKey, (int) get_transient($phoneKey) + 1, HOUR_IN_SECONDS);
 
     $name = "Prośba o oddzwonienie";
     $message = "Prośba o oddzwonienie z mobilnego arkusza kontaktu. Telefon: " . $phone;
