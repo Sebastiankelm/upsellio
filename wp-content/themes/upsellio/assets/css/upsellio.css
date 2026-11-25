@@ -9809,3 +9809,19 @@ footer.nf-footer a:focus-visible{outline:3px solid #06745f;outline-offset:3px}
   footer.nf-footer .nf-foot-contacts a{font-size:17px;font-weight:700;min-height:44px}
 }
 @media(prefers-reduced-motion:reduce){.up-contact-sheet[open]{animation:none}}
+
+/* Mobile callback: separate from the shared lead form contract. */
+.up-sheet-callback{display:grid;gap:12px;margin:16px 0;padding:16px;background:#effaf7;border:1px solid #e3e6ea;border-radius:16px}
+.up-sheet-callback h3{margin:0;color:#0f1115;font:700 18px/1.25 "Bricolage Grotesque",sans-serif}
+.up-sheet-callback>label{font:600 14px/1.4 "DM Sans",sans-serif;color:#0f1115}
+.up-sheet-callback input[type=tel]{box-sizing:border-box;width:100%;height:52px;border:1px solid #d8dde3;border-radius:12px;background:#fff;color:#0f1115;padding:0 14px;font:400 16px/1.4 "DM Sans",sans-serif}
+.up-sheet-callback .up-callback-consent{display:flex;align-items:center;gap:12px;min-height:44px;font-size:13px;font-weight:400}
+.up-callback-consent input{width:20px;height:20px;flex:0 0 20px;accent-color:#06745f}
+.up-callback-send{min-height:54px;border:0;border-radius:999px;background:#06745f;color:#fff;font:700 16px/1.2 "DM Sans",sans-serif}
+.up-callback-send:not(:disabled):hover{background:#055e4d}
+.up-callback-send:disabled{opacity:.7;cursor:default}
+.up-sheet-callback :is(input,button):focus-visible{outline:3px solid #06745f;outline-offset:3px}
+.up-sheet-callback .up-callback-status{margin:0;color:#06745f;font-size:14px}
+.up-sheet-callback .up-callback-status:empty{display:none}
+.up-sheet-callback .up-callback-status.is-error{color:#b42318}
+.up-callback-honeypot{position:absolute!important;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
