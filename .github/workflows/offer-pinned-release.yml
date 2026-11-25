@@ -1,0 +1,151 @@
+name: Offer pinned production release package
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [fix/offer-experience-v2]
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build allowlisted package from immutable release and base commits
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, json, pathlib, shutil, subprocess, sys
+          import runpy
+          apply = runpy.run_path("tools/offer-release/offer-visual-patch.py")["apply"]
+          base = "production-2.0.5"
+          release = "offer-visual-20261125-206"
+          prior = "crm-route-fix-20261125-205"
+          crm_revision = "918107d7ccca174f748499f573e57ddfc0b929ec"
+          offer_release = "d9c0f75234c3051ddf73d68b127b533c688ab370"
+          files = ["inc/anthropic-offer-ai.php", "inc/crm-app/actions.php", "inc/crm-app/render.php", "inc/followups.php", "inc/offer-landing.php", "inc/offers.php", "inc/sales-engine.php"]
+          prefix = "wp-content/themes/upsellio/"
+          production_hashes = {
+              "inc/anthropic-offer-ai.php": "f3f32355e1ada03b68adf6b654a4854d8c5456e19fafab6ddaba91edf4eb34aa",
+              "inc/crm-app/actions.php": "adf5cfdb75a5b743a326c2b8b068bc33646c51f095a81d0b5b8c2a05bd677d72",
+              "inc/crm-app/render.php": "d2c8899e5b1288094e5593f4f8c754c8a4685f1fe7f53b5d10ab3f0f6211102b",
+              "inc/followups.php": "3d2dec886fb93bfe7feb441940e99702a8b1cf96a8607d58b71309372ba37e99",
+              "inc/offer-landing.php": "0e058aea47538268bca586a51f280b289b3964d53a464a57d3feb9123d426293",
+              "inc/offers.php": "25c35060004de1fac6b4fbcceaf5a9481bc574943122eb38b66d5b49e5de96f3",
+              "inc/sales-engine.php": "0b047f884138786e7acb6ce0f7dd481f2050ec27de5e88b300c61a8d17eb8f2b",
+          }
+          package = pathlib.Path("release-package/upsellio-offer-release")
+          package.mkdir(parents=True, exist_ok=False)
+          (package/"payload").mkdir()
+          shutil.copyfile("tools/offer-release/upsellio-offer-release.php",package/"upsellio-offer-release.php")
+          manifest = {"base":base,"release":release,"prior":prior,"files":{}}
+          for i, rel in enumerate(files):
+              manifest["files"][rel] = {}
+              revision = crm_revision if rel.startswith("inc/crm-app/") else offer_release
+              original = subprocess.check_output(["git","show",f"{revision}:{prefix}{rel}"])
+              if rel == "inc/crm-app/render.php":
+                  before = b'if ($view === "offer_analytics") {'
+                  after = b'if ($view === "offer_analytics" && (int) wp_unslash($_GET["offer_id"] ?? 0) <= 0) {'
+                  assert original.count(before)==1
+                  original=original.replace(before,after,1)
+              if hashlib.sha256(original).hexdigest() != production_hashes[rel]:
+                  raise RuntimeError("Production snapshot differs: " + rel)
+              print("Verified exact production baseline:", rel)
+              for label in ("old","prior","new"):
+                  data = apply(rel,original) if label == "new" else original
+                  tmp = pathlib.Path("/tmp/offer-release-lint.php")
+                  tmp.write_bytes(data)
+                  subprocess.run(["php","-l",str(tmp)],check=True)
+                  name = f"{i}-{label}.php"
+                  (package/"payload"/name).write_bytes(b"<?php exit; __halt_compiler();" + base64.b64encode(data))
+                  manifest["files"][rel][label] = {"file":name,"sha256":hashlib.sha256(data).hexdigest()}
+          encoded = base64.b64encode(json.dumps(manifest,separators=(",",":")).encode()).decode()
+          (package/"manifest.php").write_text("<?php if (!defined('ABSPATH')) { exit; } return json_decode(base64_decode('"+encoded+"'), true);\n")
+          for f in package.rglob("*.php"):
+              subprocess.run(["php","-l",str(f)],check=True)
+          PY
+      - name: Test exact file update, idempotence, rollback and mismatch refusal
+        run: |
+          cat > /tmp/test-offer-release.php <<'PHP'
+          <?php
+          $root = sys_get_temp_dir().'/ups-release-test-'.bin2hex(random_bytes(8));
+          mkdir($root.'/theme',0755,true);
+          define('ABSPATH',$root.'/');
+          define('PACKAGE',getcwd().'/release-package/upsellio-offer-release/');
+          function current_user_can($cap){return true;}
+          function wp_is_file_mod_allowed($context){return true;}
+          function is_multisite(){return false;}
+          function home_url(){return 'https://upsellio.pl';}
+          function get_template(){return 'upsellio';}
+          function get_template_directory(){return ABSPATH.'theme';}
+          function get_posts($args){return [];}
+          function register_activation_hook(...$args){}
+          function add_action(...$args){}
+          $options = [];
+          function update_option($key,$value,$autoload=false){$GLOBALS['options'][$key]=$value;return true;}
+          function get_option($key,$default=false){return $GLOBALS['options'][$key]??$default;}
+          class MockDB { public $prefix='ci_'; public $posts='ci_posts'; public $last_error=''; public function prepare($sql,...$args){return $sql;} public function get_var($q){return '1';} public function get_col($q){return ['42','43','81'];} }
+          $wpdb = new MockDB();
+          require PACKAGE.'upsellio-offer-release.php';
+          $m=require PACKAGE.'manifest.php';
+          function bytes($entry){return base64_decode(substr(file_get_contents(PACKAGE.'payload/'.$entry['file']),strlen('<?php exit; __halt_compiler();')),true);}
+          function check($ok,$msg){if(!$ok){throw new RuntimeException($msg);}echo "PASS: $msg\n";}
+          foreach($m['files'] as $rel=>$row){
+              $p=get_template_directory().'/'.$rel;
+              if(!is_dir(dirname($p)))mkdir(dirname($p),0755,true);
+              file_put_contents($p,bytes($row['old']));
+          }
+          update_option('upsellio_offer_legacy_payload_ids_v2',[42=>true],false);
+          check(Upsellio_Offer_Release_200::apply()==='deployed','Pinned update completed');
+          check(get_option('upsellio_offer_legacy_payload_ids_v2')===[42=>true],'Compatibility list unchanged');
+          foreach($m['files'] as $rel=>$row)check(hash_file('sha256',get_template_directory().'/'.$rel)===$row['new']['sha256'],'New hash: '.$rel);
+          check(!file_exists(ABSPATH.'.maintenance'),'Maintenance removed');
+          check(Upsellio_Offer_Release_200::apply()==='already_deployed','Repeated activation is idempotent');
+          check(Upsellio_Offer_Release_200::apply(true)==='rolled_back','Rollback completed');
+          foreach($m['files'] as $rel=>$row)check(hash_file('sha256',get_template_directory().'/'.$rel)===$row['old']['sha256'],'Restored hash: '.$rel);
+          foreach($m['files'] as $rel=>$row){file_put_contents(get_template_directory().'/'.$rel,bytes($row['prior']));}
+          update_option('upsellio_offer_legacy_payload_ids_v2',[42=>true],false);
+          check(Upsellio_Offer_Release_200::apply()==='deployed','Incremental visual patch completed');
+          check(get_option('upsellio_offer_legacy_payload_ids_v2')===[42=>true],'Incremental patch preserves prior compatibility list');
+          foreach($m['files'] as $rel=>$row)check(hash_file('sha256',get_template_directory().'/'.$rel)===$row['new']['sha256'],'Incremental release hash: '.$rel);
+          check(Upsellio_Offer_Release_200::apply(true)==='rolled_back','Original baseline rollback after incremental patch');
+          $renderer=bytes($m['files']['inc/crm-app/render.php']['new']);
+          check(str_contains($renderer,'if ($view === "offer_analytics" && (int) wp_unslash($_GET["offer_id"] ?? 0) <= 0) {'),'Aggregate funnel redirect only without offer ID');
+          check(str_contains($renderer,'upsellio_crm_app_user_can_view($view)'),'CRM view authorization remains');
+          foreach($m['files'] as $rel=>$row)check(($row['old']['sha256']!==$row['new']['sha256'])===in_array($rel,['inc/crm-app/render.php','inc/offer-landing.php','inc/offers.php'],true),'Only three visual files change: '.$rel);
+          check(str_contains($renderer,'!current_user_can("edit_post", $oa_offer_id)'),'Offer analytics record authorization remains');
+          $landing=bytes($m['files']['inc/offer-landing.php']['new']);
+          check(str_contains($landing,'id="offer-sticky-header"'),'Single sticky header');
+          check(str_contains($landing,'class="offer-scope-grid"'),'Scope cards');
+          check(str_contains($landing,'class="fq" aria-expanded='),'Keyboard-operable FAQ');
+          check(str_contains($renderer,'class="crm-view-tabs offer-analytics-tabs"'),'Analytics tabs span full grid');
+          check(str_contains($renderer,'$oa_funnel_total = max(0,'),'No fabricated funnel denominator');
+          check(str_contains($renderer,'data-oa-url='),'Copy existing offer URL');
+          $offers=bytes($m['files']['inc/offers.php']['new']);
+          check(str_contains($offers,'class="offer-analytics-ring"'),'Engagement ring');
+          check(str_contains($offers,'class="offer-analytics-attention"'),'Measured attention map');
+          check(str_contains($offers,'class="offer-analytics-event"'),'Event timeline');
+          $first=array_key_first($m['files']);$p=get_template_directory().'/'.$first;file_put_contents($p,'mismatch');
+          $refused=false;
+          try{Upsellio_Offer_Release_200::apply();}catch(RuntimeException $e){$refused=str_contains($e->getMessage(),'Niezgodność pliku');}
+          check($refused && file_get_contents($p)==='mismatch','Refuses production drift without overwriting');
+          check(!file_exists(ABSPATH.'.maintenance'),'No maintenance left after refusal');
+          Upsellio_Offer_Release_200::activate();
+          check(file_get_contents($p)==='mismatch','Activation does not modify production drift');
+          $inspect=new ReflectionMethod(Upsellio_Offer_Release_200::class,'inspect');
+          $summary=$inspect->invoke(null,false);
+          $report=$inspect->invoke(null,true);
+          check(count($summary)===7 && $summary[$first]['state']==='mismatch','All seven allowlisted paths inspected');
+          check(!isset($summary[$first]['source_base64']),'Status summary does not include source');
+          check(base64_decode($report[$first]['source_base64'],true)==='mismatch','Authenticated diagnostic export contains exact changed bytes');
+          foreach($report as $rel=>$item)if($rel!==$first)check(!isset($item['source_base64']),'Unchanged source omitted: '.$rel);
+          PHP
+          php /tmp/test-offer-release.php
+      - uses: actions/upload-artifact@v4
+        with:
+          name: upsellio-offer-release-2.0.6
+          path: release-package/
+          retention-days: 7
+          if-no-files-found: error

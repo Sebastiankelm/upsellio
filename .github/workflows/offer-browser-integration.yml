@@ -1,0 +1,104 @@
+name: Offer WordPress browser integration
+on:
+  push:
+    branches: [fix/offer-experience-v2]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mariadb:10.11
+        env:
+          MYSQL_ROOT_PASSWORD: ci-local-only
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install isolated WordPress
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /tmp/wp-cli.phar
+          mkdir -p /tmp/offer-wordpress
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress core download --version=6.8.3
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config create --dbname=wordpress --dbuser=root --dbpass=ci-local-only --dbhost=127.0.0.1:3306 --skip-check
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config set WP_HOME http://127.0.0.1:8080
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config set WP_SITEURL http://127.0.0.1:8080
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config set WP_ENVIRONMENT_TYPE local
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config set DISABLE_WP_CRON true --raw
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config set WP_DEBUG true --raw
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config set WP_DEBUG_LOG true --raw
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config set WP_DEBUG_DISPLAY false --raw
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress core install --url=http://127.0.0.1:8080 --title='Offer CI' --admin_user=ci-admin --admin_password=ci-local-only --admin_email=admin@example.invalid --skip-email
+          theme=/tmp/offer-wordpress/wp-content/themes/offer-ci
+          mkdir -p "$theme/inc"
+          printf '/* Theme Name: Offer CI */\n' > "$theme/style.css"
+          printf '<?php // CI theme only\n' > "$theme/index.php"
+          cp wp-content/themes/upsellio/inc/{offers,offer-landing,followups}.php "$theme/inc/"
+          # Test the exact transformation used to build the 2.0.6 ZIP.
+          python3 - "$theme/inc/offer-landing.php" <<'PY'
+          import hashlib, pathlib, runpy, sys
+          p=pathlib.Path(sys.argv[1])
+          source=p.read_bytes()
+          assert hashlib.sha256(source).hexdigest()=="0e058aea47538268bca586a51f280b289b3964d53a464a57d3feb9123d426293", "Unexpected base landing"
+          p.write_bytes(runpy.run_path("tools/offer-release/offer-visual-patch.py")["landing"](source.decode()).encode())
+          PY
+          php -l "$theme/inc/offer-landing.php"
+          cat > "$theme/functions.php" <<'PHP'
+          <?php
+          if (wp_get_environment_type() !== 'local') { exit; }
+          add_filter('pre_wp_mail', static function ($pre, $atts) {
+              $captured = get_option('offer_ci_mail_capture', []);
+              $captured[] = ['to' => $atts['to'] ?? '', 'headers' => $atts['headers'] ?? []];
+              update_option('offer_ci_mail_capture', $captured, false);
+              return true;
+          }, 10, 2);
+          require __DIR__ . '/inc/offers.php';
+          PHP
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress theme activate offer-ci
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress eval-file "$GITHUB_WORKSPACE/tools/offer-ci-fixture.php"
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress rewrite structure '/%postname%/'
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress rewrite flush
+          cat > /tmp/offer-wordpress/router.php <<'PHP'
+          <?php
+          $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+          if ($path !== '/' && is_file(__DIR__ . $path)) { return false; }
+          require __DIR__ . '/index.php';
+          PHP
+          php -S 127.0.0.1:8080 -t /tmp/offer-wordpress /tmp/offer-wordpress/router.php > /tmp/offer-wp.log 2>&1 &
+          for i in $(seq 1 20); do if curl -fsS http://127.0.0.1:8080/ >/dev/null; then break; fi; sleep 1; done
+          curl -fsS http://127.0.0.1:8080/oferta/ci-offer-synthetic-42/ -o /tmp/offer-page.html
+          grep -q 'Oferta testowa' /tmp/offer-page.html
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress eval 'if (admin_url("admin-ajax.php") !== "http://127.0.0.1:8080/wp-admin/admin-ajax.php") { WP_CLI::error(admin_url("admin-ajax.php")); }'
+          if grep -q '/offer-wordpress/wp-admin/admin-ajax.php' /tmp/offer-page.html; then echo 'Unexpected nested AJAX path'; exit 1; fi
+      - name: Verify follow-up policy and database locking
+        run: php /tmp/wp-cli.phar --path=/tmp/offer-wordpress eval-file "$GITHUB_WORKSPACE/tools/offer-ci-followups.php"
+      - name: Install browser
+        run: |
+          npm install --no-save --package-lock=false playwright@1.51.1
+          npx playwright install --with-deps chromium
+      - name: Test real module in browser
+        run: node tools/offer-browser-test.cjs
+      - name: Verify persisted integration data
+        run: php /tmp/wp-cli.phar --path=/tmp/offer-wordpress eval-file "$GITHUB_WORKSPACE/tools/offer-ci-verify.php"
+      - name: Collect test screenshots and server log
+        if: always()
+        run: |
+          mkdir -p artifacts
+          cp /tmp/offer-wp.log artifacts/wordpress.log 2>/dev/null || true
+          if [ -f /tmp/offer-wordpress/wp-content/debug.log ]; then
+            cp /tmp/offer-wordpress/wp-content/debug.log artifacts/php-debug.log
+            tail -n 100 artifacts/php-debug.log
+          fi
+          tail -n 100 artifacts/wordpress.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: synthetic-offer-browser-results
+          path: artifacts/
+          retention-days: 7

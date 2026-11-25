@@ -170,7 +170,7 @@ function upsellio_offer_replace_email_placeholders($text, $offer_id)
         "{{offer_title}}" => (string) get_the_title($offer_id),
         "{{offer_url}}" => (string) upsellio_offer_get_public_url($offer_id),
         "{{offer_price}}" => (string) get_post_meta($offer_id, "_ups_offer_price", true),
-        "{{offer_timeline}}" => (string) get_post_meta($offer_id, "_ups_offer_timeline", true),
+        "{{offer_timeline}}" => upsellio_offer_get_commercial_timeline($offer_id),
     ];
     return strtr((string) $text, $replace);
 }
@@ -199,7 +199,7 @@ function upsellio_offer_replace_template_placeholders($text, $offer_id)
         "{{offer_title}}" => (string) get_the_title($offer_id),
         "{{offer_url}}" => (string) upsellio_offer_get_public_url($offer_id),
         "{{offer_price}}" => (string) get_post_meta($offer_id, "_ups_offer_price", true),
-        "{{offer_timeline}}" => (string) get_post_meta($offer_id, "_ups_offer_timeline", true),
+        "{{offer_timeline}}" => upsellio_offer_get_commercial_timeline($offer_id),
         "{{offer_cta_text}}" => (string) get_post_meta($offer_id, "_ups_offer_cta_text", true),
         "{{today}}" => current_time("Y-m-d"),
     ];
@@ -301,6 +301,9 @@ function upsellio_offer_queue_builtin_sent_reminders($offer_id)
     if ($offer_id <= 0 || (string) get_option("ups_offer_builtin_sent_reminders", "1") !== "1") {
         return;
     }
+    if (!function_exists("upsellio_followup_queue_lock") || !upsellio_followup_queue_lock($offer_id)) { return; }
+    try {
+    if (upsellio_followup_offer_block_reason($offer_id) !== "") { return; }
     if ((string) get_post_meta($offer_id, "_ups_offer_builtin_reminders_scheduled", true) === "1") {
         return;
     }
@@ -319,7 +322,7 @@ function upsellio_offer_queue_builtin_sent_reminders($offer_id)
         $signature = "builtin_sent:" . $kind;
         $dup = false;
         foreach ($queue as $ex) {
-            if ((string) ($ex["signature"] ?? "") === $signature && (string) ($ex["status"] ?? "") !== "sent") {
+            if ((string) ($ex["signature"] ?? "") === $signature) {
                 $dup = true;
                 break;
             }
@@ -340,6 +343,7 @@ function upsellio_offer_queue_builtin_sent_reminders($offer_id)
     update_post_meta($offer_id, "_ups_offer_followup_queue", $queue);
     update_post_meta($offer_id, "_ups_offer_builtin_reminders_scheduled", "1");
     upsellio_offer_add_timeline_event($offer_id, "builtin_followups_queued", "Zaplanowano przypomnienia po wysłaniu oferty (2/5/10 dni).");
+    } finally { upsellio_followup_queue_unlock($offer_id); }
 }
 
 function upsellio_offer_builtin_reminder_parts($offer_id, $kind)
@@ -426,16 +430,27 @@ function upsellio_offer_is_expired($offer_id)
     return time() >= $expires_at;
 }
 
+function upsellio_offer_get_timeline_events(int $offer_id): array
+{
+    $events = get_post_meta($offer_id, "_ups_offer_timeline_events", true);
+    if (is_array($events)) { return $events; }
+    $legacy = get_post_meta($offer_id, "_ups_offer_timeline", true);
+    return is_array($legacy) ? $legacy : [];
+}
+
+function upsellio_offer_get_commercial_timeline(int $offer_id): string
+{
+    $value = get_post_meta($offer_id, "_ups_offer_timeline", true);
+    return is_string($value) ? $value : "";
+}
+
 function upsellio_offer_add_timeline_event($offer_id, $type, $message)
 {
     $offer_id = (int) $offer_id;
     if ($offer_id <= 0) {
         return;
     }
-    $events = get_post_meta($offer_id, "_ups_offer_timeline", true);
-    if (!is_array($events)) {
-        $events = [];
-    }
+    $events = upsellio_offer_get_timeline_events($offer_id);
     $events[] = [
         "ts" => current_time("mysql"),
         "type" => sanitize_key((string) $type),
@@ -444,7 +459,7 @@ function upsellio_offer_add_timeline_event($offer_id, $type, $message)
     if (count($events) > 100) {
         $events = array_slice($events, -100);
     }
-    update_post_meta($offer_id, "_ups_offer_timeline", $events);
+    update_post_meta($offer_id, "_ups_offer_timeline_events", $events);
 }
 
 function upsellio_offer_build_analytics_summary($offer_id)
@@ -455,65 +470,98 @@ function upsellio_offer_build_analytics_summary($offer_id)
         $events = [];
     }
     $unique_views = 0;
+    $seen_sessions = [];
     $section_views = [];
+    $seen_session_sections = [];
     $section_seconds = [];
     $cta_clicks = 0;
+    $accept_clicks = 0;
+    $commit_selected = false;
+    $started_sessions = [];
+    $step_sessions = [];
+    $legacy_views = 0;
     $total_seconds = 0;
     $last_seen_ts = "";
 
     foreach ($events as $event) {
         $event_name = sanitize_key((string) ($event["event"] ?? ""));
         $section_id = sanitize_key((string) ($event["section_id"] ?? ""));
+        if ($section_id === "cennik") { $section_id = "pricing"; }
         $seconds = (int) ($event["seconds"] ?? 0);
         $ts = (string) ($event["ts"] ?? "");
         if ($ts !== "") {
             $last_seen_ts = $ts;
         }
         if ($event_name === "offer_view") {
-            $unique_views++;
+            $sid = (string) ($event["session_id"] ?? "");
+            if ($sid === "") { $legacy_views++; }
+            if ($sid === "" || !isset($seen_sessions[$sid])) {
+                $unique_views++;
+                if ($sid !== "") {
+                    $seen_sessions[$sid] = true;
+                }
+            }
         }
         if ($event_name === "offer_section_view" && $section_id !== "") {
             if (!isset($section_views[$section_id])) {
                 $section_views[$section_id] = 0;
             }
-            $section_views[$section_id]++;
+            $sid = (string) ($event["session_id"] ?? "");
+            if ($sid === "" || !isset($seen_session_sections[$sid][$section_id])) {
+                $section_views[$section_id]++;
+                if ($sid !== "") { $seen_session_sections[$sid][$section_id] = true; }
+            }
         }
         if ($event_name === "offer_engagement_tick") {
-            $total_seconds = max($total_seconds, $seconds);
+            $duration = !empty($event["session_id"]) ? max(0, min(10, $seconds)) : 10;
+            $total_seconds += $duration;
             if ($section_id !== "") {
                 if (!isset($section_seconds[$section_id])) {
                     $section_seconds[$section_id] = 0;
                 }
-                $section_seconds[$section_id] += 20;
+                $section_seconds[$section_id] += $duration;
             }
         }
         if ($event_name === "offer_cta_click") {
             $cta_clicks++;
+            if (in_array($section_id, ["pricing_accept_ajax", "footer_accept_ajax", "mobile_accept_ajax"], true)) { $accept_clicks++; }
         }
+        if ($event_name === "offer_commit_selected" && $section_id !== "") { $commit_selected = true; }
+        if ($event_name === "offer_accept_started" && !empty($event["session_id"])) { $started_sessions[$event["session_id"]] = true; }
+        if ($event_name === "offer_accept_step" && !empty($event["session_id"]) && preg_match("/^step_[1-4]$/", $section_id)) { $step_sessions[$section_id][$event["session_id"]] = true; }
     }
 
-    $pricing_seconds = (int) ($section_seconds["pricing"] ?? 0);
-    $score = 0;
-    $score += min(20, $unique_views * 8);
-    $score += min(24, count($section_views) * 8);
-    $score += min(30, (int) floor($total_seconds / 20) * 5);
-    if ($pricing_seconds >= 30) {
-        $score += 16;
+    $pricing_seconds = (int) ($section_seconds["pricing"] ?? 0) + (int) ($section_seconds["cennik"] ?? 0);
+    // Fixed component maxima sum to 100; generic navigation is not a purchase signal.
+    $score_components = [
+        "sessions" => min(15, count($seen_sessions) * 5 + min(5, $legacy_views * 5)),
+        "sections" => min(15, count($section_views) * 5),
+        "activity" => min(20, (int) floor($total_seconds / 20) * 4),
+        "pricing" => $pricing_seconds >= 60 ? 20 : ($pricing_seconds >= 30 ? 10 : 0),
+        "variant" => $commit_selected ? 10 : 0,
+        "accept" => ($accept_clicks > 0 || $started_sessions !== []) ? 20 : 0,
+    ];
+    $score = array_sum($score_components);
+    $has_intent = $commit_selected || $accept_clicks > 0 || $started_sessions !== [];
+    $hot_score = max(1, min(100, (int) get_option("ups_offer_score_hot", 70)));
+    $hot_pricing_seconds = max(0, (int) get_option("ups_offer_score_hot_pricing_seconds", 45));
+    $is_hot = $has_intent && ($score >= $hot_score || ($pricing_seconds >= $hot_pricing_seconds && ($accept_clicks > 0 || $started_sessions !== [])));
+    if (in_array((string) get_post_meta($offer_id, "_ups_offer_status", true), ["won", "lost"], true) || upsellio_offer_is_expired($offer_id)) {
+        $is_hot = false;
     }
-    if ($pricing_seconds >= 60) {
-        $score += 10;
-    }
-    $score += min(35, $cta_clicks * 35);
-
-    $hot_score = (int) get_option("ups_offer_score_hot", 70);
-    $hot_pricing_seconds = (int) get_option("ups_offer_score_hot_pricing_seconds", 45);
-    $is_hot = $score >= $hot_score || ($pricing_seconds >= $hot_pricing_seconds && $cta_clicks > 0);
 
     return [
         "views" => $unique_views,
         "section_views" => $section_views,
         "section_seconds" => $section_seconds,
         "cta_clicks" => $cta_clicks,
+        "accept_clicks" => $accept_clicks,
+        "accept_started_sessions" => count($started_sessions),
+        "accept_steps" => array_map("count", $step_sessions),
+        "commit_selected" => $commit_selected,
+        "score_components" => $score_components,
+        "identified_views" => count($seen_sessions),
+        "legacy_views" => $legacy_views,
         "total_seconds" => $total_seconds,
         "pricing_seconds" => $pricing_seconds,
         "score" => $score,
@@ -529,13 +577,11 @@ function upsellio_offer_detect_behavior_objection(array $summary): string
     $section_sec = is_array($summary["section_seconds"] ?? null)
         ? $summary["section_seconds"] : [];
     $faq_sec = (int) ($section_sec["faq"] ?? 0);
-    $scope_sec = (int) ($section_sec["zakres"] ?? $section_sec["szczegoly"] ?? 0);
+    $scope_sec = (int) ($section_sec["zakres"] ?? 0) + (int) ($section_sec["szczegoly"] ?? 0);
     $views = (int) ($summary["views"] ?? 0);
     $total_sec = (int) ($summary["total_seconds"] ?? 0);
 
-    if ($views === 1 && $total_sec < 30 && $cta_clicks === 0) {
-        return "no_fit";
-    }
+    // A short or unmeasured visit does not prove a lack of fit.
 
     if ($pricing_sec >= 45 && $cta_clicks === 0) {
         return "price";
@@ -570,15 +616,16 @@ function upsellio_offer_detect_stage($summary)
     $decision_by_score = $score >= $decision_score;
     $decision_by_pricing = $pricing_seconds >= $decision_pricing_seconds;
     $decision_by_views = $views >= $decision_views;
-    $decision_by_cta = $cta_clicks > 0;
+    $decision_by_cta = (int) ($summary["accept_clicks"] ?? 0) > 0 || (int) ($summary["accept_started_sessions"] ?? 0) > 0;
+    $decision_by_variant = !empty($summary["commit_selected"]);
     if ($decision_require_cta) {
         if (($decision_by_score || $decision_by_pricing || $decision_by_views) && $decision_by_cta) {
             return "decision";
         }
-    } elseif ($decision_by_score || $decision_by_cta || $decision_by_pricing || $decision_by_views) {
+    } elseif ($decision_by_cta || ($decision_by_variant && ($decision_by_score || $decision_by_pricing || $decision_by_views))) {
         return "decision";
     }
-    if ($score >= $consideration_score || $pricing_seconds >= $consideration_pricing_seconds || $views >= $consideration_views) {
+    if ($decision_by_variant || $score >= $consideration_score || $pricing_seconds >= $consideration_pricing_seconds || $views >= $consideration_views) {
         return "consideration";
     }
     return "awareness";
@@ -587,7 +634,7 @@ function upsellio_offer_detect_stage($summary)
 function upsellio_offer_create_followup_task($offer_id, $summary)
 {
     $offer_id = (int) $offer_id;
-    if ($offer_id <= 0 || empty($summary["is_hot"])) {
+    if ($offer_id <= 0 || empty($summary["is_hot"]) || !in_array((string) get_post_meta($offer_id, "_ups_offer_status", true), ["open", "sent"], true) || upsellio_offer_is_expired($offer_id)) {
         return;
     }
     $existing_task_id = (int) get_post_meta($offer_id, "_ups_offer_hot_task_id", true);
@@ -595,7 +642,9 @@ function upsellio_offer_create_followup_task($offer_id, $summary)
         return;
     }
 
-    $owner_id = function_exists("upsellio_crm_get_default_owner_id") ? (int) upsellio_crm_get_default_owner_id() : 1;
+    $owner_id = (int) get_post_meta($offer_id, "_ups_offer_owner_id", true);
+    if ($owner_id <= 0) { $owner_id = (int) get_post_field("post_author", $offer_id); }
+    if ($owner_id <= 0) { $owner_id = function_exists("upsellio_crm_get_default_owner_id") ? (int) upsellio_crm_get_default_owner_id() : 1; }
     $task_id = wp_insert_post([
         "post_type" => "lead_task",
         "post_status" => "publish",
@@ -620,6 +669,11 @@ function upsellio_offer_refresh_score($offer_id)
         return;
     }
     $summary = upsellio_offer_build_analytics_summary($offer_id);
+    $closed = in_array((string) get_post_meta($offer_id, "_ups_offer_status", true), ["won", "lost"], true);
+    if ($closed || upsellio_offer_is_expired($offer_id)) {
+        update_post_meta($offer_id, "_ups_offer_hot_offer", "0");
+        return;
+    }
     $stage = upsellio_offer_detect_stage($summary);
     update_post_meta($offer_id, "_ups_offer_score", (int) $summary["score"]);
     $behavior_objection = upsellio_offer_detect_behavior_objection($summary);
@@ -660,10 +714,13 @@ function upsellio_offer_refresh_score($offer_id)
 function upsellio_offer_update_followup_on_visit(int $offer_id): void
 {
     $offer_id = (int) $offer_id;
-    if ($offer_id <= 0) {
+    if ($offer_id <= 0 || !in_array((string) get_post_meta($offer_id, "_ups_offer_status", true), ["open", "sent"], true) || upsellio_offer_is_expired($offer_id)) {
         return;
     }
 
+    if (!function_exists("upsellio_followup_queue_lock") || !upsellio_followup_queue_lock($offer_id)) { return; }
+    try {
+    if (upsellio_followup_offer_block_reason($offer_id) !== "") { return; }
     $queue = get_post_meta($offer_id, "_ups_offer_followup_queue", true);
     if (!is_array($queue) || empty($queue)) {
         return;
@@ -679,7 +736,8 @@ function upsellio_offer_update_followup_on_visit(int $offer_id): void
             continue;
         }
 
-        $send_at_ts = strtotime((string) ($item["send_at"] ?? ""));
+        $send_at_raw = (string) ($item["send_at"] ?? "");
+        $send_at_ts = $send_at_raw !== "" ? strtotime($send_at_raw . " UTC") : false;
         if ($send_at_ts === false) {
             $gap_h = 999.0;
         } else {
@@ -687,8 +745,8 @@ function upsellio_offer_update_followup_on_visit(int $offer_id): void
         }
 
         if ($gap_h < 12) {
-            $queue[$idx]["status"] = "paused_visit_too_close";
-            $queue[$idx]["paused_at"] = current_time("mysql");
+            $queue[$idx]["send_at"] = gmdate("Y-m-d H:i:s", $now + 12 * HOUR_IN_SECONDS);
+            $queue[$idx]["visit_deferred_at"] = current_time("mysql");
             $updated = true;
             continue;
         }
@@ -701,7 +759,7 @@ function upsellio_offer_update_followup_on_visit(int $offer_id): void
         } elseif ($objection === "trust") {
             $queue[$idx]["context_override"] = [
                 "subject_prefix" => "",
-                "note" => "Klient czytal FAQ — dolacz case study lub referencje.",
+                "note" => "Klient czytal FAQ — wyjasnij proces wspolpracy i odpowiedz na konkretne watpliwosci.",
             ];
         } elseif ($objection === "scope") {
             $queue[$idx]["context_override"] = [
@@ -724,6 +782,7 @@ function upsellio_offer_update_followup_on_visit(int $offer_id): void
             );
         }
     }
+    } finally { upsellio_followup_queue_unlock($offer_id); }
 }
 
 function upsellio_offer_maybe_schedule_score_refresh($offer_id)
@@ -841,7 +900,7 @@ function upsellio_render_offer_meta_box($post)
     $post_id = (int) $post->ID;
     $client_id = (int) get_post_meta($post_id, "_ups_offer_client_id", true);
     $price = (string) get_post_meta($post_id, "_ups_offer_price", true);
-    $timeline = (string) get_post_meta($post_id, "_ups_offer_timeline", true);
+    $timeline = upsellio_offer_get_commercial_timeline((int) $post_id);
     $cta = (string) get_post_meta($post_id, "_ups_offer_cta_text", true);
     $offer_status = (string) get_post_meta($post_id, "_ups_offer_status", true);
     $won_value = (string) get_post_meta($post_id, "_ups_offer_won_value", true);
@@ -1017,9 +1076,11 @@ function upsellio_save_offer_meta_box($post_id)
     $previous_title = (string) get_the_title((int) $post_id);
     $previous_content = (string) get_post_field("post_content", (int) $post_id);
     $previous_price = (string) get_post_meta((int) $post_id, "_ups_offer_price", true);
-    $previous_timeline = (string) get_post_meta((int) $post_id, "_ups_offer_timeline", true);
+    $previous_timeline = upsellio_offer_get_commercial_timeline((int) $post_id);
     update_post_meta((int) $post_id, "_ups_offer_client_id", isset($_POST["ups_offer_client_id"]) ? (int) wp_unslash($_POST["ups_offer_client_id"]) : 0);
     update_post_meta((int) $post_id, "_ups_offer_price", isset($_POST["ups_offer_price"]) ? sanitize_text_field(wp_unslash($_POST["ups_offer_price"])) : "");
+    $legacy_history = upsellio_offer_get_timeline_events((int) $post_id);
+    if ($legacy_history !== [] && !metadata_exists("post", (int) $post_id, "_ups_offer_timeline_events")) { update_post_meta((int) $post_id, "_ups_offer_timeline_events", $legacy_history); }
     update_post_meta((int) $post_id, "_ups_offer_timeline", isset($_POST["ups_offer_timeline"]) ? sanitize_text_field(wp_unslash($_POST["ups_offer_timeline"])) : "");
     update_post_meta((int) $post_id, "_ups_offer_cta_text", isset($_POST["ups_offer_cta_text"]) ? sanitize_text_field(wp_unslash($_POST["ups_offer_cta_text"])) : "");
     $new_status = isset($_POST["ups_offer_status"]) ? sanitize_key(wp_unslash($_POST["ups_offer_status"])) : "open";
@@ -1048,7 +1109,7 @@ function upsellio_save_offer_meta_box($post_id)
     $current_title = (string) get_the_title((int) $post_id);
     $current_content = (string) get_post_field("post_content", (int) $post_id);
     $current_price = (string) get_post_meta((int) $post_id, "_ups_offer_price", true);
-    $current_timeline = (string) get_post_meta((int) $post_id, "_ups_offer_timeline", true);
+    $current_timeline = upsellio_offer_get_commercial_timeline((int) $post_id);
     $has_version_change = ($previous_title !== $current_title) || ($previous_content !== $current_content) || ($previous_price !== $current_price) || ($previous_timeline !== $current_timeline);
     if ($has_version_change) {
         $versions = get_post_meta((int) $post_id, "_ups_offer_versions", true);
@@ -1144,12 +1205,51 @@ add_action("save_post_crm_offer", function ($post_id) {
     update_post_meta((int) $post_id, "_ups_offer_price_display", (string) ($normalized["display"] ?? ""));
 }, 20);
 
+/**
+ * Public requests must originate from a currently published, unexpired offer link.
+ * Nonce alone is not a secret for logged-out WordPress visitors.
+ */
+function upsellio_offer_public_request_valid(int $offer_id): bool
+{
+    if (get_post_type($offer_id) !== "crm_offer" || get_post_status($offer_id) !== "publish" || upsellio_offer_is_expired($offer_id)) {
+        return false;
+    }
+    $expected = (string) get_post_meta($offer_id, "_ups_offer_public_slug", true);
+    $provided = isset($_POST["offer_token"]) && is_string($_POST["offer_token"]) ? sanitize_text_field(wp_unslash($_POST["offer_token"])) : "";
+    return $expected !== "" && hash_equals($expected, $provided);
+}
+
+function upsellio_offer_event_section_valid(string $event, string $section, array $variant_keys = []): bool
+{
+    $sections = ["zakres", "szczegoly", "etapy", "pytania", "pricing", "cennik", "faq"];
+    switch ($event) {
+        case "offer_view": return $section === "";
+        case "offer_section_view":
+        case "offer_section_click":
+        case "offer_engagement_tick": return in_array($section, $sections, true);
+        case "offer_stage_detected": return in_array($section, ["pricing_30s", "pricing_60s", "pricing_120s"], true);
+        case "offer_pricing_exit": return $section === "pricing";
+        case "offer_commit_selected": return in_array($section, $variant_keys, true);
+        case "offer_accept_started": return in_array($section, ["pricing", "footer", "mobile"], true);
+        case "offer_accept_step": return in_array($section, ["step_1", "step_2", "step_3", "step_4"], true);
+        case "offer_cta_click": return in_array($section, ["nav", "hero_primary", "hero_scope", "sum_card_minimal", "sum_card", "final_phone", "pricing_accept_ajax", "footer_accept_ajax", "mobile_accept_ajax", "pricing_question_modal", "footer_question_modal"], true);
+    }
+    return false;
+}
+
 function upsellio_offer_track_event()
 {
     $offer_id = isset($_POST["offer_id"]) ? (int) $_POST["offer_id"] : 0;
     $event_name = isset($_POST["event_name"]) ? sanitize_key(wp_unslash($_POST["event_name"])) : "";
     if ($offer_id <= 0 || $event_name === "" || get_post_type($offer_id) !== "crm_offer") {
         wp_send_json_error(["message" => "invalid_payload"], 400);
+    }
+    if (!upsellio_offer_public_request_valid($offer_id)) {
+        wp_send_json_error(["message" => "invalid_offer"], 403);
+    }
+    $allowed = ["offer_view", "offer_section_view", "offer_section_click", "offer_engagement_tick", "offer_stage_detected", "offer_pricing_exit", "offer_commit_selected", "offer_cta_click", "offer_accept_started", "offer_accept_step"];
+    if (!in_array($event_name, $allowed, true)) {
+        wp_send_json_error(["message" => "invalid_event"], 400);
     }
     if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
         wp_send_json_success(["ok" => true, "skipped_internal" => true]);
@@ -1159,38 +1259,77 @@ function upsellio_offer_track_event()
     }
 
     $ip = isset($_SERVER["REMOTE_ADDR"]) ? sanitize_text_field(wp_unslash((string) $_SERVER["REMOTE_ADDR"])) : "0";
-    $rl_key = "ups_offer_track_rl_" . md5($ip . "|" . $offer_id);
-    if (get_transient($rl_key)) {
-        wp_send_json_success(["ok" => true, "throttled" => true]);
+    $rl_key = "ups_offer_track_rl_" . md5($ip . "|" . $offer_id . "|" . floor(time() / MINUTE_IN_SECONDS));
+    $rate = (int) get_transient($rl_key);
+    if ($rate >= 120) {
+        wp_send_json_error(["message" => "rate_limited"], 429);
     }
-    set_transient($rl_key, 1, 5);
+    set_transient($rl_key, $rate + 1, MINUTE_IN_SECONDS);
+    $session_id = isset($_POST["session_id"]) && is_string($_POST["session_id"]) ? sanitize_key(wp_unslash($_POST["session_id"])) : "";
+    $event_id = isset($_POST["event_id"]) && is_string($_POST["event_id"]) ? sanitize_key(wp_unslash($_POST["event_id"])) : "";
+    if (!preg_match('/^[a-z0-9-]{16,80}$/', $session_id) || !preg_match('/^[a-z0-9-]{16,80}$/', $event_id)) {
+        wp_send_json_error(["message" => "invalid_event_id"], 400);
+    }
 
-    $events = get_post_meta($offer_id, "_ups_offer_events", true);
-    if (!is_array($events)) {
-        $events = [];
+    $section_id = isset($_POST["section_id"]) && is_string($_POST["section_id"]) ? sanitize_key(wp_unslash($_POST["section_id"])) : "";
+    $variant_keys = [];
+    if ($event_name === "offer_commit_selected") {
+        $payload = upsellio_offer_get_landing_payload($offer_id);
+        $variants = json_decode((string) ($payload["services_json"] ?? "[]"), true);
+        foreach (is_array($variants) ? $variants : [] as $row) { if (is_array($row) && !empty($row["key"])) { $variant_keys[] = sanitize_key((string) $row["key"]); } }
     }
-    $events[] = [
+    if (!upsellio_offer_event_section_valid($event_name, $section_id, $variant_keys)) { wp_send_json_error(["message" => "invalid_section"], 400); }
+    $current_version = (int) get_post_meta($offer_id, "_ups_offer_current_version", true);
+    $event_version = isset($_POST["offer_version"]) && is_scalar($_POST["offer_version"]) && ctype_digit((string) $_POST["offer_version"]) ? (int) $_POST["offer_version"] : $current_version;
+    if ($event_version > $current_version) { wp_send_json_error(["message" => "invalid_version"], 400); }
+    $new_event = [
         "ts" => current_time("mysql"),
+        "session_id" => $session_id,
+        "event_id" => $event_id,
         "event" => $event_name,
-        "section_id" => isset($_POST["section_id"]) ? sanitize_key(wp_unslash($_POST["section_id"])) : "",
-        "seconds" => isset($_POST["seconds"]) ? (int) $_POST["seconds"] : 0,
-        "page" => isset($_POST["page"]) ? esc_url_raw(wp_unslash($_POST["page"])) : "",
-        "client_id" => isset($_POST["client_id"]) ? (int) $_POST["client_id"] : 0,
-        "person_id" => isset($_POST["person_id"]) ? sanitize_text_field(wp_unslash($_POST["person_id"])) : "",
-        "utm_source" => isset($_POST["utm_source"]) ? sanitize_text_field(wp_unslash($_POST["utm_source"])) : "",
-        "utm_campaign" => isset($_POST["utm_campaign"]) ? sanitize_text_field(wp_unslash($_POST["utm_campaign"])) : "",
-        "gclid" => isset($_POST["gclid"]) ? sanitize_text_field(wp_unslash($_POST["gclid"])) : "",
-        "offer_version" => (int) get_post_meta($offer_id, "_ups_offer_current_version", true),
+        "section_id" => $section_id === "cennik" ? "pricing" : $section_id,
+        "seconds" => $event_name === "offer_engagement_tick" && isset($_POST["seconds"]) && is_scalar($_POST["seconds"]) ? max(0, min(10, (int) $_POST["seconds"])) : 0,
+        "page" => "",
+        "client_id" => (int) get_post_meta($offer_id, "_ups_offer_client_id", true),
+        "person_id" => "",
+        "utm_source" => isset($_POST["utm_source"]) && is_string($_POST["utm_source"]) ? substr(sanitize_text_field(wp_unslash($_POST["utm_source"])), 0, 160) : "",
+        "utm_campaign" => isset($_POST["utm_campaign"]) && is_string($_POST["utm_campaign"]) ? substr(sanitize_text_field(wp_unslash($_POST["utm_campaign"])), 0, 160) : "",
+        "gclid" => isset($_POST["gclid"]) && is_string($_POST["gclid"]) ? substr(sanitize_text_field(wp_unslash($_POST["gclid"])), 0, 200) : "",
+        "offer_version" => $event_version,
     ];
-    if (count($events) > 600) {
-        $events = array_slice($events, -600);
+    // Serialize read-modify-write across browsers and tabs, then release before running hooks.
+    global $wpdb;
+    $lock_name = "ups_offer_events_" . md5((string) $wpdb->postmeta . ":" . $offer_id);
+    if ((string) $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 2)", $lock_name)) !== "1") {
+        wp_send_json_error(["message" => "busy_retry"], 503);
     }
-    update_post_meta($offer_id, "_ups_offer_events", $events);
+    $duplicate = false;
+    $saved = false;
+    try {
+        wp_cache_delete($offer_id, "post_meta");
+        $events = get_post_meta($offer_id, "_ups_offer_events", true);
+        if (!is_array($events)) { $events = []; }
+        foreach ($events as $previous_event) {
+            if (($previous_event["event_id"] ?? "") === $event_id) {
+                $duplicate = true;
+                break;
+            }
+        }
+        if (!$duplicate) {
+            $events[] = $new_event;
+            if (count($events) > 600) { $events = array_slice($events, -600); }
+            $saved = (bool) update_post_meta($offer_id, "_ups_offer_events", $events);
+        }
+    } finally {
+        $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock_name));
+    }
+    if ($duplicate) { wp_send_json_success(["ok" => true, "duplicate" => true]); }
+    if (!$saved) { wp_send_json_error(["message" => "write_failed"], 503); }
     $first_source = (string) get_post_meta($offer_id, "_ups_offer_utm_source", true);
     $first_campaign = (string) get_post_meta($offer_id, "_ups_offer_utm_campaign", true);
-    $event_utm_source = isset($_POST["utm_source"]) ? sanitize_text_field(wp_unslash($_POST["utm_source"])) : "";
-    $event_utm_campaign = isset($_POST["utm_campaign"]) ? sanitize_text_field(wp_unslash($_POST["utm_campaign"])) : "";
-    $event_gclid = isset($_POST["gclid"]) ? sanitize_text_field(wp_unslash($_POST["gclid"])) : "";
+    $event_utm_source = $new_event["utm_source"];
+    $event_utm_campaign = $new_event["utm_campaign"];
+    $event_gclid = $new_event["gclid"];
     if ($first_source === "" && $event_utm_source !== "") {
         update_post_meta($offer_id, "_ups_offer_utm_source", $event_utm_source);
     }
@@ -1207,7 +1346,7 @@ function upsellio_offer_track_event()
         update_post_meta($offer_id, "_ups_offer_gclid", $event_gclid);
     }
     if ($event_name === "offer_view" && (int) get_post_meta($offer_id, "_ups_offer_first_seen_version", true) <= 0) {
-        update_post_meta($offer_id, "_ups_offer_first_seen_version", (int) get_post_meta($offer_id, "_ups_offer_current_version", true));
+        update_post_meta($offer_id, "_ups_offer_first_seen_version", $event_version);
     }
     update_post_meta($offer_id, "_ups_offer_last_seen", current_time("mysql"));
     $summary = upsellio_offer_build_analytics_summary($offer_id);
@@ -1227,7 +1366,7 @@ add_action("wp_ajax_nopriv_upsellio_offer_track_event", "upsellio_offer_track_ev
 /**
  * Zapis akceptacji oferty ze strony publicznej (formularz POST bez JS lub wewnętrzny wywołanie z AJAX).
  */
-function upsellio_offer_apply_public_accept($offer_id)
+function upsellio_offer_apply_public_accept($offer_id, array $decision_payload = [], array $terms_snapshot = [])
 {
     $offer_id = (int) $offer_id;
     if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
@@ -1236,12 +1375,41 @@ function upsellio_offer_apply_public_accept($offer_id)
     if (function_exists("upsellio_offer_is_expired") && upsellio_offer_is_expired($offer_id)) {
         return false;
     }
+    if (get_post_status($offer_id) !== "publish") {
+        return false;
+    }
     $prev_accept_status = (string) get_post_meta($offer_id, "_ups_offer_status", true);
-    update_post_meta($offer_id, "_ups_offer_status", "won");
+    if (!in_array($prev_accept_status, ["open", "sent"], true)) {
+        return false;
+    }
+    // Recheck the submitted commercial revision immediately before claiming acceptance.
+    if (!empty($terms_snapshot["fingerprint"]) && function_exists("upsellio_offer_terms_fingerprint")) {
+        wp_cache_delete($offer_id, "post_meta");
+        clean_post_cache($offer_id);
+        if (!hash_equals(upsellio_offer_terms_fingerprint($offer_id), (string) $terms_snapshot["fingerprint"]) || (int) ($terms_snapshot["version"] ?? -1) !== (int) get_post_meta($offer_id, "_ups_offer_current_version", true)) { return false; }
+    }
+    // Compare-and-set prevents repeated status transitions on concurrent requests.
+    if (!update_post_meta($offer_id, "_ups_offer_status", "won", $prev_accept_status)) {
+        return false;
+    }
+    $payload_ok = true;
+    $snapshot_ok = true;
+    if ($decision_payload !== []) {
+        $payload_ok = (bool) update_post_meta($offer_id, "_ups_offer_accept_payload", wp_slash($decision_payload));
+        if (!$payload_ok) { $payload_ok = get_post_meta($offer_id, "_ups_offer_accept_payload", true) === $decision_payload; }
+    }
+    if ($terms_snapshot !== []) {
+        $snapshot_ok = (bool) add_post_meta($offer_id, "_ups_offer_accepted_terms_snapshot", wp_slash($terms_snapshot), true);
+    }
+    if (!$payload_ok || !$snapshot_ok) {
+        // Fail closed: do not emit sales hooks or let the browser claim a completed acceptance.
+        update_post_meta($offer_id, "_ups_offer_accept_integrity_error", "payload_or_snapshot_write_failed");
+        return false;
+    }
     update_post_meta($offer_id, "_ups_offer_stage", "decision");
     update_post_meta($offer_id, "_ups_offer_closed_at", current_time("mysql"));
     update_post_meta($offer_id, "_ups_offer_accepted_at", current_time("mysql"));
-    update_post_meta($offer_id, "_ups_offer_accepted_version", (int) get_post_meta($offer_id, "_ups_offer_current_version", true));
+    update_post_meta($offer_id, "_ups_offer_accepted_version", (int) ($terms_snapshot["version"] ?? get_post_meta($offer_id, "_ups_offer_current_version", true)));
     update_post_meta($offer_id, "_ups_offer_accept_ip", isset($_SERVER["REMOTE_ADDR"]) ? sanitize_text_field(wp_unslash($_SERVER["REMOTE_ADDR"])) : "");
     update_post_meta($offer_id, "_ups_offer_accept_user_agent", isset($_SERVER["HTTP_USER_AGENT"]) ? sanitize_text_field(wp_unslash($_SERVER["HTTP_USER_AGENT"])) : "");
     if (function_exists("upsellio_offer_add_timeline_event")) {
@@ -1300,9 +1468,7 @@ function upsellio_offer_render_public_page()
         exit;
     }
 
-    if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["ups_offer_accept_nonce"]) && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["ups_offer_accept_nonce"])), "ups_offer_accept_" . $offer_id)) {
-        upsellio_offer_apply_public_accept($offer_id);
-    }
+    // Acceptance requires the validated full brief; legacy direct POST is no longer a shortcut.
     if (function_exists("upsellio_offer_render_public_landing")) {
         upsellio_offer_render_public_landing($offer);
     }
@@ -1486,6 +1652,95 @@ function upsellio_offer_render_analytics_page()
  *
  * @return array<string, mixed>
  */
+function upsellio_offer_render_intent_dashboard(int $offer_id, array $report): void
+{
+    if (!current_user_can("edit_post", $offer_id)) { return; }
+    $labels = [
+        "sessions" => ["Powroty", 15], "sections" => ["Czytane sekcje", 15],
+        "activity" => ["Aktywny czas", 20], "pricing" => ["Cennik", 20],
+        "variant" => ["Wybór wariantu", 10], "accept" => ["Rozpoczęcie akceptacji", 20],
+    ];
+    $event_labels = [
+        "offer_view" => "Wejście na ofertę", "offer_section_view" => "Wyświetlenie sekcji",
+        "offer_section_click" => "Nawigacja", "offer_cta_click" => "Kliknięcie CTA",
+        "offer_commit_selected" => "Wybór wariantu", "offer_accept_started" => "Rozpoczęcie akceptacji",
+        "offer_accept_step" => "Krok akceptacji", "offer_stage_detected" => "Próg czasu w cenniku",
+        "offer_pricing_exit" => "Opuszczenie cennika",
+    ];
+    $status = (string) get_post_meta($offer_id, "_ups_offer_status", true);
+    $accepted = get_post_meta($offer_id, "_ups_offer_accept_payload", true);
+    $steps = (array) ($report["accept_steps"] ?? []);
+    $variants = [];
+    if (function_exists("upsellio_offer_get_landing_payload")) {
+        $payload = upsellio_offer_get_landing_payload($offer_id);
+        $rows = json_decode((string) ($payload["services_json"] ?? "[]"), true);
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            if (is_array($row) && !empty($row["key"])) {
+                $variants[(string) $row["key"]] = (string) ($row["label"] ?? $row["key"]);
+            }
+        }
+    }
+    ?>
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border)">
+      <p style="font-size:12px;color:var(--text-3);margin:0 0 14px">
+        Dane z aktywności po zgodzie na statystykę. Historyczne wejścia bez identyfikatora: <?php echo (int) ($report["legacy_views"] ?? 0); ?> (szacunek, nie unikalne osoby). Raport obejmuje zachowane zdarzenia.
+      </p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px">
+        <section style="border:1px solid var(--border);border-radius:12px;padding:16px">
+          <h3 style="margin:0 0 12px">Wynik zaangażowania: <?php echo (int) ($report["score"] ?? 0); ?>/100</h3>
+          <?php foreach ($labels as $key => $item) : $points = (int) ($report["score_components"][$key] ?? 0); ?>
+            <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;margin:9px 0 4px"><span><?php echo esc_html($item[0]); ?></span><strong><?php echo $points; ?>/<?php echo (int) $item[1]; ?></strong></div>
+            <div style="height:6px;border-radius:8px;background:#e8edea;overflow:hidden"><div style="height:100%;background:#087f68;width:<?php echo (int) min(100, round($points / $item[1] * 100)); ?>%"></div></div>
+          <?php endforeach; ?>
+          <p style="font-size:12px;margin-bottom:0"><?php echo !empty($report["is_hot"]) ? "Gorąca oferta — wykryto sygnał intencji." : "Brak wystarczającego sygnału do oznaczenia jako gorąca."; ?></p>
+        </section>
+        <section style="border:1px solid var(--border);border-radius:12px;padding:16px">
+          <h3 style="margin:0 0 12px">Lejek akceptacji</h3>
+          <p>Rozpoczęte sesje: <strong><?php echo (int) ($report["accept_started_sessions"] ?? 0); ?></strong></p>
+          <?php foreach (["Kontakt", "Termin i budżet", "Decyzja", "Rozmowa"] as $index => $label) : ?>
+            <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span><?php echo esc_html(($index + 1) . ". " . $label); ?></span><strong><?php echo (int) ($steps["step_" . ($index + 1)] ?? 0); ?></strong></div>
+          <?php endforeach; ?>
+          <p>Akceptacja zapisana: <strong><?php echo is_array($accepted) && !empty($accepted) && $status === "won" ? "Tak" : "Nie potwierdzono"; ?></strong></p>
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:0">Liczby oznaczają sesje z zarejestrowanym krokiem, a nie liczbę klientów. Brak pomiaru nie oznacza porzucenia formularza.</p>
+        </section>
+        <section style="border:1px solid var(--border);border-radius:12px;padding:16px">
+          <h3 style="margin:0 0 12px">Źródło i kontekst</h3>
+          <?php
+          $commit = (string) ($report["last_commit"] ?? "");
+          $context = [
+              "Pierwsze źródło" => (string) get_post_meta($offer_id, "_ups_offer_utm_source", true),
+              "Ostatnie źródło" => (string) get_post_meta($offer_id, "_ups_offer_last_utm_source", true),
+              "Pierwsza wersja" => (string) get_post_meta($offer_id, "_ups_offer_first_seen_version", true),
+              "Aktualna wersja" => (string) get_post_meta($offer_id, "_ups_offer_current_version", true),
+              "Wybrany wariant" => $variants[$commit] ?? $commit,
+              "Odpowiedzi Q&A" => get_post_meta($offer_id, "_ups_offer_qa_responses", true) ? "Zapisane" : "Brak zapisanych",
+          ];
+          foreach ($context as $label => $value) : ?>
+            <div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px"><span><?php echo esc_html($label); ?></span><strong style="text-align:right;overflow-wrap:anywhere"><?php echo esc_html($value !== "" ? $value : "—"); ?></strong></div>
+          <?php endforeach; ?>
+        </section>
+      </div>
+      <section style="margin-top:20px">
+        <h3>Oś zdarzeń</h3>
+        <div style="max-height:340px;overflow:auto">
+          <?php $shown = 0; foreach (($report["events_recent"] ?? []) as $event) :
+              $type = (string) ($event["event"] ?? "");
+              if (!isset($event_labels[$type])) { continue; }
+              $shown++;
+              $detail = (string) ($event["section_id"] ?? "");
+              if ($type === "offer_commit_selected") { $detail = $variants[$detail] ?? $detail; }
+          ?>
+            <div style="display:grid;grid-template-columns:minmax(110px,150px) 1fr;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="color:var(--text-3)"><?php echo esc_html((string) ($event["ts"] ?? "—")); ?></span>
+              <span><strong><?php echo esc_html($event_labels[$type]); ?></strong><?php if ($detail !== "") : ?> · <?php echo esc_html($detail); ?><?php endif; ?></span>
+            </div>
+          <?php endforeach; if (!$shown) : ?><p class="muted">Brak zarejestrowanych zdarzeń w tym zakresie.</p><?php endif; ?>
+        </div>
+      </section>
+    </div>
+    <?php
+}
+
 function upsellio_offer_build_full_analytics(int $offer_id): array
 {
     $events = get_post_meta($offer_id, "_ups_offer_events", true);
@@ -1493,7 +1748,9 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
         $events = [];
     }
 
+    $summary = upsellio_offer_build_analytics_summary($offer_id);
     $sessions = [];
+    $identified_sessions = [];
     $current_session = [];
     $last_ts = 0;
 
@@ -1507,6 +1764,12 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
             continue;
         }
 
+        $session_key = (string) ($ev["session_id"] ?? "");
+        if ($session_key !== "") {
+            $identified_sessions[$session_key][] = $ev;
+            continue;
+        }
+        // Older events lack a real session identifier; keep their legacy estimate separate.
         if ($last_ts > 0 && ($ts - $last_ts) > 1800) {
             if ($current_session !== []) {
                 $sessions[] = $current_session;
@@ -1520,11 +1783,15 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
         $sessions[] = $current_session;
     }
 
+    $sessions = array_merge($sessions, array_values($identified_sessions));
+    usort($sessions, static function ($a, $b) {
+        return strcmp((string) ($a[0]["ts"] ?? ""), (string) ($b[0]["ts"] ?? ""));
+    });
     $sessions_data = [];
     foreach ($sessions as $idx => $sess) {
         $first_ts = strtotime((string) ($sess[0]["ts"] ?? "")) ?: 0;
         $last_ts_s = strtotime((string) ($sess[count($sess) - 1]["ts"] ?? "")) ?: $first_ts;
-        $duration = $last_ts_s - $first_ts;
+        $elapsed = max(0, $last_ts_s - $first_ts);
 
         $section_times = [];
         $sections_viewed = [];
@@ -1536,12 +1803,13 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
         foreach ($sess as $ev) {
             $ename = (string) ($ev["event"] ?? "");
             $sid = (string) ($ev["section_id"] ?? "");
+            if ($sid === "cennik") { $sid = "pricing"; }
 
             if ($ename === "offer_section_view" && $sid !== "") {
                 $sections_viewed[$sid] = true;
             }
             if ($ename === "offer_engagement_tick" && $sid !== "") {
-                $section_times[$sid] = ($section_times[$sid] ?? 0) + 10;
+                $section_times[$sid] = ($section_times[$sid] ?? 0) + (!empty($ev["session_id"]) ? max(0, min(10, (int) ($ev["seconds"] ?? 0))) : 10);
             }
             if ($ename === "offer_cta_click" && $sid !== "") {
                 $cta_clicks[] = $sid;
@@ -1551,6 +1819,7 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
             }
         }
 
+        $duration = array_sum($section_times);
         $pricing_sec = $section_times["pricing"] ?? $section_times["cennik"] ?? 0;
 
         $sessions_data[] = [
@@ -1558,6 +1827,8 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
             "ts"              => $first_ts,
             "ts_disp"         => $first_ts ? wp_date("d.m.Y H:i", $first_ts) : "—",
             "duration_sec"    => $duration,
+            "elapsed_sec"     => $elapsed,
+            "session_estimated" => empty($sess[0]["session_id"]),
             "sections_viewed" => array_keys($sections_viewed),
             "section_times"   => $section_times,
             "pricing_sec"     => $pricing_sec,
@@ -1583,9 +1854,7 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
         $total_cta += count($s["cta_clicks"]);
     }
 
-    if (!empty($all_section_times["cennik"])) {
-        $all_section_times["pricing"] = ($all_section_times["pricing"] ?? 0) + (int) $all_section_times["cennik"];
-    }
+    // Aliases are normalized per event, avoiding double-counting the same section.
 
     $max_time = max(array_values($all_section_times) ?: [1]);
 
@@ -1667,8 +1936,16 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
         "funnel"              => $funnel,
         "section_ids"         => $section_ids,
         "last_commit"         => $last_commit,
-        "score"               => (int) get_post_meta($offer_id, "_ups_offer_score", true),
-        "is_hot"              => get_post_meta($offer_id, "_ups_offer_hot_offer", true) === "1",
+        "score"               => (int) $summary["score"],
+        "is_hot"              => !empty($summary["is_hot"]),
+        "score_components"    => $summary["score_components"],
+        "identified_views"    => $summary["identified_views"],
+        "legacy_views"        => $summary["legacy_views"],
+        "active_seconds"      => $summary["total_seconds"],
+        "accept_started_sessions" => $summary["accept_started_sessions"],
+        "accept_steps" => $summary["accept_steps"],
+        "accept_clicks"       => $summary["accept_clicks"],
+        "events_recent"       => array_slice(array_reverse($events), 0, 80),
         "stage"               => (string) get_post_meta($offer_id, "_ups_offer_stage", true),
         "last_seen"           => (string) get_post_meta($offer_id, "_ups_offer_last_seen", true),
         "utm_source"          => (string) get_post_meta($offer_id, "_ups_offer_utm_source", true),
