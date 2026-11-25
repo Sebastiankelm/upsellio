@@ -9759,7 +9759,7 @@ main.sp-art .sp-end-cta {
   .up-redesign-nav .up-nav-phone{width:44px;height:44px;justify-content:center;background:#dff5ef;color:#06745f;border-radius:12px}
   .up-redesign-nav .up-nav-phone svg{display:block}
   .up-redesign-nav .up-nav-phone span{display:none}
-  .up-redesign-nav.up-nav-ready .hamburger{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;border:1px solid #e3e6ea;border-radius:12px;background:#fff;gap:5px}
+  html.up-nav-js .up-redesign-nav .hamburger,.up-redesign-nav.up-nav-ready .hamburger{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;border:1px solid #e3e6ea;border-radius:12px;background:#fff;gap:5px}
   .up-redesign-nav .mobile-menu{background:#fff;border-top:1px solid #e3e6ea;max-height:none;overflow:visible;transition:none}
   html:not(.up-nav-js) .up-redesign-nav:not(.up-nav-ready){position:relative}
   html:not(.up-nav-js) .up-redesign-nav:not(.up-nav-ready) .mobile-menu,.up-redesign-nav.up-nav-ready .mobile-menu.open{display:block}
