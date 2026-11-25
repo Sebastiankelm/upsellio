@@ -127,3 +127,46 @@ foreach (["blog-form","landing-butik-form","audit-form","contact-form","unknown"
 check(upsellio_crm_normalize_diagnosis_phone("0048 575 123 456") === "+48575123456", "Shared phone normalization");
 check(upsellio_crm_is_phone_rate_limited("+48575123456"), "Shared rate limit with callback");
 echo "Short diagnosis origin and shared phone contracts passed.\n";
+
+// Run the real unified POST handler without WordPress or a database.
+$handlerStart = strpos($source, "function upsellio_crm_handle_lead_submission()");
+$handlerEnd = strpos($source, 'add_action("admin_post_upsellio_submit_lead"', $handlerStart);
+check($handlerStart !== false && $handlerEnd !== false, "Unified handler available");
+eval(substr($source, $handlerStart, $handlerEnd - $handlerStart));
+function home_url($path = "/") { return "https://example.test" . $path; }
+function is_email($email) { return filter_var($email, FILTER_VALIDATE_EMAIL) !== false; }
+function esc_url_raw($url) { return $url; }
+function upsellio_extract_search_query_from_referrer($referrer) { return ""; }
+function upsellio_crm_redirect_lead_form_success($url) { throw new CallbackResponse(true, [], 200); }
+function upsellio_crm_redirect_lead_form_error($url, $reason) { throw new CallbackResponse(false, ["reason"=>$reason], 400); }
+function diagnosis($overrides = []) {
+    $_POST = array_merge([
+        "upsellio_lead_form_nonce"=>"valid",
+        "lead_form_origin"=>"home-hero-form",
+        "lead_name"=>"Jan",
+        "lead_phone"=>"575123458",
+        "lead_consent"=>"1",
+        "lead_company"=>"example.test",
+    ], $overrides);
+    try { upsellio_crm_handle_lead_submission(); }
+    catch (CallbackResponse $response) { return $response; }
+    throw new RuntimeException("Diagnosis handler returned without redirect");
+}
+$saveFails = false;
+$before = count($leads);
+check(diagnosis()->success, "Homepage diagnosis accepted without email");
+check($leads[$before]["name"] === "Jan" && $leads[$before]["email"] === "", "Real name retained, no invented email");
+check($leads[$before]["phone"] === "+48575123458", "Canonical phone stored");
+check($leads[$before]["company"] === "example.test", "Optional site stored");
+check(diagnosis(["lead_form_origin"=>"home-contact-form","lead_phone"=>"575123459"])->success, "Bottom homepage form accepts short contract");
+check(diagnosis(["lead_form_origin"=>"contact-page-form","lead_phone"=>"575123460"])->success, "Contact page accepts short contract");
+check(!diagnosis(["lead_form_origin"=>"blog-form"])->success, "Blog email remains required");
+check(!diagnosis(["lead_form_origin"=>"landing-butik-form"])->success, "Boutique email remains required");
+check(!diagnosis(["lead_shop_url"=>""])->success, "Shop requirement cannot be bypassed");
+check(!diagnosis(["lead_name"=>""])->success, "Name required");
+check(!diagnosis(["lead_consent"=>"0"])->success, "Contact consent required");
+check(!diagnosis(["lead_phone"=>"123"])->success, "Valid phone required");
+check(!diagnosis(["lead_email"=>"not-an-email"])->success, "Malformed legacy optional email rejected");
+check(count($leads) === $before + 3, "Invalid diagnosis never stored");
+check(diagnosis(["lead_form_origin"=>"blog-form","lead_email"=>"jan@example.test"])->success, "Legacy form with email still works");
+echo "Unified diagnosis POST and legacy form contracts passed.\n";
