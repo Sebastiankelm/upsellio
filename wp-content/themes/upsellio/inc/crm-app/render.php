@@ -1261,11 +1261,11 @@ function upsellio_crm_app_template_redirect()
                   <?php elseif ($view === "offers") : ?>
                     <a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("offer_analytics")); ?>">Lejek ofert</a>
                     <a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("template-studio")); ?>">Szablony</a>
-                    <button type="button" class="btn" onclick="document.getElementById('crm-add-btn')?.click()">Nowa oferta</button>
+                    <button type="button" class="btn" onclick="document.getElementById('ups-open-offer-builder').click()">Nowa oferta</button>
                   <?php elseif ($view === "clients") : ?>
                     <a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("contacts")); ?>">Kontakty</a>
                     <a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("services")); ?>">Katalog usług</a>
-                    <a class="btn" href="<?php echo esc_url(upsellio_crm_url("client-edit")); ?>">Dodaj klienta</a>
+                    <a class="btn" href="<?php echo esc_url(upsellio_crm_url("client-edit", ["new" => 1])); ?>">Dodaj klienta</a>
                   <?php elseif ($view === "pipeline") : ?>
                     <a class="btn" href="<?php echo esc_url(upsellio_crm_url("offers")); ?>">Nowy deal / oferta</a>
                   <?php endif; ?>
@@ -2145,7 +2145,13 @@ function upsellio_crm_app_template_redirect()
             <?php if ($view === "account-360") : ?>
               <section class="card">
                 <h2>Karta klienta 360°</h2>
-                <?php $selected_360_client_id = isset($_GET["account_client_id"]) ? (int) wp_unslash($_GET["account_client_id"]) : 0; ?>
+                <?php
+                $selected_360_client_id = isset($_GET["account_client_id"]) ? (int) wp_unslash($_GET["account_client_id"]) : 0;
+                if ($selected_360_client_id > 0 && (get_post_type($selected_360_client_id) !== "crm_client" || !current_user_can("edit_post", $selected_360_client_id))) {
+                    $selected_360_client_id = 0;
+                    echo '<p role="alert" class="muted">Brak dostępu do wybranego klienta.</p>';
+                }
+                ?>
                 <form method="get" style="margin:0 0 12px">
                   <input type="hidden" name="view" value="account-360" />
                   <select name="account_client_id">
@@ -2160,6 +2166,11 @@ function upsellio_crm_app_template_redirect()
                   $client_deals_360 = get_posts(["post_type" => "crm_offer", "post_status" => ["publish", "draft", "pending", "private"], "posts_per_page" => 100, "no_found_rows" => true, "meta_query" => [["key" => "_ups_offer_client_id", "value" => $selected_360_client_id]]]);
                   $client_contracts_360 = get_posts(["post_type" => "crm_contract", "post_status" => ["publish", "draft", "pending", "private"], "posts_per_page" => 100, "no_found_rows" => true, "meta_query" => [["key" => "_ups_contract_client_id", "value" => $selected_360_client_id]]]);
                   $client_contacts_360 = get_posts(["post_type" => "crm_contact", "post_status" => ["publish", "draft", "pending", "private"], "posts_per_page" => 100, "no_found_rows" => true, "meta_query" => [["key" => "_ups_contact_client_id", "value" => $selected_360_client_id]]]);
+                  foreach (["client_deals_360", "client_contracts_360", "client_contacts_360"] as $collection_name) {
+                      $$collection_name = array_values(array_filter($$collection_name, static function ($record) {
+                          return current_user_can("edit_post", $record->ID);
+                      }));
+                  }
                   ?>
                   <div class="timeline-item"><span class="muted">Firma</span><span><?php echo esc_html((string) get_post_meta($selected_360_client_id, "_ups_client_company", true)); ?></span></div>
                   <div class="timeline-item"><span class="muted">Email</span><span><?php echo esc_html((string) get_post_meta($selected_360_client_id, "_ups_client_email", true)); ?></span></div>
@@ -2319,6 +2330,7 @@ function upsellio_crm_app_template_redirect()
             <?php if ($view === "clients") : ?>
               <section class="card">
                 <h2>Lista klientów</h2>
+                <?php if (!$clients) : ?><p class="muted">Brak klientów do wyświetlenia.</p><?php endif; ?>
                 <div class="crm-cc-grid">
                   <?php foreach ($clients as $client) : $cid = (int) $client->ID; ?>
                     <?php
@@ -2819,6 +2831,20 @@ function upsellio_crm_app_template_redirect()
               <script type="application/json" id="ups-crm-clients-json"><?php echo wp_json_encode($crm_clients_json, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
               <section class="card">
                 <h2><?php echo $view === "deals" ? "Deale" : "Oferty"; ?></h2>
+                <?php if ($view === "offers" && !$offer_editor_id) :
+                    $offer_status_filter = sanitize_key(wp_unslash($_GET["offer_status_filter"] ?? ""));
+                    $offer_counts = ["open" => 0, "sent" => 0, "won" => 0, "lost" => 0];
+                    foreach ($crm_collections["offer_metric_posts"] as $offer_stat) {
+                        $status = (string) get_post_meta($offer_stat->ID, "_ups_offer_status", true);
+                        if (isset($offer_counts[$status])) { $offer_counts[$status]++; }
+                    }
+                    ?>
+                    <div class="crm-view-tabs" aria-label="Status ofert">
+                      <?php foreach (["" => "Wszystkie", "open" => "Otwarte", "sent" => "Wysłane", "won" => "Wygrane", "lost" => "Przegrane"] as $key => $label) : ?>
+                        <a class="crm-tab-link <?php echo $offer_status_filter === $key ? "is-active" : ""; ?>" href="<?php echo esc_url(upsellio_crm_url("offers", ["offer_status_filter" => $key])); ?>"><?php echo esc_html($label); ?> (<?php echo $key === "" ? count($crm_collections["offer_metric_posts"]) : $offer_counts[$key]; ?>)</a>
+                      <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
                 <p class="muted" style="margin-bottom:12px"><?php echo $view === "deals" ? "Tabela dealów i quick actions. Szczegóły strony publicznej edytujesz w budowniczku (widok Oferty)." : "Lista aktywnych dealów. Konfiguracja strony publicznej (layout, zakres, pytania) jest w oknie <strong>budowniczka</strong>."; ?></p>
                 <?php if ($offer_editor_id > 0) : ?>
                 <div class="crm-view-tabs" role="navigation" aria-label="<?php esc_attr_e("Oferta — nawigacja", "upsellio"); ?>">
@@ -8411,6 +8437,9 @@ function upsellio_crm_app_template_redirect()
           window.crmAI(cfg.aiPrompt || ("Przeanalizuj widok CRM: " + window.CRM_ACTIVE_VIEW));
         };
         window.crmOpenAdd = function () {
+          var actual = {leads:"ups-open-add-lead", offers:"ups-open-offer-builder"}[window.CRM_ACTIVE_VIEW];
+          if (actual && document.getElementById(actual)) { document.getElementById(actual).click(); return; }
+          if (window.CRM_ACTIVE_VIEW === "clients") { window.location.href = <?php echo wp_json_encode(upsellio_crm_url("client-edit", ["new" => 1])); ?>; return; }
           var cfg = window.CRM_VIEW_CONFIG[window.CRM_ACTIVE_VIEW] || {};
           if (cfg.addModal) {
             window.crmOpenModal(cfg.addModal);
