@@ -17,7 +17,7 @@ $tabs = upsellio_crm_analytics_tabs();
         "range" => $range_days,
     ]);
     ?>
-    <a class="<?php echo $atab === $key ? "is-active" : ""; ?>" href="<?php echo esc_url($url); ?>" title="<?php echo esc_attr((string) ($tab["desc"] ?? "")); ?>">
+    <a class="<?php echo $atab === $key ? "is-active" : ""; ?>" href="<?php echo esc_url($url); ?>" <?php if ($atab === $key) : ?>aria-current="page"<?php endif; ?> title="<?php echo esc_attr((string) ($tab["desc"] ?? "")); ?>">
       <i class="ti <?php echo esc_attr($tab["icon"]); ?>" aria-hidden="true"></i>
       <?php echo esc_html($tab["label"]); ?>
     </a>
