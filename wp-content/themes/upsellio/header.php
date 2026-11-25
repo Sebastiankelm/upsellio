@@ -34,7 +34,7 @@ $contact_url = function_exists("upsellio_get_contact_page_url") ? (string) upsel
 $contact_phone = function_exists("upsellio_get_contact_phone") ? (string) upsellio_get_contact_phone() : "+48 575 522 595";
 $contact_phone_href = preg_replace("/\s+/", "", $contact_phone);
 $contact_email = "kontakt@upsellio.pl";
-$nav_cta_url = !is_front_page() ? $contact_url : "";
+$nav_cta_url = $is_homepage_context ? home_url("/#kontakt") : $contact_url;
 $brand_logo_assets = function_exists("upsellio_get_brand_logo_assets") ? upsellio_get_brand_logo_assets() : [];
 $brand_logo_url = (string) ($brand_logo_assets["png"] ?? "");
 $brand_logo_webp_320_url = (string) ($brand_logo_assets["webp_320"] ?? "");
@@ -137,7 +137,7 @@ foreach ((array) $primary_navigation_links as $nav_link) {
           <?php
           echo wp_get_attachment_image($brand_logo_attachment_id, "medium", false, [
               "class" => "brand-logo",
-              "alt" => "Upsellio — kampanie Google Ads i Meta Ads dla firm B2B",
+              "alt" => "Upsellio — reklamy, strony i sklepy dla małych firm",
               "loading" => "eager",
               "decoding" => "async",
               "fetchpriority" => "high",
@@ -149,7 +149,7 @@ foreach ((array) $primary_navigation_links as $nav_link) {
             <?php if ($brand_logo_webp_320_url !== "" && $brand_logo_webp_640_url !== "") : ?>
               <source type="image/webp" srcset="<?php echo esc_url($brand_logo_webp_320_url); ?> 320w, <?php echo esc_url($brand_logo_webp_640_url); ?> 640w" sizes="(max-width: 760px) 163px, 222px" />
             <?php endif; ?>
-            <img src="<?php echo esc_url($brand_logo_url); ?>" alt="Upsellio — kampanie Google Ads i Meta Ads dla firm B2B" class="brand-logo" width="320" height="213" decoding="async" fetchpriority="high" />
+            <img src="<?php echo esc_url($brand_logo_url); ?>" alt="Upsellio — reklamy, strony i sklepy dla małych firm" class="brand-logo" width="320" height="213" decoding="async" fetchpriority="high" />
           </picture>
         <?php endif; ?>
       <?php else : ?>
@@ -157,7 +157,7 @@ foreach ((array) $primary_navigation_links as $nav_link) {
       <?php endif; ?>
     </a>
 
-    <ul class="nav-links">
+    <ul class="nav-links" aria-label="Nawigacja główna">
       <?php foreach ($primary_navigation_top as $nav_link) : ?>
         <?php
         $nav_id = (int) ($nav_link["id"] ?? 0);
@@ -200,8 +200,8 @@ foreach ((array) $primary_navigation_links as $nav_link) {
             <a href="<?php echo esc_url($nav_url); ?>" class="nav-dropdown-parent <?php echo $is_item_active ? "is-active" : ""; ?>" <?php echo $is_item_active ? 'aria-current="page"' : ""; ?><?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>>
               <?php echo esc_html((string) $nav_link["title"]); ?>
             </a>
-            <button type="button" class="nav-dropdown-toggle" aria-expanded="false" aria-label="<?php echo esc_attr("Rozwiń podmenu: " . (string) $nav_link["title"]); ?>">▾</button>
-            <div class="nav-dropdown-menu">
+            <button type="button" class="nav-dropdown-toggle" aria-controls="nav-submenu-<?php echo esc_attr((string) $nav_id); ?>" aria-expanded="false" aria-label="<?php echo esc_attr("Rozwiń podmenu: " . (string) $nav_link["title"]); ?>">▾</button>
+            <div class="nav-dropdown-menu" id="nav-submenu-<?php echo esc_attr((string) $nav_id); ?>">
               <?php foreach ($nav_children as $nav_child) : ?>
                 <?php
                 $child_url = (string) ($nav_child["url"] ?? "");
@@ -224,9 +224,9 @@ foreach ((array) $primary_navigation_links as $nav_link) {
     </ul>
 
     <?php if ($nav_cta_url !== "") : ?>
-      <a href="<?php echo esc_url($nav_cta_url); ?>" class="btn btn-primary btn-sm nav-cta" aria-label="Bezpłatna analiza marketingu">
-        <span class="nav-cta-long">Bezpłatna analiza</span>
-        <span class="nav-cta-short">Bezpłatna analiza</span>
+      <a href="<?php echo esc_url($nav_cta_url); ?>" class="btn btn-primary btn-sm nav-cta" aria-label="Bezpłatna diagnoza">
+        <span class="nav-cta-long">Bezpłatna diagnoza</span>
+        <span class="nav-cta-short">Bezpłatna diagnoza</span>
       </a>
     <?php endif; ?>
 
@@ -234,7 +234,7 @@ foreach ((array) $primary_navigation_links as $nav_link) {
       <span></span><span></span><span></span>
     </button>
   </div>
-  <div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Menu mobilne">
+  <div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Menu mobilne" inert>
     <div class="wrap">
       <?php foreach ($primary_navigation_top as $nav_link) : ?>
         <a href="<?php echo esc_url((string) $nav_link["url"]); ?>"<?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>><?php echo esc_html((string) $nav_link["title"]); ?></a>
@@ -248,7 +248,7 @@ foreach ((array) $primary_navigation_links as $nav_link) {
           </a>
         <?php endforeach; ?>
       <?php endforeach; ?>
-      <?php if ($nav_cta_url !== "") : ?><a href="<?php echo esc_url($nav_cta_url); ?>" class="mobile-menu-cta">Bezpłatna analiza</a><?php endif; ?>
+      <?php if ($nav_cta_url !== "") : ?><a href="<?php echo esc_url($nav_cta_url); ?>" class="mobile-menu-cta">Bezpłatna diagnoza</a><?php endif; ?>
     </div>
   </div>
 </header>
