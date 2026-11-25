@@ -19,7 +19,8 @@ jobs:
           python3 - <<'PY'
           import base64, hashlib, json, pathlib, shutil, subprocess
           base = "cfe6ef80746a0f8a51277b45cdebebf49045430f"
-          release = "5e7e74de0a671c73d84825f9aca976740902c3ef"
+          release = "d9c0f75234c3051ddf73d68b127b533c688ab370"
+          prior = "5e7e74de0a671c73d84825f9aca976740902c3ef"
           files = ["inc/anthropic-offer-ai.php", "inc/crm-app/actions.php", "inc/crm-app/render.php", "inc/followups.php", "inc/offer-landing.php", "inc/offers.php", "inc/sales-engine.php"]
           prefix = "wp-content/themes/upsellio/"
           production_hashes = {
@@ -35,10 +36,10 @@ jobs:
           package.mkdir(parents=True, exist_ok=False)
           (package/"payload").mkdir()
           shutil.copyfile("tools/offer-release/upsellio-offer-release.php",package/"upsellio-offer-release.php")
-          manifest = {"base":base,"release":release,"files":{}}
+          manifest = {"base":base,"release":release,"prior":prior,"files":{}}
           for i, rel in enumerate(files):
               manifest["files"][rel] = {}
-              for label, revision in (("old",base),("new",release)):
+              for label, revision in (("old",base),("prior",prior),("new",release)):
                   data = subprocess.check_output(["git","show",f"{revision}:{prefix}{rel}"])
                   if label == "old":
                       data = data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
@@ -95,6 +96,15 @@ jobs:
           check(Upsellio_Offer_Release_200::apply()==='already_deployed','Repeated activation is idempotent');
           check(Upsellio_Offer_Release_200::apply(true)==='rolled_back','Rollback completed');
           foreach($m['files'] as $rel=>$row)check(hash_file('sha256',get_template_directory().'/'.$rel)===$row['old']['sha256'],'Restored hash: '.$rel);
+          foreach($m['files'] as $rel=>$row){file_put_contents(get_template_directory().'/'.$rel,bytes($row['prior']));}
+          update_option('upsellio_offer_legacy_payload_ids_v2',[42=>true],false);
+          check(Upsellio_Offer_Release_200::apply()==='deployed','Incremental patch from 2.0.3 completed');
+          check(get_option('upsellio_offer_legacy_payload_ids_v2')===[42=>true],'Incremental patch preserves prior compatibility list');
+          foreach($m['files'] as $rel=>$row)check(hash_file('sha256',get_template_directory().'/'.$rel)===$row['new']['sha256'],'Incremental release hash: '.$rel);
+          check(Upsellio_Offer_Release_200::apply(true)==='rolled_back','Original baseline rollback after incremental patch');
+          $renderer=bytes($m['files']['inc/crm-app/render.php']['new']);
+          check(str_contains($renderer,'if ($view !== "offer_analytics") {'),'Offer analytics exempt from legacy redirect and allowed-view fallback');
+          check(str_contains($renderer,'!current_user_can("edit_post", $oa_offer_id)'),'Offer analytics record authorization remains');
           $first=array_key_first($m['files']);$p=get_template_directory().'/'.$first;file_put_contents($p,'mismatch');
           $refused=false;
           try{Upsellio_Offer_Release_200::apply();}catch(RuntimeException $e){$refused=str_contains($e->getMessage(),'Niezgodność pliku');}
@@ -113,7 +123,7 @@ jobs:
           php /tmp/test-offer-release.php
       - uses: actions/upload-artifact@v4
         with:
-          name: upsellio-offer-release-2.0.3
+          name: upsellio-offer-release-2.0.4
           path: release-package/
           retention-days: 7
           if-no-files-found: error
