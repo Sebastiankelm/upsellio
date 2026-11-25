@@ -358,14 +358,23 @@ function upsellio_automation_receive_ga4_aggregate($request)
         }
         $source = sanitize_text_field((string) ($row["source"] ?? ""));
         $campaign = sanitize_text_field((string) ($row["campaign"] ?? ""));
-        $key = strtolower(trim($source . "|" . $campaign));
-        if ($key === "|") {
+        if ($source === "" && $campaign === "") {
             continue;
         }
+        $date = sanitize_text_field((string) ($row["date"] ?? current_time("Y-m-d")));
+        if (preg_match('/^[0-9]{8}$/D', $date)) {
+            $date = substr($date, 0, 4) . "-" . substr($date, 4, 2) . "-" . substr($date, 6, 2);
+        }
+        if (!preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/D', $date) ||
+            !checkdate((int) substr($date, 5, 2), (int) substr($date, 8, 2), (int) substr($date, 0, 4))) {
+            continue;
+        }
+        $medium = sanitize_text_field((string) ($row["medium"] ?? ""));
+        $key = wp_json_encode([$date, strtolower($source), strtolower($medium), strtolower($campaign)]);
         $normalized[$key] = [
-            "date" => sanitize_text_field((string) ($row["date"] ?? current_time("Y-m-d"))),
+            "date" => $date,
             "source" => $source,
-            "medium" => sanitize_text_field((string) ($row["medium"] ?? "")),
+            "medium" => $medium,
             "campaign" => $campaign,
             "sessions" => max(0, (int) ($row["sessions"] ?? 0)),
             "engaged_sessions" => max(0, (int) ($row["engaged_sessions"] ?? 0)),
@@ -920,7 +929,7 @@ function upsellio_automation_sync_ga4_channel_quality()
         return;
     }
     $rows = get_option("ups_automation_ga4_daily_aggregates", []);
-    if (!is_array($rows) || empty($rows)) {
+    if (!is_array($rows)) {
         return;
     }
     $scores = [];
@@ -933,18 +942,30 @@ function upsellio_automation_sync_ga4_channel_quality()
         $sessions = max(0, (int) ($row["sessions"] ?? 0));
         $engaged = max(0, (int) ($row["engaged_sessions"] ?? 0));
         $conversions = max(0, (int) ($row["conversions"] ?? 0));
-        $engagement_rate = $sessions > 0 ? ($engaged / $sessions) : 0;
-        $conversion_rate = $sessions > 0 ? ($conversions / $sessions) : 0;
-        $score = (int) round(($engagement_rate * 40) + ($conversion_rate * 60), 2);
         $key = strtolower(trim($source . "|" . $campaign));
-        $scores[$key] = [
-            "source" => $source,
-            "campaign" => $campaign,
-            "score" => max(0, min(100, $score)),
-            "sessions" => $sessions,
-            "conversions" => $conversions,
-        ];
+        if ($key === "|") {
+            continue;
+        }
+        if (!isset($scores[$key])) {
+            $scores[$key] = [
+                "source" => $source,
+                "campaign" => $campaign,
+                "sessions" => 0,
+                "engaged_sessions" => 0,
+                "conversions" => 0,
+            ];
+        }
+        $scores[$key]["sessions"] += $sessions;
+        $scores[$key]["engaged_sessions"] += $engaged;
+        $scores[$key]["conversions"] += $conversions;
     }
+    foreach ($scores as &$channel) {
+        $sessions = $channel["sessions"];
+        $engagement_rate = $sessions > 0 ? min(1, $channel["engaged_sessions"] / $sessions) : 0;
+        $conversion_rate = $sessions > 0 ? min(1, $channel["conversions"] / $sessions) : 0;
+        $channel["score"] = (int) round($engagement_rate * 40 + $conversion_rate * 60);
+    }
+    unset($channel);
     update_option("ups_automation_channel_quality_scores", $scores, false);
     $offers = get_posts([
         "post_type" => "crm_offer",
