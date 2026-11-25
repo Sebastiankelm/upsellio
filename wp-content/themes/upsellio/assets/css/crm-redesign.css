@@ -230,3 +230,7 @@ body.ups-crm-redesign {
   .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-shell:not(.has-active-thread) .crm-inbox-detail:not(:has(#inbox-compose-panel)) { display:none; }
   .ups-crm-redesign[data-crm-view="analytics"] .crm-page-tabs { flex-wrap:nowrap; overflow-x:auto; }
 }
+
+@media(max-width:760px) {
+  .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-shell.is-composing .crm-inbox-thread-column { display:none; }
+}
