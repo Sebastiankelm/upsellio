@@ -30,6 +30,17 @@ trap 'rm -rf "$browser_dir"; cleanup' EXIT
 npm install --prefix "$browser_dir" --no-audit --no-fund --ignore-scripts playwright@1.51.1
 cp tools/redesign-browser.mjs "$browser_dir/"
 docker pull "$browser_image"
+# Optional real Rank Math fixture. Download on runner before isolation,
+# never permit the WordPress containers to reach the plugin repository.
+rank_math_version="${FIXTURE_RANK_MATH_VERSION:-}"
+if [[ -n "$rank_math_version" ]]; then
+  [[ "$rank_math_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+  curl --fail --show-error --silent --location --retry 2 --max-time 120 \
+    "https://downloads.wordpress.org/plugin/seo-by-rank-math.$rank_math_version.zip" \
+    -o "$browser_dir/rank-math.zip"
+  unzip -q "$browser_dir/rank-math.zip" -d "$browser_dir/rank-math"
+  test -f "$browser_dir/rank-math/seo-by-rank-math/rank-math.php"
+fi
 docker network create --internal "$network" >/dev/null
 wpcli() {
   docker run --rm --network "$network" --volumes-from "$wp" --user 33:33 \
@@ -195,6 +206,13 @@ PHP
   git archive "$revision" "$theme" | docker exec -i "$wp" tar -xf - -C /tmp
   docker exec "$wp" sh -c 'cp -a /tmp/wp-content/themes/upsellio /var/www/html/wp-content/themes/ && chown -R www-data:www-data /var/www/html/wp-content/themes/upsellio'
   wpcli theme activate upsellio
+  if [[ -n "$rank_math_version" ]]; then
+    docker cp "$browser_dir/rank-math/seo-by-rank-math" "$wp:/var/www/html/wp-content/plugins/"
+    docker exec "$wp" chown -R www-data:www-data /var/www/html/wp-content/plugins/seo-by-rank-math
+    wpcli plugin activate seo-by-rank-math
+    wpcli eval 'if (!defined("RANK_MATH_VERSION")) { WP_CLI::error("Rank Math inactive"); } echo "Rank Math " . RANK_MATH_VERSION . PHP_EOL;'
+    [[ "$(wpcli plugin get seo-by-rank-math --field=version)" == "$rank_math_version" ]]
+  fi
   wpcli rewrite structure '/%postname%/' --hard
   docker exec -i "$wp" sh -c 'cat > /var/www/html/.htaccess' <<'HTACCESS'
 <IfModule mod_rewrite.c>
@@ -237,9 +255,11 @@ HTACCESS
     python3 tools/redesign-render-compare.py "$out/baseline" "$out/candidate" || seo_status=$?
     # Restore the native posts page for browser checks.
     wpcli option update page_for_posts "$blog"
-    test_leads "$dest"
-    docker run --rm --network "$network" --ipc=host \
-      -v "$browser_dir:/tests:ro" -w /tests "$browser_image" node redesign-browser.mjs
+    if [[ -z "$rank_math_version" ]]; then
+      test_leads "$dest"
+      docker run --rm --network "$network" --ipc=host \
+        -v "$browser_dir:/tests:ro" -w /tests "$browser_image" node redesign-browser.mjs
+    fi
     if [[ "$seo_status" != 0 ]]; then return "$seo_status"; fi
   fi
   docker rm -f "$wp" "$db" >/dev/null
