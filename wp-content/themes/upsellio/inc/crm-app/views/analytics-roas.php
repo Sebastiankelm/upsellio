@@ -6,10 +6,33 @@ if (!defined("ABSPATH")) {
 $roas_rows = function_exists("upsellio_sales_engine_build_roas_report_rows")
     ? upsellio_sales_engine_build_roas_report_rows()
     : [];
+$known_spend = 0.0; $matched_revenue = 0.0; $unmatched_revenue = 0.0; $with_spend = 0;
+foreach ($roas_rows as $row) {
+    if (!is_array($row)) { continue; }
+    $spend = $row["spend"] ?? null;
+    $revenue = is_numeric($row["revenue"] ?? null) ? (float) $row["revenue"] : 0.0;
+    if (is_numeric($spend) && (float) $spend > 0) {
+        $known_spend += (float) $spend;
+        $matched_revenue += $revenue;
+        $with_spend++;
+    } else {
+        $unmatched_revenue += $revenue;
+    }
+}
+$fmt_roas = static fn($n, $d = 2, $suffix = "") => is_numeric($n) ? number_format((float) $n, $d, ",", " ") . $suffix : "—";
 ?>
 <section class="card">
   <h3 style="margin:0 0 8px">Źródła i ROAS</h3>
-  <p class="muted">Raport na podstawie zapisanych kosztów i atrybucji CRM. Nie jest ograniczony przełącznikiem dni.</p>
+  <p class="muted">Raport na podstawie zapisanych kosztów i atrybucji CRM. Nie jest ograniczony przełącznikiem dni; nie obejmuje pełnych kosztów działalności ani zysku.</p>
+  <?php if ($roas_rows) : ?>
+  <div class="crm-report-kpis">
+    <div class="kpi"><span class="muted">Zapisane dodatnie koszty</span><b><?php echo esc_html($with_spend ? $fmt_roas($known_spend, 2, " zł") : "—"); ?></b></div>
+    <div class="kpi"><span class="muted">Przychód przypisany do dodatnich kosztów</span><b><?php echo esc_html($with_spend ? $fmt_roas($matched_revenue, 2, " zł") : "—"); ?></b></div>
+    <div class="kpi"><span class="muted">ROAS ważony (koszty &gt; 0)</span><b><?php echo esc_html($known_spend > 0 ? $fmt_roas($matched_revenue / $known_spend, 2, "x") : "—"); ?></b></div>
+    <div class="kpi"><span class="muted">Przychód bez dodatnich kosztów</span><b><?php echo esc_html($fmt_roas($unmatched_revenue, 2, " zł")); ?></b></div>
+  </div>
+  <p class="muted">Brak dodatniego kosztu może oznaczać brak importu, niekoniecznie bezpłatne pozyskanie. ROAS nie jest marżą ani rentownością.</p>
+  <?php endif; ?>
 
   <?php if (empty($roas_rows)) : ?>
     <div style="padding:32px;text-align:center;background:var(--bg);border-radius:var(--r-md);border:1px dashed var(--border)">
@@ -28,7 +51,7 @@ $roas_rows = function_exists("upsellio_sales_engine_build_roas_report_rows")
           <th style="text-align:right;padding:8px 10px">Wygrane</th>
           <th style="text-align:right;padding:8px 10px">Przychód</th>
           <th style="text-align:right;padding:8px 10px">ROAS</th>
-          <th style="text-align:right;padding:8px 10px">ROI%</th>
+          <th style="text-align:right;padding:8px 10px">Zwrot względem kosztu reklamy (%)</th>
         </tr>
       </thead>
       <tbody>
@@ -43,7 +66,7 @@ $roas_rows = function_exists("upsellio_sales_engine_build_roas_report_rows")
       <tr style="border-bottom:1px solid var(--border)">
         <td style="padding:7px 10px"><?php echo esc_html((string) ($rr["source"] ?? "")); ?></td>
         <td style="padding:7px 10px;color:var(--text-3)"><?php echo esc_html((string) ($rr["campaign"] ?? "")); ?></td>
-        <td style="text-align:right;padding:7px 10px"><?php echo esc_html(number_format((float) ($rr["spend"] ?? 0), 0, ",", " ")); ?> zł</td>
+        <td style="text-align:right;padding:7px 10px"><?php echo esc_html($fmt_roas($rr["spend"] ?? null, 2, " zł")); ?></td>
         <td style="text-align:right;padding:7px 10px"><?php echo (int) ($rr["leads"] ?? 0); ?></td>
         <td style="text-align:right;padding:7px 10px"><?php echo (int) ($rr["won"] ?? 0); ?></td>
         <td style="text-align:right;padding:7px 10px;font-weight:600"><?php echo esc_html(number_format((float) ($rr["revenue"] ?? 0), 0, ",", " ")); ?> zł</td>
