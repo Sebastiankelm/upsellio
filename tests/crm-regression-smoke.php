@@ -146,4 +146,48 @@ check(!upsellio_crm_app_calendar_slot_fits($local_slot("2026-11-25 16:00"), 15),
 check(!upsellio_crm_app_calendar_slot_fits($local_slot("2026-11-25 08:00"), 14), "duration below minimum rejected");
 check(!upsellio_crm_app_calendar_slot_fits($local_slot("2026-11-25 08:00"), 481), "duration exceeding workday rejected");
 check(upsellio_crm_app_calendar_slot_fits($local_slot("2026-07-01 08:00"), 60), "calendar checks summer local time");
+// Exercise the actual AJAX handler on read-only and no-op paths.
+// No database writes should be needed: the fixture deliberately has no write stubs.
+function sanitize_text_field($v) { return trim((string) $v); }
+function wp_verify_nonce($nonce, $action) { return $nonce === "fixture" && $action === "ups_crm_app_action"; }
+function get_post_meta($id, $key, $single = false) { return $GLOBALS["pipeline_fixture_meta"][$id][$key] ?? ""; }
+class PipelineFixtureResponse extends RuntimeException {
+    public $success;
+    public $payload;
+    public $status;
+    public function __construct($success, $payload, $status) {
+        parent::__construct("AJAX response");
+        $this->success = $success;
+        $this->payload = $payload;
+        $this->status = $status;
+    }
+}
+function wp_send_json_success($data = null, $status = 200) { throw new PipelineFixtureResponse(true, $data, $status); }
+function wp_send_json_error($data = null, $status = 200) { throw new PipelineFixtureResponse(false, $data, $status); }
+require $root . "actions.php";
+$pipeline_request = static function (array $post): PipelineFixtureResponse {
+    $_POST = $post + ["nonce" => "fixture", "offer_id" => 11];
+    try {
+        upsellio_crm_app_ajax_move_offer_pipeline();
+    } catch (PipelineFixtureResponse $response) {
+        return $response;
+    }
+    throw new RuntimeException("Expected JSON response");
+};
+$GLOBALS["caps"] = ["upsellio_access_crm", "edit_others_posts"];
+$GLOBALS["pipeline_fixture_meta"] = [11 => ["_ups_offer_status" => "sent", "_ups_offer_stage" => "consideration"]];
+$response = $pipeline_request(["stage" => "offer_sent"]);
+check($response->success && $response->payload["unchanged"] === true, "same Kanban column is a no-op for sent offer");
+$GLOBALS["pipeline_fixture_meta"][11] = ["_ups_offer_status" => "won", "_ups_offer_stage" => "decision"];
+$response = $pipeline_request(["stage" => "won"]);
+check($response->success && $response->payload["unchanged"] === true, "won offer is not processed twice");
+$response = $pipeline_request(["stage" => "invalid"]);
+check(!$response->success && $response->status === 400, "invalid pipeline stage is rejected");
+$response = $pipeline_request(["stage" => "lost"]);
+check(!$response->success && $response->payload["message"] === "loss_reason_required", "lost offer needs an explicit loss reason");
+$response = $pipeline_request(["stage" => "decision", "nonce" => "invalid"]);
+check(!$response->success && $response->status === 403, "pipeline move requires valid nonce");
+$response = $pipeline_request(["stage" => "decision", "offer_id" => 10]);
+check(!$response->success && $response->status === 400, "pipeline move rejects a client record");
+$_POST = [];
 echo "CRM smoke checks complete." . PHP_EOL;
