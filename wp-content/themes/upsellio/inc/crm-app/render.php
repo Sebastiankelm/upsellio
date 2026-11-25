@@ -4333,12 +4333,14 @@ function upsellio_crm_app_template_redirect()
                     </select>
                     <label>ID leada (opcjonalnie)</label>
                     <input type="number" min="0" name="task_lead_id" value="<?php echo esc_attr((string) $selected_task_lead_id); ?>" />
-                    <label>Owner</label>
+                    <label>Opiekun</label>
+                    <?php if (current_user_can("manage_options")) : ?>
                     <select name="task_owner_id">
                       <?php foreach (get_users(["role__in" => ["administrator", "editor", "author"]]) as $u) : ?>
                         <option value="<?php echo esc_attr((string) $u->ID); ?>" <?php selected((int) $u->ID, $selected_task_owner_id); ?>><?php echo esc_html((string) $u->display_name); ?></option>
                       <?php endforeach; ?>
                     </select>
+                    <?php else : ?><span><?php echo esc_html((string) get_the_author_meta("display_name", $selected_task_owner_id)); ?></span><?php endif; ?>
                     <label>Status</label>
                     <select name="task_status">
                       <?php foreach ($task_statuses as $task_status_key => $task_status_label) : ?>
@@ -5139,9 +5141,9 @@ function upsellio_crm_app_template_redirect()
                   </a>
                 </nav>
                 <div class="crm-inbox-ai-signals" role="region" aria-label="<?php esc_attr_e("Sygnały z widocznej strony wątków", "upsellio"); ?>">
-                  <span class="muted">Na tej stronie:</span><button type="button" class="crm-inbox-ai-pill" data-ai-action="hot" title="<?php esc_attr_e("Przejdź do leadów hot czekających na odpowiedź", "upsellio"); ?>">🔥 <?php echo (int) $inbox_hot_waiting_count; ?> <?php esc_html_e("hot leady czekaja", "upsellio"); ?></button>
+                  <span class="muted">Na tej stronie:</span><button type="button" class="crm-inbox-ai-pill" data-ai-action="hot" title="<?php esc_attr_e("Otwórz filtr Hot; licznik dotyczy oczekujących wątków na tej stronie", "upsellio"); ?>">🔥 <?php echo (int) $inbox_hot_waiting_count; ?> <?php esc_html_e("hot leady czekaja", "upsellio"); ?></button>
                   <button type="button" class="crm-inbox-ai-pill" data-ai-action="price" title="<?php esc_attr_e("Wątki z pytaniem o cenę", "upsellio"); ?>">💰 <?php echo (int) $inbox_price_signal_count; ?> <?php esc_html_e("pytaly o cene", "upsellio"); ?></button>
-                  <button type="button" class="crm-inbox-ai-pill" data-ai-action="stale" title="<?php esc_attr_e("Cisza ponad 5 dni", "upsellio"); ?>">⏰ <?php echo (int) $inbox_stale_count; ?> <?php esc_html_e("cisza >5 dni", "upsellio"); ?></button>
+                  <button type="button" class="crm-inbox-ai-pill" data-ai-action="stale" title="<?php esc_attr_e("Otwórz filtr Stale; licznik dotyczy oczekujących wątków starszych niż 5 dni na tej stronie", "upsellio"); ?>">⏰ <?php echo (int) $inbox_stale_count; ?> <?php esc_html_e("cisza >5 dni", "upsellio"); ?></button>
                   <a class="crm-inbox-ai-pill crm-inbox-ai-pill--link" href="<?php echo esc_url(add_query_arg(["view" => "analytics"], home_url("/crm-app/"))); ?>">⚠ <?php esc_html_e("Sprawdz anomalie", "upsellio"); ?></a>
                 </div>
 
