@@ -236,12 +236,13 @@ if ($has_gsc_data || $has_ga4_data) {
           ["label" => "Konw. Ads", "key" => "ads_conv", "cur" => (float) ($current["ads_conversions"] ?? 0), "delta" => "ads_conversions", "fmt" => "float"],
           ["label" => "CPC Ads", "key" => "cpc", "cur" => (float) ($derived["ads_cpc"] ?? 0), "delta" => "", "fmt" => "money_small"],
           ["label" => "CPA Ads", "key" => "cpa", "cur" => (float) ($derived["ads_cpa"] ?? 0), "delta" => "", "fmt" => "money_small"],
-          ["label" => "ROAS (purchaseRevenue)", "key" => "roas", "cur" => (float) ($current["roas"] ?? 0), "delta" => "roas", "fmt" => "roas"],
+          ["label" => "ROAS Google", "key" => "roas", "cur" => $current["roas"] ?? null, "delta" => "", "fmt" => "roas"],
+          ["label" => "MER GA4 (Google + Meta)", "key" => "mer", "cur" => $current["mer"] ?? null, "delta" => "", "fmt" => "roas"],
       ];
       if ($meta_mapped > 0 || (float) ($current["meta_cost"] ?? 0) > 0) {
           $kpis[] = ["label" => "Wydatek Meta", "key" => "meta_cost", "cur" => (float) ($current["meta_cost"] ?? 0), "delta" => "meta_cost", "fmt" => "money"];
           $kpis[] = ["label" => "CPC Meta", "key" => "meta_cpc", "cur" => (float) ($derived["meta_cpc"] ?? 0), "delta" => "", "fmt" => "money_small"];
-          $kpis[] = ["label" => "ROAS Meta", "key" => "meta_roas", "cur" => (float) ($current["meta_roas"] ?? 0), "delta" => "meta_roas", "fmt" => "roas"];
+          $kpis[] = ["label" => "ROAS Meta", "key" => "meta_roas", "cur" => $current["meta_roas"] ?? null, "delta" => "", "fmt" => "roas"];
       }
       if ((float) ($current["paid_cost"] ?? 0) > 0) {
           $kpis[] = ["label" => "Łączny paid", "key" => "paid_cost", "cur" => (float) ($current["paid_cost"] ?? 0), "delta" => "paid_cost", "fmt" => "money"];
@@ -294,7 +295,7 @@ if ($has_gsc_data || $has_ga4_data) {
               : null;
           ?>
         <?php
-          $kpi_untrusted = ($kpi["key"] === "roas" && !empty($revenue_quality["warning"]));
+          $kpi_untrusted = $kpi["cur"] === null || (in_array($kpi["key"], ["roas", "meta_roas", "mer"], true) && !empty($revenue_quality["warning"]));
           ?>
         <div class="kpi crm-audit-kpi" style="padding:16px;border:1px solid var(--border);border-radius:12px;<?php echo $kpi_untrusted ? "opacity:0.55;border-color:#fca5a5;" : ""; ?>">
           <span class="muted" style="font-size:12px;"><?php echo esc_html($kpi["label"]); ?><?php if ($kpi_untrusted) : ?> <span style="color:#b91c1c;">⚠</span><?php endif; ?></span>
@@ -302,7 +303,7 @@ if ($has_gsc_data || $has_ga4_data) {
           <?php if ($d !== null) : ?>
           <span style="font-size:12px;<?php echo esc_attr($d_cls); ?>"><?php echo esc_html(function_exists("ups_audit_format_delta") ? ups_audit_format_delta($d) : ""); ?></span>
           <?php endif; ?>
-          <?php if ($vs_bench !== null && $bench_val !== null) : ?>
+          <?php if (!$kpi_untrusted && $vs_bench !== null && $bench_val !== null) : ?>
           <div class="muted" style="font-size:10px;margin-top:4px;">vs portfel: <?php echo esc_html(number_format($bench_val, $kpi["fmt"] === "roas" ? 2 : 0, ",", " ")); ?> <?php echo esc_html($bench_lbl); ?> (<?php echo esc_html(($vs_bench > 0 ? "+" : "") . (string) $vs_bench); ?>%)</div>
           <?php endif; ?>
         </div>
@@ -320,8 +321,8 @@ if ($has_gsc_data || $has_ga4_data) {
   $ga4_rev_session = (float) ($current["ga4_revenue_session_total"] ?? 0);
   $ga4_purchase_cnt = (int) ($current["ga4_purchase_count"] ?? 0);
   $ga4_rev_source = (string) ($current["ga4_revenue_source"] ?? "");
-  $roas_val = (float) ($current["roas"] ?? 0);
-  $ads_cost_val = (float) ($current["ads_cost"] ?? 0);
+  $roas_val = $current["mer"] ?? null;
+  $ads_cost_val = (float) ($current["paid_cost"] ?? 0);
   $revenue_suspect = !empty($revenue_quality["warning"])
       || ($roas_val > 15 || ($ga4_purchase_cnt > 0 && (int) ($current["ga4_sessions"] ?? 0) > 0
       && ($ga4_purchase_cnt / (int) $current["ga4_sessions"]) > 0.08)
@@ -341,8 +342,8 @@ if ($has_gsc_data || $has_ga4_data) {
       <?php if ($ga4_rev_session > 0) : ?>
         · sesje totalRevenue: <strong><?php echo esc_html(number_format($ga4_rev_session, 0, ",", " ")); ?> PLN</strong>
       <?php endif; ?>
-      <?php if ($ads_cost_val > 0) : ?>
-        · ROAS: <strong><?php echo esc_html(number_format($roas_val, 2, ",", " ")); ?>x</strong> (koszt Ads <?php echo esc_html(number_format($ads_cost_val, 0, ",", " ")); ?> PLN)
+      <?php if ($ads_cost_val > 0 && $roas_val !== null && empty($revenue_quality["warning"])) : ?>
+        · MER (nie ROAS kanałowy): <strong><?php echo esc_html(number_format($roas_val, 2, ",", " ")); ?>x</strong> (koszt Google + Meta <?php echo esc_html(number_format($ads_cost_val, 0, ",", " ")); ?> PLN)
       <?php endif; ?>
     </p>
     <?php if ($revenue_suspect) : ?>
