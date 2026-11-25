@@ -8531,8 +8531,9 @@ function upsellio_crm_app_template_redirect()
             headers: {"Content-Type": "application/x-www-form-urlencoded"},
             body: new URLSearchParams({action: "upsellio_crm_ai_query", nonce: window.CRM_CAL_NONCE, prompt: prompt}).toString()
           }).then(function (r) { return r.json(); }).then(function (d) {
-            if (d && d.success && d.data && d.data.response) alert(d.data.response);
-          }).catch(function () {});
+            if (d && d.success && d.data && d.data.response) { alert(d.data.response); return; }
+            throw new Error(d && d.data && d.data.message ? String(d.data.message) : "Nie udało się wykonać akcji AI.");
+          }).catch(function (e) { alert(e.message || "Błąd połączenia z CRM."); });
         };
         window.crmAIAnalyze = function () {
           var cfg = window.CRM_VIEW_CONFIG[window.CRM_ACTIVE_VIEW] || {};
@@ -8574,9 +8575,10 @@ function upsellio_crm_app_template_redirect()
             credentials: "same-origin",
             headers: {"Content-Type": "application/x-www-form-urlencoded"},
             body: new URLSearchParams({action: "upsellio_ai_refresh_weekly_brief", nonce: window.CRM_CAL_NONCE}).toString()
-          }).then(function (r) { return r.json(); }).then(function () {
+          }).then(function (r) { return r.json(); }).then(function (d) {
+            if (!d || !d.success || !d.data || !d.data.brief) throw new Error(d && d.data && d.data.message ? String(d.data.message) : "Nie udało się odświeżyć briefu.");
             window.location.reload();
-          }).catch(function () {});
+          }).catch(function (e) { alert(e.message || "Błąd połączenia z CRM."); });
         };
         window.crmBlogBotAddKeyword = function (phrase) {
           if (!phrase) return Promise.resolve();
