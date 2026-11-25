@@ -155,6 +155,7 @@
     sheet.querySelector(".up-sheet-sms").href = "sms:" + phone;
     sheet.querySelector(".up-sheet-sms span").textContent = phone;
     sheet.querySelector(".up-sheet-diag").href = diag;
+    sheet.querySelector(".up-sheet-diag").addEventListener("click", () => sheet.close());
     sheet.querySelector(".up-sheet-call").href = tel;
     document.body.append(bar, sheet);
     document.body.classList.add("up-mobile-contact-ready");
@@ -247,6 +248,26 @@
       const loc = a.closest("[data-contact-location]")?.dataset.contactLocation || (a.closest("footer") ? "footer" : a.closest("header.nav") ? "nav" : a.closest('[id="faq"]') ? "faq" : a.closest('[id="start"]') ? "hero" : "page");
       const event = a.protocol === "tel:" ? "click_call" : a.protocol === "mailto:" ? "click_email" : "click_sms";
       emit(event,loc);
+    });
+    // Topic chips enhance the existing form, without changing its API or consent fields.
+    document.querySelectorAll(".up-contact-topics").forEach(fieldset => {
+      const form = fieldset.parentElement?.querySelector("form.ups-form");
+      const message = form?.querySelector('textarea[name="lead_message"]');
+      if (!message) return;
+      const buttons = [...fieldset.querySelectorAll("button[data-up-topic]")];
+      let previous = "";
+      function clear() { buttons.forEach(b => b.setAttribute("aria-pressed","false")); previous = ""; }
+      form.addEventListener("reset",clear);
+      buttons.forEach(button => button.addEventListener("click", () => {
+        button.setAttribute("aria-pressed", button.getAttribute("aria-pressed") === "true" ? "false" : "true");
+        const selected = buttons.filter(b => b.getAttribute("aria-pressed") === "true").map(b => b.dataset.upTopic);
+        const prefix = selected.length ? "Temat: " + selected.join(", ") + "\n" : "";
+        const original = previous && message.value.startsWith(previous) ? message.value.slice(previous.length) : message.value;
+        message.value = prefix + original;
+        previous = prefix;
+        message.dispatchEvent(new Event("input",{bubbles:true}));
+      }));
+      fieldset.hidden = false;
     });
     // The same TOC remains visible on desktop; use a native disclosure on mobile.
     const toc = document.querySelector(".sp-toc");
