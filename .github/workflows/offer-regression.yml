@@ -1,0 +1,33 @@
+name: Offer module regression checks
+on:
+  push:
+    branches: [fix/offer-experience-v2]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax checks
+        run: |
+          php --version
+          for f in offers.php offer-landing.php sales-engine.php followups.php anthropic-offer-ai.php crm-app/actions.php crm-app/render.php; do
+            php -l "wp-content/themes/upsellio/inc/$f" || exit 1
+          done
+          php -l tools/offer-regression-test.php
+      - name: Isolated regression checks
+        run: php tools/offer-regression-test.php
+      - name: Inline JavaScript syntax check
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path('wp-content/themes/upsellio/inc/offer-landing.php').read_text()
+          script = text.split('<script>')[-1].split('</script>')[0]
+          script = re.sub(r'<\?php.*?\?>', 'null', script, flags=re.S)
+          Path('/tmp/offer-inline.js').write_text(script)
+          PY
+          node --check /tmp/offer-inline.js
