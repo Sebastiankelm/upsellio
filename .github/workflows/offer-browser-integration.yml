@@ -43,7 +43,12 @@ jobs:
           cat > "$theme/functions.php" <<'PHP'
           <?php
           if (wp_get_environment_type() !== 'local') { exit; }
-          add_filter('pre_wp_mail', '__return_true');
+          add_filter('pre_wp_mail', static function ($pre, $atts) {
+              $captured = get_option('offer_ci_mail_capture', []);
+              $captured[] = ['to' => $atts['to'] ?? '', 'headers' => $atts['headers'] ?? []];
+              update_option('offer_ci_mail_capture', $captured, false);
+              return true;
+          }, 10, 2);
           require __DIR__ . '/inc/offers.php';
           PHP
           php /tmp/wp-cli.phar --path=/tmp/offer-wordpress theme activate offer-ci
