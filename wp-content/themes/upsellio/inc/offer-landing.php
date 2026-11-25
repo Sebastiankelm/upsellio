@@ -280,6 +280,7 @@ function upsellio_offer_render_public_landing($offer)
     }
     $offer_id = (int) $offer->ID;
     $is_preview_mode = isset($_GET["preview_mode"]) && current_user_can("edit_post", $offer_id);
+    $offer_version = (int) get_post_meta($offer_id, "_ups_offer_current_version", true);
     $slug = (string) get_post_meta($offer_id, "_ups_offer_public_slug", true);
     $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
     $person_id = (string) get_post_meta($offer_id, "_ups_offer_person_id", true);
@@ -340,7 +341,7 @@ function upsellio_offer_render_public_landing($offer)
     $show_proof = isset($payload["show_proof"]) ? !empty($payload["show_proof"]) : count($proof_lines_arr) >= 2;
     $ajax_url = admin_url("admin-ajax.php");
     $gtm = upsellio_get_site_gtm_container_id();
-    $upsellio_offer_track_public = !function_exists("upsellio_should_load_public_tracking_tags") || upsellio_should_load_public_tracking_tags();
+    $upsellio_offer_track_public = !$is_preview_mode && (!function_exists("upsellio_should_load_public_tracking_tags") || upsellio_should_load_public_tracking_tags());
     $offer_title = (string) $offer->post_title;
     $content_html = (string) apply_filters("the_content", (string) $offer->post_content);
     $has_offer_details = trim((string) $offer->post_content) !== "";
@@ -415,6 +416,7 @@ function upsellio_offer_render_public_landing($offer)
 
     status_header(200);
     nocache_headers();
+    header("Referrer-Policy: no-referrer");
     ?>
 <!doctype html>
 <html <?php language_attributes(); ?>>
@@ -1033,12 +1035,7 @@ a{text-decoration:none;color:inherit}
         Ważna do <strong style="color:var(--ink)"><?php echo esc_html($offer_expires_label); ?></strong>
         · Po kliknięciu „<?php echo esc_html($cta_text); ?>” wyślemy podsumowanie do opiekuna i kopię na Twój e-mail.
       </div>
-      <noscript>
-        <form method="post" class="pfoot-secondary" style="margin-top:8px" action="<?php echo esc_url(function_exists("upsellio_offer_get_public_url") ? upsellio_offer_get_public_url($offer_id) : home_url("/")); ?>">
-          <?php wp_nonce_field("ups_offer_accept_" . $offer_id, "ups_offer_accept_nonce"); ?>
-          <button class="btn btn-p" type="submit" style="border:none"><?php echo esc_html($cta_text); ?> (bez JS)</button>
-        </form>
-      </noscript>
+      <noscript><p>Do akceptacji online włącz JavaScript lub skontaktuj się z opiekunem.</p></noscript>
     </div>
   </div>
 </div>
@@ -1209,6 +1206,8 @@ var __upsTrackPublic=<?php echo $upsellio_offer_track_public ? "true" : "false";
 var __upsPreviewMode=<?php echo $is_preview_mode ? "true" : "false"; ?>;
 var hasClientEmail=<?php echo $client_email_ok ? "true" : "false"; ?>;
 var publicNonce=<?php echo wp_json_encode((string) $public_nonce); ?>;
+var offerToken=<?php echo wp_json_encode($slug); ?>;
+var offerVersion=<?php echo (int) $offer_version; ?>;
 var q=new URLSearchParams(window.location.search||'');
 var utmSource=q.get('utm_source')||'';
 var utmCampaign=q.get('utm_campaign')||'';
@@ -1246,44 +1245,64 @@ function jumpTo(id){
 window.jumpTo=jumpTo;
 var ro=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting)x.target.classList.add('in');});},{threshold:.1});
 document.querySelectorAll('.r').forEach(function(el){ro.observe(el);});
+function newEventId(){
+  return window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'evt-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
+}
+var sessionState=null;
+function getSession(){
+  var now=Date.now(),key='ups_offer_session_'+offerId;
+  if(!sessionState){try{sessionState=JSON.parse(sessionStorage.getItem(key)||'null');}catch(e){}}
+  if(!sessionState||!sessionState.id||now-sessionState.last>1800000){sessionState={id:newEventId(),last:now};}
+  sessionState.last=now;
+  try{sessionStorage.setItem(key,JSON.stringify(sessionState));}catch(e){}
+  return sessionState;
+}
+function canTrack(){return __upsTrackPublic&&!__upsPreviewMode&&window.Cookiebot&&Cookiebot.consent&&Cookiebot.consent.statistics===true;}
 function trackEvent(eventName,extra){
-  if(!__upsTrackPublic||__upsPreviewMode)return;
+  if(!canTrack())return;
   extra=extra||{};
   var body=new URLSearchParams();
   body.append('action','upsellio_offer_track_event');
+  body.append('offer_token',offerToken);
+  body.append('session_id',getSession().id);
+  body.append('event_id',newEventId());
   body.append('offer_id',String(offerId));
   body.append('client_id',String(clientId));
-  body.append('person_id',String(personId||''));
   body.append('utm_source',utmSource);
   body.append('utm_campaign',utmCampaign);
   body.append('gclid',gclid);
   body.append('event_name',eventName);
-  body.append('page',window.location.href);
   if(extra.section_id)body.append('section_id',String(extra.section_id));
   if(extra.seconds!==undefined&&extra.seconds!==null)body.append('seconds',String(extra.seconds));
-  if(navigator.sendBeacon)navigator.sendBeacon(ajaxUrl,body);
-  else fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString(),credentials:'same-origin',keepalive:true}).catch(function(){});
+  if(!navigator.sendBeacon || !navigator.sendBeacon(ajaxUrl,body)) fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString(),credentials:'same-origin',keepalive:true}).catch(function(){});
+
 }
 function pushDl(ev,ex){if(!__upsTrackPublic||__upsPreviewMode)return;window.dataLayer=window.dataLayer||[];dataLayer.push(Object.assign({event:ev,offer_id:String(offerId),person_id:String(personId||'')},ex||{}));}
-if(!__upsPreviewMode){trackEvent('offer_view',{});}
-var so=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting&&!x.target._tsv){x.target._tsv=true;var sid=x.target.getAttribute('data-offer-section')||'';if(sid)trackEvent('offer_section_view',{section_id:sid});}});},{threshold:0.4});
-document.querySelectorAll('[data-offer-section]').forEach(function(el){so.observe(el);});
-var pEl=document.getElementById('pricing-section-element'),pStart=null,pTick=null,sent={};
-var po=new IntersectionObserver(function(e){e.forEach(function(x){
-  if(x.isIntersecting){
-    pStart=Date.now();
-    pTick=setInterval(function(){
-      var s=Math.round((Date.now()-pStart)/1000);
-      trackEvent('offer_engagement_tick',{section_id:'pricing',seconds:s});
-      [30,60,120].forEach(function(t){if(s>=t&&!sent[t]){sent[t]=true;trackEvent('offer_stage_detected',{section_id:'pricing_'+t+'s'});}});
-      if(s>=120){clearInterval(pTick);pTick=null;}
-    },10000);
-  }else{
-    if(pTick){clearInterval(pTick);pTick=null;}
-    if(pStart){trackEvent('offer_pricing_exit',{section_id:'pricing',seconds:Math.round((Date.now()-pStart)/1000)});pStart=null;}
-  }
-});},{threshold:0.5});
-if(pEl)po.observe(pEl);
+var sections=Array.from(document.querySelectorAll('[data-offer-section]')), seenSections={}, viewSession='', lastActivity=Date.now(), lastTick=Date.now();
+['pointerdown','keydown','scroll','touchstart'].forEach(function(type){window.addEventListener(type,function(){lastActivity=Date.now();},{passive:true});});
+function measureSections(){
+  var now=Date.now(),delta=Math.min(10,Math.floor((now-lastTick)/1000));
+  lastTick=now;
+  if(!canTrack()||document.hidden)return;
+  var session=getSession().id;
+  if(viewSession!==session){viewSession=session;seenSections={};trackEvent('offer_view',{});}
+  var viewport=window.innerHeight||document.documentElement.clientHeight;
+  var best=null,bestRatio=0;
+  sections.forEach(function(el){
+    var rect=el.getBoundingClientRect(), visible=Math.max(0,Math.min(rect.bottom,viewport)-Math.max(rect.top,0));
+    var ratio=visible/Math.max(1,Math.min(rect.height,viewport));
+    var id=el.getAttribute('data-offer-section');
+    if(ratio>=0.4&&!seenSections[id]){seenSections[id]=true;trackEvent('offer_section_view',{section_id:id});}
+    if(ratio>=0.5&&ratio>bestRatio){best=id;bestRatio=ratio;}
+  });
+  if(best&&delta>0&&now-lastActivity<60000){trackEvent('offer_engagement_tick',{section_id:best,seconds:delta});}
+}
+function startOfferMeasurement(){lastTick=Date.now();measureSections();}
+window.addEventListener('CookiebotOnConsentReady',startOfferMeasurement);
+window.addEventListener('CookiebotOnAccept',startOfferMeasurement);
+document.addEventListener('visibilitychange',function(){lastTick=Date.now();if(!document.hidden)measureSections();});
+startOfferMeasurement();
+window.setInterval(measureSections,10000);
 window.commitSelect=function(el){
   if(!el)return;
   var inp=el.querySelector('input[type="radio"]');if(!inp)return;
@@ -1310,7 +1329,9 @@ function getCommit(){
 }
 function postMessaging(payload){
   var body=new URLSearchParams();
+  if(__upsPreviewMode)return Promise.reject(new Error('Tryb podglądu'));
   body.append('action','upsellio_offer_public_messaging');
+  body.append('offer_token',offerToken);
   body.append('nonce',publicNonce);
   body.append('offer_id',String(offerId));
   Object.keys(payload).forEach(function(k){
@@ -1375,7 +1396,7 @@ function openAcceptModal(source,commit){
   var concerns=document.getElementById('accept_concerns');
   if(concerns)concerns.value='';
   var email=document.getElementById('accept_email');
-  if(email)email.value=hasClientEmail?<?php echo wp_json_encode((string) $client_email); ?>:'';
+  if(email)email.value='';
   var phone=document.getElementById('accept_phone');
   if(phone)phone.value='';
   var pref=document.getElementById('accept_contact_pref');
@@ -1438,7 +1459,12 @@ if(elCs)elCs.addEventListener('click',function(){
   }
   if(err)err.classList.remove('is-visible');
   var body=new URLSearchParams();
+  if(__upsPreviewMode){showToast('Tryb podglądu — bez zapisu.',true);return;}
+  if(elCs.disabled)return;
+  elCs.disabled=true;
   body.append('action','upsellio_offer_accept_full');
+  body.append('offer_token',offerToken);
+  body.append('offer_version',String(offerVersion));
   body.append('offer_id',String(offerId));
   body.append('client_id',String(clientId));
   body.append('person_id',String(personId||''));
@@ -1466,7 +1492,8 @@ if(elCs)elCs.addEventListener('click',function(){
         showToast((res&&res.data&&res.data.message)||'Nie udało się wysłać. Spróbuj ponownie.',true);
       }
     })
-    .catch(function(){showToast('Błąd sieci. Spróbuj ponownie.',true);});
+    .catch(function(){showToast('Błąd sieci. Spróbuj ponownie.',true);})
+    .finally(function(){elCs.disabled=false;});
 });
 var elQs=document.getElementById('ups-modal-q-submit');
 if(elQs)elQs.addEventListener('click',function(){
@@ -1497,6 +1524,7 @@ if(elQs)elQs.addEventListener('click',function(){
   }).catch(function(){showToast('Błąd sieci.',true);});
 });
 window.submitQA=function(){
+  if(__upsPreviewMode){showToast('Tryb podglądu — bez zapisu.',true);return;}
   var form=document.getElementById('qaForm');
   var status=document.getElementById('qaStatus');
   if(!form||!status){return;}
@@ -1514,6 +1542,7 @@ window.submitQA=function(){
   status.style.color='var(--muted)';
   var body=new URLSearchParams();
   fd.forEach(function(v,k){body.append(k,String(v));});
+  body.append('offer_token',offerToken);
   fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString(),credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){
     if(data&&data.success){
       form.innerHTML='<div style="text-align:center;padding:24px;background:#f0fdfa;border-radius:12px;">✓ Dziękuję za odpowiedzi. Przygotuję się do rozmowy.</div>';
@@ -1573,6 +1602,9 @@ function upsellio_offer_public_messaging_ajax()
     $offer_id = isset($_POST["offer_id"]) ? (int) $_POST["offer_id"] : 0;
     if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
         wp_send_json_error(["message" => "Nieprawidłowa oferta."]);
+    }
+    if (!upsellio_offer_public_request_valid($offer_id)) {
+        wp_send_json_error(["message" => "Oferta nie jest dostępna."], 403);
     }
     if (!isset($_POST["nonce"]) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["nonce"])), "ups_offer_public_" . $offer_id)) {
         wp_send_json_error(["message" => "Sesja wygasła. Odśwież stronę i spróbuj ponownie."]);
@@ -1694,6 +1726,9 @@ function upsellio_offer_accept_full_ajax()
     if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
         wp_send_json_error(["message" => "Nieprawidłowa oferta."]);
     }
+    if (!upsellio_offer_public_request_valid($offer_id)) {
+        wp_send_json_error(["message" => "Oferta nie jest dostępna."], 403);
+    }
     if (!isset($_POST["nonce"]) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["nonce"])), "ups_offer_public_" . $offer_id)) {
         wp_send_json_error(["message" => "Sesja wygasła. Odśwież stronę i spróbuj ponownie."]);
     }
@@ -1708,21 +1743,22 @@ function upsellio_offer_accept_full_ajax()
     $timeline = isset($_POST["timeline"]) ? sanitize_key(wp_unslash($_POST["timeline"])) : "";
     $ad_budget = isset($_POST["ad_budget"]) ? sanitize_key(wp_unslash($_POST["ad_budget"])) : "";
     $decision = isset($_POST["decision"]) ? sanitize_key(wp_unslash($_POST["decision"])) : "";
-    if ($timeline === "" || $ad_budget === "" || $decision === "") {
+    if (!in_array($timeline, ["asap", "2_weeks", "month", "flexible"], true) || !in_array($ad_budget, ["under_3k", "3_5k", "5_10k", "10k_plus"], true) || !in_array($decision, ["me", "me_team", "board"], true)) {
         wp_send_json_error(["message" => "Uzupełnij wszystkie kroki akceptacji."]);
     }
 
+    if (!isset($_POST["offer_version"]) || (int) $_POST["offer_version"] !== (int) get_post_meta($offer_id, "_ups_offer_current_version", true)) {
+        wp_send_json_error(["message" => "Oferta została zmieniona. Odśwież stronę przed akceptacją."], 409);
+    }
     if (!function_exists("upsellio_offer_apply_public_accept") || !upsellio_offer_apply_public_accept($offer_id)) {
         wp_send_json_error(["message" => "Nie można zapisać akceptacji."]);
     }
 
     $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
-    if ($client_id > 0) {
-        update_post_meta($client_id, "_ups_client_email", $contact_email);
-        update_post_meta($client_id, "_ups_client_phone", isset($_POST["contact_phone"]) ? sanitize_text_field(wp_unslash($_POST["contact_phone"])) : "");
-    }
-
+    // Preserve the CRM's verified contact; store the acceptor separately.
     $decision_payload = [
+        "contact_email" => $contact_email,
+        "contact_phone" => isset($_POST["contact_phone"]) ? sanitize_text_field(wp_unslash($_POST["contact_phone"])) : "",
         "timeline" => $timeline,
         "ad_budget" => $ad_budget,
         "decision" => $decision,
@@ -1771,6 +1807,9 @@ function upsellio_offer_qa_submit_handler()
     if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
         wp_send_json_error(["message" => "Nieprawidłowa oferta."]);
     }
+    if (!upsellio_offer_public_request_valid($offer_id)) {
+        wp_send_json_error(["message" => "Oferta nie jest dostępna."], 403);
+    }
     if (!isset($_POST["nonce"]) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["nonce"])), "ups_offer_public_" . $offer_id)) {
         wp_send_json_error(["message" => "Sesja wygasła. Odśwież stronę."]);
     }
@@ -1790,11 +1829,13 @@ function upsellio_offer_qa_submit_handler()
     if (empty($answers)) {
         wp_send_json_error(["message" => "Brak odpowiedzi."]);
     }
-    update_post_meta($offer_id, "_ups_offer_qa_responses", [
+    $response = [
         "email" => $email,
         "answers" => $answers,
         "submitted_at" => current_time("mysql"),
-    ]);
+    ];
+    add_post_meta($offer_id, "_ups_offer_qa_history", $response);
+    update_post_meta($offer_id, "_ups_offer_qa_responses", $response);
     if (function_exists("upsellio_inbox_append_message")) {
         upsellio_inbox_append_message($offer_id, [
             "direction" => "in",
