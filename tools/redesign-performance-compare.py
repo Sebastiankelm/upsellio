@@ -27,4 +27,12 @@ for key in sorted(old):
     summary.append(row)
     print(json.dumps(row, ensure_ascii=False))
 Path(sys.argv[3]).write_text(json.dumps(summary, indent=2, ensure_ascii=False))
-print("Lab only: route interception, no external resources, fresh contexts, no device/network throttling. Not a deployment gate or real-user CWV.")
+# A reproducible synthetic layout jump is an actionable regression even though
+# this experiment is not a field CWV assessment. Do not gate noisy latency.
+failed = [r for r in summary if r["path"] == "/" and
+          (r["cls"]["candidate"] is None or r["cls"]["candidate"] > 0.1)]
+print("Lab only: route interception, no external resources, fresh contexts, no device/network throttling. Not real-user CWV.")
+if failed:
+    print("Homepage synthetic CLS exceeds 0.1:", [(r["width"], r["cls"]["candidate"]) for r in failed], file=sys.stderr)
+    sys.exit(1)
+print("Homepage laboratory CLS gate passed.")
