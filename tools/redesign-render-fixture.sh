@@ -24,6 +24,12 @@ trap cleanup EXIT
 docker pull "$wp_image"
 docker pull "$cli_image"
 docker pull "$db_image"
+browser_image=mcr.microsoft.com/playwright:v1.51.1-noble
+browser_dir=$(mktemp -d)
+trap 'rm -rf "$browser_dir"; cleanup' EXIT
+npm install --prefix "$browser_dir" --no-audit --no-fund --ignore-scripts playwright@1.51.1
+cp tools/redesign-browser.mjs "$browser_dir/"
+docker pull "$browser_image"
 docker network create --internal "$network" >/dev/null
 wpcli() {
   docker run --rm --network "$network" --volumes-from "$wp" --user 33:33 \
@@ -153,7 +159,7 @@ render() {
   docker run -d --name "$db" --network "$network" --network-alias db \
     -e MARIADB_DATABASE=fixture -e MARIADB_USER=fixture \
     -e MARIADB_PASSWORD=fixture-only -e MARIADB_ROOT_PASSWORD=fixture-root-only "$db_image" >/dev/null
-  docker run -d --name "$wp" --network "$network" -v "$volume:/var/www/html" \
+  docker run -d --name "$wp" --network "$network" --network-alias fixture-wp -v "$volume:/var/www/html" \
     -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_NAME=fixture -e WORDPRESS_DB_USER=fixture \
     -e WORDPRESS_DB_PASSWORD=fixture-only \
     -e WORDPRESS_CONFIG_EXTRA='define("DISABLE_WP_CRON", true); if (!defined("WP_DEBUG")) { define("WP_DEBUG", true); } define("WP_DEBUG_DISPLAY", false); define("WP_HTTP_BLOCK_EXTERNAL", true); define("WP_ENVIRONMENT_TYPE", "local");' \
@@ -219,7 +225,11 @@ HTACCESS
   capture contact /kontakt/ "$dest"
   capture blog /blog/ "$dest"
   capture article /fixture-seo-article/ "$dest"
-  if [[ "$label" == candidate ]]; then test_leads "$dest"; fi
+  if [[ "$label" == candidate ]]; then
+    test_leads "$dest"
+    docker run --rm --network "$network" --ipc=host \
+      -v "$browser_dir:/tests:ro" -w /tests "$browser_image" node redesign-browser.mjs
+  fi
   # Explicitly exercise the selectable core template rather than only home.php.
   wpcli option update page_for_posts 0
   wpcli post meta update "$blog" _wp_page_template ups-blog-core.php
