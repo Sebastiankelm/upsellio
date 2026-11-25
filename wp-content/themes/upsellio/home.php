@@ -31,7 +31,6 @@ add_action("wp_head", static function () use ($blog_index_url, $paged) {
     echo '<meta property="og:type" content="website">' . "\n";
     echo '<meta property="og:url" content="' . esc_url($blog_index_url) . '">' . "\n";
     echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
-    echo '<link rel="canonical" href="' . esc_url($paged > 1 ? add_query_arg("paged", $paged, $blog_index_url) : $blog_index_url) . '">' . "\n";
     if ($paged > 1) {
         $prev_url = $paged === 2 ? $blog_index_url : add_query_arg("paged", $paged - 1, $blog_index_url);
         echo '<link rel="prev" href="' . esc_url($prev_url) . '">' . "\n";
