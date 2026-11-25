@@ -190,4 +190,16 @@ check(!$response->success && $response->status === 403, "pipeline move requires 
 $response = $pipeline_request(["stage" => "decision", "offer_id" => 10]);
 check(!$response->success && $response->status === 400, "pipeline move rejects a client record");
 $_POST = [];
+check(upsellio_crm_app_client_mrr(true, "active", "1250.50") === 1250.50, "active recurring revenue counted");
+check(upsellio_crm_app_client_mrr(false, "active", 1250) === 0.0, "one-time client excluded from MRR");
+check(upsellio_crm_app_client_mrr(true, "paused", 1250) === 0.0, "paused subscription excluded from MRR");
+check(upsellio_crm_app_client_mrr(true, "cancelled", 1250) === 0.0, "cancelled subscription excluded from MRR");
+check(upsellio_crm_app_client_mrr(true, "active", -1250) === 0.0, "negative monthly amount excluded");
+check(upsellio_crm_app_client_date("2026-02-30") === null, "invalid customer date rejected");
+check(upsellio_crm_app_client_ltv_estimate(true, "active", 1000, "2026-01-15", "", "2026-04-14") === 2000.0, "LTV uses completed calendar months");
+check(upsellio_crm_app_client_ltv_estimate(true, "cancelled", 1000, "2026-01-15", "2026-03-15", "2026-11-25") === 2000.0, "cancelled LTV stops at cancellation date");
+check(upsellio_crm_app_client_ltv_estimate(true, "active", 1000, "2026-12-01", "", "2026-11-25") === null, "future start does not fabricate LTV");
+check(upsellio_crm_app_client_ltv_estimate(true, "cancelled", 1000, "2026-01-15", "", "2026-11-25") === null, "missing cancellation date yields unknown LTV");
+check(upsellio_crm_app_client_ltv_estimate(true, "paused", 1000, "2026-01-15", "", "2026-11-25") === null, "paused history cannot be inferred");
+check(upsellio_crm_app_client_ltv_estimate(false, "active", 1000, "2026-01-15", "", "2026-11-25") === null, "one-time revenue is not estimated as recurring LTV");
 echo "CRM smoke checks complete." . PHP_EOL;
