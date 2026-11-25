@@ -959,20 +959,82 @@ function ups_audit_sync_resource_action(int $resource_id, int $days = 0, bool $f
     }
 }
 
-/** Background worker for manual bulk sync. Keep existing cron/CLI entry points intact. */
+/** Schedule one resource at a time, regardless of selected comparison window. */
+function ups_audit_enqueue_resource_sync(int $rid, int $days, int $delay = 5): string
+{
+    global $wpdb;
+    if ($rid <= 0 || get_post_type($rid) !== "crm_audit_resource") {
+        return "failed";
+    }
+    $lock = "ups_audit_queue_" . md5($wpdb->prefix . ":" . $rid);
+    if ((string) $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 0)", $lock)) !== "1") {
+        return "already";
+    }
+    try {
+        $state = (string) get_post_meta($rid, "_ups_resource_manual_sync_state", true);
+        $started = (int) get_post_meta($rid, "_ups_resource_manual_sync_started", true);
+        if ($state === "running" && $started > time() - 30 * MINUTE_IN_SECONDS) {
+            return "already";
+        }
+        foreach ([7, 14, 30, 60, 90] as $window) {
+            if (wp_next_scheduled("ups_audit_queued_resource_sync", [$rid, $window])) {
+                return "already";
+            }
+        }
+        $scheduled = wp_schedule_single_event(time() + max(5, $delay), "ups_audit_queued_resource_sync", [$rid, $days], true);
+        if (is_wp_error($scheduled) || !$scheduled) {
+            return "failed";
+        }
+        update_post_meta($rid, "_ups_resource_manual_sync_days", $days);
+        update_post_meta($rid, "_ups_resource_manual_sync_attempt", 0);
+        update_post_meta($rid, "_ups_resource_manual_sync_requested", time());
+        update_post_meta($rid, "_ups_resource_manual_sync_state", "queued");
+        delete_post_meta($rid, "_ups_resource_manual_sync_finished_at");
+        return "queued";
+    } finally {
+        $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock));
+    }
+}
+
+/** Background worker with bounded retry; do not repeatedly consume Clarity quota. */
 function ups_audit_run_queued_resource_sync(int $resource_id, int $days): void
 {
-    $state = "failed";
-    update_post_meta($resource_id, "_ups_resource_manual_sync_state", "running");
+    global $wpdb;
+    if (get_post_type($resource_id) !== "crm_audit_resource") {
+        return;
+    }
+    $lock = "ups_audit_queue_" . md5($wpdb->prefix . ":" . $resource_id);
+    if ((string) $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 0)", $lock)) !== "1") {
+        // WordPress has already consumed the cron event. Requeue on contention.
+        wp_schedule_single_event(time() + 60, "ups_audit_queued_resource_sync", [$resource_id, $days], true);
+        return;
+    }
     try {
-        $state = ups_audit_sync_resource_action($resource_id, $days) ? "completed" : "failed";
-    } catch (Throwable $e) {
-        if (function_exists("upsellio_gsc_log")) {
-            upsellio_gsc_log("audit.sync.queued.error", ["resource_id" => $resource_id, "msg" => $e->getMessage()]);
+        $attempt = (int) get_post_meta($resource_id, "_ups_resource_manual_sync_attempt", true) + 1;
+        update_post_meta($resource_id, "_ups_resource_manual_sync_attempt", $attempt);
+        update_post_meta($resource_id, "_ups_resource_manual_sync_started", time());
+        update_post_meta($resource_id, "_ups_resource_manual_sync_state", "running");
+        $success = false;
+        try {
+            $success = ups_audit_sync_resource_action($resource_id, $days);
+        } catch (Throwable $e) {
+            if (function_exists("upsellio_gsc_log")) {
+                upsellio_gsc_log("audit.sync.queued.error", ["resource_id" => $resource_id, "msg" => $e->getMessage()]);
+            }
         }
-    } finally {
-        update_post_meta($resource_id, "_ups_resource_manual_sync_state", $state);
+        $type = (string) get_post_meta($resource_id, "_ups_resource_type", true);
+        if (!$success && $attempt < 3 && $type !== "clarity") {
+            $delay = $attempt === 1 ? 120 : 600;
+            $scheduled = wp_schedule_single_event(time() + $delay, "ups_audit_queued_resource_sync", [$resource_id, $days], true);
+            if (!is_wp_error($scheduled) && $scheduled) {
+                update_post_meta($resource_id, "_ups_resource_manual_sync_state", "retrying");
+                return;
+            }
+        }
+        update_post_meta($resource_id, "_ups_resource_manual_sync_state", $success ? "completed" : "failed");
         update_post_meta($resource_id, "_ups_resource_manual_sync_finished_at", current_time("mysql"));
+    } finally {
+        $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock));
     }
 }
 add_action("ups_audit_queued_resource_sync", "ups_audit_run_queued_resource_sync", 10, 2);
