@@ -459,6 +459,10 @@ function upsellio_offer_build_analytics_summary($offer_id)
     $section_views = [];
     $section_seconds = [];
     $cta_clicks = 0;
+    $accept_clicks = 0;
+    $commit_selected = false;
+    $started_sessions = [];
+    $legacy_views = 0;
     $total_seconds = 0;
     $last_seen_ts = "";
 
@@ -472,6 +476,7 @@ function upsellio_offer_build_analytics_summary($offer_id)
         }
         if ($event_name === "offer_view") {
             $sid = (string) ($event["session_id"] ?? "");
+            if ($sid === "") { $legacy_views++; }
             if ($sid === "" || !isset($seen_sessions[$sid])) {
                 $unique_views++;
                 if ($sid !== "") {
@@ -497,32 +502,42 @@ function upsellio_offer_build_analytics_summary($offer_id)
         }
         if ($event_name === "offer_cta_click") {
             $cta_clicks++;
+            if (in_array($section_id, ["pricing_accept_ajax", "footer_accept_ajax", "mobile_accept_ajax"], true)) { $accept_clicks++; }
         }
+        if ($event_name === "offer_commit_selected" && $section_id !== "") { $commit_selected = true; }
+        if ($event_name === "offer_accept_started" && !empty($event["session_id"])) { $started_sessions[$event["session_id"]] = true; }
     }
 
     $pricing_seconds = (int) ($section_seconds["pricing"] ?? 0);
-    $score = 0;
-    $score += min(20, $unique_views * 8);
-    $score += min(24, count($section_views) * 8);
-    $score += min(30, (int) floor($total_seconds / 20) * 5);
-    if ($pricing_seconds >= 30) {
-        $score += 16;
+    // Fixed component maxima sum to 100; generic navigation is not a purchase signal.
+    $score_components = [
+        "sessions" => min(15, count($seen_sessions) * 5 + min(5, $legacy_views * 5)),
+        "sections" => min(15, count($section_views) * 5),
+        "activity" => min(20, (int) floor($total_seconds / 20) * 4),
+        "pricing" => $pricing_seconds >= 60 ? 20 : ($pricing_seconds >= 30 ? 10 : 0),
+        "variant" => $commit_selected ? 10 : 0,
+        "accept" => ($accept_clicks > 0 || $started_sessions !== []) ? 20 : 0,
+    ];
+    $score = array_sum($score_components);
+    $has_intent = $commit_selected || $accept_clicks > 0 || $started_sessions !== [];
+    $hot_score = max(1, min(100, (int) get_option("ups_offer_score_hot", 70)));
+    $hot_pricing_seconds = max(0, (int) get_option("ups_offer_score_hot_pricing_seconds", 45));
+    $is_hot = $has_intent && ($score >= $hot_score || ($pricing_seconds >= $hot_pricing_seconds && ($accept_clicks > 0 || $started_sessions !== [])));
+    if (in_array((string) get_post_meta($offer_id, "_ups_offer_status", true), ["won", "lost"], true) || upsellio_offer_is_expired($offer_id)) {
+        $is_hot = false;
     }
-    if ($pricing_seconds >= 60) {
-        $score += 10;
-    }
-    $score += min(35, $cta_clicks * 35);
-
-    $score = min(100, $score);
-    $hot_score = (int) get_option("ups_offer_score_hot", 70);
-    $hot_pricing_seconds = (int) get_option("ups_offer_score_hot_pricing_seconds", 45);
-    $is_hot = $score >= $hot_score || ($pricing_seconds >= $hot_pricing_seconds && $cta_clicks > 0);
 
     return [
         "views" => $unique_views,
         "section_views" => $section_views,
         "section_seconds" => $section_seconds,
         "cta_clicks" => $cta_clicks,
+        "accept_clicks" => $accept_clicks,
+        "accept_started_sessions" => count($started_sessions),
+        "commit_selected" => $commit_selected,
+        "score_components" => $score_components,
+        "identified_views" => count($seen_sessions),
+        "legacy_views" => $legacy_views,
         "total_seconds" => $total_seconds,
         "pricing_seconds" => $pricing_seconds,
         "score" => $score,
@@ -538,13 +553,11 @@ function upsellio_offer_detect_behavior_objection(array $summary): string
     $section_sec = is_array($summary["section_seconds"] ?? null)
         ? $summary["section_seconds"] : [];
     $faq_sec = (int) ($section_sec["faq"] ?? 0);
-    $scope_sec = (int) ($section_sec["zakres"] ?? $section_sec["szczegoly"] ?? 0);
+    $scope_sec = (int) ($section_sec["zakres"] ?? 0) + (int) ($section_sec["szczegoly"] ?? 0);
     $views = (int) ($summary["views"] ?? 0);
     $total_sec = (int) ($summary["total_seconds"] ?? 0);
 
-    if ($views === 1 && $total_sec < 30 && $cta_clicks === 0) {
-        return "no_fit";
-    }
+    // A short or unmeasured visit does not prove a lack of fit.
 
     if ($pricing_sec >= 45 && $cta_clicks === 0) {
         return "price";
@@ -579,15 +592,16 @@ function upsellio_offer_detect_stage($summary)
     $decision_by_score = $score >= $decision_score;
     $decision_by_pricing = $pricing_seconds >= $decision_pricing_seconds;
     $decision_by_views = $views >= $decision_views;
-    $decision_by_cta = $cta_clicks > 0;
+    $decision_by_cta = (int) ($summary["accept_clicks"] ?? 0) > 0 || (int) ($summary["accept_started_sessions"] ?? 0) > 0;
+    $decision_by_variant = !empty($summary["commit_selected"]);
     if ($decision_require_cta) {
         if (($decision_by_score || $decision_by_pricing || $decision_by_views) && $decision_by_cta) {
             return "decision";
         }
-    } elseif ($decision_by_score || $decision_by_cta || $decision_by_pricing || $decision_by_views) {
+    } elseif ($decision_by_cta || ($decision_by_variant && ($decision_by_score || $decision_by_pricing || $decision_by_views))) {
         return "decision";
     }
-    if ($score >= $consideration_score || $pricing_seconds >= $consideration_pricing_seconds || $views >= $consideration_views) {
+    if ($decision_by_variant || $score >= $consideration_score || $pricing_seconds >= $consideration_pricing_seconds || $views >= $consideration_views) {
         return "consideration";
     }
     return "awareness";
@@ -604,7 +618,9 @@ function upsellio_offer_create_followup_task($offer_id, $summary)
         return;
     }
 
-    $owner_id = function_exists("upsellio_crm_get_default_owner_id") ? (int) upsellio_crm_get_default_owner_id() : 1;
+    $owner_id = (int) get_post_meta($offer_id, "_ups_offer_owner_id", true);
+    if ($owner_id <= 0) { $owner_id = (int) get_post_field("post_author", $offer_id); }
+    if ($owner_id <= 0) { $owner_id = function_exists("upsellio_crm_get_default_owner_id") ? (int) upsellio_crm_get_default_owner_id() : 1; }
     $task_id = wp_insert_post([
         "post_type" => "lead_task",
         "post_status" => "publish",
@@ -629,6 +645,11 @@ function upsellio_offer_refresh_score($offer_id)
         return;
     }
     $summary = upsellio_offer_build_analytics_summary($offer_id);
+    $closed = in_array((string) get_post_meta($offer_id, "_ups_offer_status", true), ["won", "lost"], true);
+    if ($closed || upsellio_offer_is_expired($offer_id)) {
+        update_post_meta($offer_id, "_ups_offer_hot_offer", "0");
+        return;
+    }
     $stage = upsellio_offer_detect_stage($summary);
     update_post_meta($offer_id, "_ups_offer_score", (int) $summary["score"]);
     $behavior_objection = upsellio_offer_detect_behavior_objection($summary);
@@ -1177,7 +1198,7 @@ function upsellio_offer_track_event()
     if (!upsellio_offer_public_request_valid($offer_id)) {
         wp_send_json_error(["message" => "invalid_offer"], 403);
     }
-    $allowed = ["offer_view", "offer_section_view", "offer_section_click", "offer_engagement_tick", "offer_stage_detected", "offer_pricing_exit", "offer_commit_selected", "offer_cta_click"];
+    $allowed = ["offer_view", "offer_section_view", "offer_section_click", "offer_engagement_tick", "offer_stage_detected", "offer_pricing_exit", "offer_commit_selected", "offer_cta_click", "offer_accept_started", "offer_accept_step"];
     if (!in_array($event_name, $allowed, true)) {
         wp_send_json_error(["message" => "invalid_event"], 400);
     }
@@ -1549,6 +1570,7 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
         $events = [];
     }
 
+    $summary = upsellio_offer_build_analytics_summary($offer_id);
     $sessions = [];
     $identified_sessions = [];
     $current_session = [];
@@ -1737,8 +1759,15 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
         "funnel"              => $funnel,
         "section_ids"         => $section_ids,
         "last_commit"         => $last_commit,
-        "score"               => (int) get_post_meta($offer_id, "_ups_offer_score", true),
-        "is_hot"              => get_post_meta($offer_id, "_ups_offer_hot_offer", true) === "1",
+        "score"               => (int) $summary["score"],
+        "is_hot"              => !empty($summary["is_hot"]),
+        "score_components"    => $summary["score_components"],
+        "identified_views"    => $summary["identified_views"],
+        "legacy_views"        => $summary["legacy_views"],
+        "active_seconds"      => $summary["total_seconds"],
+        "accept_started_sessions" => $summary["accept_started_sessions"],
+        "accept_clicks"       => $summary["accept_clicks"],
+        "events_recent"       => array_slice(array_reverse($events), 0, 80),
         "stage"               => (string) get_post_meta($offer_id, "_ups_offer_stage", true),
         "last_seen"           => (string) get_post_meta($offer_id, "_ups_offer_last_seen", true),
         "utm_source"          => (string) get_post_meta($offer_id, "_ups_offer_utm_source", true),
