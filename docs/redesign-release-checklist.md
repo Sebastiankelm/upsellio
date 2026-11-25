@@ -4,7 +4,9 @@
 - Branch: `redesign/seo-safe-home`, draft PR #2. Nie publikować automatycznie.
 - Testy statyczne: workflow `redesign-checks.yml`.
 - Test renderowania: workflow `redesign-render.yml`. Dwie niezależne, tymczasowe instalacje WordPress/PHP 8.3/MariaDB, z syntetycznym wpisem i automatycznie przygotowanymi stronami motywu. Brak portów publicznych, osobna wewnętrzna sieć Docker, blokada HTTP API WordPress, poczty i crona; bez bazy produkcji i sekretów integracji. Obrazy Docker korzystają z tagów wersji, a nie digestów; zapisać faktyczne wersje przy reprodukcji.
-- Fixture nie zastępuje stagingu z konfiguracją Rank Math, aktywnymi wtyczkami, menu, treściami i konfiguracją hostingu.
+- Workflow renderowania ma dwa niezależne warianty: core (bez wtyczki, SEO, CRM, Chromium) i rank-math (SEO z aktywnym publicznym Rank Math 1.0.282, pobranym z downloads.wordpress.org przed izolacją). W obu wariantach porównywane są te same syntetyczne strony baseline i candidate. Wersja Rank Math jest przypięta dla odtwarzalności; nie ustalono wersji produkcyjnej.
+- Zaliczone dla rewizji bedfa96: render 8/8, poprawne canonical na 8 widokach, 4/4 zapisy CRM i 4/4 odrzucone przypadki, Chromium 21/21, 8/8 zgód analityki z mockiem HTTP oraz 35/35 kombinacji robots. Linki do przebiegów: https://github.com/Sebastiankelm/upsellio/actions/runs/45587019144 oraz https://github.com/Sebastiankelm/upsellio/actions/runs/45587019940.
+- Fixture z aktywną wtyczką również nie zastępuje stagingu z produkcyjną wersją Rank Math/Pro, indywidualnymi metadanymi, wtyczkami, menu, treściami i konfiguracją hostingu. W razie różnicy wyników analizować logi zamiast osłabiać asercje lub zmieniać istniejące ustawienia produkcji.
 
 ## 1. Przygotowanie prywatnego stagingu
 - Osobna baza i host chroniony HTTP Basic Auth lub VPN, nie publiczna kopia serwisu. Wymusić X-Robots-Tag: noindex, nofollow i wyłączyć publikowanie sitemap. Nie kopiować tej reguły na produkcję.
@@ -41,7 +43,8 @@
 - Zapisać incydent, przyczynę i wyniki retestu przed kolejnym wdrożeniem.
 
 ## 6. Status bramek
-- [ ] Test renderowania synthetic CI zaliczony.
+- [x] Pełny test syntetyczny bez Rank Math zaliczony dla bedfa96 (retest aktualnego HEAD po zmianach).
+- [ ] Test syntetyczny z aktywnym Rank Math zaliczony.
 - [ ] Prywatny staging dostępny i porównanie konfiguracji produkcyjnej wykonane.
 - [ ] Testy funkcjonalne, urządzenia, CRM i analityka zaliczone.
 - [ ] Treści i ceny zatwierdzone.
