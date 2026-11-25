@@ -9843,3 +9843,23 @@ footer.nf-footer a:focus-visible{outline:3px solid #06745f;outline-offset:3px}
   .up-hero-mobile{display:inline-flex!important;align-items:center;justify-content:center;min-height:52px}
 }
 @media(prefers-reduced-motion:reduce){.up-extra-content>summary::after{transition:none}}
+
+/* Common tablet navigation and blog search controls. */
+@media(max-width:979px){
+  header.nav.site-nav .nav-links,header.nav.site-nav .nav-cta{display:none!important}
+  header.nav.site-nav .hamburger{display:flex!important;flex-direction:column;justify-content:center;align-items:center;flex:none;margin-left:0;min-width:44px;min-height:44px}
+  header.nav.site-nav .up-nav-call{display:grid;place-items:center;flex:none;width:44px;height:44px;background:#dff5ef;color:#06745f;border-radius:12px;margin-left:auto}
+  header.nav.site-nav .mobile-menu{display:none!important;max-height:calc(100dvh - 84px);overflow:auto;overscroll-behavior:contain}
+  header.nav.site-nav .mobile-menu.open{display:block!important}
+}
+.up-blog-search-submit{border:0;border-radius:12px;background:#06745f;color:#fff;padding:0 24px;min-height:48px;font:700 16px/1.4 "DM Sans",sans-serif;cursor:pointer}
+.up-blog-search-submit:hover{background:#055e4d}
+.ups-blog .ups-blog-card-title a{color:inherit;text-decoration:none}
+.ups-blog .ups-blog-card-title a:hover{color:#06745f;text-decoration:underline}
+.ups-blog .ups-blog-tag{text-decoration:none}
+.ups-blog :is(a,button,input):focus-visible{outline:3px solid #06745f;outline-offset:3px}
+footer.nf-footer .up-footer-cities>summary{cursor:pointer;min-height:44px;line-height:1.4;display:list-item;padding:10px 0}
+footer.nf-footer .up-footer-cities>summary:focus-visible{outline:3px solid #06745f;outline-offset:3px}
+footer.nf-footer .nf-foot-social{flex-wrap:wrap}
+@media(max-width:979px){.ups-blog .ups-blog-search{display:flex;gap:8px;flex-wrap:wrap}.ups-blog .ups-blog-search-field{flex:1;min-width:0}.up-blog-search-submit{min-height:52px;padding:0 16px}}
+@media(max-width:360px){.ups-blog .ups-blog-search-field,.up-blog-search-submit{width:100%;flex:1 0 100%}}
