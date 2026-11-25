@@ -322,22 +322,32 @@ function upsellio_automation_register_crm_roles()
 }
 add_action("init", "upsellio_automation_register_crm_roles", 7);
 
+function upsellio_automation_webhook_permission($request)
+{
+    $secret = (string) get_option("ups_followup_inbound_secret", "");
+    $header = (string) $request->get_header("x-upsellio-secret");
+    if ($secret === "" || !hash_equals($secret, $header)) {
+        return new WP_Error("upsellio_webhook_forbidden", "Forbidden", ["status" => 403]);
+    }
+    return true;
+}
+
 function upsellio_automation_register_rest_routes()
 {
     register_rest_route("upsellio/v1", "/ga4-aggregate", [
         "methods" => "POST",
         "callback" => "upsellio_automation_receive_ga4_aggregate",
-        "permission_callback" => "__return_true",
+        "permission_callback" => "upsellio_automation_webhook_permission",
     ]);
     register_rest_route("upsellio/v1", "/gsc-keywords", [
         "methods" => "POST",
         "callback" => "upsellio_automation_receive_gsc_keywords",
-        "permission_callback" => "__return_true",
+        "permission_callback" => "upsellio_automation_webhook_permission",
     ]);
     register_rest_route("upsellio/v1", "/lead-capture", [
         "methods" => "POST",
         "callback" => "upsellio_automation_capture_lead_from_form",
-        "permission_callback" => "__return_true",
+        "permission_callback" => "upsellio_automation_webhook_permission",
     ]);
 }
 add_action("rest_api_init", "upsellio_automation_register_rest_routes");
@@ -350,7 +360,10 @@ function upsellio_automation_receive_ga4_aggregate($request)
         return new WP_REST_Response(["ok" => false, "message" => "forbidden"], 403);
     }
     $payload = $request->get_json_params();
-    $rows = isset($payload["rows"]) && is_array($payload["rows"]) ? $payload["rows"] : [];
+    if (!is_array($payload) || !isset($payload["rows"]) || !is_array($payload["rows"]) || count($payload["rows"]) > 25000) {
+        return new WP_REST_Response(["ok" => false, "message" => "invalid_rows"], 400);
+    }
+    $rows = $payload["rows"];
     $normalized = [];
     foreach ($rows as $row) {
         if (!is_array($row)) {
@@ -424,7 +437,10 @@ function upsellio_automation_receive_gsc_keywords($request)
         return new WP_REST_Response(["ok" => false, "message" => "forbidden"], 403);
     }
     $payload = $request->get_json_params();
-    $rows = isset($payload["rows"]) && is_array($payload["rows"]) ? $payload["rows"] : [];
+    if (!is_array($payload) || !isset($payload["rows"]) || !is_array($payload["rows"]) || count($payload["rows"]) > 25000) {
+        return new WP_REST_Response(["ok" => false, "message" => "invalid_rows"], 400);
+    }
+    $rows = $payload["rows"];
     $normalized = [];
     $date_re = "/^\d{4}-\d{2}-\d{2}$/";
     foreach ($rows as $row) {
@@ -471,8 +487,14 @@ function upsellio_automation_capture_lead_from_form($request)
         return new WP_REST_Response(["ok" => false, "message" => "lead_module_missing"], 500);
     }
     $payload = $request->get_json_params();
+    if (!is_array($payload)) {
+        return new WP_REST_Response(["ok" => false, "message" => "invalid_payload"], 400);
+    }
     $name = sanitize_text_field((string) ($payload["name"] ?? "Lead formularza"));
-    $email = sanitize_email((string) ($payload["email"] ?? ""));
+    $email = strtolower(sanitize_email((string) ($payload["email"] ?? "")));
+    if (!is_email($email)) {
+        return new WP_REST_Response(["ok" => false, "message" => "invalid_email"], 400);
+    }
     $lead_id = 0;
     if (is_email($email)) {
         $existing = get_posts([
@@ -490,7 +512,8 @@ function upsellio_automation_capture_lead_from_form($request)
         ]);
         $lead_id = !empty($existing) ? (int) $existing[0] : 0;
     }
-    if ($lead_id <= 0) {
+    $is_new = $lead_id <= 0;
+    if ($is_new) {
         $lead_id = (int) wp_insert_post([
             "post_type" => "crm_lead",
             "post_status" => "publish",
@@ -501,13 +524,23 @@ function upsellio_automation_capture_lead_from_form($request)
         return new WP_REST_Response(["ok" => false, "message" => "insert_failed"], 500);
     }
     update_post_meta($lead_id, "_ups_lead_email", $email);
-    update_post_meta($lead_id, "_ups_lead_phone", sanitize_text_field((string) ($payload["phone"] ?? "")));
+    if (isset($payload["phone"]) && trim((string) $payload["phone"]) !== "") {
+        update_post_meta($lead_id, "_ups_lead_phone", sanitize_text_field((string) ($payload["phone"] ?? "")));
+    }
     update_post_meta($lead_id, "_ups_lead_source", sanitize_text_field((string) ($payload["source"] ?? "form")));
     update_post_meta($lead_id, "_ups_lead_type", sanitize_key((string) ($payload["type"] ?? "inbound")));
-    update_post_meta($lead_id, "_ups_lead_qualification_status", "new");
-    update_post_meta($lead_id, "_ups_lead_utm_source", sanitize_text_field((string) ($payload["utm_source"] ?? "")));
-    update_post_meta($lead_id, "_ups_lead_utm_campaign", sanitize_text_field((string) ($payload["utm_campaign"] ?? "")));
-    update_post_meta($lead_id, "_ups_lead_gclid", sanitize_text_field((string) ($payload["gclid"] ?? "")));
+    if ($is_new) {
+        update_post_meta($lead_id, "_ups_lead_qualification_status", "new");
+    }
+    if (isset($payload["utm_source"]) && trim((string) $payload["utm_source"]) !== "") {
+        update_post_meta($lead_id, "_ups_lead_utm_source", sanitize_text_field((string) ($payload["utm_source"] ?? "")));
+    }
+    if (isset($payload["utm_campaign"]) && trim((string) $payload["utm_campaign"]) !== "") {
+        update_post_meta($lead_id, "_ups_lead_utm_campaign", sanitize_text_field((string) ($payload["utm_campaign"] ?? "")));
+    }
+    if (isset($payload["gclid"]) && trim((string) $payload["gclid"]) !== "") {
+        update_post_meta($lead_id, "_ups_lead_gclid", sanitize_text_field((string) ($payload["gclid"] ?? "")));
+    }
     if (function_exists("upsellio_sales_engine_refresh_lead_hybrid_scores")) {
         upsellio_sales_engine_refresh_lead_hybrid_scores($lead_id);
     }
