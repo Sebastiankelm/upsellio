@@ -153,9 +153,13 @@ function upsellio_get_city_nearby_links($currentSlug, $limit = 6)
     for ($i = 1; $i <= $limit; $i++) {
         $nextIndex = ($currentIndex + $i) % count($cities);
         $nextCity = $cities[$nextIndex];
+        $target = upsellio_seo_resolve_public_content_alias("miasto", $nextCity["slug"]);
+        if (!$target) {
+            continue;
+        }
         $links[] = [
             "name" => $nextCity["name"],
-            "url" => home_url("/miasto/" . $nextCity["slug"] . "/"),
+            "url" => get_permalink($target),
         ];
     }
 

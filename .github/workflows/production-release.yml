@@ -33,11 +33,12 @@ jobs:
           python3 -m py_compile tools/deploy/build-release.py
           php -n -l tools/deploy/apply-release.php
           php -n tests/mobile-callback-contract.php
+          php -n tests/seo-indexability-contract.php
           bash tests/production-deploy-contract.sh
       - name: Lint public theme
         run: |
           set -eu
-          for file in front-page.php functions.php header.php home.php single.php inc/crm.php inc/form-component.php page-kontakt.php page-marketing-google-ads.php page-marketing-meta-ads.php page-tworzenie-stron-internetowych.php; do
+          for file in front-page.php functions.php header.php home.php single.php inc/crm.php inc/form-component.php inc/technical-seo.php inc/seo-indexing-fixes.php inc/cities-seed.php inc/definitions-seed.php page-kontakt.php page-marketing-google-ads.php page-marketing-meta-ads.php page-tworzenie-stron-internetowych.php; do
             php -n -l "wp-content/themes/upsellio/$file"
           done
           node --check wp-content/themes/upsellio/assets/js/upsellio.js

@@ -32,6 +32,9 @@ add_action("wp_head", "upsellio_print_hreflang_tags", 9);
 
 function upsellio_get_robots_txt_content()
 {
+    if ((string) get_option("blog_public") !== "1") {
+        return "User-agent: *\nDisallow: /\n";
+    }
     $lines = [
         "User-agent: *",
         "Allow: /",
@@ -62,16 +65,48 @@ function upsellio_output_robots_txt_directly()
 
     echo upsellio_get_robots_txt_content();
 }
-add_action("do_robots", "upsellio_output_robots_txt_directly", 20);
+// WordPress already emits the robots_txt filter result; do not append a second copy.
+
+/**
+ * Only public, canonical, indexable content belongs in the sitemap.
+ * Respect explicitly stored Rank Math and Jetpack SEO directives.
+ */
+function upsellio_is_internal_seo_page($post): bool
+{
+    return $post instanceof WP_Post && $post->post_type === "page" && $post->post_name === "crm-app";
+}
+
+function upsellio_sitemap_post_is_indexable($post, $permalink): bool
+{
+    if (!($post instanceof WP_Post) || $post->post_status !== "publish" ||
+        $post->post_password !== "" || upsellio_is_internal_seo_page($post)) {
+        return false;
+    }
+    $robots = (array) get_post_meta($post->ID, "rank_math_robots", true);
+    if (in_array("noindex", $robots, true) ||
+        get_post_meta($post->ID, "jetpack_seo_noindex", true) ||
+        get_post_meta($post->ID, "_yoast_wpseo_meta-robots-noindex", true) === "1") {
+        return false;
+    }
+    $canonical = trim((string) get_post_meta($post->ID, "rank_math_canonical_url", true));
+    if ($canonical === "") {
+        $canonical = trim((string) get_post_meta($post->ID, "_yoast_wpseo_canonical", true));
+    }
+    return $canonical === "" || untrailingslashit($canonical) === untrailingslashit($permalink);
+}
 
 function upsellio_collect_sitemap_entries()
 {
     $entries = [];
     $home_url = home_url("/");
-    $entries[$home_url] = [
-        "loc" => $home_url,
-        "lastmod" => gmdate("c"),
-    ];
+    if ((string) get_option("blog_public") !== "1") {
+        return [];
+    }
+    $front_id = (int) get_option("page_on_front");
+    if ($front_id === 0) {
+        // A posts index has no single reliable modification date.
+        $entries[$home_url] = ["loc" => $home_url];
+    }
 
     $candidate_types = ["page", "post", "portfolio", "marketing_portfolio", "lead_magnet", "definicja", "miasto"];
     $post_types = [];
@@ -102,14 +137,14 @@ function upsellio_collect_sitemap_entries()
         }
 
         $permalink = get_permalink($post_id);
-        if (!$permalink) {
+        if (!$permalink || !upsellio_sitemap_post_is_indexable(get_post($post_id), $permalink)) {
             continue;
         }
 
         $modified = get_post_modified_time("c", true, $post_id);
         $entries[$permalink] = [
             "loc" => (string) $permalink,
-            "lastmod" => $modified ? (string) $modified : gmdate("c"),
+            "lastmod" => $modified ? (string) $modified : "",
         ];
     }
 
@@ -124,7 +159,9 @@ function upsellio_render_sitemap_xml()
     foreach ($entries as $entry) {
         $xml .= "  <url>\n";
         $xml .= "    <loc>" . esc_url((string) ($entry["loc"] ?? "")) . "</loc>\n";
-        $xml .= "    <lastmod>" . esc_html((string) ($entry["lastmod"] ?? gmdate("c"))) . "</lastmod>\n";
+        if (!empty($entry["lastmod"])) {
+            $xml .= "    <lastmod>" . esc_html((string) $entry["lastmod"]) . "</lastmod>\n";
+        }
         $xml .= "  </url>\n";
     }
     $xml .= "</urlset>\n";
@@ -213,6 +250,15 @@ function upsellio_serve_technical_seo_files_early($wp)
     }
 }
 add_action("parse_request", "upsellio_serve_technical_seo_files_early", 1);
+
+// CRM is an application surface, not a public search landing page.
+function upsellio_noindex_internal_seo_pages(): void
+{
+    if (is_page("crm-app") && !headers_sent()) {
+        header("X-Robots-Tag: noindex, follow", true);
+    }
+}
+add_action("template_redirect", "upsellio_noindex_internal_seo_pages", 0);
 
 function upsellio_get_schema_url($value, $fallback = "/")
 {
