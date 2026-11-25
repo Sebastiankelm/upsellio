@@ -267,8 +267,7 @@ a.ct-channel-link,.ct-art a.ct-channel-link{
 }
 
 /* === UKRYCIE POL FORMULARZA - Firma + Twoja miesieczna sprzedaz === */
-.ct-form-card .ups-form__row-2:first-of-type{grid-template-columns:1fr !important}
-.ct-form-card .ups-form__row-2:first-of-type > div:nth-child(2){display:none !important}
+/* Keep required name and telephone visible; shared form no longer has a company field. */
 .ct-form-card .ups-form label[for*="monthly-sales"],
 .ct-form-card .ups-form select[name="lead_monthly_sales"]{display:none !important}
 
@@ -569,6 +568,105 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
   .ct-form-card{padding:24px;border-radius:var(--ct-rl)}
   .ct-final-box{padding:36px 24px;border-radius:var(--ct-rxl)}
 }
+/* Redesign — contact page. Scoped to ct-art; preserve lead renderer and fields. */
+.ct-art{
+  --ct-bg:#fff;--ct-soft:#f5f6f8;--ct-softer:#f5f6f8;--ct-muted:#5f636b;
+  --ct-border:#e3e6ea;--ct-line:#e3e6ea;--ct-tealh:#06745f;--ct-tealss:#effaf7;
+  --ct-teals:#dff5ef;--ct-tealb:#c7e6dd;--ct-r:12px;--ct-rl:20px;--ct-rxl:20px;--ct-rxxl:24px;
+}
+.ct-art .ct-wrap{max-width:1208px;padding-inline:24px}
+.ct-art .ct-hero-form{background:#effaf7;padding:56px 0 96px}
+.ct-art .ct-hero-form::before{display:none}
+.ct-art .ct-hero-form-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px;align-items:start}
+.ct-art .ct-h1{font-size:clamp(38px,4.4vw,54px);line-height:1.04;letter-spacing:-.035em;margin-bottom:20px}
+.ct-art .ct-h1-accent{color:#06745f}
+.ct-art .ct-lead{font-size:18px;line-height:1.65;max-width:56ch}
+.ct-art .ct-eyebrow{color:#06745f;letter-spacing:.04em}
+.ct-art .ct-eyebrow::before,.ct-art .ct-final-eyebrow::before{display:none}
+.ct-art .ct-hero-copy>.ct-eyebrow{align-self:flex-start;border:1px solid #c7e6dd;border-radius:999px;background:#fff;padding:7px 14px;font-size:14px;letter-spacing:0;text-transform:none;margin-bottom:24px}
+.ct-art .ct-hero-copy>.ct-eyebrow::before{display:block;width:8px;height:8px;border-radius:50%;background:#0bb39c}
+.ct-art .ct-hero-steps{margin:24px 0 30px;padding:0;list-style:none;display:grid;gap:18px}
+.ct-art .ct-hero-steps li{display:flex;gap:14px;align-items:flex-start}
+.ct-art .ct-hero-steps .ct-hero-step-num{flex:0 0 36px;height:36px;display:grid;place-items:center;border-radius:50%;background:#dff5ef;color:#06745f;font-weight:800}
+.ct-art .ct-hero-steps strong{display:block;font-size:17px;line-height:1.35;margin-bottom:4px}
+.ct-art .ct-hero-steps p{margin:0;font-size:15px;color:#3a3d44}
+.ct-art .ct-proof-grid{gap:10px}
+.ct-art .ct-proof-cell{background:transparent;border:0;border-top:1px solid #c7e6dd;border-radius:0;padding:12px 0}
+.ct-art .ct-proof-cell strong{color:#06745f}
+.ct-art .ct-contact-person{display:flex;gap:14px;align-items:center;margin:28px 0 0;padding:20px 0 0;border-top:1px solid #c7e6dd}
+.ct-art .ct-person-avatar{width:48px;height:48px;display:grid;place-items:center;border-radius:50%;background:#dff5ef;color:#06745f;font-family:var(--ct-fd);font-weight:800;flex:0 0 48px}
+.ct-art .ct-contact-person strong{display:block}
+.ct-art .ct-contact-person small{display:block;color:#5f636b}
+.ct-art .ct-contact-person a{display:inline-flex;align-items:center;min-height:44px;color:#06745f;font-weight:700;margin-left:auto;white-space:nowrap}
+.ct-art .ct-channels-section{padding:64px 0 32px;background:#fff}
+.ct-art .ct-channels{grid-template-columns:repeat(3,minmax(0,1fr));margin:0;padding:0;border:0;gap:16px}
+.ct-art a.ct-channel-link{border-radius:20px;padding:22px;min-height:96px;gap:14px;font-size:16px;min-width:0;overflow-wrap:anywhere}
+.ct-art a.ct-channel-link strong{font-size:13px;letter-spacing:0;text-transform:none;color:#5f636b}
+.ct-art .ct-channel-icon{display:grid;place-items:center;flex:0 0 44px;height:44px;border-radius:12px;background:#dff5ef;color:#06745f}
+.ct-art .ct-channel-link:hover{border-color:#06745f;color:#06745f}
+.ct-art .ct-agenda{padding:64px 0 96px}
+.ct-art .ct-agenda-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px}
+.ct-art .ct-agenda-card{display:flex;align-items:flex-start;gap:12px}
+.ct-art .ct-agenda-card h3{font-family:var(--ct-fd);font-size:19px;line-height:1.25;margin:0 0 8px}
+.ct-art .ct-agenda-card p{margin:0;color:#3a3d44;font-size:15px}
+.ct-art .ct-form-card{height:auto;border-radius:24px;padding:32px;box-shadow:0 24px 48px rgba(15,17,21,.08);min-width:0}
+.ct-art .ct-form-head h2{font-size:24px;line-height:1.15}
+.ct-art .ct-form-card .ups-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),.ct-art .ct-form-card .ups-form select,.ct-art .ct-form-card .ups-form textarea{min-height:48px;border-color:#d8dde3;border-radius:12px;font-size:16px}
+.ct-art .ct-form-card .ups-form textarea{min-height:110px}
+.ct-art .ct-form-card .ups-form__submit,.ct-art .ct-form-card button[type="submit"]{min-height:54px;background:#06745f;color:#fff;font-size:16px}
+.ct-art .ct-form-card .ups-form__submit:hover,.ct-art .ct-form-card button[type="submit"]:hover{background:#055e4d;transform:none}
+.ct-art .ct-form-card .ups-form__consent{font-size:13px}
+.ct-art .ct-form-card .ups-form__consent a{text-decoration:underline;text-underline-offset:2px}
+.ct-art .ct-form-card .ups-form__consent input[type="checkbox"]{accent-color:#06745f}
+.ct-art .ct-section-head h2{font-size:clamp(30px,3.4vw,42px);line-height:1.08}
+.ct-art .ct-section-head{margin-bottom:40px}
+.ct-art .ct-topic-card,.ct-art .ct-step-card,.ct-art .ct-testimonial{padding:24px;border-radius:20px;box-shadow:none}
+.ct-art .ct-topic-card:hover{border-color:#c7e6dd;box-shadow:0 12px 28px rgba(15,17,21,.06);transform:translateY(-2px)}
+.ct-art .ct-topic-symptom{color:#b54708;background:#fff4e5;border-radius:999px;padding:6px 12px;align-self:flex-start;letter-spacing:0}
+.ct-art .ct-topic-link{min-height:44px}
+.ct-art .ct-opinions{padding:96px 0;background:#fff}
+.ct-art .ct-step-num,.ct-art .ct-step-timing{color:#06745f}
+.ct-art .ct-faq{background:#f5f6f8}
+.ct-art .ct-faq>.ct-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.65fr);gap:24px 56px;align-items:start}
+.ct-art .ct-faq .ct-section-head{margin:0}
+.ct-art .ct-faq-grid{max-width:none;gap:0}
+.ct-art .ct-faq-item{border:0;border-bottom:1px solid #d8dde3;border-radius:0;background:transparent}
+.ct-art .ct-faq-item:first-child{border-top:1px solid #d8dde3}
+.ct-art .ct-faq-item summary{padding:20px 4px;min-height:48px}
+.ct-art .ct-faq-item p{padding:0 4px 20px}
+.ct-art .ct-faq-icon{background:#dff5ef;color:#06745f}
+.ct-art .ct-faq-help{margin-top:24px;background:#effaf7;border-radius:20px;padding:24px}
+.ct-art .ct-faq-help strong{display:block;color:#0f1115;font-size:17px}
+.ct-art .ct-faq-help p{font-size:15px;margin:8px 0}
+.ct-art .ct-faq-help a{display:inline-flex;align-items:center;min-height:44px;color:#06745f;font-weight:700}
+.ct-art .ct-faq-cta-row{grid-column:1/-1;margin-top:0}
+.ct-art .ct-final-box{background:#effaf7;border:1px solid #c7e6dd;box-shadow:none}
+.ct-art .ct-final-box::before{display:none}
+.ct-art a.ct-final-btn{background:#06745f;color:#fff;min-height:48px}
+.ct-art a.ct-final-btn:hover{background:#055e4d;transform:none}
+.ct-art :is(a,button,input,select,textarea,summary):focus-visible{outline:3px solid #06745f;outline-offset:3px}
+.ct-art .ct-form-card .ups-form :is(input,select,textarea):focus{border-color:#06745f}
+.ct-art [data-animate]{opacity:1;transform:none}
+@media(max-width:980px){
+  .ct-art .ct-hero-form-grid,.ct-art .ct-faq>.ct-wrap{grid-template-columns:minmax(0,1fr);gap:32px}
+  .ct-art .ct-agenda-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ct-art .ct-channels{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:720px){
+  .ct-art .ct-wrap{padding-inline:20px}
+  .ct-art .ct-hero-form{padding:48px 0 64px}
+  .ct-art .ct-h1{font-size:clamp(32px,8.5vw,40px)}
+  .ct-art .ct-section-head h2{font-size:clamp(28px,7vw,34px)}
+  .ct-art .ct-opinions,.ct-art .ct-agenda{padding:64px 0}
+  .ct-art .ct-channels-section{padding:48px 0 0}
+  .ct-art .ct-channels,.ct-art .ct-agenda-grid{grid-template-columns:minmax(0,1fr)}
+  .ct-art .ct-form-card{padding:24px}
+  .ct-art .ct-contact-person{flex-wrap:wrap}
+  .ct-art .ct-contact-person a{margin-left:0}
+  .ct-art .ct-final-side a{overflow-wrap:anywhere}
+}
+@media(prefers-reduced-motion:reduce){.ct-art *, .ct-art *::before,.ct-art *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
 </style>
 
 <main class="ct-art" id="kontakt">
@@ -593,6 +691,12 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
                     Jeśli pasujemy — zadzwonimy. Jeśli nie — powiem wprost po 5 minutach.
                 </p>
 
+                <ol class="ct-hero-steps">
+                    <li><span class="ct-hero-step-num" aria-hidden="true">1</span><div><strong>Wysyłasz formularz</strong><p>Zajmie Ci to około 2 minut.</p></div></li>
+                    <li><span class="ct-hero-step-num" aria-hidden="true">2</span><div><strong>Oddzwaniam w 24h roboczych</strong><p>Wcześniej zaglądam na Twoją stronę, sklep i reklamy.</p></div></li>
+                    <li><span class="ct-hero-step-num" aria-hidden="true">3</span><div><strong>Dostajesz konkretną listę</strong><p>3–5 rzeczy do poprawy — możesz je wdrożyć sam, nawet bez współpracy.</p></div></li>
+                </ol>
+
                 <div class="ct-proof-grid">
                     <div class="ct-proof-cell">
                         <strong>30 min</strong>
@@ -612,17 +716,12 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
                     </div>
                 </div>
 
-                <div class="ct-channels">
-                    <a href="tel:<?php echo esc_attr($contact_phone_href); ?>" class="ct-channel-link">
-                        <?php echo esc_html($contact_phone); ?>
-                    </a>
-                    <a href="mailto:<?php echo esc_attr($contact_email); ?>" class="ct-channel-link">
-                        <?php echo esc_html($contact_email); ?>
-                    </a>
-                    <a href="<?php echo esc_url($linkedin_url); ?>" target="_blank" rel="noopener noreferrer" class="ct-channel-link">
-                        LinkedIn
-                    </a>
+                <div class="ct-contact-person">
+                    <span class="ct-person-avatar" aria-hidden="true">SK</span>
+                    <div><strong>Sebastian Kelm</strong><small>Odbieram osobiście · pn–pt 9–17</small></div>
+                    <a href="tel:<?php echo esc_attr($contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
                 </div>
+
             </div>
 
             <aside class="ct-form-card" aria-labelledby="form-heading" data-animate="fade-left" data-delay="1">
@@ -652,6 +751,38 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
     </div>
 </section>
 
+
+
+<section class="ct-channels-section" aria-label="Kanały kontaktu">
+    <div class="ct-wrap">
+        <div class="ct-channels">
+                    <a href="tel:<?php echo esc_attr($contact_phone_href); ?>" class="ct-channel-link">
+                        <span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-2 2a10 10 0 0 0 4 4l2-2 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span><span><strong>Telefon · pn–pt 9–17</strong><?php echo esc_html($contact_phone); ?></span>
+                    </a>
+                    <a href="mailto:<?php echo esc_attr($contact_email); ?>" class="ct-channel-link">
+                        <span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span><span><strong>E-mail</strong><?php echo esc_html($contact_email); ?></span>
+                    </a>
+                    <a href="<?php echo esc_url($linkedin_url); ?>" target="_blank" rel="noopener noreferrer" class="ct-channel-link">
+                        <span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10v6M8 7v1M12 16v-6m0 2c0-3 4-3 4 0v4"/></svg></span><span><strong>LinkedIn</strong>Sebastian Kelm</span>
+                    </a>
+                </div>
+    </div>
+</section>
+
+<section class="ct-agenda" id="co-omowimy" aria-labelledby="ct-agenda-heading">
+    <div class="ct-wrap">
+        <div class="ct-section-head">
+            <span class="ct-eyebrow">Na rozmowie</span>
+            <h2 id="ct-agenda-heading">Co konkretnie omówimy</h2>
+        </div>
+        <div class="ct-agenda-grid">
+            <article class="ct-agenda-card"><span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg></span><div><h3>Gdzie uciekają klienci</h3><p>Co na stronie, w sklepie lub reklamach zniechęca do zakupu.</p></div></article>
+            <article class="ct-agenda-card"><span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v14H4zM4 9h16M9 9v10"/></svg></span><div><h3>Który kanał wybrać</h3><p>Google, Facebook i Instagram czy najpierw strona — co da najwięcej u Ciebie.</p></div></article>
+            <article class="ct-agenda-card"><span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 15l4-4 4 3 5-7"/></svg></span><div><h3>Rozsądny budżet na start</h3><p>Ile wydać, żeby reklama miała szansę się zwrócić.</p></div></article>
+            <article class="ct-agenda-card"><span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4 10-10"/></svg></span><div><h3>Co zrobić samemu</h3><p>Co poprawisz sam od ręki, a co lepiej zlecić.</p></div></article>
+        </div>
+    </div>
+</section>
 
 <!-- ====================================================================
      SEKCJA 02 — O CO ZAPYTAC (6 kart)
@@ -851,6 +982,11 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
             <span class="ct-eyebrow">Zanim wyślesz formularz</span>
             <h2>Odpowiedzi na najczęstsze pytania</h2>
             <p>Jeśli nie znajdziesz odpowiedzi — napisz, a odpowiem bezpośrednio.</p>
+            <div class="ct-faq-help">
+                <strong>Nie ma tu Twojego pytania?</strong>
+                <p>Zadzwoń — odbieram osobiście, pn–pt 9–17.</p>
+                <a href="tel:<?php echo esc_attr($contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
+            </div>
         </div>
 
         <div class="ct-faq-grid">
@@ -907,7 +1043,7 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
             <aside class="ct-final-side">
                 <div>
                     <strong>Albo bezpośrednio</strong>
-                    <a href="tel:<?php echo esc_attr(str_replace([' ','-','+'], '', $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a>
+                    <a href="tel:<?php echo esc_attr($contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
                 </div>
                 <div>
                     <strong>E-mailem</strong>
@@ -1012,18 +1148,7 @@ echo wp_json_encode([
         }
     }
 
-    /* --- Smooth scroll dla kotwic --- */
-    document.querySelectorAll('a[href^="#"]').forEach(function(link) {
-        link.addEventListener('click', function(e) {
-            var href = link.getAttribute('href');
-            if (href.length < 2) return;
-            var target = document.querySelector(href);
-            if (target) {
-                e.preventDefault();
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        });
-    });
+    // Anchor scrolling is handled by the shared theme script; avoid duplicate listeners.
 
 })();
 </script>

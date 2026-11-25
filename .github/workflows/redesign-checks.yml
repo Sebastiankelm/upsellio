@@ -1,0 +1,156 @@
+name: Redesign static checks
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch test revision without submodule traversal
+        env:
+          CHECKOUT_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          git init -q
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          auth=$(printf 'x-access-token:%s' "$CHECKOUT_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git -c "http.extraHeader=Authorization: Basic $auth" fetch --depth=1 --no-tags --no-recurse-submodules origin "$GITHUB_SHA"
+          unset auth CHECKOUT_TOKEN
+          git -c submodule.recurse=false checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Check PHP syntax
+        run: |
+          php -v
+          for file in front-page.php functions.php header.php footer.php home.php single.php ups-blog-core.php page-kontakt.php page-marketing-google-ads.php page-marketing-meta-ads.php page-tworzenie-stron-internetowych.php inc/form-component.php inc/server-side-tracking.php inc/seo-indexing-fixes.php inc/technical-seo.php; do
+            php -l "wp-content/themes/upsellio/$file" || exit 1
+          done
+      - name: Check shared JavaScript
+        run: node --check wp-content/themes/upsellio/assets/js/upsellio.js
+      - name: Check redesign regression contracts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root = Path("wp-content/themes/upsellio")
+          for name, origins in {
+              "front-page.php": ("home-hero-form", "home-contact-form"),
+              "page-kontakt.php": ("contact-page-form",),
+              "single.php": ("single-post-contact-form",),
+          }.items():
+              text = (root / name).read_text()
+              for origin in origins:
+                  assert re.search(r'"origin"\s*=>\s*"' + origin + '"', text), (name, origin)
+              assert not re.search(r'\.ups-form__row-2[^{}]*nth-child\(2\)\s*\{[^}]*display\s*:\s*none', text), name
+          form = (root / "inc/form-component.php").read_text()
+          for marker in ['name="lead_phone"', 'name="lead_email"', 'name="lead_consent"', 'value="upsellio_submit_lead"', 'upsellio_lead_form_nonce']:
+              assert marker in form, marker
+          for name in ("page-marketing-google-ads.php", "page-marketing-meta-ads.php", "page-tworzenie-stron-internetowych.php", "page-kontakt.php", "ups-blog-core.php"):
+              text = (root / name).read_text()
+              ids = set(re.findall(r'\bid="([a-zA-Z0-9_-]+)"', text))
+              anchors = set(re.findall(r'href="#([a-zA-Z0-9_-]+)"', text))
+              assert anchors <= ids, (name, anchors - ids)
+          assert 'wp_footer();' in (root / "footer.php").read_text()
+          assert 'value="upsellio_lead_form_submit"' not in (root / "ups-blog-core.php").read_text()
+          js = (root / "assets/js/upsellio.js").read_text()
+          assert js.index("ensureLeadEventId(serverForm, true)") < js.index("let response = await fetch(resolveFormActionUrl(serverForm)")
+          assert 'url.searchParams.get("ups_lead_status") === "success"' in js
+          assert "if (!isConfirmedLeadSuccess(response) || reason)" in js
+          assert "serverForm.submit();" not in js
+          assert "event:'lead_form_submit'" not in (root / "front-page.php").read_text()
+          tracking = (root / "inc/server-side-tracking.php").read_text()
+          assert '$allowStatistics && $gaApiSecret' in tracking
+          assert '$allowMarketing && $metaToken' in tracking
+          print("Static regression contracts passed.")
+          PY
+
+      - name: Test filtered blog robots policies
+        run: |
+          php <<'PHP'
+          <?php
+          define("ABSPATH", __DIR__);
+          function add_action(...$args) {}
+          function add_filter(...$args) {}
+          function is_home() { return $GLOBALS["test_home"]; }
+          function is_page_template($template) { return $GLOBALS["test_template"] === $template; }
+          require "wp-content/themes/upsellio/inc/seo-indexing-fixes.php";
+          function check($ok, $message) {
+              if (!$ok) { fwrite(STDERR, $message . PHP_EOL); exit(1); }
+          }
+          $contexts = [
+              [true, ""],
+              [false, "ups-blog-core.php"],
+              [false, "template-blog-v4.php"],
+              [false, "template-blog-v4-alt.php"],
+              [false, "page-kontakt.php"],
+          ];
+          foreach ($contexts as [$home, $template]) {
+              $GLOBALS["test_home"] = $home;
+              $GLOBALS["test_template"] = $template;
+              foreach ([[], ["paged" => "2"], ["blog_search" => "ads"], ["s" => "ads"], ["category" => "meta-ads"], ["tags" => "ga4"], ["tag" => "ga4"]] as $query) {
+                  $_GET = $query;
+                  $expected = ($home || $template !== "page-kontakt.php") && count(array_diff(array_keys($query), ["paged"])) > 0;
+                  $wp = upsellio_seo_indexing_override_robots_meta_for_blog_filters(["max-image-preview" => "large"]);
+                  $rm = upsellio_seo_indexing_rank_math_robots_for_blog_filters(["index" => "index", "follow" => "follow"]);
+                  check(($wp["noindex"] ?? false) === $expected, "WordPress robots context mismatch");
+                  check(($rm["index"] === "noindex") === $expected, "Rank Math robots context mismatch");
+                  check($wp["max-image-preview"] === "large", "Lost unrelated robots directive");
+              }
+          }
+          $GLOBALS["test_home"] = true;
+          $_GET = ["blog_search" => "ads"];
+          $wp = upsellio_seo_indexing_override_robots_meta_for_blog_filters(["noindex" => true, "nofollow" => true]);
+          $rm = upsellio_seo_indexing_rank_math_robots_for_blog_filters(["index" => "noindex", "follow" => "nofollow"]);
+          check(!isset($wp["follow"]) && $wp["nofollow"], "WordPress global nofollow overridden");
+          check($rm["follow"] === "nofollow", "Rank Math global nofollow overridden");
+          echo "Filtered blog robots cases passed." . PHP_EOL;
+          PHP
+
+      - name: Test server-side conversion consent and event identity
+        run: |
+          php <<'PHP'
+          <?php
+          define("ABSPATH", __DIR__);
+          define("UPSELLIO_GA4_API_SECRET", "fixture-secret");
+          define("UPSELLIO_GA4_MEASUREMENT_ID", "G-FIXTURE");
+          define("UPSELLIO_META_CAPI_TOKEN", "fixture-token");
+          define("UPSELLIO_META_PIXEL_ID", "fixture-pixel");
+          function wp_unslash($value) { return stripslashes($value); }
+          function sanitize_text_field($value) { return trim(strip_tags($value)); }
+          function wp_generate_uuid4() { return "fixture-fallback-uuid"; }
+          function add_query_arg($args, $url) { return $url . "?" . http_build_query($args); }
+          function home_url($path) { return "https://fixture.test" . $path; }
+          function wp_json_encode($value) { return json_encode($value); }
+          function wp_remote_post($url, $options) {
+              $GLOBALS["requests"][] = [parse_url($url, PHP_URL_HOST), json_decode($options["body"], true)];
+          }
+          function check($ok, $message) {
+              if (!$ok) { fwrite(STDERR, $message . PHP_EOL); exit(1); }
+          }
+          require "wp-content/themes/upsellio/inc/server-side-tracking.php";
+          $cases = [
+              [null, []],
+              ["invalid", []],
+              ["{statistics:false,marketing:false}", []],
+              ["{statistics:true,marketing:false}", ["www.google-analytics.com"]],
+              ["{statistics:false,marketing:true}", ["graph.facebook.com"]],
+              ["{statistics:true,marketing:true}", ["www.google-analytics.com", "graph.facebook.com"]],
+              [rawurlencode('{"statistics":true,"marketing":false}'), ["www.google-analytics.com"]],
+              ["{statistics:nottrue,marketing:trueish}", []],
+          ];
+          foreach ($cases as [$cookie, $expected]) {
+              $_COOKIE = $cookie === null ? [] : ["CookieConsent" => $cookie];
+              $GLOBALS["requests"] = [];
+              upsellio_server_send_lead_conversion(1, ["event_id"=>"fixture-event", "form_origin"=>"contact-page-form", "landing_url"=>"https://fixture.test/kontakt/"]);
+              check(array_column($GLOBALS["requests"], 0) === $expected, "Unexpected analytics destinations");
+              foreach ($GLOBALS["requests"] as [$host, $payload]) {
+                  $event = $host === "graph.facebook.com" ? $payload["data"][0] : $payload["events"][0]["params"];
+                  check($event["event_id"] === "fixture-event", "Event ID mismatch");
+              }
+          }
+          echo "Eight consent scenarios and shared event ID passed (mock transport)." . PHP_EOL;
+          PHP

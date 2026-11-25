@@ -640,9 +640,61 @@ add_action("wp_head", "upsellio_print_blog_page_breadcrumb_schema", 9);
 /**
  * Canonical gdy Rank Math / Yoast nie dodają znacznika.
  */
+/**
+ * Single canonical owner for redesigned public pages. Preserve their established URLs
+ * and defer to the SEO plugin when one is active.
+ */
+function upsellio_redesign_canonical_url(): ?string
+{
+    if (function_exists("upsellio_is_homepage_request") && upsellio_is_homepage_request()) {
+        return home_url("/");
+    }
+    $service_templates = [
+        "page-marketing-google-ads.php" => "upsellio_get_google_ads_page_url",
+        "page-marketing-meta-ads.php" => "upsellio_get_meta_ads_page_url",
+        "page-tworzenie-stron-internetowych.php" => "upsellio_get_websites_page_url",
+    ];
+    foreach ($service_templates as $template => $resolver) {
+        if (is_page_template($template)) {
+            $url = function_exists($resolver) ? (string) $resolver() : "";
+            return $url !== "" ? $url : (string) get_permalink();
+        }
+    }
+    if (function_exists("upsellio_is_contact_page_context") && upsellio_is_contact_page_context()) {
+        return (string) upsellio_get_contact_page_url();
+    }
+    if (is_home()) {
+        $url = (string) upsellio_get_blog_index_url();
+        if ($url === "") {
+            $url = (string) get_post_type_archive_link("post");
+        }
+        $paged = max(1, (int) get_query_var("paged"), (int) get_query_var("page"));
+        return $paged > 1 && $url !== "" ? add_query_arg("paged", $paged, $url) : $url;
+    }
+    if (is_page_template("ups-blog-core.php") || is_page_template("template-blog-v4.php") || is_page_template("template-blog-v4-alt.php")) {
+        return (string) get_permalink();
+    }
+    if (is_singular("post")) {
+        return (string) wp_get_canonical_url(get_queried_object_id());
+    }
+    return null;
+}
+
 function upsellio_canonical_fallback(): void
 {
     if (is_admin()) {
+        return;
+    }
+    $redesign_url = upsellio_redesign_canonical_url();
+    if ($redesign_url !== null) {
+        // Only the plugin or this fallback owns canonical on these routes.
+        remove_action("wp_head", "rel_canonical");
+        if (upsellio_is_seo_plugin_managing_frontend_meta()) {
+            return;
+        }
+        if ($redesign_url !== "") {
+            echo '<link rel="canonical" href="' . esc_url($redesign_url) . '">' . "\n";
+        }
         return;
     }
     if (defined("WPSEO_VERSION") || defined("RANK_MATH_VERSION")) {
@@ -668,3 +720,68 @@ function upsellio_canonical_fallback(): void
 }
 
 add_action("wp_head", "upsellio_canonical_fallback", 1);
+
+/**
+ * Plugin installation/activation alone is not proof its frontend head ran.
+ * Fall back only when neither supported SEO plugin executed its head hook,
+ * and preserve explicit noindex and custom canonical settings.
+ */
+function upsellio_redesign_canonical_if_plugin_head_missing(): void
+{
+    if (is_admin() || !upsellio_is_seo_plugin_managing_frontend_meta() ||
+        did_action("rank_math/head") || did_action("wpseo_head") ||
+        !(int) get_option("blog_public") ||
+        (function_exists("upsellio_seo_indexing_is_filtered_blog") && upsellio_seo_indexing_is_filtered_blog())) {
+        return;
+    }
+    $url = upsellio_redesign_canonical_url();
+    if ($url === null || $url === "") {
+        return;
+    }
+    $robots = apply_filters("wp_robots", []);
+    if (!empty($robots["noindex"])) {
+        return;
+    }
+    $post_id = get_queried_object_id();
+    if (defined("RANK_MATH_VERSION")) {
+        $settings = get_option("rank-math-options-titles", []);
+        $global_robots = (array) ($settings["robots_global"] ?? []);
+        $post_robots = $post_id ? (array) get_post_meta($post_id, "rank_math_robots", true) : [];
+        if (in_array("noindex", $global_robots, true) || in_array("noindex", $post_robots, true)) {
+            return;
+        }
+        $custom = $post_id ? (string) get_post_meta($post_id, "rank_math_canonical_url", true) : "";
+        if ($custom !== "") {
+            $url = $custom;
+        }
+    }
+    if (defined("WPSEO_VERSION")) {
+        // Leave Yoast-specific policy to Yoast rather than infer its settings.
+        return;
+    }
+    echo '<link rel="canonical" href="' . esc_url($url) . '">' . "\n";
+}
+add_action("wp_head", "upsellio_redesign_canonical_if_plugin_head_missing", 9999);
+
+
+/**
+ * The root marketing template is intentionally forced by routing, which may leave
+ * is_home() true. Correct only the specific mistaken posts-page canonical.
+ * Preserve intentional plugin canonical overrides and disabled canonical output.
+ */
+function upsellio_correct_root_blog_canonical($canonical)
+{
+    if (!is_string($canonical) || $canonical === "" ||
+        !function_exists("upsellio_is_homepage_request") || !upsellio_is_homepage_request() ||
+        !function_exists("upsellio_get_blog_index_url")) {
+        return $canonical;
+    }
+    $blog_url = (string) upsellio_get_blog_index_url();
+    if ($blog_url !== "" && untrailingslashit($canonical) === untrailingslashit($blog_url)) {
+        return home_url("/");
+    }
+    return $canonical;
+}
+add_filter("rank_math/frontend/canonical", "upsellio_correct_root_blog_canonical", 99);
+add_filter("wpseo_canonical", "upsellio_correct_root_blog_canonical", 99);
+

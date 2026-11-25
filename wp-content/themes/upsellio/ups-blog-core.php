@@ -35,6 +35,8 @@ $paged              = max(
     isset($_GET["paged"]) ? (int) $_GET["paged"] : 1
 );
 
+$blog_search = isset($_GET["blog_search"]) && is_string($_GET["blog_search"]) ? sanitize_text_field(wp_unslash($_GET["blog_search"])) : "";
+
 $query_args = [
     "post_type"      => "post",
     "post_status"    => "publish",
@@ -45,6 +47,9 @@ if ($selected_category !== "") {
     $query_args["category_name"] = $selected_category;
 }
 
+if ($blog_search !== "") {
+    $query_args["s"] = $blog_search;
+}
 $blog_query = new WP_Query($query_args);
 $categories = get_categories(["hide_empty" => true]);
 
@@ -53,7 +58,6 @@ $categories = get_categories(["hide_empty" => true]);
    ============================================================ */
 $contact_url   = function_exists("upsellio_get_contact_page_url")  ? upsellio_get_contact_page_url()  : home_url("/kontakt/");
 $lead_mag_url  = home_url("/lead-magnety/");
-$admin_post    = admin_url("admin-post.php");
 $upsellio_blog_variant = isset($upsellio_blog_variant) ? (string) $upsellio_blog_variant : "default";
 
 get_header();
@@ -273,6 +277,54 @@ a.bg-final-btn,.bg-art a.bg-final-btn{color:#fff}
 </style>
 <?php endif; ?>
 
+<style>
+/* Redesign — blog listing; keep WP_Query, actual posts and original SEO copy. */
+.bg-art{--bg-bg:#fff;--bg-soft:#f5f6f8;--bg-muted:#5f636b;--bg-faint:#5f636b;--bg-border:#e3e6ea;--bg-line:#e3e6ea;--bg-tealh:#06745f;--bg-teals:#dff5ef;--bg-tealss:#effaf7;--bg-tealb:#c7e6dd;--bg-r:12px;--bg-rl:20px;--bg-rxl:24px;background:#fff}
+.bg-art .bg-wrap{max-width:1208px;padding-inline:24px}
+.bg-art .bg-hero{padding:64px 0;background:#effaf7}
+.bg-art .bg-hero::before,.bg-art .bg-eyebrow::before,.bg-art .bg-final-eyebrow::before{display:none}
+.bg-art .bg-hero-inner{grid-template-columns:minmax(0,1fr);gap:24px;align-items:start;max-width:800px;margin:auto;text-align:center}
+.bg-art .bg-hero h1{font-size:clamp(38px,5vw,62px);line-height:1.05}
+.bg-art .bg-hero-lead{margin:auto;color:#3a3d44;max-width:62ch}
+.bg-art .bg-hero-cta{align-items:center;gap:16px}
+.bg-art .bg-search{width:min(100%,640px);display:flex;gap:8px;margin:0 auto;text-align:left}
+.bg-art .bg-search input{flex:1;min-width:0;min-height:48px;border:1px solid #d8dde3;border-radius:12px;background:#fff;color:#0f1115;padding:12px 16px;font:inherit;font-size:16px}
+.bg-art .bg-search button{background:#06745f;color:#fff;border:0;border-radius:999px;min-height:48px;padding:0 22px;font:inherit;font-weight:700;cursor:pointer}
+.bg-art .bg-hero-btn,.bg-art .bg-final-btn,.bg-art .bg-cta-strip-btn,.bg-art .bg-newsletter-form button{background:#06745f;color:#fff;min-height:44px;display:inline-flex;align-items:center}
+.bg-art :is(.bg-hero-btn,.bg-final-btn,.bg-cta-strip-btn,.bg-search button,.bg-newsletter-form button):hover{background:#055e4d;color:#fff}
+.bg-art .bg-newsletter{max-width:520px;width:100%;min-width:0;margin:auto;text-align:left;border-radius:20px;padding:24px}
+.bg-art .bg-newsletter-form input{min-height:48px;min-width:0;font-size:16px}
+.bg-art .bg-newsletter-form button{min-height:48px}
+.bg-art .bg-filter-bar{background:#fff;padding:20px 0}
+.bg-art .bg-filter{display:inline-flex;align-items:center;min-height:44px;font-size:14px}
+.bg-art .bg-filter.is-active,.bg-art .bg-pager .is-current{background:#06745f;color:#fff;border-color:#06745f}
+.bg-art .bg-featured-wrap{padding:40px 0 0}
+.bg-art .bg-featured{box-shadow:none;border-radius:24px;grid-template-columns:1fr 1fr}
+.bg-art .bg-feat-thumb{min-height:320px;background:#dff5ef}
+.bg-art .bg-feat-body{padding:36px}
+.bg-art .bg-feat-body h2{font-size:clamp(24px,3vw,34px)}
+.bg-art .bg-cat{color:#06745f}
+.bg-art .bg-card{border-radius:20px;box-shadow:none;min-width:0}
+.bg-art .bg-card:hover{border-color:#c7e6dd;box-shadow:0 12px 28px rgba(15,17,21,.06)}
+.bg-art .bg-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.bg-art .bg-card-thumb{aspect-ratio:16/9;background:#dff5ef}
+.bg-art .bg-card-body{padding:24px;gap:12px}
+.bg-art .bg-card-body h3{font-size:21px;line-height:1.25}
+.bg-art .bg-card-excerpt,.bg-art .bg-feat-excerpt{font-size:15px;color:#3a3d44}
+.bg-art .bg-card-foot-meta,.bg-art .bg-date{color:#5f636b}
+.bg-art .bg-card-link,.bg-art .bg-read-more{display:inline-flex;align-items:center;min-height:44px;color:#06745f}
+.bg-art .bg-author{background:#effaf7;border-color:#c7e6dd}
+.bg-art .bg-cta-strip,.bg-art .bg-final-card{background:#effaf7;border:1px solid #c7e6dd;border-radius:24px;box-shadow:none}
+.bg-art .bg-pager a,.bg-art .bg-pager span{min-width:44px;min-height:44px}
+.bg-art .bg-empty-state{padding:32px;border:1px solid #e3e6ea;background:#f5f6f8;border-radius:20px;margin:24px 0;color:#3a3d44}
+.bg-art .bg-empty-state a{color:#06745f;font-weight:700;text-decoration:underline}
+.bg-art :is(a,button,input):focus-visible{outline:3px solid #06745f;outline-offset:3px}
+.bg-art [data-animate]{opacity:1;transform:none}
+@media(max-width:980px){.bg-art .bg-featured{grid-template-columns:minmax(0,1fr)}.bg-art .bg-feat-thumb{min-height:0;aspect-ratio:16/9}.bg-art .bg-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.bg-art .bg-wrap{padding-inline:20px}.bg-art .bg-hero{padding:48px 0}.bg-art .bg-hero h1{font-size:clamp(32px,8.5vw,40px)}.bg-art .bg-grid{grid-template-columns:minmax(0,1fr)}.bg-art .bg-feat-body,.bg-art .bg-card-body{padding:24px}.bg-art .bg-final-side a{overflow-wrap:anywhere}}
+@media(max-width:420px){.bg-art .bg-search,.bg-art .bg-newsletter-form{flex-direction:column}}
+@media(prefers-reduced-motion:reduce){.bg-art *{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+</style>
 <main class="bg-art" id="blog">
 
   <!-- ============================================================
@@ -291,17 +343,17 @@ a.bg-final-btn,.bg-art a.bg-final-btn{color:#fff}
           </p>
         </div>
         <div class="bg-hero-cta">
+          <form class="bg-search" method="get" action="<?php echo esc_url($blog_index_url); ?>" role="search" aria-label="Szukaj w blogu">
+            <?php if ($selected_category !== "") : ?><input type="hidden" name="category" value="<?php echo esc_attr($selected_category); ?>"><?php endif; ?>
+            <input type="search" name="blog_search" aria-label="Szukaj artykułu" placeholder="Szukaj w blogu" value="<?php echo esc_attr($blog_search); ?>">
+            <button type="submit">Szukaj</button>
+          </form>
           <a href="<?php echo esc_url($contact_url); ?>" class="bg-hero-btn">
             Masz problem? Napisz →
           </a>
           <div class="bg-newsletter">
-            <p>Co 2 tygodnie: jeden praktyczny artykuł. Bez clickbaitu.</p>
-            <form method="post" action="<?php echo esc_url($admin_post); ?>" class="bg-newsletter-form">
-              <input type="hidden" name="action" value="upsellio_lead_form_submit">
-              <input type="hidden" name="lead_form_origin" value="blog-newsletter">
-              <input type="email" name="email" placeholder="twoj@email.pl" required>
-              <button type="submit">Subskrybuj →</button>
-            </form>
+            <p>Praktyczne artykuły o marketingu, reklamach i sprzedaży. Bez clickbaitu.</p>
+            <a class="bg-hero-btn" href="#wpisy-blogowe">Przejdź do artykułów →</a>
           </div>
         </div>
       </div>
@@ -317,12 +369,14 @@ a.bg-final-btn,.bg-art a.bg-final-btn{color:#fff}
       <div class="bg-filters">
         <a
           class="bg-filter <?php echo $selected_category === "" ? "is-active" : ""; ?>"
-          href="<?php echo esc_url($blog_index_url); ?>"
+          href="<?php echo esc_url($blog_search !== "" ? add_query_arg("blog_search", $blog_search, $blog_index_url) : $blog_index_url); ?>"
+          <?php echo $selected_category === "" ? 'aria-current="page"' : ""; ?>
         >Wszystkie</a>
         <?php foreach ($categories as $category) : ?>
           <a
             class="bg-filter <?php echo $selected_category === $category->slug ? "is-active" : ""; ?>"
-            href="<?php echo esc_url(add_query_arg("category", $category->slug, $blog_index_url)); ?>"
+            href="<?php echo esc_url(add_query_arg(array_filter(["category" => $category->slug, "blog_search" => $blog_search], static function ($value) { return $value !== ""; }), $blog_index_url)); ?>"
+            <?php echo $selected_category === $category->slug ? 'aria-current="page"' : ""; ?>
           ><?php echo esc_html($category->name); ?></a>
         <?php endforeach; ?>
       </div>
@@ -333,13 +387,17 @@ a.bg-final-btn,.bg-art a.bg-final-btn{color:#fff}
        SEKCJA 03 — WPISY BLOGA
        Układ: 1 featured (2-kol karta) + author bar + grid 3-kol
        ============================================================ -->
-  <section aria-label="Wpisy blogowe">
+  <section id="wpisy-blogowe" aria-label="Wpisy blogowe">
     <div class="bg-wrap">
 
       <?php
       $posts        = $blog_query->posts;
       $featured_post = !empty($posts) ? array_shift($posts) : null;
       ?>
+
+      <?php if (!$featured_post) : ?>
+        <p class="bg-empty-state" role="status">Nie znaleziono wpisów. <a href="<?php echo esc_url($blog_index_url); ?>">Zobacz wszystkie artykuły</a>.</p>
+      <?php endif; ?>
 
       <?php if ($featured_post) :
         $featured_id       = (int) $featured_post->ID;
@@ -511,8 +569,8 @@ a.bg-final-btn,.bg-art a.bg-final-btn{color:#fff}
       <?php if ($blog_max_pages > 1) : ?>
         <nav class="bg-pager" aria-label="Paginacja bloga">
           <?php
-          $prev_params = array_filter(["paged" => $paged - 1, "category" => $selected_category]);
-          $next_params = array_filter(["paged" => $paged + 1, "category" => $selected_category]);
+          $prev_params = array_filter(["paged" => $paged - 1, "category" => $selected_category, "blog_search" => $blog_search]);
+          $next_params = array_filter(["paged" => $paged + 1, "category" => $selected_category, "blog_search" => $blog_search]);
           ?>
           <?php if ($paged > 1) : ?>
             <a href="<?php echo esc_url(add_query_arg($prev_params, $blog_index_url)); ?>" aria-label="Poprzednia strona">← Poprzednia</a>
@@ -521,11 +579,11 @@ a.bg-final-btn,.bg-art a.bg-final-btn{color:#fff}
           <?php endif; ?>
 
           <?php for ($i = 1; $i <= $blog_max_pages; $i++) :
-            $page_params = array_filter(["paged" => $i > 1 ? $i : null, "category" => $selected_category]);
+            $page_params = array_filter(["paged" => $i > 1 ? $i : null, "category" => $selected_category, "blog_search" => $blog_search]);
             $page_url    = add_query_arg($page_params, $blog_index_url);
           ?>
             <?php if ($i === $paged) : ?>
-              <span class="is-current"><?php echo esc_html((string) $i); ?></span>
+              <span class="is-current" aria-current="page"><?php echo esc_html((string) $i); ?></span>
             <?php else : ?>
               <a href="<?php echo esc_url($page_url); ?>"><?php echo esc_html((string) $i); ?></a>
             <?php endif; ?>

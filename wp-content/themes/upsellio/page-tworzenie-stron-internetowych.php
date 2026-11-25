@@ -26,10 +26,15 @@ add_action("wp_head", static function () {
         echo '<meta name="twitter:image" content="' . esc_url($og_image) . '">' . "\n";
     }
     echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
-    echo '<link rel="canonical" href="' . esc_url($url) . '">' . "\n";
 }, 1);
 
 get_header();
+
+// The schema below runs outside the wp_head callback, so resolve its URL in template scope.
+$url = function_exists("upsellio_get_websites_page_url") ? (string) upsellio_get_websites_page_url() : "";
+if ($url === "") {
+    $url = (string) get_permalink();
+}
 
 $front_page_sections = function_exists("upsellio_get_front_page_content_config") ? upsellio_get_front_page_content_config() : [];
 $contact_phone = function_exists("upsellio_get_contact_phone")
@@ -282,6 +287,114 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
     .web-types,.web-dark-split { grid-template-columns:1.05fr .95fr; }
     .web-problem-card,.web-service-card,.web-element,.web-type-card,.web-step { padding:22px; }
   }
+  /* Redesign — website and shop service; keep legacy SEO content visible. */
+  .web-page{
+    --web-bg:#fff;--web-paper:#fff;--web-soft:#f5f6f8;--web-ink:#0f1115;
+    --web-text:#3a3d44;--web-muted:#5f636b;--web-border:#e3e6ea;
+    --web-green:#06745f;--web-green-dark:#055e4d;--web-green-soft:#effaf7;
+    --web-blue:#0f1115;--web-blue-soft:#dff5ef;--web-amber:#b54708;--web-dark:#0f1115;
+    --web-shadow:0 24px 48px rgba(15,17,21,.08);--web-shadow-soft:0 12px 28px rgba(15,17,21,.06);
+    font-family:"DM Sans",system-ui,sans-serif;line-height:1.65
+  }
+  .web-page *,.web-page *::before,.web-page *::after{box-sizing:border-box}
+  .web-page .web-wrap{width:min(1160px,calc(100% - 48px))}
+  .web-page .web-section{padding:96px 0;scroll-margin-top:16px}
+  .web-page :is(.web-h1,.web-h2,.web-h3){font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;letter-spacing:-.03em}
+  .web-page .web-h1{font-size:clamp(38px,4.6vw,58px);line-height:1.08}
+  .web-page .web-h2{font-size:clamp(30px,3.4vw,42px);line-height:1.12}
+  .web-page .web-h3{font-size:clamp(20px,2.3vw,28px);line-height:1.25;font-weight:700}
+  .web-page .web-lead{font-size:18px;line-height:1.65}
+  .web-page .web-copy p{font-size:16px;line-height:1.7}
+  .web-page .web-eyebrow{letter-spacing:.09em;margin-bottom:12px}
+  .web-page .web-eyebrow::before{display:none}
+  .web-page .web-hero{background:#effaf7;padding:56px 0 96px}
+  .web-page .web-hero::before,.web-page .web-hero::after{display:none}
+  .web-page .web-hero-grid{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:48px;align-items:start}
+  .web-page .web-blueprint{border-radius:24px;box-shadow:var(--web-shadow);min-width:0}
+  .web-page .web-browser{background:#f5f6f8}
+  .web-page .web-browser-url{height:auto;min-height:26px;text-align:center;padding:3px 8px;font-size:12px;color:#5f636b}
+  .web-page .web-wireframe{padding:20px}
+  .web-page .web-wire-hero{background:#effaf7;border:1px solid #c7e6dd;border-radius:16px;padding:20px}
+  .web-page .web-wire-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .web-page .web-wire-card{min-width:0;padding:10px;overflow-wrap:anywhere}
+  .web-page .web-shop-example{margin:0;border-bottom:1px solid #e3e6ea}
+  .web-page .web-shop-example figcaption{padding:10px 20px;color:#5f636b;font-size:12px}
+  .web-page .web-shop-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:16px;align-items:center;padding:24px 20px;background:#f5f6f8}
+  .web-page .web-shop-title{display:block;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(20px,2vw,28px);line-height:1.12;margin-bottom:10px}
+  .web-page .web-shop-grid p{font-size:13px;margin:0 0 14px}
+  .web-page .web-shop-fake-cta{display:inline-block;padding:9px 12px;border-radius:999px;background:#06745f;color:#fff;font-size:12px;font-weight:700}
+  .web-page .web-shop-visual{aspect-ratio:1;background:#dff5ef;border-radius:16px;display:grid;place-items:center}
+  .web-page .web-shop-visual svg{width:88%;height:88%}
+  .web-page .web-btn{min-height:48px;padding:10px 22px;line-height:1.35;text-align:center}
+  .web-page .web-btn-primary,.web-page .web-quick-cta{background:#06745f;color:#fff;box-shadow:none}
+  .web-page .web-btn-primary:hover,.web-page .web-quick-cta:hover{background:#055e4d;color:#fff}
+  .web-page .web-btn-secondary{background:transparent;border-color:#d8dde3}
+  .web-page .web-btn:hover{transform:none}
+  .web-page .web-quick{position:static;background:#fff;box-shadow:none;backdrop-filter:none}
+  .web-page .web-quick-inner{min-height:64px;padding:10px 0;gap:16px}
+  .web-page .web-quick-links a,.web-page .web-quick-cta{min-height:44px}
+  .web-page .web-quick-links a{background:#fff}
+  .web-page .web-quick-links a:is(:hover,.is-active){background:#effaf7;border-color:#c7e6dd}
+  .web-page #problemy,.web-page #elementy,.web-page #proces{background:#f5f6f8}
+  .web-page :is(.web-problem-card,.web-service-card,.web-element,.web-type-card,.web-type-feature,.web-compare-card,.web-step,.web-portfolio-card){background:#fff;padding:24px;border-radius:20px;box-shadow:none;min-width:0}
+  .web-page :is(.web-problem-card,.web-portfolio-card):hover{transform:translateY(-2px);box-shadow:var(--web-shadow-soft);border-color:#c7e6dd}
+  .web-page .web-problem-card.is-feature{grid-template-columns:minmax(0,1fr);gap:10px;border:1px solid var(--web-border)}
+  .web-page .web-problem-card.is-feature::before{background:#fff4e5;color:#b54708;letter-spacing:.05em;font-size:12px}
+  .web-page .web-problem-card strong,.web-page .web-type-card strong{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:20px;line-height:1.25}
+  .web-page .web-mid-note,.web-page .web-final{background:#effaf7;border:1px solid #c7e6dd;border-radius:24px;box-shadow:none}
+  .web-page .web-dark-split{background:transparent;color:#0f1115;box-shadow:none;padding:0;gap:40px}
+  .web-page .web-dark-split .web-h2,.web-page .web-fit-card strong{color:#0f1115}
+  .web-page .web-dark-split p,.web-page .web-dark-split .web-lead{color:#3a3d44}
+  .web-page .web-dark-split .web-eyebrow{color:#06745f}
+  .web-page .web-fit-card{background:#fff;border:1px solid #e3e6ea;border-radius:20px}
+  .web-page .web-type-feature{border-color:#e3e6ea}
+  .web-page .web-type-card-illo{width:60px;height:50px}
+  .web-page #realizacje{background:#0f1115;color:#fff}
+  .web-page #realizacje .web-eyebrow{color:#7fe3d2}
+  .web-page #realizacje .web-h2,.web-page #realizacje .web-portfolio-card strong{color:#fff}
+  .web-page #realizacje p{color:#c4c8ce}
+  .web-page #realizacje .web-portfolio-card{background:#1d2026;border-color:#343940}
+  .web-page .web-portfolio-thumb{aspect-ratio:16/10;min-height:0;background:#dff5ef}
+  .web-page .web-portfolio-thumb img{object-fit:cover}
+  .web-page #realizacje .web-btn-ghost{background:transparent;border-color:#7fe3d2;color:#7fe3d2}
+  .web-page .web-process{background:#f5f6f8}
+  .web-page .web-price-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:center}
+  .web-page .web-price-card{padding:32px;border-radius:24px;background:#effaf7;border:1px solid #c7e6dd}
+  .web-page .web-price-value{display:block;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(32px,4vw,48px);line-height:1.15;font-weight:800;margin-bottom:16px}
+  .web-page .web-price-value small{font-family:"DM Sans",system-ui,sans-serif;font-size:16px;font-weight:500}
+  .web-page .web-price-card .web-check-list{margin:20px 0 24px}
+  .web-page #faq>.web-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.65fr);gap:12px 56px;align-items:start}
+  .web-page #faq .web-eyebrow{grid-column:1/-1}
+  .web-page #faq .web-faq-grid{grid-column:2;grid-row:2/4;margin:0;max-width:none;gap:0}
+  .web-page #faq details{border:0;border-bottom:1px solid var(--web-border);border-radius:0;box-shadow:none;padding:0}
+  .web-page #faq details:first-child{border-top:1px solid var(--web-border)}
+  .web-page #faq summary{display:list-item;min-height:48px;padding:20px 4px;font-size:17px}
+  .web-page #faq details p{margin:0;padding:0 4px 20px}
+  .web-page .web-faq-help{grid-column:1;grid-row:3;align-self:start;padding:22px;background:#effaf7;border-radius:20px}
+  .web-page .web-faq-help a{display:inline-flex;min-height:44px;align-items:center;color:#06745f;font-weight:700}
+  .web-page .web-internal-links a{min-height:44px}
+  .web-page :is(a,button,summary):focus-visible{outline:3px solid #06745f;outline-offset:3px}
+  .web-page #realizacje a:focus-visible{outline-color:#7fe3d2}
+  @media(max-width:980px){
+    .web-page .web-hero-grid,.web-page .web-price-grid,.web-page .web-dark-split{grid-template-columns:minmax(0,1fr);gap:32px}
+    .web-page .web-blueprint{max-width:640px}
+    .web-page #faq>.web-wrap{display:flex;flex-direction:column;gap:18px}
+    .web-page #faq .web-faq-grid,.web-page .web-faq-help{width:100%}
+  }
+  @media(max-width:720px){
+    .web-page .web-wrap{width:calc(100% - 40px)}
+    .web-page .web-section{padding:64px 0}
+    .web-page .web-hero{padding:48px 0 64px}
+    .web-page .web-h1{font-size:clamp(32px,8.5vw,40px);overflow-wrap:anywhere}
+    .web-page .web-h2{font-size:clamp(28px,7vw,34px)}
+    .web-page :is(.web-problem-grid,.web-service-grid,.web-elements-group,.web-fit-grid,.web-process-grid,.web-portfolio-grid,.web-compare-grid){grid-template-columns:minmax(0,1fr)}
+    .web-page .web-problem-card.is-feature{grid-column:auto}
+    .web-page .web-quick-inner{width:100%;padding-inline:20px}
+    .web-page .web-price-card,.web-page .web-final{padding:24px}
+  }
+  @media(max-width:420px){.web-page .web-wire-grid,.web-page .web-shop-grid{grid-template-columns:minmax(0,1fr)}.web-page .web-shop-visual{max-width:180px}}
+  @media(prefers-reduced-motion:reduce){.web-page *, .web-page *::before,.web-page *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
 </style>
 
 <main class="web-page">
@@ -292,9 +405,11 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
         <a href="#problemy">Konwersja</a>
         <a href="#zakres">Zakres</a>
         <a href="#elementy">Elementy</a>
+        <a href="#dla-kogo">Dla kogo</a>
         <a href="#typy">Typy stron</a>
         <a href="#realizacje">Realizacje</a>
         <a href="#technologie">Technologie</a>
+        <a href="#cennik">Cennik</a>
         <a href="#proces">Proces</a>
         <a href="#faq">FAQ</a>
       </div>
@@ -316,6 +431,7 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
           <a href="#kontakt" class="web-btn web-btn-primary" data-cta="web-hero-analysis" data-cta-section="hero" data-cta-position="primary">Chcę bezpłatną analizę strony</a>
           <a href="#elementy" class="web-btn web-btn-secondary">Zobacz elementy skutecznej strony</a>
           <a href="#typy" class="web-btn web-btn-ghost">Strona czy landing page?</a>
+          <a href="#cennik" class="web-btn web-btn-secondary">Zobacz cennik</a>
         </div>
       </div>
 
@@ -324,6 +440,26 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
           <span class="web-browser-dots" aria-hidden="true"><span></span><span></span><span></span></span>
           <span class="web-browser-url" aria-hidden="true"></span>
         </div>
+        <figure class="web-shop-example" aria-label="Przykładowy projekt sklepu, nie jest to działający sklep">
+          <figcaption>twojsklep.pl · przykładowa makieta sklepu</figcaption>
+          <div class="web-shop-grid">
+            <div>
+              <strong class="web-shop-title">Ręcznie robione świece sojowe</strong>
+              <p>Naturalne zapachy, pakowane na prezent. Wysyłka w 24h.</p>
+              <span class="web-shop-fake-cta">Zobacz kolekcję</span>
+            </div>
+            <div class="web-shop-visual" aria-hidden="true">
+              <svg viewBox="0 0 180 180" fill="none" focusable="false">
+                <ellipse cx="90" cy="155" rx="64" ry="8" fill="#c7e6dd"/>
+                <rect x="50" y="55" width="80" height="95" rx="13" fill="#fff" stroke="#a8cfc4" stroke-width="2"/>
+                <ellipse cx="90" cy="55" rx="40" ry="11" fill="#effaf7" stroke="#a8cfc4" stroke-width="2"/>
+                <path d="M90 55V42" stroke="#3a3d44" stroke-width="2" stroke-linecap="round"/>
+                <rect x="63" y="83" width="54" height="40" rx="4" fill="#dff5ef"/>
+                <path d="M90 90v20m-9-10 9-10 9 10m-13 5 4-5 4 5" stroke="#06745f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </figure>
         <div class="web-wireframe">
           <div class="web-wire-hero">
             <strong>Hero, które mówi: dla kogo, co i dlaczego teraz.</strong>
@@ -632,6 +768,28 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
     </div>
   </section>
 
+
+  <section class="web-section" id="cennik" aria-labelledby="web-price-heading">
+    <div class="web-wrap web-price-grid">
+      <div>
+        <span class="web-eyebrow">Cennik</span>
+        <h2 class="web-h2" id="web-price-heading">Ile kosztuje strona lub sklep internetowy?</h2>
+        <div class="web-copy">
+          <p>Dokładna wycena po rozmowie o zakresie. Teksty, podstawowe SEO i panel do edycji są w cenie.</p>
+        </div>
+      </div>
+      <div class="web-price-card">
+        <strong class="web-price-value">od 4 000 zł <small>jednorazowo</small></strong>
+        <ul class="web-check-list">
+          <li>Teksty i projekt</li>
+          <li>Wersja na telefon i SEO</li>
+          <li>Szkolenie z edycji panelu</li>
+        </ul>
+        <a href="#kontakt" class="web-btn web-btn-primary" data-cta="web-price-analysis" data-cta-section="pricing" data-cta-position="primary">Zapytaj o wycenę</a>
+      </div>
+    </div>
+  </section>
+
   <section class="web-section web-process" id="proces">
     <div class="web-wrap">
       <span class="web-eyebrow">Proces współpracy</span>
@@ -680,6 +838,11 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
     <div class="web-wrap">
       <span class="web-eyebrow">FAQ</span>
       <h2 class="web-h2">Najczęstsze pytania przed zleceniem strony internetowej.</h2>
+      <div class="web-faq-help">
+        <strong>Nie ma tu Twojego pytania?</strong>
+        <p>Zadzwoń — odbieram osobiście, pn–pt 9–17.</p>
+        <a href="tel:<?php echo esc_attr(preg_replace('/\s+/', '', $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a>
+      </div>
       <div class="web-faq-grid">
         <?php foreach ($faq_items as $faq_item) : ?>
           <details>
@@ -779,10 +942,13 @@ if (function_exists("upsellio_render_service_schema")) {
     function setActiveQuickLink() {
       let current = "";
       sections.forEach((section) => {
-        if (window.scrollY >= section.offsetTop - 170) current = "#" + section.id;
+        if (section.getBoundingClientRect().top <= 100) current = "#" + section.id;
       });
       quickLinks.forEach((link) => {
-        link.classList.toggle("is-active", link.getAttribute("href") === current);
+        const active = link.getAttribute("href") === current;
+        link.classList.toggle("is-active", active);
+        if (active) link.setAttribute("aria-current", "location");
+        else link.removeAttribute("aria-current");
       });
     }
 

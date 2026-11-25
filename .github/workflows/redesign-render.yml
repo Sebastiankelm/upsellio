@@ -1,0 +1,66 @@
+name: Redesign rendered WordPress comparison
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: redesign-render-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: core
+            rank_math_version: ""
+          - mode: rank-math
+            rank_math_version: "1.0.282"
+    name: Render (${{ matrix.mode }})
+    env:
+      FIXTURE_RANK_MATH_VERSION: ${{ matrix.rank_math_version }}
+      FIXTURE_MEASURE_PERFORMANCE: ${{ matrix.mode == 'core' && '1' || '0' }}
+    steps:
+      - name: Fetch baseline and candidate without submodules
+        env:
+          CHECKOUT_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -eu
+          git init -q
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          auth=$(printf 'x-access-token:%s' "$CHECKOUT_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git -c "http.extraHeader=Authorization: Basic $auth" fetch --depth=1 --no-tags --no-recurse-submodules origin "$GITHUB_SHA"
+          git -c submodule.recurse=false checkout --detach FETCH_HEAD
+          if [ -z "$BASE_SHA" ]; then
+            git -c "http.extraHeader=Authorization: Basic $auth" fetch --depth=1 --no-tags --no-recurse-submodules origin refs/heads/main
+            BASE_SHA=$(git rev-parse FETCH_HEAD)
+          else
+            git -c "http.extraHeader=Authorization: Basic $auth" fetch --depth=1 --no-tags --no-recurse-submodules origin "$BASE_SHA"
+          fi
+          unset auth CHECKOUT_TOKEN
+          printf '%s\n' "$BASE_SHA" > /tmp/upsellio-base-sha
+      - name: Verify test harness syntax
+        run: |
+          bash -n tools/redesign-render-fixture.sh
+          python3 -m py_compile tools/redesign-render-compare.py tools/redesign-performance-compare.py
+          node --check tools/redesign-performance.mjs
+      - name: Render and compare synthetic WordPress sites
+        run: |
+          bash tools/redesign-render-fixture.sh "$(cat /tmp/upsellio-base-sha)" "$GITHUB_SHA" "$RUNNER_TEMP/upsellio-render"
+      - name: Upload laboratory performance results
+        if: ${{ always() && matrix.mode == 'core' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: redesign-performance
+          path: |
+            ${{ runner.temp }}/upsellio-render/baseline/performance.json
+            ${{ runner.temp }}/upsellio-render/candidate/performance.json
+            ${{ runner.temp }}/upsellio-render/performance-summary.json
+          if-no-files-found: warn
+          retention-days: 7

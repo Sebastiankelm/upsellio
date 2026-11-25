@@ -109,13 +109,15 @@
   }
 
   if (ham && mob) {
+    const redesignHeader = ham.closest(".up-redesign-nav");
+    const desktopQuery = window.matchMedia(redesignHeader ? "(min-width: 981px)" : "(min-width: 761px)");
     let wasOpen = false;
     const getMenuFocusable = () =>
       Array.from(mob.querySelectorAll("a, button, [tabindex]:not([tabindex='-1'])")).filter(
-        (element) => !element.hasAttribute("disabled")
+        (element) => !element.hasAttribute("disabled") && element.getClientRects().length > 0
       );
 
-    const setMobileMenuState = (isOpen) => {
+    const setMobileMenuState = (isOpen, restoreFocus = true) => {
       ham.classList.toggle("open", isOpen);
       mob.classList.toggle("open", isOpen);
       ham.setAttribute("aria-expanded", isOpen ? "true" : "false");
@@ -125,53 +127,64 @@
       if (isOpen) {
         const [firstFocusable] = getMenuFocusable();
         if (firstFocusable) {
-          window.requestAnimationFrame(() => firstFocusable.focus());
+          window.requestAnimationFrame(() => {
+            if (ham.classList.contains("open")) firstFocusable.focus();
+          });
         }
-      } else if (wasOpen) {
-        window.requestAnimationFrame(() => ham.focus());
+      } else if (wasOpen && restoreFocus) {
+        window.requestAnimationFrame(() => {
+          if (!ham.classList.contains("open") && ham.getClientRects().length) ham.focus();
+        });
       }
       wasOpen = isOpen;
     };
 
-    setMobileMenuState(false);
+    setMobileMenuState(false, false);
 
     ham.addEventListener("click", () => {
-      const isOpen = !ham.classList.contains("open");
-      setMobileMenuState(isOpen);
+      setMobileMenuState(!ham.classList.contains("open"));
     });
 
     mob.querySelectorAll("a").forEach((a) => {
       a.addEventListener("click", () => {
+        // Same-page anchors and new-tab links must not leave focus in a hidden panel.
         setMobileMenuState(false);
       });
     });
 
     window.addEventListener("resize", () => {
-      if (window.innerWidth >= 761) {
-        setMobileMenuState(false);
+      if (desktopQuery.matches && wasOpen) {
+        const focusWasInMenu = mob.contains(document.activeElement) || document.activeElement === ham;
+        setMobileMenuState(false, false);
+        if (focusWasInMenu && redesignHeader) {
+          const firstDesktopLink = redesignHeader.querySelector(".nav-links a");
+          if (firstDesktopLink) firstDesktopLink.focus();
+        }
       }
     });
 
     window.addEventListener("keydown", (event) => {
+      if (!wasOpen) return;
       if (event.key === "Escape") {
+        event.preventDefault();
         setMobileMenuState(false);
         return;
       }
-      if (event.key !== "Tab" || !ham.classList.contains("open")) return;
-      const focusable = getMenuFocusable();
-      if (!focusable.length) return;
+      if (event.key !== "Tab") return;
+      const focusable = [ham, ...getMenuFocusable()];
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       const active = document.activeElement;
 
-      if (event.shiftKey && active === first) {
+      if (event.shiftKey && (active === first || !focusable.includes(active))) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && active === last) {
+      } else if (!event.shiftKey && (active === last || !focusable.includes(active))) {
         event.preventDefault();
         first.focus();
       }
     });
+    if (redesignHeader) redesignHeader.classList.add("up-nav-ready");
   }
 
   const dropdownRoots = Array.from(document.querySelectorAll(".nav-dropdown"));
@@ -197,11 +210,24 @@
           toggle.setAttribute("aria-expanded", "true");
         }
       });
+      root.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && root.classList.contains("open")) {
+          event.preventDefault();
+          closeDropdown(root);
+          toggle.focus();
+        }
+      });
+      root.addEventListener("focusout", (event) => {
+        if (!root.contains(event.relatedTarget)) closeDropdown(root);
+      });
     });
 
     document.addEventListener("click", (event) => {
       const clickedInside = dropdownRoots.some((root) => root.contains(event.target));
       if (!clickedInside) closeAllDropdowns();
+    });
+    window.addEventListener("resize", () => {
+      if (window.matchMedia("(max-width: 980px)").matches) closeAllDropdowns();
     });
   }
 
@@ -226,15 +252,22 @@
     }
 
     // Intercept only same-page hash links to avoid breaking regular navigation.
-    if (url.pathname !== window.location.pathname) return;
+    if (url.origin !== window.location.origin || url.pathname !== window.location.pathname) return;
     if (url.search !== window.location.search) return;
     if (!url.hash || url.hash.length < 2) return;
 
-    const id = decodeURIComponent(url.hash.slice(1));
+    let id;
+    try {
+      id = decodeURIComponent(url.hash.slice(1));
+    } catch (error) {
+      return;
+    }
     const target = id ? document.getElementById(id) : null;
     if (!target) return;
 
     event.preventDefault();
+    // A skip link must move keyboard focus, not just the viewport.
+    if (link.classList.contains("skip-link")) target.focus({ preventScroll: true });
     const offset = target.getBoundingClientRect().top + window.scrollY - getNavOffset(8);
     window.scrollTo({ top: Math.max(0, offset), behavior: prefersReducedMotion ? "auto" : "smooth" });
   });
@@ -771,30 +804,41 @@
     return "lead_web_form";
   }
 
+  // Allocate before POST so browser and server use the same Meta event ID.
+  function ensureLeadEventId(formElement, fresh = false) {
+    let input = formElement && formElement.querySelector('input[name="lead_event_id"]');
+    if (input && input.value && !fresh) return input.value;
+    const eventId = window.crypto && typeof window.crypto.randomUUID === "function"
+      ? window.crypto.randomUUID()
+      : "lead_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+    if (formElement) {
+      if (!input) {
+        input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "lead_event_id";
+        formElement.appendChild(input);
+      }
+      input.value = eventId;
+    }
+    return eventId;
+  }
+
   function pushLeadConversionStack(formElement) {
     const payload = buildLeadPayload(formElement);
-    const eventId =
-      window.crypto && crypto.randomUUID
-        ? crypto.randomUUID()
-        : "lead_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+    const eventId = ensureLeadEventId(formElement);
     const enrichedPayload = { ...payload, event_id: eventId };
-
-    if (formElement) {
-      const existingEventInput = formElement.querySelector('input[name="lead_event_id"]');
-      if (existingEventInput) {
-        existingEventInput.value = eventId;
-      } else {
-        const hiddenInput = document.createElement("input");
-        hiddenInput.type = "hidden";
-        hiddenInput.name = "lead_event_id";
-        hiddenInput.value = eventId;
-        formElement.appendChild(hiddenInput);
-      }
-    }
 
     pushDataLayerEvent("generate_lead", enrichedPayload);
     const extra = resolveLeadConversionEventName(payload.form_origin);
     if (extra) pushDataLayerEvent(extra, enrichedPayload);
+    // Retain the homepage's legacy GTM event, but only after confirmed save.
+    if (payload.form_origin === "home-hero-form" || payload.form_origin === "home-contact-form") {
+      pushDataLayerEvent("lead_form_submit", {
+        ...enrichedPayload,
+        form_type: "free_consultation",
+        page_section: "home_page",
+      });
+    }
     if (payload.lead_magnet_name) pushDataLayerEvent("lead_magnet_signup", enrichedPayload);
 
     if (!skipAnalytics && typeof window.fbq === "function") {
@@ -1241,6 +1285,16 @@
     return m === "GET" ? "GET" : "POST";
   }
 
+  function isConfirmedLeadSuccess(response) {
+    if (!response || !response.ok || !response.url) return false;
+    try {
+      const url = new URL(response.url, window.location.origin);
+      return url.origin === window.location.origin && url.searchParams.get("ups_lead_status") === "success";
+    } catch (error) {
+      return false;
+    }
+  }
+
   function initServerLeadForms() {
     const serverForms = Array.from(document.querySelectorAll("form[data-upsellio-server-form='1']"));
     if (!serverForms.length) return;
@@ -1253,6 +1307,7 @@
 
       serverForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (serverSubmit.disabled) return;
         const defaultText = serverSubmit.textContent || serverSubmit.value || "Wyślij";
         let feedback = serverForm.querySelector("[data-form-feedback]");
         const nameVal = ((serverForm.querySelector("[name='lead_name']") || {}).value || "").trim();
@@ -1287,6 +1342,7 @@
         feedback.classList.remove("is-success", "is-error");
 
         try {
+          ensureLeadEventId(serverForm, true);
           let response = await fetch(resolveFormActionUrl(serverForm), {
             method: resolveFormMethod(serverForm),
             body: new FormData(serverForm),
@@ -1306,7 +1362,7 @@
               reason = upsellioLeadFormErrorReasonFromUrl(response.url);
             }
           }
-          if (!response.ok || reason) {
+          if (!isConfirmedLeadSuccess(response) || reason) {
             var msg = upsellioMessageForLeadFormResponse(response.url, response.ok);
             var statusMsg = upsellioMessageForHttpStatus(response.status);
             if (statusMsg) msg = statusMsg;
@@ -1326,20 +1382,15 @@
             // Sukces zapisu leada nie może zależeć od GTM/dataLayer
           }
           serverForm.reset();
+          const eventInput = serverForm.querySelector('input[name="lead_event_id"]');
+          if (eventInput) eventInput.remove();
           applyAttributionToLeadForms(attribution);
         } catch (error) {
-          var blockedByClient =
-            error &&
-            typeof error.message === "string" &&
-            (error.message.indexOf("Failed to fetch") !== -1 ||
-              error.message.indexOf("NetworkError") !== -1);
-          if (blockedByClient && serverForm.dataset.upsellioNativeRetry !== "1") {
-            // Fallback: if browser extension blocks fetch/XHR, try native form submit.
-            serverForm.dataset.upsellioNativeRetry = "1";
-            serverForm.submit();
-            return;
-          }
-          feedback.textContent = error.message || "Błąd wysyłki. Spróbuj ponownie.";
+          // A lost response does not prove the server failed to save the lead.
+          // Do not automatically POST again (could create duplicate CRM records).
+          feedback.textContent = error instanceof TypeError
+            ? "Nie udało się potwierdzić zapisu. Jeśli nie otrzymasz odpowiedzi, skontaktuj się telefonicznie."
+            : (error.message || "Błąd wysyłki. Spróbuj ponownie.");
           feedback.classList.add("is-error");
         } finally {
           if ("textContent" in serverSubmit) serverSubmit.textContent = defaultText;

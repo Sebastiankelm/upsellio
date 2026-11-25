@@ -31,7 +31,6 @@ add_action("wp_head", static function () use ($blog_index_url, $paged) {
     echo '<meta property="og:type" content="website">' . "\n";
     echo '<meta property="og:url" content="' . esc_url($blog_index_url) . '">' . "\n";
     echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
-    echo '<link rel="canonical" href="' . esc_url($paged > 1 ? add_query_arg("paged", $paged, $blog_index_url) : $blog_index_url) . '">' . "\n";
     if ($paged > 1) {
         $prev_url = $paged === 2 ? $blog_index_url : add_query_arg("paged", $paged - 1, $blog_index_url);
         echo '<link rel="prev" href="' . esc_url($prev_url) . '">' . "\n";
@@ -852,6 +851,48 @@ get_header();
     .ups-blog-title { font-size:64px; }
     .ups-blog-list-title,.ups-blog-cta-title { font-size:50px; }
   }
+
+  /* Redesign for native WordPress posts index; keep AJAX hooks and schema. */
+  .ups-blog{background:#fff;color:#0f1115;font-family:"DM Sans",system-ui,sans-serif}
+  .ups-blog .wrap{width:min(1160px,calc(100% - 48px))}
+  .ups-blog .ups-blog-hero{background:#effaf7;border-color:#e3e6ea;text-align:center}
+  .ups-blog .ups-blog-hero::before,.ups-blog .ups-blog-hero-topline{display:none}
+  .ups-blog .ups-blog-hero .wrap>div:first-child{margin-inline:auto}
+  .ups-blog .ups-blog-title{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(36px,4.5vw,58px);line-height:1.08;letter-spacing:-.035em;color:#0f1115}
+  .ups-blog .ups-blog-title span{color:#06745f!important}
+  .ups-blog .ups-blog-badge{background:#fff;color:#06745f;border:1px solid #c7e6dd}
+  .ups-blog .ups-blog-lead,.ups-blog .ups-blog-seo-copy{margin-inline:auto;color:#3a3d44}
+  .ups-blog .ups-blog-search{max-width:720px;margin-inline:auto;text-align:left}
+  .ups-blog .ups-blog-search-field{background:#fff;border:1px solid #d8dde3;border-radius:12px;min-height:48px}
+  .ups-blog .ups-blog-search-field input{font-size:16px}
+  .ups-blog .ups-blog-categories{background:#fff;border-color:#e3e6ea;position:static}
+  .ups-blog .ups-blog-category{min-height:44px;border-radius:999px;border-color:#e3e6ea;background:#fff;color:#3a3d44}
+  .ups-blog .ups-blog-category.active,.ups-blog .ups-blog-page-link.current{background:#06745f;color:#fff;border-color:#06745f}
+  .ups-blog .ups-blog-category.active .ups-blog-category-count{color:inherit}
+  .ups-blog .ups-blog-featured-wrap{background:#fff;padding:40px 0 0}
+  .ups-blog .ups-blog-featured-card{border-radius:24px;background:#fff;border:1px solid #e3e6ea;box-shadow:none;overflow:hidden}
+  .ups-blog .ups-blog-featured-cover{background-color:#dff5ef}
+  .ups-blog .ups-blog-featured-title{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(24px,3vw,34px);line-height:1.2}
+  .ups-blog .ups-blog-featured-category,.ups-blog .ups-blog-card-category{color:#06745f}
+  .ups-blog .ups-blog-list-wrap{background:#fff;padding:64px 0 72px}
+  .ups-blog .ups-blog-list-title,.ups-blog .ups-blog-topics-title,.ups-blog .ups-blog-cta-title{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(30px,3.4vw,42px);line-height:1.12}
+  .ups-blog .ups-blog-card,.ups-blog .ups-blog-topic-card{background:#fff;border:1px solid #e3e6ea;border-radius:20px;box-shadow:none;min-width:0}
+  .ups-blog .ups-blog-card:hover,.ups-blog .ups-blog-topic-card:hover{border-color:#c7e6dd;box-shadow:0 12px 28px rgba(15,17,21,.06)}
+  .ups-blog .ups-blog-card-title{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:21px;line-height:1.25}
+  .ups-blog .ups-blog-card-excerpt,.ups-blog .ups-blog-featured-excerpt{color:#3a3d44;font-size:15px}
+  .ups-blog .ups-blog-card-meta,.ups-blog .ups-blog-card-time{color:#5f636b}
+  .ups-blog .ups-blog-card-link{color:#06745f;min-height:44px;display:inline-flex;align-items:center}
+  .ups-blog .ups-blog-btn-primary{background:#06745f;color:#fff;box-shadow:none;border-radius:999px}
+  .ups-blog .ups-blog-btn-primary:hover{background:#055e4d;color:#fff}
+  .ups-blog .ups-blog-btn-secondary{border-color:#d8dde3;border-radius:999px}
+  .ups-blog .ups-blog-actions a,.ups-blog .ups-blog-cta-actions a,.ups-blog .ups-blog-page-link{min-height:44px}
+  .ups-blog .ups-blog-topics{background:#f5f6f8}
+  .ups-blog .ups-blog-cta-shell{background:#effaf7;border:1px solid #c7e6dd;border-radius:24px;box-shadow:none;color:#0f1115}
+  .ups-blog .ups-blog-cta-title{color:#0f1115}
+  .ups-blog .ups-blog-cta-text{color:#3a3d44}
+  .ups-blog :is(a,button,input):focus-visible{outline:3px solid #06745f;outline-offset:3px}
+  @media(max-width:720px){.ups-blog .wrap{width:calc(100% - 40px)}.ups-blog .ups-blog-title{font-size:clamp(32px,8.5vw,40px)}.ups-blog .ups-blog-grid{grid-template-columns:minmax(0,1fr)}.ups-blog .ups-blog-card.is-wide{grid-column:auto}.ups-blog .ups-blog-list-wrap{padding:48px 0 64px}}
+  @media(prefers-reduced-motion:reduce){.ups-blog *{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 </style>
 
 <main class="ups-blog js-ups-blog-root" data-current-category="<?php echo esc_attr($selected_category); ?>" data-current-tags="<?php echo esc_attr(implode(",", $selected_tags)); ?>" data-current-page="<?php echo esc_attr((string) $paged); ?>">
@@ -884,7 +925,7 @@ get_header();
               <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
             </svg>
           </span>
-          <input class="js-ups-blog-search-input" type="text" name="s" placeholder="Szukaj artykułu..." value="<?php echo esc_attr($search_term); ?>" />
+          <input class="js-ups-blog-search-input" type="text" name="s" aria-label="Szukaj artykułu" placeholder="Szukaj artykułu..." value="<?php echo esc_attr($search_term); ?>" />
           <?php if ($selected_category !== "" && $selected_category !== "all") : ?>
             <input type="hidden" name="category" value="<?php echo esc_attr($selected_category); ?>" />
           <?php endif; ?>

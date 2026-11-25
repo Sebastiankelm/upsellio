@@ -1156,40 +1156,42 @@ function upsellio_render_unified_footer($args = [])
 
     ob_start();
     ?>
-    <footer class="nf-footer">
+    <footer class="nf-footer" aria-label="Stopka Upsellio">
       <style>
-        .nf-footer{font-family:"DM Sans",system-ui,sans-serif;background:#0a1410;color:rgba(255,255,255,.78);position:relative;overflow:hidden}
+        .nf-footer{font-family:"DM Sans",system-ui,sans-serif;background:#f5f6f8;color:#0f1115;line-height:1.6;position:relative}
         .nf-footer *,.nf-footer *::before,.nf-footer *::after{box-sizing:border-box}
-        .nf-footer::before{content:"";position:absolute;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(20,184,166,.16),transparent 65%);right:-300px;top:-300px;pointer-events:none}
-        .nf-wrap{width:min(1240px,100% - 48px);margin-inline:auto}
-        .nf-logo{display:flex;align-items:center;gap:8px;font-family:"Bricolage Grotesque",sans-serif;font-size:22px;font-weight:800;letter-spacing:-1px;color:#fff;text-decoration:none}
-        .nf-logo img{height:30px;width:auto;display:block}
-        .nf-logo-mark{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#0d9488,#0f766e);position:relative;flex:0 0 26px}
-        .nf-logo-mark::after{content:"";position:absolute;inset:7px;border-radius:50%;background:#0a1410}
-        .nf-footer-grid{position:relative;display:grid;grid-template-columns:1.3fr .9fr .9fr 1.2fr;gap:48px;padding:64px 0 48px}
-        .nf-foot-brand p{margin:18px 0 24px;font-size:14px;line-height:1.65;color:rgba(255,255,255,.65);max-width:36ch}
-        .nf-foot-contacts{display:grid;gap:8px}
-        .nf-foot-contacts a,.nf-foot-contacts span{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.78);text-decoration:none;font-size:13.5px}
-        .nf-foot-contacts a i,.nf-foot-contacts span i{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.06);display:grid;place-items:center;font-style:normal;font-size:13px;color:#5eead4;flex:0 0 30px}
-        .nf-foot-contacts a:hover{color:#5eead4}
-        .nf-foot-h{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#5eead4;margin:0 0 14px}
-        .nf-foot-col ul{list-style:none;padding:0;margin:0 0 28px;display:grid;gap:8px}
-        .nf-foot-col ul li a{color:rgba(255,255,255,.78);text-decoration:none;font-size:14px}
-        .nf-foot-col ul li a:hover{color:#fff}
-        .nf-cities-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 18px;margin:0 0 18px;padding:0;list-style:none}
-        .nf-cities-grid li a{font-size:13.5px;color:rgba(255,255,255,.65);text-decoration:none}
-        .nf-cities-grid li a:hover{color:#5eead4}
-        .nf-cities-all{color:#5eead4;font-weight:700;font-size:13.5px;text-decoration:none;display:inline-flex}
-        .nf-foot-bar{position:relative;border-top:1px solid rgba(255,255,255,.08);padding:18px 0}
-        .nf-foot-bar-row{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;font-size:12.5px;color:rgba(255,255,255,.5)}
-        .nf-foot-social{display:flex;gap:18px}
-        .nf-foot-social a{color:rgba(255,255,255,.5);text-decoration:none}
-        .nf-foot-social a:hover{color:#5eead4}
-        @media (max-width:1100px){.nf-footer-grid{grid-template-columns:1fr 1fr;gap:30px}}
-        @media (max-width:720px){.nf-wrap{width:min(1240px,100% - 24px)}.nf-footer-grid{grid-template-columns:1fr;padding:44px 0 36px}}
-        .nf-footer-grid.is-no-cities{grid-template-columns:1.3fr 1fr 1fr}
+        .nf-footer .nf-wrap{width:min(1160px,calc(100% - 48px));margin-inline:auto}
+        .nf-footer .nf-footer-grid{display:grid;grid-template-columns:minmax(0,1.4fr) repeat(3,minmax(0,1fr));gap:40px;padding:64px 0 48px}
+        .nf-footer .nf-footer-grid>*{min-width:0}
+        .nf-footer .nf-logo{display:inline-flex;align-items:center;gap:8px;font-family:"Bricolage Grotesque",sans-serif;font-size:22px;font-weight:800;letter-spacing:-.02em;color:#0f1115;text-decoration:none;min-height:44px}
+        .nf-footer .nf-logo picture{display:block}
+        .nf-footer .nf-logo img{height:42px;width:auto;max-width:100%;object-fit:contain;display:block}
+        .nf-footer .nf-logo-mark{width:10px;height:10px;border-radius:50%;background:#0bb39c;flex:0 0 10px}
+        .nf-footer .nf-foot-brand p{margin:14px 0 20px;font-size:15px;line-height:1.65;color:#3a3d44;max-width:40ch}
+        .nf-footer .nf-foot-contacts{display:grid;gap:8px;font-style:normal}
+        .nf-footer .nf-foot-contacts a,.nf-footer .nf-foot-contacts>span{display:flex;align-items:flex-start;gap:10px;color:#3a3d44;text-decoration:none;font-size:15px;overflow-wrap:anywhere;min-width:0}
+        .nf-footer .nf-foot-contacts a{min-height:44px;align-items:center}
+        .nf-footer .nf-foot-contacts a[href^="tel:"]{font-size:17px;font-weight:700;color:#0f1115}
+        .nf-footer .nf-foot-contacts>span{color:#5f636b}
+        .nf-footer .nf-foot-contacts i{font-style:normal;color:#06745f;flex:0 0 20px;display:grid;place-items:center}
+        .nf-footer .nf-foot-h{font-size:15px;font-weight:700;color:#0f1115;line-height:1.4;margin:0 0 12px;letter-spacing:0;text-transform:none}
+        .nf-footer .nf-foot-col ul{list-style:none;padding:0;margin:0 0 24px;display:grid;gap:2px}
+        .nf-footer .nf-foot-col ul:last-child{margin-bottom:0}
+        .nf-footer .nf-foot-col ul li a,.nf-footer .nf-cities-grid li a{color:#3a3d44;text-decoration:none;font-size:15px;display:inline-flex;min-height:44px;align-items:center;overflow-wrap:anywhere}
+        .nf-footer .nf-foot-cities{border-top:1px solid #e3e6ea;padding:24px 0 32px}
+        .nf-footer .nf-cities-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 24px;margin:0 0 16px;padding:0;list-style:none}
+        .nf-footer .nf-cities-all{color:#06745f;font-weight:700;font-size:14px;text-decoration:none;display:inline-flex;min-height:44px;align-items:center}
+        .nf-footer .nf-foot-bar{padding:0}
+        .nf-footer .nf-foot-bar-row{border-top:1px solid #e3e6ea;padding:20px 0;display:flex;justify-content:space-between;align-items:center;gap:12px 24px;flex-wrap:wrap;font-size:14px;color:#5f636b}
+        .nf-footer .nf-foot-social{display:flex;gap:20px;flex-wrap:wrap}
+        .nf-footer .nf-foot-social a{color:#3a3d44;text-decoration:none;display:inline-flex;align-items:center;min-height:44px}
+        .nf-footer a:hover{color:#06745f;text-decoration:underline;text-underline-offset:3px}
+        .nf-footer a:focus-visible{outline:3px solid #06745f;outline-offset:3px;border-radius:4px}
+        @media(max-width:980px){.nf-footer .nf-footer-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:32px}.nf-footer .nf-cities-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+        @media(max-width:720px){.nf-footer .nf-wrap{width:calc(100% - 40px)}.nf-footer .nf-footer-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;padding:48px 0 32px}.nf-footer .nf-foot-brand{grid-column:1/-1}.nf-footer .nf-cities-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.nf-footer .nf-foot-bar-row{align-items:flex-start;flex-direction:column}}
+        @media(max-width:360px){.nf-footer .nf-footer-grid{grid-template-columns:minmax(0,1fr)}}
       </style>
-      <div class="nf-wrap nf-footer-grid<?php echo $show_cities ? "" : " is-no-cities"; ?>">
+      <div class="nf-wrap nf-footer-grid">
         <div class="nf-foot-brand">
           <a href="<?php echo esc_url(home_url("/")); ?>" class="nf-logo">
             <?php if ($brand_logo_url !== "") : ?>
@@ -1200,56 +1202,54 @@ function upsellio_render_unified_footer($args = [])
                 <img src="<?php echo esc_url($brand_logo_url); ?>" alt="Upsellio" width="320" height="213" loading="lazy" decoding="async" />
               </picture>
             <?php else : ?>
-              <span class="nf-logo-mark"></span>
+              <span class="nf-logo-mark" aria-hidden="true"></span>
               Upsellio
             <?php endif; ?>
           </a>
           <p><?php echo esc_html($brand_description); ?></p>
-          <div class="nf-foot-contacts">
-            <a href="<?php echo esc_url($contact_email_href); ?>"><i>@</i><span><?php echo esc_html($contact_email); ?></span></a>
-            <a href="<?php echo esc_url("tel:" . $contact_phone_href); ?>"><i>T</i><span><?php echo esc_html($contact_phone); ?></span></a>
-            <?php if ($brand_address !== "") : ?><span><i>A</i><span><?php echo esc_html($brand_address); ?></span></span><?php endif; ?>
-          </div>
+          <address class="nf-foot-contacts">
+            <a href="<?php echo esc_url("tel:" . $contact_phone_href); ?>"><i aria-hidden="true">T</i><span><?php echo esc_html($contact_phone); ?></span></a>
+            <a href="<?php echo esc_url($contact_email_href); ?>"><i aria-hidden="true">@</i><span><?php echo esc_html($contact_email); ?></span></a>
+            <?php if ($brand_address !== "") : ?><span><i aria-hidden="true">A</i><span><?php echo esc_html($brand_address); ?></span></span><?php endif; ?>
+            <span>pn–pt 9–17</span>
+          </address>
         </div>
 
         <?php
-        $sections_for_column_one = array_slice($normalized_sections, 0, 2);
-        $sections_for_column_two = array_slice($normalized_sections, 2, 2);
+        // Preserve every configured section, including custom sections beyond the first four.
+        $footer_columns = [];
+        if (!empty($normalized_sections)) {
+            $footer_columns[] = array_slice($normalized_sections, 0, 2);
+            foreach (array_slice($normalized_sections, 2) as $footer_section) {
+                $footer_columns[] = [$footer_section];
+            }
+        }
         ?>
-        <div class="nf-foot-col">
-          <?php foreach ($sections_for_column_one as $footer_section) : ?>
-            <div class="nf-foot-h"><?php echo esc_html((string) $footer_section["title"]); ?></div>
-            <ul>
-              <?php foreach ((array) $footer_section["links"] as $footer_link) : ?>
-                <li><a href="<?php echo esc_url((string) $footer_link["url"]); ?>"><?php echo esc_html((string) $footer_link["label"]); ?></a></li>
-              <?php endforeach; ?>
-            </ul>
-          <?php endforeach; ?>
-        </div>
-
-        <div class="nf-foot-col">
-          <?php foreach ($sections_for_column_two as $footer_section) : ?>
-            <div class="nf-foot-h"><?php echo esc_html((string) $footer_section["title"]); ?></div>
-            <ul>
-              <?php foreach ((array) $footer_section["links"] as $footer_link) : ?>
-                <li><a href="<?php echo esc_url((string) $footer_link["url"]); ?>"><?php echo esc_html((string) $footer_link["label"]); ?></a></li>
-              <?php endforeach; ?>
-            </ul>
-          <?php endforeach; ?>
-        </div>
+        <?php foreach ($footer_columns as $footer_column) : ?>
+          <div class="nf-foot-col">
+            <?php foreach ($footer_column as $footer_section) : ?>
+              <h2 class="nf-foot-h"><?php echo esc_html((string) $footer_section["title"]); ?></h2>
+              <ul>
+                <?php foreach ((array) $footer_section["links"] as $footer_link) : ?>
+                  <li><a href="<?php echo esc_url((string) $footer_link["url"]); ?>"><?php echo esc_html((string) $footer_link["label"]); ?></a></li>
+                <?php endforeach; ?>
+              </ul>
+            <?php endforeach; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
 
         <?php if ($show_cities) : ?>
-        <div class="nf-foot-col nf-foot-cities">
-          <div class="nf-foot-h"><?php echo esc_html($city_title); ?></div>
+        <nav class="nf-wrap nf-foot-cities" aria-label="Marketing w miastach">
+          <h2 class="nf-foot-h"><?php echo esc_html($city_title); ?></h2>
           <ul class="nf-cities-grid">
             <?php foreach ($normalized_city_links as $city_link_item) : ?>
               <li><a href="<?php echo esc_url((string) $city_link_item["url"]); ?>"><?php echo esc_html((string) $city_link_item["label"]); ?></a></li>
             <?php endforeach; ?>
           </ul>
           <?php if ($city_all_url !== "") : ?><a class="nf-cities-all" href="<?php echo esc_url($city_all_url); ?>"><?php echo esc_html($city_all_label); ?></a><?php endif; ?>
-        </div>
+        </nav>
         <?php endif; ?>
-      </div>
 
       <div class="nf-foot-bar">
         <div class="nf-wrap nf-foot-bar-row">
@@ -1257,6 +1257,7 @@ function upsellio_render_unified_footer($args = [])
           <div class="nf-foot-social">
             <a href="<?php echo esc_url(upsellio_get_social_profile_url("linkedin")); ?>">LinkedIn</a>
             <a href="<?php echo esc_url(upsellio_get_social_profile_url("facebook")); ?>">Facebook</a>
+            <a href="<?php echo esc_url(upsellio_get_social_profile_url("instagram")); ?>">Instagram</a>
           </div>
         </div>
       </div>
@@ -1309,7 +1310,6 @@ function upsellio_print_contact_page_seo_meta()
         echo '<meta name="twitter:title" content="' . esc_attr($title) . '">' . "\n";
     }
     if ($canonical !== "") {
-        echo '<link rel="canonical" href="' . esc_url($canonical) . '">' . "\n";
         echo '<meta property="og:url" content="' . esc_url($canonical) . '">' . "\n";
     }
     $og_image = function_exists("upsellio_get_default_og_image_url") ? upsellio_get_default_og_image_url() : (function_exists("upsellio_get_generated_logo_url") ? upsellio_get_generated_logo_url("png") : "");
@@ -2087,52 +2087,15 @@ function upsellio_assets()
     $ui_script_version = file_exists($ui_script_path) ? (string) filemtime($ui_script_path) : "1.0.0";
 
     $is_home_template_request = is_front_page() || (function_exists("upsellio_is_homepage_request") && upsellio_is_homepage_request());
-    if ($is_home_template_request) {
-        wp_enqueue_style("upsellio-main", $style_uri, ["upsellio-fonts"], $style_version);
-        wp_enqueue_script("upsellio-ui", $ui_script_uri, [], $ui_script_version, true);
-        wp_enqueue_script("upsellio-home", $home_script_uri, [], $home_script_version, true);
-        add_action(
-            "wp_footer",
-            function () use ($script_uri, $script_version) {
-                ?>
-                <script>
-                  window.upsellioData = window.upsellioData || <?php echo wp_json_encode([
-                      "ajaxUrl" => admin_url("admin-ajax.php"),
-                      "blogNonce" => wp_create_nonce("upsellio_blog_filter"),
-                      "blogIndexUrl" => upsellio_get_blog_index_url(),
-                      "contactNonce" => wp_create_nonce("upsellio_contact_click"),
-                      "skipAnalytics" => function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user(),
-                  ], JSON_UNESCAPED_SLASHES); ?>;
-                  window.upsellioAds = window.upsellioAds || <?php echo wp_json_encode([
-                      "conversionLabel" => defined("UPSELLIO_GOOGLE_ADS_CONVERSION_LABEL") ? (string) UPSELLIO_GOOGLE_ADS_CONVERSION_LABEL : "",
-                  ], JSON_UNESCAPED_SLASHES); ?>;
-                  (function () {
-                    function loadUpsellioMain() {
-                      if (window.__upsellioMainLoaded) return;
-                      window.__upsellioMainLoaded = true;
-                      var script = document.createElement("script");
-                      script.src = <?php echo wp_json_encode($script_uri . "?ver=" . rawurlencode($script_version)); ?>;
-                      script.async = true;
-                      document.body.appendChild(script);
-                    }
-                    window.addEventListener("load", function () {
-                      if ("requestIdleCallback" in window) {
-                        window.requestIdleCallback(loadUpsellioMain, { timeout: 1200 });
-                        return;
-                      }
-                      window.setTimeout(loadUpsellioMain, 1);
-                    }, { once: true });
-                  })();
-                </script>
-                <?php
-            },
-            20
-        );
-        return;
-    }
-
+    // Load navigation and lead form handlers before the page load event.
+    // Deferring them to requestIdleCallback briefly exposed the no-JS menu,
+    // producing a large layout shift and leaving forms unbound during startup.
     wp_enqueue_style("upsellio-main", $style_uri, ["upsellio-fonts"], $style_version);
-    wp_enqueue_style("upsellio-landing", $landing_style_uri, ["upsellio-main"], $landing_style_version);
+    if ($is_home_template_request) {
+        wp_enqueue_script("upsellio-home", $home_script_uri, [], $home_script_version, true);
+    } else {
+        wp_enqueue_style("upsellio-landing", $landing_style_uri, ["upsellio-main"], $landing_style_version);
+    }
     wp_enqueue_script("upsellio-ui", $ui_script_uri, [], $ui_script_version, true);
     wp_enqueue_script("upsellio-main", $script_uri, [], $script_version, true);
     wp_localize_script(

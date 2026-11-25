@@ -1,0 +1,82 @@
+name: Redesign deployment package (no deploy)
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch exact baseline and candidate
+        env:
+          CHECKOUT_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -eu
+          git init -q
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+          auth=$(printf 'x-access-token:%s' "$CHECKOUT_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git -c "http.extraHeader=Authorization: Basic $auth" fetch --depth=1 --no-tags --no-recurse-submodules origin "$GITHUB_SHA"
+          git -c submodule.recurse=false checkout --detach FETCH_HEAD
+          if [ -z "$BASE_SHA" ]; then
+            git -c "http.extraHeader=Authorization: Basic $auth" fetch --depth=1 --no-tags --no-recurse-submodules origin refs/heads/main
+            BASE_SHA=$(git rev-parse FETCH_HEAD)
+          else
+            git -c "http.extraHeader=Authorization: Basic $auth" fetch --depth=1 --no-tags --no-recurse-submodules origin "$BASE_SHA"
+          fi
+          unset auth CHECKOUT_TOKEN
+          printf '%s\n' "$BASE_SHA" > /tmp/upsellio-package-base
+      - name: Prepare verified file overlay and reference rollback
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess, zipfile
+          from pathlib import Path, PurePosixPath
+          def git(*args):
+              return subprocess.check_output(["git", *args])
+          base = Path("/tmp/upsellio-package-base").read_text().strip()
+          head = os.environ["GITHUB_SHA"]
+          prefix = "wp-content/themes/upsellio/"
+          allow = {
+              "assets/css/upsellio.css", "assets/js/upsellio.js",
+              "front-page.php", "functions.php", "header.php", "home.php",
+              "inc/seo-indexing-fixes.php", "inc/server-side-tracking.php", "inc/technical-seo.php",
+              "page-kontakt.php", "page-marketing-google-ads.php", "page-marketing-meta-ads.php",
+              "page-tworzenie-stron-internetowych.php", "single.php", "ups-blog-core.php"
+          }
+          changes = git("diff", "--name-status", "--no-renames", base, head, "--", prefix).decode().splitlines()
+          assert changes, "No changed files"
+          manifest = {"base": base, "candidate": head, "status": "UNAPPROVED_TEST_CANDIDATE", "files": []}
+          output = Path(os.environ["RUNNER_TEMP"]) / "redesign-package"
+          output.mkdir()
+          sha = lambda b: hashlib.sha256(b).hexdigest()
+          with zipfile.ZipFile(output / "candidate-overlay.zip", "w", zipfile.ZIP_DEFLATED) as new, zipfile.ZipFile(output / "baseline-reference.zip", "w", zipfile.ZIP_DEFLATED) as old:
+              for item in changes:
+                  status, name = item.split("\t", 1)
+                  rel = name.removeprefix(prefix)
+                  assert status == "M" and rel in allow and ".." not in PurePosixPath(rel).parts, item
+                  a, b = git("show", f"{base}:{name}"), git("show", f"{head}:{name}")
+                  assert a != b
+                  assert b"\x00" not in a and b"\x00" not in b
+                  old.writestr(rel, a)
+                  new.writestr(rel, b)
+                  manifest["files"].append({"path": rel, "baseline_sha256": sha(a), "candidate_sha256": sha(b), "baseline_bytes": len(a), "candidate_bytes": len(b)})
+          for archive, field in [("candidate-overlay.zip", "candidate_sha256"), ("baseline-reference.zip", "baseline_sha256")]:
+              with zipfile.ZipFile(output / archive) as z:
+                  assert z.testzip() is None
+                  for entry in manifest["files"]:
+                      assert sha(z.read(entry["path"])) == entry[field]
+          (output / "manifest.json").write_text(json.dumps(manifest, indent=2))
+          (output / "README.txt").write_text("UNAPPROVED TEST CANDIDATE. Not a WordPress installable theme ZIP. Do not upload to active theme. Require passed CI, verified production backup, and compare every live SHA256 against manifest baseline before applying. On mismatch stop; merge with live changes first. Back up actual live files separately; reference baseline is NOT a production backup. Do not overwrite DB, uploads, plugins, or unrelated CRM files. Use authorized hosting/DevOps channel, not a public write endpoint.\n")
+          print("Verified", len(manifest["files"]), "changed theme files; no production action.")
+          PY
+      - name: Upload private workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: redesign-release-candidate
+          path: ${{ runner.temp }}/redesign-package/
+          if-no-files-found: error
+          retention-days: 7
