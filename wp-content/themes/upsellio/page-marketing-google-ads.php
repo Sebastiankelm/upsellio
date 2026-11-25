@@ -391,9 +391,9 @@ $faq_items = [
     <div class="gads-wrap gads-quick-inner">
       <div class="gads-quick-links">
         <a href="#start">Start</a>
+        <a href="#lokalnie">Lokalnie</a>
         <a href="#problemy">Budżet</a>
         <a href="#zakres">Zakres</a>
-        <a href="#lokalnie">Lokalnie</a>
         <a href="#dla-kogo">Dla kogo</a>
         <a href="#typy">Typy kampanii</a>
         <a href="#cennik">Cennik</a>
@@ -865,10 +865,13 @@ if (function_exists("upsellio_render_service_schema")) {
     function setActiveQuickLink() {
       let current = "";
       sections.forEach((section) => {
-        if (window.scrollY >= section.offsetTop - 170) current = "#" + section.id;
+        if (section.getBoundingClientRect().top <= 100) current = "#" + section.id;
       });
       quickLinks.forEach((link) => {
-        link.classList.toggle("is-active", link.getAttribute("href") === current);
+        const active = link.getAttribute("href") === current;
+        link.classList.toggle("is-active", active);
+        if (active) link.setAttribute("aria-current", "location");
+        else link.removeAttribute("aria-current");
       });
     }
 
