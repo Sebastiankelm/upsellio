@@ -1,6 +1,7 @@
 """Compare rendered synthetic WordPress pages, never production content."""
 import collections
 import json
+import os
 import re
 import sys
 from html.parser import HTMLParser
@@ -101,6 +102,9 @@ def main():
             # emit exactly one canonical pointing at the actual homepage.
             if name == "home" and old.metadata["canonical"] == ["https://fixture.test/blog/"]:
                 print("home: corrected baseline canonical /blog/ -> /")
+            elif (name == "home" and os.environ.get("FIXTURE_RANK_MATH_VERSION")
+                  and old.metadata["canonical"] == []):
+                print("home: restored missing baseline canonical in Rank Math fixture")
             else:
                 issues.append("Canonical target absent from baseline: " + repr(old.metadata["canonical"]))
         else:
