@@ -2146,7 +2146,7 @@ function upsellio_crm_app_template_redirect()
                       <div><span class="crm-age <?php echo esc_attr($l_age_cls); ?>"><?php echo esc_html($l_age_disp); ?></span></div>
                       <div><?php echo $l_budget > 0 ? esc_html(number_format($l_budget, 0, ",", " ")) : "—"; ?></div>
                       <div class="crm-lacts">
-                        <button type="button" class="btn alt" style="font-size:10px;padding:3px 6px" onclick="crmAI('Brief przed rozmowa dla leada <?php echo esc_js((string) $lead->post_title); ?> CRM Upsellio')"><i class="ti ti-sparkles" aria-hidden="true"></i></button>
+                        <button type="button" class="btn alt" style="font-size:10px;padding:3px 6px" onclick="crmAI('Przygotuj brief przed rozmową na podstawie dostępnych danych', <?php echo (int) $lid; ?>)"><i class="ti ti-sparkles" aria-hidden="true"></i></button>
                         <?php if ($l_phone !== "") : ?>
                           <a class="btn alt" style="font-size:10px;padding:3px 6px" href="tel:<?php echo esc_attr(preg_replace('/\s+/', '', $l_phone)); ?>"><i class="ti ti-phone" aria-hidden="true"></i></a>
                         <?php endif; ?>
@@ -2410,8 +2410,8 @@ function upsellio_crm_app_template_redirect()
                       <div class="crm-cc-acts">
                         <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "client-edit", "client_id" => $cid], home_url("/crm-app/"))); ?>">Edytuj</a>
                         <a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("account-360", ["account_client_id" => $cid])); ?>">Karta 360°</a>
-                        <button type="button" class="btn alt crm-btn ai" onclick="crmAI('Przygotuj raport miesięczny dla klienta <?php echo esc_js((string) $client->post_title); ?> CRM Upsellio')">Raport AI</button>
-                        <button type="button" class="btn alt crm-btn ai" onclick="crmAI('Zaproponuj upsell dla klienta <?php echo esc_js((string) $client->post_title); ?> CRM Upsellio')">Upsell AI</button>
+                        <button type="button" class="btn alt crm-btn ai" onclick="crmAI('Przygotuj rekomendacje do raportu klienta na podstawie dostępnych danych', <?php echo (int) $cid; ?>)">Raport AI</button>
+                        <button type="button" class="btn alt crm-btn ai" onclick="crmAI('Zaproponuj pytania kwalifikujące możliwość upsell', <?php echo (int) $cid; ?>)">Upsell AI</button>
                       </div>
                     </article>
                   <?php endforeach; ?>
@@ -3458,7 +3458,7 @@ function upsellio_crm_app_template_redirect()
                           <a class="btn alt" style="font-size:11px;padding:4px 8px" href="<?php echo esc_url(add_query_arg(["view" => $crm_offer_form_view, "offer_editor_id" => $offer_id], home_url("/crm-app/"))); ?>"><i class="ti ti-edit" aria-hidden="true"></i></a>
                           <a class="btn alt" style="font-size:11px;padding:4px 8px" href="<?php echo esc_url(add_query_arg(["view" => "offer_analytics", "offer_id" => $offer_id, "list_view" => $crm_offer_form_view], home_url("/crm-app/"))); ?>"><i class="ti ti-chart-line" aria-hidden="true"></i></a>
                           <button type="button" class="btn alt crm-btn ai" style="font-size:11px;padding:4px 8px"
-                            onclick="crmAI('Follow-up po otwarciu oferty <?php echo esc_js((string) $offer->post_title); ?> CRM Upsellio')"><i class="ti ti-sparkles" aria-hidden="true"></i></button>
+                            onclick="crmAI('Przygotuj szkic follow-up po otwarciu oferty', <?php echo (int) $offer_id; ?>)"><i class="ti ti-sparkles" aria-hidden="true"></i></button>
                           <a class="btn alt" style="font-size:11px;padding:4px 8px" href="<?php echo esc_url(add_query_arg(["view" => "contracts"], home_url("/crm-app/"))); ?>"><i class="ti ti-writing" aria-hidden="true"></i></a>
                           <a class="btn alt" style="font-size:11px;padding:4px 8px" href="<?php echo esc_url(add_query_arg(["view" => "inbox", "inbox_offer" => $offer_id], home_url("/crm-app/"))); ?>"><i class="ti ti-mail" aria-hidden="true"></i></a>
                         </div>
@@ -8519,17 +8519,13 @@ function upsellio_crm_app_template_redirect()
           var mo = document.getElementById(id);
           if (mo) mo.classList.add("open");
         };
-        window.crmAI = window.crmAI || function (prompt) {
+        window.crmAI = window.crmAI || function (prompt, recordId) {
           if (!prompt) return;
-          if (typeof window.sendPrompt === "function") {
-            window.sendPrompt(prompt);
-            return;
-          }
           fetch(window.CRM_AJAX_URL, {
             method: "POST",
             credentials: "same-origin",
             headers: {"Content-Type": "application/x-www-form-urlencoded"},
-            body: new URLSearchParams({action: "upsellio_crm_ai_query", nonce: window.CRM_CAL_NONCE, prompt: prompt}).toString()
+            body: new URLSearchParams({action: "upsellio_crm_ai_query", nonce: window.CRM_CAL_NONCE, prompt: prompt, view: window.CRM_ACTIVE_VIEW || "", record_id: recordId || 0}).toString()
           }).then(function (r) { return r.json(); }).then(function (d) {
             if (d && d.success && d.data && d.data.response) { alert(d.data.response); return; }
             throw new Error(d && d.data && d.data.message ? String(d.data.message) : "Nie udało się wykonać akcji AI.");
@@ -8549,7 +8545,10 @@ function upsellio_crm_app_template_redirect()
           }
         };
         window.crmExport = window.crmExport || function (type) {
-          window.crmAI("Przygotuj eksport danych CRM dla widoku: " + type);
+          if (type !== "leads") { alert("Wybierz konkretną umowę i użyj jej funkcji eksportu PDF."); return; }
+          var url = new URL(window.CRM_AJAX_URL, window.location.origin);
+          url.search = new URLSearchParams({action: "upsellio_crm_export_leads_csv", nonce: window.CRM_CAL_NONCE}).toString();
+          window.location.assign(url.toString());
         };
         window.crmRefreshTodayBrief = function () {
           var el = document.getElementById("crm-today-brief-text");
@@ -8708,7 +8707,7 @@ function upsellio_crm_app_template_redirect()
         }
         window.upsAuditBulkGenerateReports = function () { alert("Masowe raporty — użyj Dashboard → Raport AI per klient."); };
         window.upsAuditExportLatestPdf = function () { alert("Wybierz raport w historii i kliknij eksport PDF."); };
-        window.upsAuditRefreshTemplates = function () { alert("Szablony promptów odświeżone."); };
+        window.upsAuditRefreshTemplates = function () { window.location.reload(); };
         window.crmSetStatusBtn = function (gridId, value) {
           var grid = document.getElementById(gridId);
           if (!grid) return;
