@@ -172,26 +172,26 @@ function upsellio_crm_app_template_redirect()
     $dash_trend_days = isset($_GET["dash_trend"]) ? max(7, min(90, (int) wp_unslash($_GET["dash_trend"]))) : 30;
     $selected_client_id = isset($_GET["client_id"]) ? (int) wp_unslash($_GET["client_id"]) : 0;
     $selected_client = $selected_client_id > 0 ? get_post($selected_client_id) : null;
-    if (!($selected_client instanceof WP_Post) || $selected_client->post_type !== "crm_client") {
+    if (!($selected_client instanceof WP_Post) || $selected_client->post_type !== "crm_client" || !current_user_can("edit_post", $selected_client->ID)) {
         $selected_client = null;
         $selected_client_id = 0;
     }
     $crm_new_client = ($view === "client-edit" && isset($_GET["new"]) && (string) wp_unslash($_GET["new"]) === "1");
     $selected_contract_id = isset($_GET["contract_id"]) ? (int) wp_unslash($_GET["contract_id"]) : 0;
     $selected_contract = $selected_contract_id > 0 ? get_post($selected_contract_id) : null;
-    if (!($selected_contract instanceof WP_Post) || $selected_contract->post_type !== "crm_contract") {
+    if (!($selected_contract instanceof WP_Post) || $selected_contract->post_type !== "crm_contract" || !current_user_can("edit_post", $selected_contract->ID)) {
         $selected_contract = null;
         $selected_contract_id = 0;
     }
     $selected_task_id = isset($_GET["task_id"]) ? (int) wp_unslash($_GET["task_id"]) : 0;
     $selected_task = $selected_task_id > 0 ? get_post($selected_task_id) : null;
-    if (!($selected_task instanceof WP_Post) || $selected_task->post_type !== "lead_task") {
+    if (!($selected_task instanceof WP_Post) || $selected_task->post_type !== "lead_task" || !current_user_can("edit_post", $selected_task->ID)) {
         $selected_task = null;
         $selected_task_id = 0;
     }
     $offer_editor_id = isset($_GET["offer_editor_id"]) ? (int) wp_unslash($_GET["offer_editor_id"]) : 0;
     $offer_editor_post = $offer_editor_id > 0 ? get_post($offer_editor_id) : null;
-    if (!($offer_editor_post instanceof WP_Post) || $offer_editor_post->post_type !== "crm_offer") {
+    if (!($offer_editor_post instanceof WP_Post) || $offer_editor_post->post_type !== "crm_offer" || !current_user_can("edit_post", $offer_editor_post->ID)) {
         $offer_editor_post = null;
         $offer_editor_id = 0;
     }
@@ -1096,7 +1096,7 @@ function upsellio_crm_app_template_redirect()
               <div class="topbar-title" id="crm-tb-title"><?php echo esc_html($crm_topbar_title); ?></div>
               <form class="crm-global-search" method="get" action="<?php echo esc_url(home_url("/crm-app/")); ?>">
                 <input type="hidden" name="view" value="search" />
-                <input type="search" name="crm_q" value="<?php echo esc_attr($crm_search_q); ?>" placeholder="<?php esc_attr_e('Szukaj klientów, deali, zadań…', 'upsellio'); ?>" autocomplete="off" aria-label="<?php esc_attr_e('Szukaj w CRM', 'upsellio'); ?>" />
+                <input type="search" name="crm_q" value="<?php echo esc_attr($crm_search_q); ?>" placeholder="<?php esc_attr_e('Szukaj klientów, leadów, ofert, zadań…', 'upsellio'); ?>" autocomplete="off" aria-label="<?php esc_attr_e('Szukaj w CRM', 'upsellio'); ?>" />
               </form>
             </div>
             <div class="topbar-zone topbar-zone--actions">
@@ -1236,7 +1236,7 @@ function upsellio_crm_app_template_redirect()
                         <ul style="margin:0;padding-left:18px;line-height:1.55;font-size:14px">
                           <?php foreach (array_slice($offers, 0, 25) as $o_search) : ?>
                             <li>
-                              <a href="<?php echo esc_url(add_query_arg(["view" => "deals", "offer_editor_id" => (int) $o_search->ID], home_url("/crm-app/"))); ?>"><?php echo esc_html((string) $o_search->post_title); ?></a>
+                              <a href="<?php echo esc_url(add_query_arg(["view" => "offers", "offer_editor_id" => (int) $o_search->ID], home_url("/crm-app/"))); ?>"><?php echo esc_html((string) $o_search->post_title); ?></a>
                               <?php
                               $ocid = (int) get_post_meta((int) $o_search->ID, "_ups_offer_client_id", true);
                               if ($ocid > 0) :
@@ -1260,6 +1260,27 @@ function upsellio_crm_app_template_redirect()
                         </ul>
                       <?php endif; ?>
                     </div>
+                    <?php
+                    $extra_search_groups = [
+                        ["label" => "Leady", "records" => $leads, "view" => "leads", "id" => "lead_id"],
+                        ["label" => "Kontakty", "records" => $contacts, "view" => "contacts", "id" => "contact_id"],
+                        ["label" => "Umowy", "records" => $contracts, "view" => "contract-detail", "id" => "contract_id"],
+                    ];
+                    foreach ($extra_search_groups as $group) :
+                    ?>
+                    <div>
+                      <h3 style="font-size:15px;margin:0 0 8px;font-family:var(--font-display)"><?php echo esc_html($group["label"]); ?></h3>
+                      <?php if (empty($group["records"])) : ?>
+                        <p class="muted"><?php esc_html_e("Brak wyników.", "upsellio"); ?></p>
+                      <?php else : ?>
+                        <ul style="margin:0;padding-left:18px;line-height:1.55;font-size:14px">
+                          <?php foreach (array_slice($group["records"], 0, 25) as $record) : ?>
+                            <li><a href="<?php echo esc_url(upsellio_crm_url($group["view"], [$group["id"] => (int) $record->ID])); ?>"><?php echo esc_html((string) $record->post_title); ?></a></li>
+                          <?php endforeach; ?>
+                        </ul>
+                      <?php endif; ?>
+                    </div>
+                    <?php endforeach; ?>
                   </div>
                 <?php endif; ?>
               </section>
