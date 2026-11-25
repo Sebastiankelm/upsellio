@@ -361,6 +361,10 @@ function upsellio_crm_app_handle_post_actions()
             $old_offer_status = (string) get_post_meta($offer_id, "_ups_offer_status", true);
             update_post_meta($offer_id, "_ups_offer_client_id", isset($_POST["offer_client_id"]) ? (int) wp_unslash($_POST["offer_client_id"]) : 0);
             update_post_meta($offer_id, "_ups_offer_price", isset($_POST["offer_price"]) ? sanitize_text_field(wp_unslash($_POST["offer_price"])) : "");
+            if (function_exists("upsellio_offer_get_timeline_events") && !metadata_exists("post", $offer_id, "_ups_offer_timeline_events")) {
+                $legacy_history = upsellio_offer_get_timeline_events($offer_id);
+                if ($legacy_history !== []) { update_post_meta($offer_id, "_ups_offer_timeline_events", $legacy_history); }
+            }
             update_post_meta($offer_id, "_ups_offer_timeline", isset($_POST["offer_timeline"]) ? sanitize_text_field(wp_unslash($_POST["offer_timeline"])) : "");
             update_post_meta($offer_id, "_ups_offer_cta_text", isset($_POST["offer_cta_text"]) ? sanitize_text_field(wp_unslash($_POST["offer_cta_text"])) : "");
             $new_offer_status = isset($_POST["offer_status"]) ? sanitize_key(wp_unslash($_POST["offer_status"])) : "open";
@@ -406,6 +410,7 @@ function upsellio_crm_app_handle_post_actions()
             $variant_labels = array_map("sanitize_text_field", (array) ($_POST["ups_offer_variant_label"] ?? []));
             $variant_prices = array_map("sanitize_text_field", (array) ($_POST["ups_offer_variant_price"] ?? []));
             $services = [];
+            $used_variant_keys = [];
             $variant_count = max(count($variant_keys), count($variant_labels), count($variant_prices));
             for ($i = 0; $i < $variant_count && $i < 6; $i++) {
                 $key = (string) ($variant_keys[$i] ?? "");
@@ -420,6 +425,10 @@ function upsellio_crm_app_handle_post_actions()
                 if ($key === "") {
                     continue;
                 }
+                $base_key = $key;
+                $suffix = 2;
+                while (isset($used_variant_keys[$key])) { $key = $base_key . "-" . $suffix++; }
+                $used_variant_keys[$key] = true;
                 $services[] = [
                     "key" => $key,
                     "label" => $label,
@@ -432,10 +441,12 @@ function upsellio_crm_app_handle_post_actions()
             update_post_meta($offer_id, "_ups_offer_scope_extra_html", isset($_POST["offer_scope_extra_html"]) ? wp_kses_post(wp_unslash($_POST["offer_scope_extra_html"])) : "");
             $exp_in = isset($_POST["offer_expires_at"]) ? sanitize_text_field(wp_unslash($_POST["offer_expires_at"])) : "";
             if ($exp_in !== "") {
-                $local_ts = strtotime($exp_in);
-                if ($local_ts !== false) {
-                    $utc_ts = (int) $local_ts - (int) (get_option("gmt_offset", 0) * HOUR_IN_SECONDS);
-                    update_post_meta($offer_id, "_ups_offer_expires_at", (int) $utc_ts);
+                $normalized = str_replace("T", " ", $exp_in);
+                $expiry = DateTimeImmutable::createFromFormat("!Y-m-d H:i", $normalized, wp_timezone());
+                if ($expiry && $expiry->format("Y-m-d H:i") === $normalized) {
+                    update_post_meta($offer_id, "_ups_offer_expires_at", $expiry->getTimestamp());
+                } else {
+                    set_transient("ups_crm_notice_" . get_current_user_id(), ["type" => "error", "message" => "Nieprawidłowy termin ważności; zachowano poprzednią wartość."], 60);
                 }
             } else {
                 delete_post_meta($offer_id, "_ups_offer_expires_at");
