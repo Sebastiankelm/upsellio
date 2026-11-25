@@ -515,16 +515,17 @@ function upsellio_crm_sync_wp_lead_to_crm_lead_module($wp_lead_id)
         $budget_float,
         $sync_author
     ) {
-        $crm_id = (int) wp_insert_post([
+        $crm_id = wp_insert_post([
             "post_type" => "crm_lead",
             "post_status" => "publish",
             "post_title" => $post->post_title,
             "post_author" => $sync_author,
         ], true);
 
-        if (is_wp_error($crm_id) || $crm_id <= 0) {
+        if (is_wp_error($crm_id) || (int) $crm_id <= 0) {
             return 0;
         }
+        $crm_id = (int) $crm_id;
 
         update_post_meta($crm_id, "_ups_lead_email", sanitize_email($email));
         update_post_meta($crm_id, "_ups_lead_phone", sanitize_text_field($phone));
@@ -600,7 +601,7 @@ function upsellio_crm_sync_wp_lead_to_inbox_offer($wp_lead_id)
     $offerId = upsellio_crm_find_existing_inbox_offer_by_email($leadEmail);
     if ($offerId <= 0) {
         $offerTitle = $leadTitle !== "" ? $leadTitle : ($leadEmail !== "" ? $leadEmail : "Lead web");
-        $offerId = (int) wp_insert_post([
+        $offerId = wp_insert_post([
             "post_type" => "crm_offer",
             "post_status" => "publish",
             "post_title" => "Lead web: " . $offerTitle,
@@ -608,9 +609,10 @@ function upsellio_crm_sync_wp_lead_to_inbox_offer($wp_lead_id)
         ], true);
     }
 
-    if ($offerId <= 0 || is_wp_error($offerId)) {
+    if (is_wp_error($offerId) || (int) $offerId <= 0) {
         return 0;
     }
+    $offerId = (int) $offerId;
 
     update_post_meta($offerId, "_ups_offer_status", "open");
     update_post_meta($offerId, "_ups_offer_stage", "awareness");
