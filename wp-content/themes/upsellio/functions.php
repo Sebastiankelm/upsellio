@@ -1310,7 +1310,6 @@ function upsellio_print_contact_page_seo_meta()
         echo '<meta name="twitter:title" content="' . esc_attr($title) . '">' . "\n";
     }
     if ($canonical !== "") {
-        echo '<link rel="canonical" href="' . esc_url($canonical) . '">' . "\n";
         echo '<meta property="og:url" content="' . esc_url($canonical) . '">' . "\n";
     }
     $og_image = function_exists("upsellio_get_default_og_image_url") ? upsellio_get_default_og_image_url() : (function_exists("upsellio_get_generated_logo_url") ? upsellio_get_generated_logo_url("png") : "");
