@@ -384,10 +384,10 @@ $faq_items = [
     <div class="meta-wrap meta-quick-nav-inner">
       <div class="meta-quick-links">
         <a href="#start">Start</a>
-        <a href="#problemy">Problemy</a>
         <a href="#b2b">B2B</a>
-        <a href="#dla-kogo">Dla kogo</a>
+        <a href="#problemy">Problemy</a>
         <a href="#co-robie">Co robię</a>
+        <a href="#dla-kogo">Dla kogo</a>
         <a href="#lejek">Lejek</a>
         <a href="#cena">Cennik</a>
         <a href="#proces">Proces</a>
@@ -877,11 +877,13 @@ if (function_exists("upsellio_render_service_schema")) {
     function setActiveQuickLink() {
       let current = "";
       sections.forEach((section) => {
-        const sectionTop = section.offsetTop - 170;
-        if (window.scrollY >= sectionTop) current = "#" + section.id;
+        if (section.getBoundingClientRect().top <= 100) current = "#" + section.id;
       });
       quickLinks.forEach((link) => {
-        link.classList.toggle("is-active", link.getAttribute("href") === current);
+        const active = link.getAttribute("href") === current;
+        link.classList.toggle("is-active", active);
+        if (active) link.setAttribute("aria-current", "location");
+        else link.removeAttribute("aria-current");
       });
     }
 
