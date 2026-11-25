@@ -6,7 +6,8 @@ if (!defined("ABSPATH")) {
 
 function upsellio_seo_indexing_is_routable_request()
 {
-    if (is_admin() || wp_doing_ajax() || wp_doing_cron()) {
+    $method = strtoupper((string) ($_SERVER["REQUEST_METHOD"] ?? "GET"));
+    if (!in_array($method, ["GET", "HEAD"], true) || is_admin() || wp_doing_ajax() || wp_doing_cron() || is_preview() || is_feed()) {
         return false;
     }
     if (defined("REST_REQUEST") && REST_REQUEST) {
@@ -103,7 +104,7 @@ function upsellio_seo_indexing_request_has_blog_filter_params()
 
 function upsellio_seo_indexing_override_robots_meta_for_blog_filters($robots)
 {
-    if (!(is_home() || is_page_template("ups-blog-core.php"))) {
+    if (!(is_home() || is_page_template("ups-blog-core.php") || (is_search() && strpos((string) wp_parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_PATH), "/blog/") === 0))) {
         return $robots;
     }
     if (!upsellio_seo_indexing_request_has_blog_filter_params()) {
@@ -114,12 +115,22 @@ function upsellio_seo_indexing_override_robots_meta_for_blog_filters($robots)
         $robots = [];
     }
     $robots["index"] = "noindex";
-    $robots["follow"] = "follow";
-
     return $robots;
 }
-add_filter("wp_robots", "upsellio_seo_indexing_override_robots_meta_for_blog_filters", 20);
 add_filter("rank_math/frontend/robots", "upsellio_seo_indexing_override_robots_meta_for_blog_filters", 20);
+
+// Core wp_robots expects boolean directives, unlike Rank Math's keyed values.
+function upsellio_seo_indexing_wp_robots_for_blog_filters($robots)
+{
+    if (!(is_home() || is_page_template("ups-blog-core.php") || (is_search() && strpos((string) wp_parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_PATH), "/blog/") === 0)) ||
+        !upsellio_seo_indexing_request_has_blog_filter_params()) {
+        return $robots;
+    }
+    unset($robots["index"]);
+    $robots["noindex"] = true;
+    return $robots;
+}
+add_filter("wp_robots", "upsellio_seo_indexing_wp_robots_for_blog_filters", 20);
 
 function upsellio_seo_indexing_noindex_feeds()
 {
