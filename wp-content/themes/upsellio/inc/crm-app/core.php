@@ -4,6 +4,18 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
+/** Global configuration and account credentials are administrator-only. */
+function upsellio_crm_app_user_can_view(string $view): bool
+{
+    return upsellio_crm_app_user_can_access() && (!in_array($view, ["settings", "ca-library", "ca-accounts", "ca-meta-accounts"], true) || current_user_can("manage_options"));
+}
+
+/** Audit profile access follows the underlying client record permissions. */
+function upsellio_crm_app_can_access_audit_client(int $id): bool
+{
+    return $id > 0 && get_post_type($id) === "crm_client" && current_user_can("read_post", $id) && current_user_can("edit_post", $id);
+}
+
 function upsellio_crm_app_user_can_access()
 {
     return is_user_logged_in() && (current_user_can("manage_options") || current_user_can("upsellio_access_crm"));
