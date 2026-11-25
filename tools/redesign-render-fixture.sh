@@ -46,7 +46,7 @@ wpcli() {
   docker run --rm --network "$network" --volumes-from "$wp" --user 33:33 \
     -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_NAME=fixture -e WORDPRESS_DB_USER=fixture \
     -e WORDPRESS_DB_PASSWORD=fixture-only \
-    -e WORDPRESS_CONFIG_EXTRA='define("DISABLE_WP_CRON", true); if (!defined("WP_DEBUG")) { define("WP_DEBUG", true); } define("WP_DEBUG_DISPLAY", false); define("WP_HTTP_BLOCK_EXTERNAL", true); define("WP_ENVIRONMENT_TYPE", "local");' \
+    -e WORDPRESS_CONFIG_EXTRA='define("DISABLE_WP_CRON", true); if (!defined("WP_DEBUG")) { define("WP_DEBUG", true); } define("WP_DEBUG_DISPLAY", false); define("WP_HTTP_BLOCK_EXTERNAL", true); define("WP_ENVIRONMENT_TYPE", "production");' \
     --workdir /var/www/html --entrypoint wp "$cli_image" --url=https://fixture.test "$@"
 }
 capture() {
@@ -55,6 +55,19 @@ capture() {
     -H 'Host: fixture.test' -H 'X-Forwarded-Proto: https' \
     -o /tmp/fixture-page.html -w '%{http_code}' "http://127.0.0.1$url" > "$dest/$key.status"
   docker cp "$wp:/tmp/fixture-page.html" "$dest/$key.html"
+  if [[ -n "$rank_math_version" ]]; then
+    python3 - "$dest/$key.html" "$key" <<'PY'
+from html.parser import HTMLParser
+from pathlib import Path
+import sys
+class Head(HTMLParser):
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if (tag == "meta" and a.get("name") == "robots") or (tag == "link" and a.get("rel") == "canonical"):
+            print(sys.argv[2], tag, a)
+Head().feed(Path(sys.argv[1]).read_text())
+PY
+  fi
 }
 # Exercise the real public handler using a nonce from the actual rendered form.
 # All synthetic records, mail and requests stay in the disposable fixture.
@@ -173,7 +186,7 @@ render() {
   docker run -d --name "$wp" --network "$network" --network-alias fixture-wp -v "$volume:/var/www/html" \
     -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_NAME=fixture -e WORDPRESS_DB_USER=fixture \
     -e WORDPRESS_DB_PASSWORD=fixture-only \
-    -e WORDPRESS_CONFIG_EXTRA='define("DISABLE_WP_CRON", true); if (!defined("WP_DEBUG")) { define("WP_DEBUG", true); } define("WP_DEBUG_DISPLAY", false); define("WP_HTTP_BLOCK_EXTERNAL", true); define("WP_ENVIRONMENT_TYPE", "local");' \
+    -e WORDPRESS_CONFIG_EXTRA='define("DISABLE_WP_CRON", true); if (!defined("WP_DEBUG")) { define("WP_DEBUG", true); } define("WP_DEBUG_DISPLAY", false); define("WP_HTTP_BLOCK_EXTERNAL", true); define("WP_ENVIRONMENT_TYPE", "production");' \
     "$wp_image" >/dev/null
   # Socket ping can succeed during MariaDB's temporary initialization daemon.
   # Require a successful TCP query using the real fixture account from WordPress.
@@ -205,6 +218,9 @@ PHP
     --admin_password=fixture-only-not-production --admin_email=fixture@example.invalid --skip-email
   git archive "$revision" "$theme" | docker exec -i "$wp" tar -xf - -C /tmp
   docker exec "$wp" sh -c 'cp -a /tmp/wp-content/themes/upsellio /var/www/html/wp-content/themes/ && chown -R www-data:www-data /var/www/html/wp-content/themes/upsellio'
+  # Simulate public indexing policy inside the inaccessible Docker network.
+  # The X-Robots-Tag header and network isolation remain mandatory.
+  wpcli option update blog_public 1
   wpcli theme activate upsellio
   if [[ -n "$rank_math_version" ]]; then
     docker cp "$browser_dir/rank-math/seo-by-rank-math" "$wp:/var/www/html/wp-content/plugins/"
@@ -212,6 +228,7 @@ PHP
     wpcli plugin activate seo-by-rank-math
     wpcli eval 'if (!defined("RANK_MATH_VERSION")) { WP_CLI::error("Rank Math inactive"); } echo "Rank Math " . RANK_MATH_VERSION . PHP_EOL;'
     [[ "$(wpcli plugin get seo-by-rank-math --field=version)" == "$rank_math_version" ]]
+    wpcli eval 'echo wp_json_encode(["environment"=>wp_get_environment_type(),"blog_public"=>get_option("blog_public"),"rank_math_robots"=>get_option("rank-math-options-titles",[])["robots_global"]??null]) . PHP_EOL;'
   fi
   wpcli rewrite structure '/%postname%/' --hard
   docker exec -i "$wp" sh -c 'cat > /var/www/html/.htaccess' <<'HTACCESS'
