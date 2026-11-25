@@ -851,7 +851,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
 
     <!-- Wewnetrzny CTA prowadzacy do case study -->
     <div class="hr-step-cta" data-hr-anim>
-      <p>To wszystko brzmi dobrze, ale czy faktycznie działa? <a href="#case-study">Zobacz konkretny przykład →</a></p>
+      <p>To wszystko brzmi dobrze, ale czy faktycznie działa? <a href="#case-study">Zobacz, jak mierzymy wyniki →</a></p>
     </div>
   </div>
 </section>
@@ -863,50 +863,15 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
 <section class="hr-section hr-section-dark" id="case-study" aria-labelledby="hr-case-h2">
   <div class="hr-wrap">
     <header class="hr-sec-head" data-hr-anim>
-      <span class="hr-eyebrow hr-eyebrow-light">Realizacje</span>
-      <h2 id="hr-case-h2">Liczby, nie obietnice</h2>
-      <p>
-        Nie obiecuję 10 razy więcej leadów w 30 dni. Pokazuję konkretne sytuacje z konkretnymi wynikami. Pełne portfolio z liczbami i komentarzami klientów dostępne pod linkiem.
-      </p>
+      <span class="hr-eyebrow hr-eyebrow-light">Wyniki i realizacje</span>
+      <h2 id="hr-case-h2">Liczą się zamówienia i telefony, nie kliknięcia.</h2>
+      <p>Na początku współpracy ustalamy, co mierzyć. W raportach pokazuję, ile kosztuje pozyskanie klienta i co warto poprawić.</p>
     </header>
-
-    <article class="hr-case" data-hr-anim>
-      <div>
-        <span class="hr-case-tag">Firma produkcyjna z Wielkopolski</span>
-        <h3>Z agencji, która pokazywała raporty — do firmy, która przynosi klientów</h3>
-        <p>
-          Klient płacił za reklamy od dwóch lat. Co miesiąc dostawał kolorowe wykresy. Klientów jakoś nie przybywało. Sprawdziłem stronę i kampanie, pokazałem, co psuje sprzedaż, przebudowaliśmy razem najważniejsze rzeczy. Bez zwiększania budżetu reklamowego.
-        </p>
-        <div class="hr-case-stats">
-          <div class="hr-case-stat">
-            <div class="hr-case-stat-val">5x</div>
-            <div class="hr-case-stat-label">więcej zapytań / mc</div>
-          </div>
-          <div class="hr-case-stat">
-            <div class="hr-case-stat-val">-60%</div>
-            <div class="hr-case-stat-label">taniej za zapytanie</div>
-          </div>
-          <div class="hr-case-stat">
-            <div class="hr-case-stat-val">90 dni</div>
-            <div class="hr-case-stat-label">do pierwszych efektów</div>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="hr-case-quote">
-          Przez dwa lata płaciliśmy agencji, która co miesiąc przynosiła kolorowe raporty pokazujące, że wszystko się dzieje. Tylko klientów jakoś nie było więcej. Sebastian po pół godzinie pokazał nam, dlaczego — i co konkretnie zmienić. Po trzech miesiącach mamy tygodniowo tyle zapytań, co wcześniej przez cały miesiąc.
-          <div class="hr-case-quote-author">— Właściciel firmy produkcyjnej, Wielkopolska</div>
-        </div>
-        <div style="margin-top:20px">
-          <a href="<?php echo esc_url($portfolio_url); ?>" class="hr-btn hr-btn-d">Zobacz pełne portfolio →</a>
-        </div>
-      </div>
-    </article>
-
-    <!-- Wewnetrzny CTA prowadzacy do procesu -->
-    <div class="hr-step-cta" data-hr-anim>
-      <p>Chcesz zobaczyć, jak wyglądałaby praca u Ciebie? <a href="#jak-dzialam">Sprawdź proces krok po kroku →</a></p>
+    <div class="hr-case" data-hr-anim>
+      <div><span class="hr-case-tag">Jak mierzymy wyniki</span><h3>Trzy pytania, na które odpowiadają dane</h3><div class="hr-case-stats"><div class="hr-case-stat"><div class="hr-case-stat-val">01</div><div class="hr-case-stat-label">Ile zamówień i telefonów przyniosły reklamy?</div></div><div class="hr-case-stat"><div class="hr-case-stat-val">02</div><div class="hr-case-stat-label">Ile kosztuje pozyskanie klienta?</div></div><div class="hr-case-stat"><div class="hr-case-stat-val">03</div><div class="hr-case-stat-label">Które działania warto rozwijać?</div></div></div></div>
+      <div><p>Zobacz portfolio, a na bezpłatnej rozmowie omówimy możliwości Twojej firmy.</p><a href="<?php echo esc_url($portfolio_url); ?>" class="hr-btn hr-btn-d">Zobacz pełne portfolio →</a></div>
     </div>
+    <div class="hr-step-cta" data-hr-anim><p>Chcesz zobaczyć, jak wyglądałaby praca u Ciebie? <a href="#jak-dzialam">Sprawdź proces krok po kroku →</a></p></div>
   </div>
 </section>
 
