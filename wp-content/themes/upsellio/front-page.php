@@ -544,6 +544,15 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
   .hr .hr-svc-preview{height:140px}
 }
 
+.hr .hr-about-grid{display:grid;grid-template-columns:minmax(0,460px) minmax(0,1fr);align-items:center;gap:clamp(32px,5vw,64px)}
+.hr .hr-about-grid.hr-about-no-photo{grid-template-columns:minmax(0,760px)}
+.hr .hr-about-photo{margin:0;aspect-ratio:4/5;max-width:460px;background:var(--up-mint);border-radius:28px;overflow:hidden}
+.hr .hr-about-photo img{display:block;width:100%;height:100%;object-fit:cover}
+.hr .hr-about-copy h2{font-family:var(--up-font-head);font-size:var(--up-h2);line-height:1.08;letter-spacing:-.03em;margin:0 0 18px}
+.hr .hr-about-copy p{font-size:18px;line-height:1.65;color:var(--up-ink-2);margin:0 0 16px;max-width:56ch}
+.hr .hr-about-copy .hr-btn{margin-top:12px}
+@media(max-width:860px){.hr .hr-about-grid{grid-template-columns:minmax(0,1fr)}.hr .hr-about-photo{width:100%;max-width:360px}}
+
 </style>
 
 <main class="hr" id="strona-glowna">
@@ -895,6 +904,45 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
   </div>
 </section>
 
+
+
+<!-- Redesign: about section uses existing WordPress media; no mock photo. -->
+<?php
+$hr_about_portrait = "";
+if (function_exists("upsellio_get_home_media_slot")) {
+    foreach (["about_portrait", "hero_portrait"] as $hr_portrait_key) {
+        $hr_portrait_slot = upsellio_get_home_media_slot($hr_portrait_key);
+        $hr_portrait_id = (int) ($hr_portrait_slot["attachment_id"] ?? 0);
+        if ($hr_portrait_id > 0) {
+            $hr_about_portrait = wp_get_attachment_image($hr_portrait_id, "large", false, [
+                "alt" => "Sebastian Kelm",
+                "loading" => "lazy",
+                "decoding" => "async",
+                "sizes" => "(max-width: 860px) 360px, 460px",
+            ]);
+            if ($hr_about_portrait !== "") {
+                break;
+            }
+        }
+    }
+}
+?>
+<section class="hr-section hr-about" id="kim-jestem" aria-labelledby="hr-about-h2">
+  <div class="hr-wrap">
+    <div class="hr-about-grid<?php echo $hr_about_portrait === "" ? " hr-about-no-photo" : ""; ?>">
+      <?php if ($hr_about_portrait !== "") : ?>
+        <figure class="hr-about-photo"><?php echo $hr_about_portrait; ?></figure>
+      <?php endif; ?>
+      <div class="hr-about-copy">
+        <span class="hr-eyebrow">O mnie</span>
+        <h2 id="hr-about-h2">Cześć, jestem Sebastian.</h2>
+        <p>Od ponad 10 lat zajmuję się sprzedażą. Wiem, że liczy się klient, który kupuje — nie kliknięcie w raporcie.</p>
+        <p>Pracuję sam i biorę tylko kilku klientów naraz. Dzięki temu znam Twój biznes, a Ty zawsze wiesz, z kim rozmawiasz.</p>
+        <a class="hr-btn hr-btn-g" href="<?php echo esc_url($o_mnie_url); ?>">Dowiedz się więcej o mnie →</a>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- ====================================================================
      SEKCJA 07 — PROCES (4 kroki)
