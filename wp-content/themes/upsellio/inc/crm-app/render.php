@@ -133,12 +133,12 @@ function upsellio_crm_app_template_redirect()
         $settings_tab = "general";
     }
     $task_tab = isset($_GET["task_tab"]) ? sanitize_key((string) wp_unslash($_GET["task_tab"])) : "all";
-    if (!in_array($task_tab, ["all", "today", "tomorrow", "overdue", "week"], true)) {
+    if (!in_array($task_tab, ["all", "today", "tomorrow", "overdue", "week", "thisweek", "done"], true)) {
         $task_tab = "all";
     }
     $task_cal_week_offset = 0;
     if ($view === "tasks" && $task_tab === "week" && isset($_GET["week_offset"])) {
-        $task_cal_week_offset = (int) wp_unslash($_GET["week_offset"]);
+        $task_cal_week_offset = max(-260, min(260, (int) wp_unslash($_GET["week_offset"])));
     }
     $lead_tab = isset($_GET["lead_tab"]) ? sanitize_key((string) wp_unslash($_GET["lead_tab"])) : "all";
     if (!in_array($lead_tab, ["all", "new", "contact", "qualified", "rejected", "converted"], true)) {
@@ -4172,34 +4172,25 @@ function upsellio_crm_app_template_redirect()
               $today_end_ts = $tomorrow_start_ts - 1;
               $tomorrow_end_ts = $local_today->modify("+2 days")->getTimestamp() - 1;
               $tasks_filtered = [];
+              $task_counts = ["today" => 0, "tomorrow" => 0, "overdue" => 0, "thisweek" => 0, "done" => 0];
+              $thisweek_end = upsellio_crm_app_calendar_week(0)->modify("+7 days")->getTimestamp();
               foreach ($tasks as $task_tf) {
                   $tf_id = (int) $task_tf->ID;
                   $tf_st = (string) get_post_meta($tf_id, "_upsellio_task_status", true);
                   $tf_due = (int) get_post_meta($tf_id, "_upsellio_task_due_at", true);
-                  if ($task_tab === "all") {
-                      $tasks_filtered[] = $task_tf;
-                      continue;
+                  $is_closed = in_array($tf_st, ["done", "cancelled"], true);
+                  $matches = [
+                      "all" => true,
+                      "done" => $tf_st === "done",
+                      "today" => !$is_closed && $tf_due >= $today_start_ts && $tf_due <= $today_end_ts,
+                      "tomorrow" => !$is_closed && $tf_due >= $tomorrow_start_ts && $tf_due <= $tomorrow_end_ts,
+                      "overdue" => !$is_closed && $tf_due > 0 && $tf_due < time(),
+                      "thisweek" => !$is_closed && $tf_due >= upsellio_crm_app_calendar_week(0)->getTimestamp() && $tf_due < $thisweek_end,
+                  ];
+                  foreach ($task_counts as $key => $count) {
+                      if ($matches[$key]) { $task_counts[$key]++; }
                   }
-                  if (in_array($tf_st, ["done", "cancelled"], true)) {
-                      continue;
-                  }
-                  if ($task_tab === "overdue") {
-                      if ($tf_due > 0 && $tf_due < $today_start_ts) {
-                          $tasks_filtered[] = $task_tf;
-                      }
-                      continue;
-                  }
-                  if ($task_tab === "today") {
-                      if ($tf_due >= $today_start_ts && $tf_due <= $today_end_ts) {
-                          $tasks_filtered[] = $task_tf;
-                      }
-                      continue;
-                  }
-                  if ($task_tab === "tomorrow") {
-                      if ($tf_due >= $tomorrow_start_ts && $tf_due <= $tomorrow_end_ts) {
-                          $tasks_filtered[] = $task_tf;
-                      }
-                  }
+                  if (!empty($matches[$task_tab])) { $tasks_filtered[] = $task_tf; }
               }
               if ($task_tab !== "week") {
                   $crm_list_page = upsellio_crm_app_slice_list_page($tasks_filtered, (int) ($_GET["crm_page"] ?? 1));
@@ -4219,22 +4210,21 @@ function upsellio_crm_app_template_redirect()
               ?>
               <div class="crm-view-tabs" style="grid-column:span 12;margin-bottom:6px">
                 <button type="button" class="crm-tab-link is-active" data-view-toggle="list"><?php esc_html_e("Lista", "upsellio"); ?></button>
-                <button type="button" class="crm-tab-link" data-view-toggle="cal"><?php esc_html_e("Kalendarz", "upsellio"); ?></button>
+                <a class="crm-tab-link<?php echo $task_tab === "week" ? " is-active" : ""; ?>" href="<?php echo $task_tab_url("week"); ?>">Tydzień</a>
+                <a class="crm-tab-link" href="<?php echo esc_url(upsellio_crm_url("calendar")); ?>">Kalendarz</a>
               </div>
               <div id="crm-pane-list">
               <div class="crm-view-tabs" id="crm-list-tabs" style="grid-column:span 12">
-                <a class="crm-tab-link<?php echo $task_tab === "today" ? " is-active" : ""; ?>" href="<?php echo $task_tab_url("today"); ?>"><?php esc_html_e("Dziś", "upsellio"); ?></a>
-                <a class="crm-tab-link<?php echo $task_tab === "tomorrow" ? " is-active" : ""; ?>" href="<?php echo $task_tab_url("tomorrow"); ?>"><?php esc_html_e("Jutro", "upsellio"); ?></a>
-                <a class="crm-tab-link<?php echo $task_tab === "overdue" ? " is-active" : ""; ?>" href="<?php echo $task_tab_url("overdue"); ?>"><?php esc_html_e("Zaległe", "upsellio"); ?></a>
-                <a class="crm-tab-link<?php echo $task_tab === "all" ? " is-active" : ""; ?>" href="<?php echo $task_tab_url("all"); ?>"><?php esc_html_e("Wszystkie", "upsellio"); ?></a>
-                <a class="crm-tab-link<?php echo $task_tab === "week" ? " is-active" : ""; ?>" href="<?php echo $task_tab_url("week"); ?>"><?php esc_html_e("Tydzień (godziny)", "upsellio"); ?></a>
+                <?php foreach (["today" => "Dziś", "overdue" => "Zaległe", "thisweek" => "Ten tydzień", "tomorrow" => "Jutro", "all" => "Wszystkie", "done" => "Zrobione"] as $key => $label) : ?>
+                  <a class="crm-tab-link<?php echo $task_tab === $key ? " is-active" : ""; ?>" href="<?php echo $task_tab_url($key); ?>"><?php echo esc_html($label); ?><?php if (isset($task_counts[$key])) : ?> (<?php echo (int) $task_counts[$key]; ?>)<?php endif; ?></a>
+                <?php endforeach; ?>
               </div>
               <section class="card kpi"><span class="muted">Otwarte taski</span><b><?php echo esc_html((string) $open_tasks); ?></b></section>
               <section class="card kpi"><span class="muted">Zamknięte taski</span><b><?php echo esc_html((string) $done_tasks); ?></b></section>
               <section class="card kpi"><span class="muted">Po terminie</span><b><?php echo esc_html((string) $overdue_tasks); ?></b></section>
               <section class="card kpi"><span class="muted">Wszystkie taski</span><b><?php echo esc_html((string) count($tasks)); ?></b></section>
               <div class="crm-task-add-toolbar" style="grid-column:span 12;display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap">
-                <button type="button" class="btn" id="ups-open-add-task" data-open-add-task><?php esc_html_e("Dodaj task", "upsellio"); ?></button>
+                <button type="button" class="btn" id="ups-open-add-task" data-open-add-task><?php esc_html_e("Dodaj zadanie", "upsellio"); ?></button>
               </div>
               <div class="crm-mo" id="crm-mo-add" role="dialog" aria-modal="true" aria-labelledby="crm-mo-add-title" aria-hidden="true">
                 <div class="crm-md" onclick="event.stopPropagation()">
@@ -4347,7 +4337,7 @@ function upsellio_crm_app_template_redirect()
                 <?php endif; ?>
                 <?php if ($task_tab !== "week") : ?>
                 <table>
-                  <thead><tr><th>Prio</th><th>Task</th><th>Deal</th><th>Kontekst oferty</th><th>Impact</th><th>Close %</th><th>Notatka</th><th>Owner</th><th>Termin</th><th>Czas</th><th>Status</th><th>Akcje</th></tr></thead>
+                  <thead><tr><th>Priorytet</th><th>Zadanie</th><th>Deal</th><th>Kontekst oferty</th><th>Wpływ</th><th>Szansa</th><th>Notatka</th><th>Opiekun</th><th>Termin</th><th>Czas</th><th>Status</th><th>Akcje</th></tr></thead>
                   <tbody>
                     <?php foreach ($tasks_filtered as $task) : ?>
                       <?php
@@ -4413,7 +4403,7 @@ function upsellio_crm_app_template_redirect()
                       </tr>
                     <?php endforeach; ?>
                     <?php if (empty($tasks_filtered)) : ?>
-                      <tr><td colspan="9">Brak tasków w tym widoku.</td></tr>
+                      <tr><td colspan="12">Brak zadań w tym widoku.</td></tr>
                     <?php endif; ?>
                   </tbody>
                 </table>
@@ -4426,14 +4416,10 @@ function upsellio_crm_app_template_redirect()
               <?php if (true) : ?>
               <?php
               $tasks_week_calendar = [];
-              $base_ts_w = current_time("timestamp") + ($task_cal_week_offset * WEEK_IN_SECONDS);
-              $week_start_ts_w = strtotime("monday this week", $base_ts_w);
-              if ($week_start_ts_w === false) {
-                  $week_start_ts_w = $base_ts_w;
-              }
+              $week_start_w = upsellio_crm_app_calendar_week($task_cal_week_offset);
               $week_days_w = [];
               for ($i_w = 0; $i_w < 7; $i_w++) {
-                  $day_ts_w = strtotime("+{$i_w} day", $week_start_ts_w);
+                  $day_ts_w = $week_start_w->modify("+" . $i_w . " days")->getTimestamp();
                   $week_days_w[] = [
                       "key" => wp_date("Y-m-d", $day_ts_w),
                       "label" => wp_date("D d.m", $day_ts_w),
@@ -4492,7 +4478,7 @@ function upsellio_crm_app_template_redirect()
                       <?php
                       $tid_b = (int) $task_b->ID;
                       $due_b = (int) get_post_meta($tid_b, "_upsellio_task_due_at", true);
-                      if ($due_b > 0) {
+                      if ($due_b > 0 || in_array((string) get_post_meta($tid_b, "_upsellio_task_status", true), ["done", "cancelled"], true)) {
                           continue;
                       }
                       $duration_b = max(15, (int) get_post_meta($tid_b, "_upsellio_task_duration_minutes", true) ?: 60);
@@ -4519,8 +4505,7 @@ function upsellio_crm_app_template_redirect()
                             <td class="ups-cal-hour-tasks"><?php echo esc_html(sprintf("%02d:00", $hour_w)); ?></td>
                             <?php foreach ($week_days_w as $day_w) : ?>
                               <?php
-                              $slot_ts_w = strtotime($day_w["key"] . " " . sprintf("%02d:00:00", $hour_w));
-                              $slot_iso_w = wp_date("Y-m-d H:i:s", $slot_ts_w);
+                              $slot_iso_w = $day_w["key"] . " " . sprintf("%02d:00:00", $hour_w);
                               $items_w = isset($tasks_week_calendar[$day_w["key"]]) && is_array($tasks_week_calendar[$day_w["key"]]) ? $tasks_week_calendar[$day_w["key"]] : [];
                               ?>
                               <td class="ups-cal-slot-tasks" data-slot-datetime="<?php echo esc_attr($slot_iso_w); ?>">
@@ -4617,15 +4602,11 @@ function upsellio_crm_app_template_redirect()
             <?php if ($view === "calendar") : ?>
               <?php
               $calendar_tasks = [];
-              $week_offset = isset($_GET["week_offset"]) ? (int) wp_unslash($_GET["week_offset"]) : 0;
-              $base_ts = current_time("timestamp") + ($week_offset * WEEK_IN_SECONDS);
-              $week_start_ts = strtotime("monday this week", $base_ts);
-              if ($week_start_ts === false) {
-                  $week_start_ts = $base_ts;
-              }
+              $week_offset = isset($_GET["week_offset"]) ? max(-260, min(260, (int) wp_unslash($_GET["week_offset"]))) : 0;
+              $week_start = upsellio_crm_app_calendar_week($week_offset);
               $week_days = [];
               for ($i = 0; $i < 7; $i++) {
-                  $day_ts = strtotime("+{$i} day", $week_start_ts);
+                  $day_ts = $week_start->modify("+" . $i . " days")->getTimestamp();
                   $week_days[] = [
                       "key" => wp_date("Y-m-d", $day_ts),
                       "label" => wp_date("D d.m", $day_ts),
@@ -4656,7 +4637,7 @@ function upsellio_crm_app_template_redirect()
               ksort($calendar_tasks);
               ?>
               <section class="card">
-                <h2>Kalendarz tygodniowy (przeciągnij i upuść + oś czasu)</h2>
+                <h2>Tydzień: <?php echo esc_html(wp_date("d.m", $week_start->getTimestamp()) . " – " . wp_date("d.m.Y", $week_start->modify("+6 days")->getTimestamp())); ?></h2><p class="muted">Przeciągnij zadanie z backlogu na wybraną godzinę.</p>
                 <p>
                   <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "calendar", "week_offset" => $week_offset - 1], home_url("/crm-app/"))); ?>">&larr; Poprzedni tydzień</a>
                   <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "calendar", "week_offset" => 0], home_url("/crm-app/"))); ?>">Dziś</a>
@@ -4682,7 +4663,7 @@ function upsellio_crm_app_template_redirect()
                       <?php
                       $tid = (int) $task->ID;
                       $due_at = (int) get_post_meta($tid, "_upsellio_task_due_at", true);
-                      if ($due_at > 0) {
+                      if ($due_at > 0 || in_array((string) get_post_meta($tid, "_upsellio_task_status", true), ["done", "cancelled"], true)) {
                           continue;
                       }
                       $duration = max(15, (int) get_post_meta($tid, "_upsellio_task_duration_minutes", true) ?: 60);
@@ -4709,8 +4690,7 @@ function upsellio_crm_app_template_redirect()
                             <td class="ups-cal-hour"><?php echo esc_html(sprintf("%02d:00", $hour)); ?></td>
                             <?php foreach ($week_days as $day) : ?>
                               <?php
-                              $slot_ts = strtotime($day["key"] . " " . sprintf("%02d:00:00", $hour));
-                              $slot_iso = wp_date("Y-m-d H:i:s", $slot_ts);
+                              $slot_iso = $day["key"] . " " . sprintf("%02d:00:00", $hour);
                               $items = isset($calendar_tasks[$day["key"]]) && is_array($calendar_tasks[$day["key"]]) ? $calendar_tasks[$day["key"]] : [];
                               ?>
                               <td class="ups-cal-slot" data-slot-datetime="<?php echo esc_attr($slot_iso); ?>">
