@@ -26,7 +26,7 @@ jobs:
       - name: Check PHP syntax
         run: |
           php -v
-          for file in front-page.php functions.php header.php footer.php home.php single.php ups-blog-core.php page-kontakt.php page-marketing-google-ads.php page-marketing-meta-ads.php page-tworzenie-stron-internetowych.php inc/form-component.php; do
+          for file in front-page.php functions.php header.php footer.php home.php single.php ups-blog-core.php page-kontakt.php page-marketing-google-ads.php page-marketing-meta-ads.php page-tworzenie-stron-internetowych.php inc/form-component.php inc/server-side-tracking.php; do
             php -l "wp-content/themes/upsellio/$file" || exit 1
           done
       - name: Check shared JavaScript
@@ -56,5 +56,14 @@ jobs:
               assert anchors <= ids, (name, anchors - ids)
           assert 'wp_footer();' in (root / "footer.php").read_text()
           assert 'value="upsellio_lead_form_submit"' not in (root / "ups-blog-core.php").read_text()
+          js = (root / "assets/js/upsellio.js").read_text()
+          assert js.index("ensureLeadEventId(serverForm, true)") < js.index("let response = await fetch(resolveFormActionUrl(serverForm)")
+          assert 'url.searchParams.get("ups_lead_status") === "success"' in js
+          assert "if (!isConfirmedLeadSuccess(response) || reason)" in js
+          assert "serverForm.submit();" not in js
+          assert "event:'lead_form_submit'" not in (root / "front-page.php").read_text()
+          tracking = (root / "inc/server-side-tracking.php").read_text()
+          assert '$allowStatistics && $gaApiSecret' in tracking
+          assert '$allowMarketing && $metaToken' in tracking
           print("Static regression contracts passed.")
           PY
