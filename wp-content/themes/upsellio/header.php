@@ -76,6 +76,15 @@ foreach ((array) $primary_navigation_links as $nav_link) {
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
+  <script data-cookieconsent="ignore">
+    // Essential navigation only; reserve the collapsed header from the first paint.
+    document.documentElement.classList.add("up-nav-js");
+    window.addEventListener("load", function () {
+      if (!document.querySelector(".up-redesign-nav.up-nav-ready")) {
+        document.documentElement.classList.remove("up-nav-js");
+      }
+    }, { once: true });
+  </script>
   <?php if ($upsellio_load_public_tracking) : ?>
   <?php
   $upsellio_clarity_project_id = defined("UPSELLIO_CLARITY_PROJECT_ID") && (string) UPSELLIO_CLARITY_PROJECT_ID !== ""
@@ -144,15 +153,6 @@ foreach ((array) $primary_navigation_links as $nav_link) {
 <noscript data-cookieconsent="marketing"><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1281722377419475&ev=PageView&noscript=1" alt="" /></noscript>
 <?php endif; ?>
 <a class="skip-link" href="#main-content">Przejdź do treści</a>
-<script>
-  // Avoid rendering the expanded no-JS menu during normal page loading.
-  document.documentElement.classList.add("up-nav-js");
-  window.addEventListener("load", function () {
-    if (!document.querySelector(".up-redesign-nav.up-nav-ready")) {
-      document.documentElement.classList.remove("up-nav-js");
-    }
-  });
-</script>
 <header class="nav site-nav up-redesign-nav">
   <div class="wrap nav-inner">
     <a href="<?php echo esc_url(home_url("/")); ?>" class="brand" aria-label="Upsellio — strona główna">
