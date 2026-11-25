@@ -1,0 +1,98 @@
+/* Upsellio CRM redesign, phase 1. Reference: both supplied HTML boards.
+   Scope to the authenticated app, preserving all existing view behavior. */
+body.ups-crm-redesign {
+  --bg: #f5f6f8; --surface: #fff; --text: #0f1115; --text-2: #3a3d44;
+  --text-3: #5f636b; --border: #e3e6ea; --border-s: #c4c8ce;
+  --teal: #06745f; --teal-hover: #055b4b; --teal-h: #055b4b; --teal-dark: #055b4b;
+  --teal-soft: #dff5ef; --teal-line: #b6e4d7;
+  --ac: #06745f; --ac-dark: #055b4b; --ac-text: #06745f; --ac-light: #dff5ef;
+  --sb: #fff; --sb2: #f1f3f5; --sb-act: #dff5ef; --sb-txt: #3a3d44;
+  --sb-act-txt: #06745f; --sb-top: #fff;
+  --bg-main: #f5f6f8; --bg-row: #eceef1; --text-main: #0f1115; --text-muted: #5f636b;
+  --danger: #b42318; --warn: #b54708; --success: #06745f;
+  --sidebar: 248px; --crm-sidebar-w: 248px;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 12px; --r-xl: 16px;
+  background: var(--bg); color: var(--text); font-family: var(--font-body); line-height: 1.5;
+}
+.ups-crm-redesign .layout.crm-app-shell > .crm-sidebar {
+  background: #fff !important; border-right: 1px solid var(--border);
+  padding: 18px 14px; flex: 0 0 var(--sidebar); width: var(--sidebar); min-width: var(--sidebar);
+}
+.ups-crm-redesign .crm-sb-top { padding: 0 8px 14px; border: 0; background: #fff; }
+.ups-crm-redesign .crm-sb-brand { font-family: var(--font-display); font-size: 20px; font-weight: 800; color: var(--text); letter-spacing: -.025em; }
+.ups-crm-redesign .crm-sb-user { font-size: 12px; color: var(--text-3); }
+.ups-crm-redesign .crm-sb-mark { width: 34px; height: 34px; border-radius: 10px; background: #06745f; }
+.ups-crm-redesign .crm-sb-body { padding: 4px 0 12px; gap: 2px; }
+.ups-crm-redesign .crm-sb-sep { padding: 16px 10px 6px; font-size: 11px; color: var(--text-3); font-weight: 700; letter-spacing: .04em; }
+.ups-crm-redesign .crm-sb-foot { padding: 10px 0 0; border-top: 1px solid var(--border); }
+.ups-crm-redesign .side-link.crm-si { padding: 8px 10px; border-radius: 7px; min-height: 36px; color: var(--text-2); font-weight: 500; font-size: 14px; }
+.ups-crm-redesign .side-link.crm-si:hover { background: #f1f3f5; color: var(--text); }
+.ups-crm-redesign .side-link.crm-si.active { background: var(--teal-soft); color: var(--teal); font-weight: 700; }
+.ups-crm-redesign .crm-si.active i { color: var(--teal); }
+.ups-crm-redesign .crm-si .crm-si-hint { color: var(--text-3); font-size: 11px; }
+.ups-crm-redesign .crm-si.active .crm-si-hint { color: var(--teal); }
+.ups-crm-redesign .crm-sb-badge { background: #eef0f3; color: var(--text-2); }
+.ups-crm-redesign .crm-sb-badge.warn { background: #fff2de; color: #b54708; }
+.ups-crm-redesign .crm-sidebar-search { display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); background: #f5f6f8; border-radius:8px; color:var(--text-3); margin:0 0 6px; }
+.ups-crm-redesign .crm-sidebar-search input { background:transparent; border:0; padding:0; width:100%; min-width:0; font-size:13px; }
+.ups-crm-redesign .crm-sidebar-search kbd { font: 11px var(--font-body); white-space:nowrap; }
+.ups-crm-redesign .crm-main { background: var(--bg) !important; }
+.ups-crm-redesign .topbar.crm-topbar { background:#fff; min-height:60px; padding:10px 28px; gap:12px; border-bottom:1px solid var(--border); }
+.ups-crm-redesign .crm-topbar-title, .ups-crm-redesign .topbar-title { color:var(--text); font-weight:700; }
+.ups-crm-redesign .crm-crumb-bar { color:var(--text-3); font-size:13px; }
+.ups-crm-redesign .crm-crumb-bar a { color:var(--text-3); }
+.ups-crm-redesign .crm-crumb-current { color:var(--text); }
+.ups-crm-redesign .layout.crm-app-shell .main > .content:not(.content--inbox) { padding:24px 28px 40px; }
+.ups-crm-redesign .crm-content { padding:0; gap:16px; }
+.ups-crm-redesign .crm-page-heading { grid-column:1/-1; margin-bottom:4px; min-width:0; }
+.ups-crm-redesign .crm-page-heading h1, .ups-crm-redesign .crm-dash-pulse h1 { font-family:var(--font-display); font-size:28px; font-weight:800; letter-spacing:-.02em; line-height:1.2; color:var(--text); }
+.ups-crm-redesign .grid { gap:16px; }
+.ups-crm-redesign .crm-main .card { border-radius:12px; border-color:var(--border); background:#fff; box-shadow:none; }
+.ups-crm-redesign .crm-main .card h2, .ups-crm-redesign .crm-main .card h3 { font-family:var(--font-body); font-weight:700; }
+.ups-crm-redesign .crm-main .card h2 { font-size:15px; }
+.ups-crm-redesign .crm-kpi-row { gap:14px; }
+.ups-crm-redesign .crm-kpi { padding:16px; border-radius:12px; border-color:var(--border); }
+.ups-crm-redesign .crm-kpi.hl { border-left-color:var(--teal); }
+.ups-crm-redesign .crm-kpi-lbl { font-size:12px; color:var(--text-3); }
+.ups-crm-redesign .crm-kpi-val, .ups-crm-redesign .kpi b { font-family:var(--font-display); font-weight:700; font-variant-numeric:tabular-nums; font-size:28px; }
+.ups-crm-redesign .crm-kpi-sub { font-size:12px; }
+.ups-crm-redesign .crm-kpi-sub.up { color:var(--teal); }
+.ups-crm-redesign .crm-main .btn, .ups-crm-redesign .crm-tb-btn { border-radius:8px; font-weight:600; min-height:34px; border-color:transparent; }
+.ups-crm-redesign .crm-main .btn.alt, .ups-crm-redesign .crm-tb-btn:not(.primary) { background:#fff; color:var(--text-2); border-color:var(--border); }
+.ups-crm-redesign .crm-main .btn:not(.alt):not(.ai), .ups-crm-redesign .crm-tb-btn.primary { background:var(--teal); color:#fff; }
+.ups-crm-redesign .crm-main .btn:not(.alt):not(.ai):hover, .ups-crm-redesign .crm-tb-btn.primary:hover { background:var(--teal-hover); }
+.ups-crm-redesign .crm-main .btn.ai { background:var(--teal-soft); color:var(--teal); border-color:var(--teal-line); }
+.ups-crm-redesign .crm-main :is(input, select, textarea):not([type=checkbox]):not([type=radio]):not([type=range]) { border-color:var(--border); background:#fff; border-radius:8px; }
+.ups-crm-redesign .crm-main :is(input[type=checkbox], input[type=radio]) { width:auto; accent-color:var(--teal); }
+.ups-crm-redesign :is(a,button,input,select,textarea):focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+.ups-crm-redesign .crm-main table { font-size:13px; }
+.ups-crm-redesign .crm-main thead th { background:#f5f6f8; color:var(--text-3); font-weight:600; text-transform:none; letter-spacing:0; font-size:12px; }
+.ups-crm-redesign .crm-main tbody tr:hover > td { background:#fafbfc; }
+.ups-crm-redesign .crm-main th, .ups-crm-redesign .crm-main td { border-color:#eceef1; padding:12px; }
+.ups-crm-redesign .crm-main .crm-view-tabs .crm-tab-link, .ups-crm-redesign .crm-page-tabs a, .ups-crm-redesign .crm-tab { border-radius:8px; background:#fff; }
+.ups-crm-redesign .crm-main .crm-view-tabs .crm-tab-link.is-active, .ups-crm-redesign .crm-page-tabs a.is-active, .ups-crm-redesign .crm-tab.active { background:var(--teal-soft); color:var(--teal); border-color:var(--teal-line); }
+.ups-crm-redesign .crm-period-tabs { background:#eef0f3; }
+.ups-crm-redesign .crm-period-tab.is-on { border-color:var(--border); }
+.ups-crm-redesign .crm-main .crm-modal { border-radius:12px; }
+.ups-crm-redesign .crm-main .crm-brief-card { background:#06745f; }
+.ups-crm-redesign .crm-main .pipeline-col { border-radius:10px; }
+.ups-crm-redesign .crm-main .pipeline-card { border-radius:8px; }
+.ups-crm-redesign .crm-mobile-menu { display:none; }
+@media(max-width:1100px) {
+  .ups-crm-redesign .layout.crm-app-shell { flex-direction:column !important; height:auto; min-height:100vh; overflow:visible; }
+  .ups-crm-redesign .layout.crm-app-shell > .crm-sidebar { flex:0 0 auto; width:100%; min-width:0; padding:12px 16px; border-right:0; border-bottom:1px solid var(--border); }
+  .ups-crm-redesign .crm-sidebar .crm-sb-top { padding:0; justify-content:space-between; }
+  .ups-crm-redesign .crm-mobile-menu { display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:6px 10px; background:#fff; color:var(--text); border:1px solid var(--border); border-radius:8px; }
+  .ups-crm-redesign .crm-sidebar[data-collapsed="true"] :is(.crm-sb-body,.crm-sb-foot,.crm-sidebar-search) { display:none; }
+  .ups-crm-redesign .crm-sidebar .crm-sidebar-search { margin-top:12px; }
+  .ups-crm-redesign .layout.crm-app-shell > .crm-main { overflow:visible; }
+  .ups-crm-redesign .topbar.crm-topbar { padding:12px 16px; }
+  .ups-crm-redesign .layout.crm-app-shell .main > .content:not(.content--inbox) { padding:20px 16px 32px; }
+  .ups-crm-redesign .crm-main .card:has(> table) { overflow-x:auto; }
+  .ups-crm-redesign .crm-main .crm-kpi-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:600px) {
+  .ups-crm-redesign .crm-main .crm-kpi-row, .ups-crm-redesign .crm-main .grid2 { grid-template-columns:1fr; }
+  .ups-crm-redesign .crm-page-heading h1, .ups-crm-redesign .crm-dash-pulse h1 { font-size:24px; }
+  .ups-crm-redesign .crm-main .card { padding:14px; }
+}
