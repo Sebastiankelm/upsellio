@@ -18,8 +18,8 @@ jobs:
         run: |
           python3 - <<'PY'
           import base64, hashlib, json, pathlib, shutil, subprocess, sys
-          sys.path.insert(0, "tools/offer-release")
-          from offer_visual_patch import apply
+          import runpy
+          apply = runpy.run_path("tools/offer-release/offer-visual-patch.py")["apply"]
           base = "production-2.0.5"
           release = "offer-visual-20261125-206"
           prior = "crm-route-fix-20261125-205"
