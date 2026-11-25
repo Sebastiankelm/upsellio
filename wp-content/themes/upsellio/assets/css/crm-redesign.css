@@ -309,3 +309,37 @@ body.ups-crm-redesign {
 @media(max-width:420px) {
   .ups-crm-redesign .crm-report-kpis { grid-template-columns:minmax(0,1fr); }
 }
+
+/* Daily report: modular structure, readable values and non-overflowing navigation. */
+.ups-crm-redesign .layout.crm-app-shell > .crm-main{min-width:0}
+.ups-crm-redesign .topbar.crm-topbar{height:auto;flex-wrap:wrap;align-items:center;min-width:0}
+.ups-crm-redesign .crm-topbar .topbar-zone--title{flex:1 1 320px;min-width:0;align-items:flex-start;gap:6px}
+.ups-crm-redesign .crm-topbar .crm-global-search{width:min(100%,340px);max-width:340px;min-width:0;flex:0 1 auto}
+.ups-crm-redesign .crm-global-search input{min-width:0;box-sizing:border-box}
+.ups-crm-redesign .crm-topbar .topbar-zone--actions{flex:1 1 auto;min-width:0;max-width:100%;justify-content:flex-end;flex-wrap:wrap}
+.ups-crm-redesign .crm-topbar .crm-top-user{flex-wrap:wrap;min-width:0;max-width:100%}
+.ups-crm-redesign .crm-topbar .crm-top-user-name{overflow-wrap:anywhere}
+.ups-crm-redesign .crm-qa-strip,.ups-crm-redesign .crm-qa-btns{min-width:0;flex-wrap:wrap}
+.ups-crm-redesign[data-crm-view="analytics"] .crm-analytics-shell{display:flex;min-width:0;flex-direction:column}
+.ups-crm-redesign[data-crm-view="analytics"] .crm-analytics-toolbar{display:flex;flex-wrap:wrap;min-width:0;padding:12px 16px;background:white;border:1px solid var(--border);border-radius:12px}
+.ups-crm-redesign[data-crm-view="analytics"] .crm-page-tabs{display:flex;min-width:0;overflow-x:auto;flex-wrap:wrap;align-items:center}
+.ups-crm-redesign[data-crm-view="analytics"] .crm-page-tabs a{flex:0 0 auto;white-space:nowrap}
+.ups-crm-redesign .crm-today-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;min-width:0}
+.ups-crm-redesign .crm-today-heading,.ups-crm-redesign .crm-today-board>.crm-brief-card,.ups-crm-redesign .crm-today-wide{grid-column:1/-1;min-width:0}
+.ups-crm-redesign .crm-today-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.ups-crm-redesign .crm-today-heading h1{font-size:28px;line-height:1.2;margin:0;font-family:var(--font-display)}
+.ups-crm-redesign .crm-today-heading p{margin:4px 0 0}
+.ups-crm-redesign .crm-today-board>.crm-brief-card{margin:0!important;padding:20px;border-radius:14px}
+.ups-crm-redesign .crm-today-board .crm-brief-title{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+.ups-crm-redesign .crm-today-panel.card{grid-column:auto;min-width:0;padding:20px;display:flex;flex-direction:column;gap:10px}
+.ups-crm-redesign .crm-today-panel.crm-today-wide{grid-column:1/-1}
+.ups-crm-redesign .crm-today-panel h2{margin:0;font-size:16px}
+.ups-crm-redesign .crm-today-panel p{margin:0;overflow-wrap:anywhere}
+.ups-crm-redesign .crm-today-panel .crm-report-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin:0}
+.ups-crm-redesign .crm-today-panel .crm-report-kpis>div{padding:14px!important;border:1px solid var(--border);background:var(--bg)!important;min-width:0}
+.ups-crm-redesign .crm-today-panel .crm-report-kpis>div>div:nth-child(2){overflow-wrap:anywhere}
+@media(max-width:760px){
+  .ups-crm-redesign .crm-topbar .topbar-zone--actions{justify-content:flex-start}
+  .ups-crm-redesign .crm-today-board{grid-template-columns:minmax(0,1fr)}
+  .ups-crm-redesign[data-crm-view="analytics"] .crm-page-tabs{flex-wrap:nowrap}
+}
