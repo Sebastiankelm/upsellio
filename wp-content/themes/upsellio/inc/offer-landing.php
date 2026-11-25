@@ -1661,10 +1661,7 @@ function upsellio_offer_public_messaging_ajax()
     $saved_contact = false;
     if ($client_email === "" && is_email($contact_in)) {
         $client_email = $contact_in;
-        if ($client_id > 0) {
-            update_post_meta($client_id, "_ups_client_email", $client_email);
-            $saved_contact = true;
-        }
+        // An unverified public submission must not modify the CRM client record.
     }
 
     if ($client_email === "") {
@@ -1764,11 +1761,6 @@ function upsellio_offer_accept_full_ajax()
         $variant_label = (string) ($variant_map[$variant_key]["label"] ?? "");
         $variant_price = (string) ($variant_map[$variant_key]["price_hint"] ?? "");
     }
-    if (!function_exists("upsellio_offer_apply_public_accept") || !upsellio_offer_apply_public_accept($offer_id)) {
-        wp_send_json_error(["message" => "Nie można zapisać akceptacji."]);
-    }
-
-    $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
     // Preserve the CRM's verified contact; store the acceptor separately.
     $decision_payload = [
         "contact_email" => $contact_email,
@@ -1786,7 +1778,18 @@ function upsellio_offer_accept_full_ajax()
         "offer_price" => (string) get_post_meta($offer_id, "_ups_offer_price", true),
         "cta_source" => isset($_POST["cta_source"]) ? sanitize_key(wp_unslash($_POST["cta_source"])) : "pricing",
     ];
-    update_post_meta($offer_id, "_ups_offer_accept_payload", $decision_payload);
+    $terms_snapshot = [
+        "title" => get_the_title($offer_id),
+        "content" => (string) get_post_field("post_content", $offer_id),
+        "layout" => $offer_payload,
+        "price" => $decision_payload["offer_price"],
+        "variant" => $variant_map[$variant_key] ?? [],
+        "version" => $decision_payload["offer_version"],
+        "accepted_at" => current_time("mysql"),
+    ];
+    if (!function_exists("upsellio_offer_apply_public_accept") || !upsellio_offer_apply_public_accept($offer_id, $decision_payload, $terms_snapshot)) {
+        wp_send_json_error(["message" => "Nie można zapisać akceptacji. Oferta mogła już zostać zaakceptowana lub zamknięta."], 409);
+    }
 
     [$owner_name, $owner_email] = upsellio_offer_public_resolve_owner_mail($offer_id);
     $rows = [
