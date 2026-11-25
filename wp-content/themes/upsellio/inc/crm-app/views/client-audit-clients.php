@@ -11,8 +11,9 @@ if (!defined("ABSPATH")) {
 
 
 $ca_profiles = function_exists("ups_audit_get_client_profile_rows") ? ups_audit_get_client_profile_rows() : [];
+$ca_profiles = array_values(array_filter($ca_profiles, static function ($profile) { return is_array($profile) && upsellio_crm_app_can_access_audit_client((int) ($profile["id"] ?? 0)); }));
 
-$ca_portfolio = function_exists("ups_audit_get_portfolio_rows") ? ups_audit_get_portfolio_rows() : [];
+$ca_portfolio = current_user_can("manage_options") && function_exists("ups_audit_get_portfolio_rows") ? ups_audit_get_portfolio_rows() : [];
 
 $crm_base = function_exists("upsellio_crm_url") ? home_url("/crm-app/") : home_url("/crm-app/");
 
@@ -33,8 +34,12 @@ $crm_base = function_exists("upsellio_crm_url") ? home_url("/crm-app/") : home_u
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
 
       <a class="btn alt" href="<?php echo esc_url(function_exists("upsellio_crm_url") ? upsellio_crm_url("ca-command-center") : home_url("/crm-app/?view=ca-command-center")); ?>"><i class="ti ti-layout-grid" aria-hidden="true"></i> <?php esc_html_e("Command Center", "upsellio"); ?></a>
+<?php if (current_user_can("manage_options")) : ?>
       <a class="btn alt" href="<?php echo esc_url(function_exists("upsellio_crm_url") ? upsellio_crm_url("ca-accounts") : home_url("/crm-app/?view=ca-accounts")); ?>"><i class="ti ti-brand-google" aria-hidden="true"></i> <?php esc_html_e("Połączenia Google", "upsellio"); ?></a>
+<?php endif; ?>
+<?php if (current_user_can("manage_options")) : ?>
       <a class="btn alt" href="<?php echo esc_url(function_exists("upsellio_crm_url") ? upsellio_crm_url("ca-meta-accounts") : home_url("/crm-app/?view=ca-meta-accounts")); ?>"><i class="ti ti-brand-facebook" aria-hidden="true"></i> <?php esc_html_e("Połączenia Meta", "upsellio"); ?></a>
+<?php endif; ?>
 
       <?php if (!empty($ca_profiles)) : ?>
 
@@ -42,7 +47,7 @@ $crm_base = function_exists("upsellio_crm_url") ? home_url("/crm-app/") : home_u
 
       <?php endif; ?>
 
-      <button type="button" class="btn alt" id="ups-audit-sync-all-btn"><i class="ti ti-refresh" aria-hidden="true"></i> <?php esc_html_e("Sync wszystkich zasobów", "upsellio"); ?></button>
+      <?php if (current_user_can("manage_options")) : ?><button type="button" class="btn alt" id="ups-audit-sync-all-btn"><i class="ti ti-refresh" aria-hidden="true"></i> <?php esc_html_e("Sync wszystkich zasobów", "upsellio"); ?></button><?php endif; ?>
 
     </div>
 
@@ -263,6 +268,7 @@ $crm_base = function_exists("upsellio_crm_url") ? home_url("/crm-app/") : home_u
 
 
 
+<?php if (current_user_can("manage_options")) : ?>
 <section class="card">
 
   <details>
@@ -373,7 +379,9 @@ $crm_base = function_exists("upsellio_crm_url") ? home_url("/crm-app/") : home_u
 
                 <div class="crm-audit-row-actions">
 
+<?php if (current_user_can("manage_options")) : ?>
                   <a class="btn alt" href="<?php echo esc_url(function_exists("upsellio_crm_url") ? upsellio_crm_url("ca-accounts") : home_url("/crm-app/?view=ca-accounts")); ?>"><?php esc_html_e("Zasoby", "upsellio"); ?></a>
+<?php endif; ?>
 
                   <button type="button" class="btn alt" data-ups-audit-open-map-account data-account-id="<?php echo (int) $aid; ?>" data-account-name="<?php echo esc_attr((string) ($prow["title"] ?? "")); ?>"><?php esc_html_e("Mapuj", "upsellio"); ?></button>
 
@@ -400,3 +408,5 @@ $crm_base = function_exists("upsellio_crm_url") ? home_url("/crm-app/") : home_u
 </section>
 
 
+
+<?php endif; ?>
