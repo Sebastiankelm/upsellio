@@ -40,6 +40,15 @@ jobs:
           printf '/* Theme Name: Offer CI */\n' > "$theme/style.css"
           printf '<?php // CI theme only\n' > "$theme/index.php"
           cp wp-content/themes/upsellio/inc/{offers,offer-landing,followups}.php "$theme/inc/"
+          # Test the exact transformation used to build the 2.0.6 ZIP.
+          python3 - "$theme/inc/offer-landing.php" <<'PY'
+          import hashlib, pathlib, runpy, sys
+          p=pathlib.Path(sys.argv[1])
+          source=p.read_bytes()
+          assert hashlib.sha256(source).hexdigest()=="0e058aea47538268bca586a51f280b289b3964d53a464a57d3feb9123d426293", "Unexpected base landing"
+          p.write_bytes(runpy.run_path("tools/offer-release/offer-visual-patch.py")["landing"](source.decode()).encode())
+          PY
+          php -l "$theme/inc/offer-landing.php"
           cat > "$theme/functions.php" <<'PHP'
           <?php
           if (wp_get_environment_type() !== 'local') { exit; }
