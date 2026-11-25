@@ -399,6 +399,8 @@ $faq_items = [
 @media(max-width:720px){.up-mock-grid{grid-template-columns:minmax(0,1fr)}}
 
 .up-mock-scope{background:#fff}.up-mock-subtitle{max-width:56ch;color:#5f636b;font-size:17px;line-height:1.6}.up-mock-scope .up-mock-grid article{background:#fff}.up-mock-check{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#dff5ef;color:#06745f;font-size:22px;font-weight:700;margin-bottom:14px}
+
+.up-design-problemy{background:#f5f6f8}.up-design-proces{background:#fff}.up-design-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:24px}.up-design-grid.up-design-three{grid-template-columns:repeat(3,minmax(0,1fr))}.up-design-grid article{background:white;border:1px solid #e3e6ea;border-radius:20px;padding:24px;min-width:0}.up-design-grid h3{font:700 20px/1.25 "Bricolage Grotesque",sans-serif;color:#0f1115;margin:14px 0 8px}.up-design-grid p{font:400 16px/1.6 "DM Sans",sans-serif;color:#3a3d44;margin:0}.up-design-number{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:12px;color:#06745f;background:#dff5ef;font-weight:800}@media(max-width:979px){.up-design-grid,.up-design-grid.up-design-three{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:640px){.up-design-grid,.up-design-grid.up-design-three{grid-template-columns:minmax(0,1fr)}}
 </style>
 
 <main class="gads-page">
@@ -446,60 +448,7 @@ $faq_items = [
 
   
 
-  <section class="gads-section" id="problemy">
-    <div class="gads-wrap">
-      <span class="gads-eyebrow">Gdzie ucieka budżet</span>
-      <h2 class="gads-h2">Gdzie najczęściej uciekają pieniądze</h2>
-      <div class="gads-copy">
-        <p>Google Ads ma opinię drogiego kanału. Bywa drogi nie dlatego, że platforma jest zła, ale dlatego, że wiele kampanii generuje kliknięcia bez konwersji. Koszt kliknięcia jest wysoki, a koszt wartościowego leada jeszcze wyższy, gdy duża część ruchu nie składa się z potencjalnych klientów.</p>
-        <p>Najczęściej problemem są zbyt ogólne słowa kluczowe, brak wykluczeń, niespójność między reklamą a stroną docelową, słaby Quality Score i brak poprawnego śledzenia konwersji.</p>
-      </div>
-
-      <div class="gads-loss-grid">
-        <div class="gads-loss-panel">
-          <h3 class="gads-h3">Budżet nie przepala się naraz. Ucieka przez małe nieszczelności.</h3>
-          <p>Audyt kampanii pokazuje, które zapytania, reklamy, strony i ustawienia generują koszt bez realnego potencjału sprzedażowego.</p>
-          <ul class="gads-waste-list">
-            <li>Ogólne frazy bez intencji zakupu.</li>
-            <li>Brak listy słów wykluczających.</li>
-            <li>Reklama obiecuje jedno, a strona pokazuje coś innego.</li>
-            <li>Konwersje nie są mierzone lub są źle skonfigurowane.</li>
-          </ul>
-        </div>
-
-          <div class="gads-card-grid">
-          <div class="gads-card">
-            <div class="gads-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </div>
-            <strong>Zły dobór słów kluczowych</strong>
-            <p>Szerokie frazy generują ruch od osób, które dopiero orientują się w temacie, a nie są gotowe na kontakt.</p>
-          </div>
-          <div class="gads-card">
-            <div class="gads-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-            </div>
-            <strong>Brak wykluczeń</strong>
-            <p>Kampania bez wykluczeń wyświetla reklamy na przypadkowe i kosztowne zapytania.</p>
-          </div>
-          <div class="gads-card">
-            <div class="gads-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            </div>
-            <strong>Słaby landing page</strong>
-            <p>Użytkownik klika reklamę, ale strona nie kontynuuje przekazu i nie prowadzi do CTA.</p>
-          </div>
-          <div class="gads-card">
-            <div class="gads-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-            </div>
-            <strong>Brak danych o konwersjach</strong>
-            <p>Bez wiedzy, które kliknięcia dają leady, optymalizacja opiera się na domysłach.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+  <section class="gads-section up-design-problemy" id="problemy"><div class="gads-wrap"><h2 class="gads-h2">Gdzie najczęściej uciekają pieniądze</h2><p class="up-mock-subtitle">To naprawiam w pierwszej kolejności — zwykle bez zwiększania budżetu.</p><div class="up-design-grid "><article><span class="up-design-number" aria-hidden="true">01</span><h3>Zbyt ogólne frazy</h3><p>Płacisz za osoby, które tylko się rozglądają, a nie chcą kupić.</p></article><article><span class="up-design-number" aria-hidden="true">02</span><h3>Brak wykluczeń</h3><p>Reklama pokazuje się na przypadkowe i drogie wyszukiwania.</p></article><article><span class="up-design-number" aria-hidden="true">03</span><h3>Reklama mówi jedno, strona drugie</h3><p>Klient klika, nie widzi obiecanej oferty i wychodzi.</p></article><article><span class="up-design-number" aria-hidden="true">04</span><h3>Brak pomiaru sprzedaży</h3><p>Bez danych o zamówieniach optymalizacja to zgadywanie.</p></article></div></div></section>
 
   <section class="gads-section up-mock-scope" id="zakres"><div class="gads-wrap"><span class="gads-eyebrow">Zakres</span><h2 class="gads-h2">Co dostajesz</h2><p class="up-mock-subtitle">Wszystko prowadzę osobiście — od pierwszej rozmowy do raportu.</p><div class="up-mock-grid"><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Analiza rynku</h3><p>Czego szukają Twoi klienci i ile kosztuje ich kliknięcie.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Frazy i wykluczenia</h3><p>Nie płacisz za przypadkowe kliknięcia.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Kampanie, które sprzedają</h3><p>Wyszukiwarka, reklamy produktowe, Performance Max i remarketing.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Pomiar sprzedaży</h3><p>Wiesz, ile kosztuje zamówienie lub telefon.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Wskazówki do strony</h3><p>Karty produktów i strona, na której kliknięcie może kończyć się zakupem.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Raport i rozmowa co miesiąc</h3><p>Ile sprzedaży, za ile i co dalej — prostym językiem.</p></article></div></div></section>
 
@@ -569,49 +518,7 @@ $faq_items = [
     </div>
   </section>
 
-  <section class="gads-section gads-process" id="proces">
-    <div class="gads-wrap">
-      <span class="gads-eyebrow">Proces współpracy</span>
-      <h2 class="gads-h2">Od pierwszej rozmowy do mierzalnych wyników sprzedażowych.</h2>
-      <div class="gads-copy">
-        <p>Każda współpraca przy Google Ads zaczyna się od diagnozy, a nie od uruchomienia kampanii. Muszę zrozumieć, co sprzedajesz, kto jest Twoim klientem, jaki jest średni zysk na kliencie, czy masz aktywne kampanie i jaka jest jakość strony docelowej.</p>
-      </div>
-      <div class="gads-process-grid">
-        <div class="gads-step">
-          <div class="gads-step-head">
-            <span class="gads-step-num">1</span>
-            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          </div>
-          <strong>Audyt i diagnoza</strong>
-          <p>Konto, słowa kluczowe, wykluczenia, reklamy, Quality Score, landing pages i konwersje.</p>
-        </div>
-        <div class="gads-step">
-          <div class="gads-step-head">
-            <span class="gads-step-num">2</span>
-            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></span>
-          </div>
-          <strong>Strategia</strong>
-          <p>Typ kampanii, budżet, struktura konta, KPI, słowa kluczowe i wykluczenia.</p>
-        </div>
-        <div class="gads-step">
-          <div class="gads-step-head">
-            <span class="gads-step-num">3</span>
-            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
-          </div>
-          <strong>Wdrożenie</strong>
-          <p>Kampanie, grupy reklam, rozszerzenia, stawki, budżety i śledzenie konwersji.</p>
-        </div>
-        <div class="gads-step">
-          <div class="gads-step-head">
-            <span class="gads-step-num">4</span>
-            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
-          </div>
-          <strong>Optymalizacja</strong>
-          <p>Search terms, nowe wykluczenia, testy komunikatów, stawki, raporty i landing pages.</p>
-        </div>
-      </div>
-    </div>
-  </section>
+  <section class="gads-section up-design-proces" id="proces"><div class="gads-wrap"><h2 class="gads-h2">Jak zaczynamy</h2><div class="up-design-grid up-design-three"><article><span class="up-design-number" aria-hidden="true">1</span><h3>Bezpłatna rozmowa</h3><p>30 minut. Sprawdzam Twój sklep lub firmę i mówię, czy Google Ads ma u Ciebie sens.</p></article><article><span class="up-design-number" aria-hidden="true">2</span><h3>Konfiguracja i start</h3><p>Tygodnie 1–4: kampanie, frazy, katalog produktów, pomiar sprzedaży.</p></article><article><span class="up-design-number" aria-hidden="true">3</span><h3>Poprawki co tydzień</h3><p>Wyłączam to, co nie sprzedaje. Budżet idzie tam, gdzie są zamówienia.</p></article></div></div></section>
 
   
 
@@ -784,7 +691,103 @@ $faq_items = [
       </div>
     </div>
   </section>
-<section class="gads-section" id="faq">
+<section class="gads-section" id="problemy-szczegoly">
+    <div class="gads-wrap">
+      <span class="gads-eyebrow">Gdzie ucieka budżet</span>
+      <h2 class="gads-h2">Szczegółowa analiza problemów</h2>
+      <div class="gads-copy">
+        <p>Google Ads ma opinię drogiego kanału. Bywa drogi nie dlatego, że platforma jest zła, ale dlatego, że wiele kampanii generuje kliknięcia bez konwersji. Koszt kliknięcia jest wysoki, a koszt wartościowego leada jeszcze wyższy, gdy duża część ruchu nie składa się z potencjalnych klientów.</p>
+        <p>Najczęściej problemem są zbyt ogólne słowa kluczowe, brak wykluczeń, niespójność między reklamą a stroną docelową, słaby Quality Score i brak poprawnego śledzenia konwersji.</p>
+      </div>
+
+      <div class="gads-loss-grid">
+        <div class="gads-loss-panel">
+          <h3 class="gads-h3">Budżet nie przepala się naraz. Ucieka przez małe nieszczelności.</h3>
+          <p>Audyt kampanii pokazuje, które zapytania, reklamy, strony i ustawienia generują koszt bez realnego potencjału sprzedażowego.</p>
+          <ul class="gads-waste-list">
+            <li>Ogólne frazy bez intencji zakupu.</li>
+            <li>Brak listy słów wykluczających.</li>
+            <li>Reklama obiecuje jedno, a strona pokazuje coś innego.</li>
+            <li>Konwersje nie są mierzone lub są źle skonfigurowane.</li>
+          </ul>
+        </div>
+
+          <div class="gads-card-grid">
+          <div class="gads-card">
+            <div class="gads-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <strong>Zły dobór słów kluczowych</strong>
+            <p>Szerokie frazy generują ruch od osób, które dopiero orientują się w temacie, a nie są gotowe na kontakt.</p>
+          </div>
+          <div class="gads-card">
+            <div class="gads-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            </div>
+            <strong>Brak wykluczeń</strong>
+            <p>Kampania bez wykluczeń wyświetla reklamy na przypadkowe i kosztowne zapytania.</p>
+          </div>
+          <div class="gads-card">
+            <div class="gads-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <strong>Słaby landing page</strong>
+            <p>Użytkownik klika reklamę, ale strona nie kontynuuje przekazu i nie prowadzi do CTA.</p>
+          </div>
+          <div class="gads-card">
+            <div class="gads-card-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <strong>Brak danych o konwersjach</strong>
+            <p>Bez wiedzy, które kliknięcia dają leady, optymalizacja opiera się na domysłach.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+<section class="gads-section gads-process" id="proces-szczegoly">
+    <div class="gads-wrap">
+      <span class="gads-eyebrow">Proces współpracy</span>
+      <h2 class="gads-h2">Szczegółowy przebieg współpracy</h2>
+      <div class="gads-copy">
+        <p>Każda współpraca przy Google Ads zaczyna się od diagnozy, a nie od uruchomienia kampanii. Muszę zrozumieć, co sprzedajesz, kto jest Twoim klientem, jaki jest średni zysk na kliencie, czy masz aktywne kampanie i jaka jest jakość strony docelowej.</p>
+      </div>
+      <div class="gads-process-grid">
+        <div class="gads-step">
+          <div class="gads-step-head">
+            <span class="gads-step-num">1</span>
+            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          </div>
+          <strong>Audyt i diagnoza</strong>
+          <p>Konto, słowa kluczowe, wykluczenia, reklamy, Quality Score, landing pages i konwersje.</p>
+        </div>
+        <div class="gads-step">
+          <div class="gads-step-head">
+            <span class="gads-step-num">2</span>
+            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></span>
+          </div>
+          <strong>Strategia</strong>
+          <p>Typ kampanii, budżet, struktura konta, KPI, słowa kluczowe i wykluczenia.</p>
+        </div>
+        <div class="gads-step">
+          <div class="gads-step-head">
+            <span class="gads-step-num">3</span>
+            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+          </div>
+          <strong>Wdrożenie</strong>
+          <p>Kampanie, grupy reklam, rozszerzenia, stawki, budżety i śledzenie konwersji.</p>
+        </div>
+        <div class="gads-step">
+          <div class="gads-step-head">
+            <span class="gads-step-num">4</span>
+            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
+          </div>
+          <strong>Optymalizacja</strong>
+          <p>Search terms, nowe wykluczenia, testy komunikatów, stawki, raporty i landing pages.</p>
+        </div>
+      </div>
+    </div>
+  </section><section class="gads-section" id="faq">
     <div class="gads-wrap">
       <span class="gads-eyebrow">FAQ</span>
       <h2 class="gads-h2">Najczęstsze pytania przed rozpoczęciem kampanii Google Ads.</h2>
