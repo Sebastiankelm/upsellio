@@ -51,7 +51,13 @@ function upsellio_seo_indexing_redirect_querystring_cpt_to_permalink()
         return;
     }
 
-    wp_safe_redirect($canonical, 301);
+    $tracking = [];
+    foreach ($_GET as $key => $value) {
+        if (is_string($value) && preg_match('/^(utm_[a-z0-9_]+|gclid|gbraid|wbraid|fbclid)$/D', $key)) {
+            $tracking[$key] = wp_unslash($value);
+        }
+    }
+    wp_safe_redirect($tracking ? add_query_arg($tracking, $canonical) : $canonical, 301);
     exit;
 }
 add_action("template_redirect", "upsellio_seo_indexing_redirect_querystring_cpt_to_permalink", 5);
@@ -86,6 +92,83 @@ function upsellio_seo_indexing_apply_legacy_redirects()
     exit;
 }
 add_action("template_redirect", "upsellio_seo_indexing_apply_legacy_redirects", 1);
+
+// Resolve stable dataset identifiers and WordPress old slugs to a unique
+// published object. Never guess a target for an ambiguous or unknown alias.
+function upsellio_seo_resolve_public_content_alias($post_type, $slug)
+{
+    if (!in_array($post_type, ["miasto", "definicja", "portfolio", "marketing_portfolio", "lead_magnet"], true) ||
+        !is_string($slug) || !preg_match('/^[a-z0-9-]+$/D', $slug)) {
+        return null;
+    }
+    static $maps = [];
+    if (!isset($maps[$post_type])) {
+        $maps[$post_type] = ["current" => [], "aliases" => []];
+        $posts = get_posts(["post_type" => $post_type, "post_status" => "publish",
+            "numberposts" => -1, "orderby" => "ID", "order" => "ASC"]);
+        $key = ["miasto" => "_upsellio_city_slug", "definicja" => "_upsellio_definition_slug"][$post_type] ?? "";
+        foreach ($posts as $post) {
+            if ($post->post_password !== "") {
+                continue;
+            }
+            $maps[$post_type]["current"][$post->post_name] = $post;
+            $aliases = get_post_meta($post->ID, "_wp_old_slug", false);
+            if ($key !== "") {
+                $aliases[] = get_post_meta($post->ID, $key, true);
+            }
+            foreach (array_unique(array_filter($aliases, "is_string")) as $alias) {
+                if ($alias !== "") {
+                    $maps[$post_type]["aliases"][$alias][$post->ID] = $post;
+                }
+            }
+        }
+    }
+    if (isset($maps[$post_type]["current"][$slug])) {
+        return $maps[$post_type]["current"][$slug];
+    }
+    $matches = $maps[$post_type]["aliases"][$slug] ?? [];
+    return count($matches) === 1 ? reset($matches) : null;
+}
+
+function upsellio_seo_redirect_legacy_content_alias(): void
+{
+    if (!upsellio_seo_indexing_is_routable_request() || !is_404()) {
+        return;
+    }
+    $path = trim((string) wp_parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_PATH), "/");
+    $types = ["miasto" => "miasto", "definicje" => "definicja", "realizacja" => "portfolio",
+        "portfolio-marketingowe" => "marketing_portfolio", "lead-magnety" => "lead_magnet"];
+    $post = null;
+    if (preg_match('~^([^/]+)/([a-z0-9-]+)$~D', $path, $m) && isset($types[$m[1]])) {
+        $post = upsellio_seo_resolve_public_content_alias($types[$m[1]], $m[2]);
+    } elseif ($path === "") {
+        $found = array_intersect(array_values($types), array_keys($_GET));
+        if (count($found) === 1) {
+            $type = reset($found);
+            $post = upsellio_seo_resolve_public_content_alias($type, $_GET[$type]);
+        }
+    }
+    if (!($post instanceof WP_Post)) {
+        return;
+    }
+    $target = get_permalink($post);
+    if (!$target) {
+        return;
+    }
+    // Keep attribution parameters, but never forward WordPress routing keys.
+    $tracking = [];
+    foreach ($_GET as $key => $value) {
+        if (is_string($value) && preg_match('/^(utm_[a-z0-9_]+|gclid|gbraid|wbraid|fbclid)$/D', $key)) {
+            $tracking[$key] = wp_unslash($value);
+        }
+    }
+    if ($tracking) {
+        $target = add_query_arg($tracking, $target);
+    }
+    wp_safe_redirect($target, 301);
+    exit;
+}
+add_action("template_redirect", "upsellio_seo_redirect_legacy_content_alias", 3);
 
 function upsellio_seo_indexing_blog_filter_params()
 {
