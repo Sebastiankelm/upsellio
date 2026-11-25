@@ -2784,7 +2784,7 @@ function upsellio_crm_app_template_redirect()
                         </div>
                         <div>
                           <label><strong>Start / timeline</strong> <?php echo upsellio_help_tooltip("To pole wpływa na priorytet w pipeline i automatyzacje follow-up."); ?></label>
-                          <input type="text" name="offer_timeline" id="fld_offer_timeline" value="<?php echo esc_attr($oe_id > 0 ? (string) get_post_meta($oe_id, "_ups_offer_timeline", true) : ""); ?>" />
+                          <input type="text" name="offer_timeline" id="fld_offer_timeline" value="<?php echo esc_attr($oe_id > 0 ? upsellio_offer_get_commercial_timeline($oe_id) : ""); ?>" />
                         </div>
                         <div>
                           <label><strong>Planowana data decyzji klienta</strong> <?php echo upsellio_help_tooltip("Przybliżona data decyzji klienta. Używana do priorytetyzacji follow-upów i scoringu timing."); ?></label>
