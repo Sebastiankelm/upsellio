@@ -65,8 +65,12 @@ check($leads[0]["consent_version"] === "v1.0" && $leads[0]["consent_timestamp"] 
 check(count($notifications) === 1 && $notifications[0][1] === "" && count($followups) === 1, "Admin notification and followup");
 check(request(["lead_phone"=>"+48 575 123 456"])->success, "Second equivalent phone");
 check(request(["lead_phone"=>"48575123456"])->success, "Third equivalent phone");
-check(request()->getCode() === 429, "Phone rate limit across formats");
+check(request(["lead_phone"=>"0048 575 123 456"])->getCode() === 429, "Phone rate limit across formats including 00");
+check(request(["lead_phone"=>"+48 1234567"])->getCode() === 400, "Invalid Polish international length");
+check(request(["lead_phone"=>"123456789012"])->getCode() === 400, "Ambiguous foreign number requires prefix");
+check(request(["lead_phone"=>"+44 7700 900123"])->success, "Explicit foreign number accepted");
+check($leads[3]["phone"] === "+447700900123", "International number normalized");
 $saveFails = true;
 check(request(["lead_phone"=>"575123457"])->getCode() === 500, "Save failure");
-check(count($notifications) === 3 && count($followups) === 3, "No notification on failed save");
+check(count($notifications) === 4 && count($followups) === 4, "No notification on failed save");
 echo "Mobile callback contract checks passed.\n";
