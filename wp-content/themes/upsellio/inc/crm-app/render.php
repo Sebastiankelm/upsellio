@@ -143,7 +143,7 @@ function upsellio_crm_app_template_redirect()
         $settings_tab = "general";
     }
     $task_tab = isset($_GET["task_tab"]) ? sanitize_key((string) wp_unslash($_GET["task_tab"])) : "all";
-    if (!in_array($task_tab, ["all", "today", "tomorrow", "overdue", "week", "thisweek", "done"], true)) {
+    if (!in_array($task_tab, ["all", "today", "tomorrow", "overdue", "week", "thisweek", "done", "cancelled"], true)) {
         $task_tab = "all";
     }
     $task_cal_week_offset = 0;
@@ -312,10 +312,11 @@ function upsellio_crm_app_template_redirect()
         $inbox_per_page = 30;
     }
 
+    $inbox_offers = array_values(array_filter($inbox_offers, static fn($offer) => $offer instanceof WP_Post && current_user_can("edit_post", $offer->ID)));
     $inbox_offers_visible = $inbox_offers;
     if ($view === "inbox") {
         $sel_pre = isset($_GET["inbox_offer"]) ? (int) wp_unslash($_GET["inbox_offer"]) : 0;
-        if ($sel_pre > 0 && function_exists("upsellio_inbox_maybe_prepend_selected_offer")) {
+        if ($sel_pre > 0 && get_post_type($sel_pre) === "crm_offer" && current_user_can("edit_post", $sel_pre) && function_exists("upsellio_inbox_maybe_prepend_selected_offer")) {
             $inbox_offers_visible = upsellio_inbox_maybe_prepend_selected_offer($inbox_offers_visible, $sel_pre);
         }
         if (function_exists("upsellio_inbox_get_thread_summary")) {
@@ -4189,7 +4190,9 @@ function upsellio_crm_app_template_redirect()
               $today_end_ts = $tomorrow_start_ts - 1;
               $tomorrow_end_ts = $local_today->modify("+2 days")->getTimestamp() - 1;
               $tasks_filtered = [];
-              $task_counts = ["today" => 0, "tomorrow" => 0, "overdue" => 0, "thisweek" => 0, "done" => 0];
+              $task_counts = ["today" => 0, "tomorrow" => 0, "overdue" => 0, "thisweek" => 0, "done" => 0, "cancelled" => 0];
+              $task_filter_now = time();
+              $thisweek_start = upsellio_crm_app_calendar_week(0)->getTimestamp();
               $thisweek_end = upsellio_crm_app_calendar_week(0)->modify("+7 days")->getTimestamp();
               foreach ($tasks as $task_tf) {
                   $tf_id = (int) $task_tf->ID;
@@ -4199,10 +4202,11 @@ function upsellio_crm_app_template_redirect()
                   $matches = [
                       "all" => true,
                       "done" => $tf_st === "done",
+                      "cancelled" => $tf_st === "cancelled",
                       "today" => !$is_closed && $tf_due >= $today_start_ts && $tf_due <= $today_end_ts,
                       "tomorrow" => !$is_closed && $tf_due >= $tomorrow_start_ts && $tf_due <= $tomorrow_end_ts,
-                      "overdue" => !$is_closed && $tf_due > 0 && $tf_due < time(),
-                      "thisweek" => !$is_closed && $tf_due >= upsellio_crm_app_calendar_week(0)->getTimestamp() && $tf_due < $thisweek_end,
+                      "overdue" => !$is_closed && $tf_due > 0 && $tf_due < $task_filter_now,
+                      "thisweek" => !$is_closed && $tf_due >= $thisweek_start && $tf_due < $thisweek_end,
                   ];
                   foreach ($task_counts as $key => $count) {
                       if ($matches[$key]) { $task_counts[$key]++; }
@@ -4232,7 +4236,7 @@ function upsellio_crm_app_template_redirect()
               </div>
               <div id="crm-pane-list" style="<?php echo $task_tab === "week" ? "display:none" : ""; ?>">
               <div class="crm-view-tabs" id="crm-list-tabs" style="grid-column:span 12">
-                <?php foreach (["today" => "Dziś", "overdue" => "Zaległe", "thisweek" => "Ten tydzień", "tomorrow" => "Jutro", "all" => "Wszystkie", "done" => "Zrobione"] as $key => $label) : ?>
+                <?php foreach (["today" => "Dziś", "overdue" => "Zaległe", "thisweek" => "Ten tydzień", "tomorrow" => "Jutro", "all" => "Wszystkie", "done" => "Zrobione", "cancelled" => "Anulowane"] as $key => $label) : ?>
                   <a class="crm-tab-link<?php echo $task_tab === $key ? " is-active" : ""; ?>" href="<?php echo $task_tab_url($key); ?>"><?php echo esc_html($label); ?><?php if (isset($task_counts[$key])) : ?> (<?php echo (int) $task_counts[$key]; ?>)<?php endif; ?></a>
                 <?php endforeach; ?>
               </div>
@@ -4503,7 +4507,7 @@ function upsellio_crm_app_template_redirect()
                       $duration_b = max(15, (int) get_post_meta($tid_b, "_upsellio_task_duration_minutes", true) ?: 60);
                       ?>
                       <article class="ups-cal-task-tasks" draggable="true" data-task-id="<?php echo esc_attr((string) $tid_b); ?>" data-duration="<?php echo esc_attr((string) $duration_b); ?>">
-                        <?php echo esc_html((string) $task_b->post_title); ?>
+                        <a href="<?php echo esc_url(upsellio_crm_url("tasks", ["task_id" => $tid_b, "task_tab" => "all"])); ?>"><?php echo esc_html((string) $task_b->post_title); ?></a>
                         <small><?php echo esc_html((string) $duration_b); ?> min</small>
                       </article>
                     <?php endforeach; ?>
@@ -4607,10 +4611,10 @@ function upsellio_crm_app_template_redirect()
                             body: payload.toString()
                           });
                           const result = await res.json();
-                          if (!res.ok || !result || !result.success) throw new Error("schedule_failed");
+                          if (!res.ok || !result || !result.success) throw new Error(result && result.data && result.data.message || "schedule_failed");
                           window.location.reload();
                         } catch (error) {
-                          alert("Nie udało się zapisać terminu zadania. Dotychczasowy termin pozostaje widoczny.");
+                          alert(error.message === "outside_work_hours" ? "Zadanie musi zmieścić się w godzinach 8:00–16:00. Wybierz wcześniejszy termin lub zmień czas trwania." : error.message === "closed_task" ? "Zakończonego lub anulowanego zadania nie można przesuwać." : "Nie udało się zapisać terminu zadania. Odśwież widok i sprawdź zapis.");
                         } finally {
                           saving = false;
                           delete slot.dataset.saving;
@@ -4716,7 +4720,7 @@ function upsellio_crm_app_template_redirect()
                       $duration = max(15, (int) get_post_meta($tid, "_upsellio_task_duration_minutes", true) ?: 60);
                       ?>
                       <article class="ups-cal-task" draggable="true" data-task-id="<?php echo esc_attr((string) $tid); ?>" data-duration="<?php echo esc_attr((string) $duration); ?>">
-                        <?php echo esc_html((string) $task->post_title); ?>
+                        <a href="<?php echo esc_url(upsellio_crm_url("tasks", ["task_id" => $tid, "task_tab" => "all"])); ?>"><?php echo esc_html((string) $task->post_title); ?></a>
                         <small><?php echo esc_html((string) $duration); ?> min</small>
                       </article>
                     <?php endforeach; ?>
@@ -4820,10 +4824,10 @@ function upsellio_crm_app_template_redirect()
                             body: payload.toString()
                           });
                           const result = await res.json();
-                          if (!res.ok || !result || !result.success) throw new Error("schedule_failed");
+                          if (!res.ok || !result || !result.success) throw new Error(result && result.data && result.data.message || "schedule_failed");
                           window.location.reload();
                         } catch (error) {
-                          alert("Nie udało się zapisać terminu zadania. Dotychczasowy termin pozostaje widoczny.");
+                          alert(error.message === "outside_work_hours" ? "Zadanie musi zmieścić się w godzinach 8:00–16:00. Wybierz wcześniejszy termin lub zmień czas trwania." : error.message === "closed_task" ? "Zakończonego lub anulowanego zadania nie można przesuwać." : "Nie udało się zapisać terminu zadania. Odśwież widok i sprawdź zapis.");
                         } finally {
                           saving = false;
                           delete slot.dataset.saving;
@@ -5095,6 +5099,7 @@ function upsellio_crm_app_template_redirect()
                   </div>
                 </header>
 
+                <?php if (!empty($inbox_kpis["capped"])) : ?><p class="muted">KPI obejmują maksymalnie 400 ostatnich wątków w wybranym folderze, bez wyszukiwania tekstowego.</p><?php endif; ?>
                 <nav class="crm-inbox-kpi-row" role="navigation" aria-label="<?php esc_attr_e("Filtry KPI — kliknij, aby zawęzić listę wątków", "upsellio"); ?>">
                   <a href="<?php echo $inbox_kpi_url_awaiting; ?>" class="crm-inbox-metric danger<?php echo $inbox_segment_sel === "awaiting" ? " active" : ""; ?>">
                     <strong><?php echo (int) ($inbox_kpis["awaiting_reply"] ?? 0); ?></strong>
@@ -5116,25 +5121,25 @@ function upsellio_crm_app_template_redirect()
                     <strong><?php echo (int) ($inbox_kpis["open_pipeline"] ?? 0); ?></strong>
                     <span><?php esc_html_e("Oferty w toku", "upsellio"); ?></span>
                   </a>
-                  <a href="<?php echo esc_url(add_query_arg(array_merge($inbox_nav_base, ["inbox_segment" => "hot"]), home_url("/crm-app/"))); ?>" class="crm-inbox-metric<?php echo $inbox_segment_sel === "hot" ? " active" : ""; ?>">
+                  <a href="<?php echo $inbox_kpi_seg_url("hot"); ?>" class="crm-inbox-metric<?php echo $inbox_segment_sel === "hot" ? " active" : ""; ?>">
                     <strong>🔥</strong>
                     <span><?php esc_html_e("Hot", "upsellio"); ?></span>
                   </a>
-                  <a href="<?php echo esc_url(add_query_arg(array_merge($inbox_nav_base, ["inbox_segment" => "warm"]), home_url("/crm-app/"))); ?>" class="crm-inbox-metric<?php echo $inbox_segment_sel === "warm" ? " active" : ""; ?>">
+                  <a href="<?php echo $inbox_kpi_seg_url("warm"); ?>" class="crm-inbox-metric<?php echo $inbox_segment_sel === "warm" ? " active" : ""; ?>">
                     <strong>☀️</strong>
                     <span><?php esc_html_e("Warm", "upsellio"); ?></span>
                   </a>
-                  <a href="<?php echo esc_url(add_query_arg(array_merge($inbox_nav_base, ["inbox_segment" => "cold"]), home_url("/crm-app/"))); ?>" class="crm-inbox-metric<?php echo $inbox_segment_sel === "cold" ? " active" : ""; ?>">
+                  <a href="<?php echo $inbox_kpi_seg_url("cold"); ?>" class="crm-inbox-metric<?php echo $inbox_segment_sel === "cold" ? " active" : ""; ?>">
                     <strong>🌑</strong>
                     <span><?php esc_html_e("Cold", "upsellio"); ?></span>
                   </a>
-                  <a href="<?php echo esc_url(add_query_arg(array_merge($inbox_nav_base, ["inbox_segment" => "stale"]), home_url("/crm-app/"))); ?>" class="crm-inbox-metric<?php echo $inbox_segment_sel === "stale" ? " active" : ""; ?>">
+                  <a href="<?php echo $inbox_kpi_seg_url("stale"); ?>" class="crm-inbox-metric<?php echo $inbox_segment_sel === "stale" ? " active" : ""; ?>">
                     <strong>⚠</strong>
                     <span><?php esc_html_e("Stale", "upsellio"); ?></span>
                   </a>
                 </nav>
-                <div class="crm-inbox-ai-signals" role="region" aria-label="<?php esc_attr_e("Sygnały AI", "upsellio"); ?>">
-                  <button type="button" class="crm-inbox-ai-pill" data-ai-action="hot" title="<?php esc_attr_e("Przejdź do leadów hot czekających na odpowiedź", "upsellio"); ?>">🔥 <?php echo (int) $inbox_hot_waiting_count; ?> <?php esc_html_e("hot leady czekaja", "upsellio"); ?></button>
+                <div class="crm-inbox-ai-signals" role="region" aria-label="<?php esc_attr_e("Sygnały z widocznej strony wątków", "upsellio"); ?>">
+                  <span class="muted">Na tej stronie:</span><button type="button" class="crm-inbox-ai-pill" data-ai-action="hot" title="<?php esc_attr_e("Przejdź do leadów hot czekających na odpowiedź", "upsellio"); ?>">🔥 <?php echo (int) $inbox_hot_waiting_count; ?> <?php esc_html_e("hot leady czekaja", "upsellio"); ?></button>
                   <button type="button" class="crm-inbox-ai-pill" data-ai-action="price" title="<?php esc_attr_e("Wątki z pytaniem o cenę", "upsellio"); ?>">💰 <?php echo (int) $inbox_price_signal_count; ?> <?php esc_html_e("pytaly o cene", "upsellio"); ?></button>
                   <button type="button" class="crm-inbox-ai-pill" data-ai-action="stale" title="<?php esc_attr_e("Cisza ponad 5 dni", "upsellio"); ?>">⏰ <?php echo (int) $inbox_stale_count; ?> <?php esc_html_e("cisza >5 dni", "upsellio"); ?></button>
                   <a class="crm-inbox-ai-pill crm-inbox-ai-pill--link" href="<?php echo esc_url(add_query_arg(["view" => "analytics"], home_url("/crm-app/"))); ?>">⚠ <?php esc_html_e("Sprawdz anomalie", "upsellio"); ?></a>
@@ -8387,17 +8392,17 @@ function upsellio_crm_app_template_redirect()
           pill.addEventListener("click", function () {
             var action = pill.getAttribute("data-ai-action") || "";
             if (action === "hot") {
-              var hotCard = document.querySelector(".crm-inbox-thread-card[data-score]:not([data-score='0'])");
-              if (hotCard && hotCard.getAttribute("href")) window.location.href = hotCard.getAttribute("href");
+              window.location.href = <?php echo wp_json_encode($inbox_kpi_seg_url("hot"), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
               return;
             }
             if (action === "price") {
               var priceCard = document.querySelector(".crm-inbox-thread-card[data-intent='price_objection']");
               if (priceCard && priceCard.getAttribute("href")) window.location.href = priceCard.getAttribute("href");
+              else inboxToast("Na tej stronie nie ma wątku oznaczonego jako obiekcja cenowa.", "info");
               return;
             }
             if (action === "stale") {
-              inboxToast("Filtr stale >5 dni: wybierz watki z najstarsza data.", "info");
+              window.location.href = <?php echo wp_json_encode($inbox_kpi_seg_url("stale"), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
             }
           });
         });
