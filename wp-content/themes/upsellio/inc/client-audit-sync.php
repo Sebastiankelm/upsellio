@@ -922,26 +922,60 @@ function ups_audit_sync_clarity_resource(int $resource_id, int $days = 30, bool 
     ]);
 }
 
-function ups_audit_sync_resource_action(int $resource_id, int $days = 0, bool $full_history = false): void
+/**
+ * Serialize resource syncs across workers; report a failed or busy sync to callers.
+ */
+function ups_audit_sync_resource_action(int $resource_id, int $days = 0, bool $full_history = false): bool
 {
-    $resource_id = (int) $resource_id;
-    if ($days <= 0) {
-        $days = (int) get_option("ups_audit_default_compare_window", 30);
+    global $wpdb;
+    if ($resource_id <= 0 || get_post_type($resource_id) !== "crm_audit_resource") {
+        return false;
     }
-    $days = in_array($days, [7, 14, 30, 60, 90], true) ? $days : 30;
     $type = (string) get_post_meta($resource_id, "_ups_resource_type", true);
-    if ($type === "ga4") {
-        ups_audit_sync_ga4_resource($resource_id, $days, $full_history);
-    } elseif ($type === "gsc") {
-        ups_audit_sync_gsc_resource($resource_id, $days, $full_history);
-    } elseif ($type === "ads") {
-        ups_audit_sync_ads_resource($resource_id, $days, $full_history);
-    } elseif ($type === "meta") {
-        ups_audit_sync_meta_resource($resource_id, $days, $full_history);
-    } elseif ($type === "clarity") {
-        ups_audit_sync_clarity_resource($resource_id, $days, $full_history);
+    $handlers = [
+        "ga4" => "ups_audit_sync_ga4_resource",
+        "gsc" => "ups_audit_sync_gsc_resource",
+        "ads" => "ups_audit_sync_ads_resource",
+        "meta" => "ups_audit_sync_meta_resource",
+        "clarity" => "ups_audit_sync_clarity_resource",
+    ];
+    if (!isset($handlers[$type])) {
+        return false;
+    }
+    $lock = "ups_audit_sync_" . md5($wpdb->prefix . ":" . $resource_id);
+    if ((string) $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 0)", $lock)) !== "1") {
+        return false;
+    }
+    try {
+        if ($days <= 0) {
+            $days = (int) get_option("ups_audit_default_compare_window", 30);
+        }
+        $days = in_array($days, [7, 14, 30, 60, 90], true) ? $days : 30;
+        $handlers[$type]($resource_id, $days, $full_history);
+        $cache = get_post_meta($resource_id, "_ups_resource_data_cache", true);
+        return is_array($cache) && !empty($cache["synced_at"]) && empty($cache["error"]);
+    } finally {
+        $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock));
     }
 }
+
+/** Background worker for manual bulk sync. Keep existing cron/CLI entry points intact. */
+function ups_audit_run_queued_resource_sync(int $resource_id, int $days): void
+{
+    $state = "failed";
+    update_post_meta($resource_id, "_ups_resource_manual_sync_state", "running");
+    try {
+        $state = ups_audit_sync_resource_action($resource_id, $days) ? "completed" : "failed";
+    } catch (Throwable $e) {
+        if (function_exists("upsellio_gsc_log")) {
+            upsellio_gsc_log("audit.sync.queued.error", ["resource_id" => $resource_id, "msg" => $e->getMessage()]);
+        }
+    } finally {
+        update_post_meta($resource_id, "_ups_resource_manual_sync_state", $state);
+        update_post_meta($resource_id, "_ups_resource_manual_sync_finished_at", current_time("mysql"));
+    }
+}
+add_action("ups_audit_queued_resource_sync", "ups_audit_run_queued_resource_sync", 10, 2);
 
 function ups_audit_sync_resources_list(array $resources, int $days = 0, bool $full_history = false): array
 {
@@ -952,13 +986,10 @@ function ups_audit_sync_resources_list(array $resources, int $days = 0, bool $fu
             continue;
         }
         try {
-            ups_audit_sync_resource_action((int) $r->ID, $days, $full_history);
-            $cache = get_post_meta((int) $r->ID, "_ups_resource_data_cache", true);
-            $err = is_array($cache) ? trim((string) ($cache["error"] ?? "")) : "";
-            if ($err !== "") {
-                $fail++;
-            } else {
+            if (ups_audit_sync_resource_action((int) $r->ID, $days, $full_history)) {
                 $ok++;
+            } else {
+                $fail++;
             }
         } catch (Throwable $e) {
             $fail++;
