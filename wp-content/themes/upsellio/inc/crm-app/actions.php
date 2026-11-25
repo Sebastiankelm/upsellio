@@ -226,6 +226,10 @@ function upsellio_crm_app_handle_post_actions()
         if ($title === "" || !post_type_exists("crm_contact")) {
             return;
         }
+        $linked_client_id = isset($_POST["contact_client_id"]) ? (int) wp_unslash($_POST["contact_client_id"]) : 0;
+        if ($linked_client_id !== 0 && ($linked_client_id < 0 || get_post_type($linked_client_id) !== "crm_client" || !current_user_can("read_post", $linked_client_id))) {
+            wp_die("Nieprawidłowy lub niedostępny klient kontaktu.", "", ["response" => 403]);
+        }
         if ($contact_id > 0 && get_post_type($contact_id) === "crm_contact") {
             wp_update_post(["ID" => $contact_id, "post_title" => $title]);
         } else {
@@ -236,7 +240,7 @@ function upsellio_crm_app_handle_post_actions()
             ]);
         }
         if ($contact_id > 0) {
-            update_post_meta($contact_id, "_ups_contact_client_id", isset($_POST["contact_client_id"]) ? (int) wp_unslash($_POST["contact_client_id"]) : 0);
+            update_post_meta($contact_id, "_ups_contact_client_id", $linked_client_id);
             update_post_meta($contact_id, "_ups_contact_role", isset($_POST["contact_role"]) ? sanitize_text_field(wp_unslash($_POST["contact_role"])) : "");
             update_post_meta($contact_id, "_ups_contact_email", isset($_POST["contact_email"]) ? sanitize_email(wp_unslash($_POST["contact_email"])) : "");
             update_post_meta($contact_id, "_ups_contact_phone", isset($_POST["contact_phone"]) ? sanitize_text_field(wp_unslash($_POST["contact_phone"])) : "");
@@ -274,13 +278,19 @@ function upsellio_crm_app_handle_post_actions()
             return;
         }
         if ($client_id > 0 && get_post_type($client_id) === "crm_client") {
-            wp_update_post(["ID" => $client_id, "post_title" => $title]);
+            $saved_client_id = wp_update_post(["ID" => $client_id, "post_title" => $title], true);
+            if (is_wp_error($saved_client_id) || !$saved_client_id) {
+                wp_die("Nie udało się zapisać klienta.", "", ["response" => 500]);
+            }
         } else {
             $client_id = (int) wp_insert_post([
                 "post_type" => "crm_client",
                 "post_status" => "publish",
                 "post_title" => $title,
             ]);
+        }
+        if ($client_id <= 0) {
+            wp_die("Nie udało się utworzyć klienta.", "", ["response" => 500]);
         }
         if ($client_id > 0) {
             $previous_subscription_status = (string) get_post_meta($client_id, "_ups_client_subscription_status", true);
@@ -397,6 +407,10 @@ function upsellio_crm_app_handle_post_actions()
         if ($title === "") {
             return;
         }
+        $linked_offer_client_id = isset($_POST["offer_client_id"]) ? (int) wp_unslash($_POST["offer_client_id"]) : 0;
+        if ($linked_offer_client_id !== 0 && ($linked_offer_client_id < 0 || get_post_type($linked_offer_client_id) !== "crm_client" || !current_user_can("read_post", $linked_offer_client_id))) {
+            wp_die("Nieprawidłowy lub niedostępny klient oferty.", "", ["response" => 403]);
+        }
         $was_new_offer = !($offer_id > 0 && get_post_type($offer_id) === "crm_offer");
         if ($offer_id > 0 && get_post_type($offer_id) === "crm_offer") {
             wp_update_post([
@@ -418,7 +432,7 @@ function upsellio_crm_app_handle_post_actions()
                 upsellio_offer_merge_payload_into_offer_meta($offer_id, upsellio_offer_layout_get_payload_from_post($layout_tid));
             }
             $old_offer_status = (string) get_post_meta($offer_id, "_ups_offer_status", true);
-            update_post_meta($offer_id, "_ups_offer_client_id", isset($_POST["offer_client_id"]) ? (int) wp_unslash($_POST["offer_client_id"]) : 0);
+            update_post_meta($offer_id, "_ups_offer_client_id", $linked_offer_client_id);
             update_post_meta($offer_id, "_ups_offer_price", isset($_POST["offer_price"]) ? sanitize_text_field(wp_unslash($_POST["offer_price"])) : "");
             if (function_exists("upsellio_offer_get_timeline_events") && !metadata_exists("post", $offer_id, "_ups_offer_timeline_events")) {
                 $legacy_history = upsellio_offer_get_timeline_events($offer_id);
@@ -1430,6 +1444,10 @@ function upsellio_crm_app_ajax_move_offer_pipeline()
 
     $old_status = (string) get_post_meta($offer_id, "_ups_offer_status", true);
     $old_stage = (string) get_post_meta($offer_id, "_ups_offer_stage", true);
+    $old_bucket = upsellio_crm_app_pipeline_bucket($old_status, $old_stage);
+    if ($old_bucket === $stage) {
+        wp_send_json_success(["stage" => $stage, "unchanged" => true]);
+    }
     if ($stage === "offer_sent") {
         if ($old_status !== "sent") {
             if ((string) get_post_meta($offer_id, "_ups_offer_first_sent_at", true) === "") {
@@ -1478,11 +1496,11 @@ function upsellio_crm_app_ajax_move_offer_pipeline()
             do_action("upsellio_offer_status_changed", $offer_id, "open", "sent");
         }
     }
-    if (function_exists("upsellio_offer_add_timeline_event") && $old_stage !== $stage) {
+    if (function_exists("upsellio_offer_add_timeline_event") && $old_bucket !== $stage) {
         upsellio_offer_add_timeline_event($offer_id, "pipeline_moved", "Przeniesiono oferte w pipeline do: " . $stage);
     }
     upsellio_crm_app_append_entity_log("offer", $offer_id, "pipeline_moved", "Przeniesiono deal w pipeline.", [
-        "from_stage" => $old_stage,
+        "from_stage" => $old_bucket,
         "to_stage" => $stage,
     ]);
 
