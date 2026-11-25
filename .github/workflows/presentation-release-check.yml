@@ -52,3 +52,7 @@ jobs:
               assert origins(old)==origins(new),(n,"form origins changed")
               print(n,"PASS: lint, head, H1, IDs, anchors, origins")
           PY
+      - name: Shared JavaScript syntax
+        run: |
+          node --check wp-content/themes/upsellio/assets/js/upsellio-ui.js
+          node --check wp-content/themes/upsellio/assets/js/upsellio.js
