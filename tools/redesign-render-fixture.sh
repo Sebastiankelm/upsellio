@@ -53,7 +53,10 @@ capture() {
   local key=$1 url=$2 dest=$3
   docker exec "$wp" curl --silent --show-error --max-time 45 \
     -H 'Host: fixture.test' -H 'X-Forwarded-Proto: https' \
-    -o /tmp/fixture-page.html -w '%{http_code}' "http://127.0.0.1$url" > "$dest/$key.status"
+    -D /tmp/fixture-page.headers -o /tmp/fixture-page.html -w '%{http_code}' "http://127.0.0.1$url" > "$dest/$key.status"
+  # The fixture must remain protected even when metadata simulates public indexing.
+  docker exec "$wp" grep -iE '^X-Robots-Tag:.*noindex' /tmp/fixture-page.headers >/dev/null
+
   docker cp "$wp:/tmp/fixture-page.html" "$dest/$key.html"
   if [[ -n "$rank_math_version" ]]; then
     python3 - "$dest/$key.html" "$key" <<'PY'
@@ -253,6 +256,7 @@ HTACCESS
   wpcli option update page_on_front "$front"
   wpcli option update page_for_posts "$blog"
   wpcli rewrite flush
+  [[ "$(wpcli option get blog_public)" == 1 ]]
   capture home / "$dest"
   capture google /marketing-google-ads/ "$dest"
   capture meta /marketing-meta-ads/ "$dest"
