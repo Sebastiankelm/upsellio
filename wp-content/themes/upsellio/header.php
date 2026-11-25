@@ -40,6 +40,21 @@ $brand_logo_url = (string) ($brand_logo_assets["png"] ?? "");
 $brand_logo_webp_320_url = (string) ($brand_logo_assets["webp_320"] ?? "");
 $brand_logo_webp_640_url = (string) ($brand_logo_assets["webp_640"] ?? "");
 $brand_logo_attachment_id = (int) ($brand_logo_assets["custom_logo_id"] ?? 0);
+// Preserve configured menus; provide a fallback only when WordPress returns no links.
+if (empty($primary_navigation_links)) {
+    $primary_navigation_links = [
+        ["id" => 1, "parent" => 0, "title" => "Usługi", "url" => function_exists("upsellio_get_offer_page_url") ? upsellio_get_offer_page_url() : home_url("/oferta/")],
+        ["id" => 2, "parent" => 1, "title" => "Google Ads", "url" => function_exists("upsellio_get_google_ads_page_url") ? upsellio_get_google_ads_page_url() : home_url("/marketing-google-ads/")],
+        ["id" => 3, "parent" => 1, "title" => "Meta Ads", "url" => function_exists("upsellio_get_meta_ads_page_url") ? upsellio_get_meta_ads_page_url() : home_url("/marketing-meta-ads/")],
+        ["id" => 4, "parent" => 1, "title" => "Strony i sklepy", "url" => function_exists("upsellio_get_websites_page_url") ? upsellio_get_websites_page_url() : home_url("/tworzenie-stron-internetowych/")],
+        ["id" => 5, "parent" => 0, "title" => "Realizacje", "url" => $marketing_portfolio_url],
+        ["id" => 6, "parent" => 0, "title" => "O mnie", "url" => home_url("/o-mnie/")],
+        ["id" => 7, "parent" => 0, "title" => "Blog", "url" => function_exists("upsellio_get_blog_index_url") ? upsellio_get_blog_index_url() : $blog_index_url],
+        ["id" => 8, "parent" => 0, "title" => "Kontakt", "url" => $contact_url],
+    ];
+}
+$redesign_nav_cta_url = $is_homepage_context ? "#kontakt" : $contact_url;
+$redesign_active_urls = [];
 $primary_navigation_top = [];
 $primary_navigation_children = [];
 $upsellio_load_public_tracking = !function_exists("upsellio_should_load_public_tracking_tags") || upsellio_should_load_public_tracking_tags();
@@ -129,7 +144,7 @@ foreach ((array) $primary_navigation_links as $nav_link) {
 <noscript data-cookieconsent="marketing"><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1281722377419475&ev=PageView&noscript=1" alt="" /></noscript>
 <?php endif; ?>
 <a class="skip-link" href="#main-content">Przejdź do treści</a>
-<header class="nav site-nav">
+<header class="nav site-nav up-redesign-nav">
   <div class="wrap nav-inner">
     <a href="<?php echo esc_url(home_url("/")); ?>" class="brand" aria-label="Upsellio — strona główna">
       <?php if ($brand_logo_url !== "") : ?>
@@ -157,6 +172,7 @@ foreach ((array) $primary_navigation_links as $nav_link) {
       <?php endif; ?>
     </a>
 
+    <nav class="up-primary-nav" aria-label="Nawigacja główna">
     <ul class="nav-links">
       <?php foreach ($primary_navigation_top as $nav_link) : ?>
         <?php
@@ -194,18 +210,24 @@ foreach ((array) $primary_navigation_links as $nav_link) {
             }
         }
         $is_item_active = $is_active || $has_active_child;
+        if ($is_active) {
+            $redesign_active_urls[] = $nav_url;
+        }
         ?>
         <?php if (!empty($nav_children)) : ?>
           <li class="nav-dropdown">
-            <a href="<?php echo esc_url($nav_url); ?>" class="nav-dropdown-parent <?php echo $is_item_active ? "is-active" : ""; ?>" <?php echo $is_item_active ? 'aria-current="page"' : ""; ?><?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>>
+            <a href="<?php echo esc_url($nav_url); ?>" class="nav-dropdown-parent <?php echo $is_item_active ? "is-active" : ""; ?>" <?php echo $is_active ? 'aria-current="page"' : ""; ?><?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>>
               <?php echo esc_html((string) $nav_link["title"]); ?>
             </a>
-            <button type="button" class="nav-dropdown-toggle" aria-expanded="false" aria-label="<?php echo esc_attr("Rozwiń podmenu: " . (string) $nav_link["title"]); ?>">▾</button>
-            <div class="nav-dropdown-menu">
+            <button type="button" class="nav-dropdown-toggle" aria-controls="up-nav-sub-<?php echo esc_attr((string) $nav_id); ?>" aria-expanded="false" aria-label="<?php echo esc_attr("Rozwiń podmenu: " . (string) $nav_link["title"]); ?>">▾</button>
+            <div class="nav-dropdown-menu" id="up-nav-sub-<?php echo esc_attr((string) $nav_id); ?>">
               <?php foreach ($nav_children as $nav_child) : ?>
                 <?php
                 $child_url = (string) ($nav_child["url"] ?? "");
                 $is_child_active = $child_url !== "" && untrailingslashit($child_url) === untrailingslashit($current_url);
+                if ($is_child_active) {
+                    $redesign_active_urls[] = $child_url;
+                }
                 ?>
                 <a href="<?php echo esc_url($child_url); ?>" class="<?php echo $is_child_active ? "is-active" : ""; ?>" <?php echo ((string) ($nav_child["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?><?php echo $is_child_active ? ' aria-current="page"' : ""; ?>>
                   <?php echo esc_html((string) ($nav_child["title"] ?? "")); ?>
@@ -222,13 +244,18 @@ foreach ((array) $primary_navigation_links as $nav_link) {
         <?php endif; ?>
       <?php endforeach; ?>
     </ul>
+    </nav>
 
-    <?php if ($nav_cta_url !== "") : ?>
-      <a href="<?php echo esc_url($nav_cta_url); ?>" class="btn btn-primary btn-sm nav-cta" aria-label="Bezpłatna analiza marketingu">
-        <span class="nav-cta-long">Bezpłatna analiza</span>
-        <span class="nav-cta-short">Bezpłatna analiza</span>
+    <div class="up-nav-actions">
+      <a class="up-nav-phone" href="<?php echo esc_url("tel:" . $contact_phone_href); ?>" aria-label="<?php echo esc_attr("Zadzwoń: " . $contact_phone); ?>">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>
+        <span><?php echo esc_html($contact_phone); ?></span>
       </a>
-    <?php endif; ?>
+      <a href="<?php echo esc_url($redesign_nav_cta_url); ?>" class="btn btn-primary btn-sm nav-cta" aria-label="Bezpłatna diagnoza marketingu">
+        <span class="nav-cta-long">Bezpłatna diagnoza</span>
+        <span class="nav-cta-short">Bezpłatna diagnoza</span>
+      </a>
+    </div>
 
     <button class="hamburger" id="hamburger" aria-label="Otwórz menu" aria-controls="mobile-menu" aria-expanded="false" type="button">
       <span></span><span></span><span></span>
@@ -237,18 +264,19 @@ foreach ((array) $primary_navigation_links as $nav_link) {
   <div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Menu mobilne">
     <div class="wrap">
       <?php foreach ($primary_navigation_top as $nav_link) : ?>
-        <a href="<?php echo esc_url((string) $nav_link["url"]); ?>"<?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>><?php echo esc_html((string) $nav_link["title"]); ?></a>
+        <a href="<?php echo esc_url((string) $nav_link["url"]); ?>"<?php echo in_array((string) $nav_link["url"], $redesign_active_urls, true) ? ' aria-current="page"' : ""; ?><?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>><?php echo esc_html((string) $nav_link["title"]); ?></a>
         <?php
         $mobile_nav_id = (int) ($nav_link["id"] ?? 0);
         $mobile_children = ($mobile_nav_id > 0 && isset($primary_navigation_children[$mobile_nav_id])) ? (array) $primary_navigation_children[$mobile_nav_id] : [];
         ?>
         <?php foreach ($mobile_children as $mobile_child) : ?>
-          <a class="mobile-sub-link" href="<?php echo esc_url((string) ($mobile_child["url"] ?? "")); ?>"<?php echo ((string) ($mobile_child["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>>
+          <a class="mobile-sub-link" href="<?php echo esc_url((string) ($mobile_child["url"] ?? "")); ?>"<?php echo in_array((string) ($mobile_child["url"] ?? ""), $redesign_active_urls, true) ? ' aria-current="page"' : ""; ?><?php echo ((string) ($mobile_child["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>>
             <?php echo esc_html((string) ($mobile_child["title"] ?? "")); ?>
           </a>
         <?php endforeach; ?>
       <?php endforeach; ?>
-      <?php if ($nav_cta_url !== "") : ?><a href="<?php echo esc_url($nav_cta_url); ?>" class="mobile-menu-cta">Bezpłatna analiza</a><?php endif; ?>
+      <a href="<?php echo esc_url($redesign_nav_cta_url); ?>" class="mobile-menu-cta">Bezpłatna diagnoza</a>
+      <a href="<?php echo esc_url("tel:" . $contact_phone_href); ?>" class="up-mobile-phone">Zadzwoń: <?php echo esc_html($contact_phone); ?></a>
     </div>
   </div>
 </header>
