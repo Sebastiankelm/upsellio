@@ -74,3 +74,42 @@ $saveFails = true;
 check(request(["lead_phone"=>"575123457"])->getCode() === 500, "Save failure");
 check(count($notifications) === 4 && count($followups) === 4, "No notification on failed save");
 echo "Mobile callback contract checks passed.\n";
+
+// Exercise the real sync functions against failed and successful WordPress inserts.
+$startSync = strpos($source, "function upsellio_crm_sync_wp_lead_to_crm_lead_module(");
+$endSync = strpos($source, "function upsellio_crm_find_existing_inbox_offer_by_email(", $startSync);
+check($startSync !== false && $endSync !== false, "Sync functions available");
+eval(substr($source, $startSync, $endSync - $startSync));
+class WP_Error {}
+class WP_Post {
+    public $post_title = "Prośba o oddzwonienie";
+    public $post_content = "Test callback";
+    public $post_author = 7;
+}
+function get_post_type($id) { return $id === 42 ? "lead" : ""; }
+function post_type_exists($type) { return true; }
+function get_post_meta($id, $key, $single) {
+    return ["_upsellio_lead_phone"=>"+48575123456", "_upsellio_lead_form_origin"=>"mobile-callback"][$key] ?? "";
+}
+function get_post($id) { return new WP_Post(); }
+function sanitize_email($value) { return $value; }
+function sanitize_textarea_field($value) { return $value; }
+function upsellio_crm_run_as_user($id, $callback) { return $callback(); }
+function wp_insert_post($data, $returnError) { return $GLOBALS["insertFails"] ? new WP_Error() : ($data["post_type"] === "crm_lead" ? 101 : 102); }
+function is_wp_error($value) { return $value instanceof WP_Error; }
+function update_post_meta($id, $key, $value) { $GLOBALS["metaWrites"][] = [$id,$key,$value]; }
+function upsellio_crm_find_existing_inbox_offer_by_email($email) { return 0; }
+function upsellio_inbox_append_message($id, $message) { $GLOBALS["inboxWrites"][] = [$id,$message]; }
+$insertFails = true;
+$metaWrites = $inboxWrites = [];
+check(upsellio_crm_sync_wp_lead_to_crm_lead_module(42) === 0, "CRM insert error is not cast to ID");
+check(upsellio_crm_sync_wp_lead_to_inbox_offer(42) === 0, "Inbox insert error is not cast to ID");
+check($metaWrites === [] && $inboxWrites === [], "Failed sync never writes metadata or messages");
+$insertFails = false;
+check(upsellio_crm_sync_wp_lead_to_crm_lead_module(42) === 101, "Successful CRM sync returns real ID");
+check(upsellio_crm_sync_wp_lead_to_inbox_offer(42) === 102, "Successful Inbox sync returns real ID");
+check(in_array([101,"_ups_lead_phone","+48575123456"], $metaWrites, true), "CRM phone preserved");
+check(in_array([42,"_upsellio_synced_crm_lead_id",101], $metaWrites, true), "Lead linked to CRM");
+check(in_array([42,"_upsellio_synced_inbox_offer_id",102], $metaWrites, true), "Lead linked to inbox");
+check(count($inboxWrites) === 1 && $inboxWrites[0][0] === 102, "Inbox message stored on correct record");
+echo "CRM sync failure and success contracts passed.\n";
