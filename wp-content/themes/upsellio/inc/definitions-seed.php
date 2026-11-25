@@ -41,12 +41,9 @@ function upsellio_get_definition_dataset_item($slug)
 
 function upsellio_get_definition_permalink_by_slug($slug)
 {
-    $post = get_page_by_path($slug, OBJECT, "definicja");
-    if ($post) {
-        return get_permalink($post->ID);
-    }
+    $post = upsellio_seo_resolve_public_content_alias("definicja", $slug);
+    return $post ? get_permalink($post->ID) : home_url("/definicje/");
 
-    return home_url("/definicje/" . $slug . "/");
 }
 
 function upsellio_get_definition_related_slugs($slug, $limit = 6)
