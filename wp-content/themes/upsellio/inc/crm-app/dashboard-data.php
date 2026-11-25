@@ -167,6 +167,15 @@ function upsellio_crm_app_dashboard_lead_passes_service_filter($lead_id, $needle
  * @param array{period:string,source:string,service:string,trend_days:int} $args
  * @return array<string,mixed>
  */
+function upsellio_crm_app_dashboard_gmt_timestamp($raw)
+{
+    $raw = trim((string) $raw);
+    if ($raw === "" || $raw === "0000-00-00 00:00:00") {
+        return false;
+    }
+    return strtotime($raw . " UTC");
+}
+
 function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, array $tasks, array $args)
 {
     $period_key = isset($args["period"]) ? sanitize_key((string) $args["period"]) : "30d";
@@ -195,7 +204,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
     $count_leads_in_range = static function ($posts, $t0, $t1) {
         $n = 0;
         foreach ($posts as $p) {
-            $ts = strtotime((string) $p->post_date_gmt);
+            $ts = upsellio_crm_app_dashboard_gmt_timestamp($p->post_date_gmt);
             if ($ts !== false && $ts >= $t0 && $ts <= $t1) {
                 $n++;
             }
@@ -221,7 +230,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
             continue;
         }
         $need_contact++;
-        $created = strtotime((string) $lp->post_date_gmt);
+        $created = upsellio_crm_app_dashboard_gmt_timestamp($lp->post_date_gmt);
         if ($created !== false && ($now_ts - $created) > 48 * HOUR_IN_SECONDS) {
             $need_contact_overdue++;
         }
@@ -236,7 +245,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
             continue;
         }
         $offers_followup++;
-        $mod = strtotime((string) $op->post_modified_gmt);
+        $mod = upsellio_crm_app_dashboard_gmt_timestamp($op->post_modified_gmt);
         if ($mod !== false && ($now_ts - $mod) > 3 * DAY_IN_SECONDS) {
             $offers_followup_stale++;
         }
@@ -276,7 +285,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
             continue;
         }
         $score = (int) get_post_meta($lid, "_ups_lead_score_0_100", true);
-        $created = strtotime((string) $lp->post_date_gmt);
+        $created = upsellio_crm_app_dashboard_gmt_timestamp($lp->post_date_gmt);
         $age_h = $created !== false ? max(0, ($now_ts - $created) / 3600) : 0;
         $surfaced = ($st === "new" || $st === "" || $st === "nurturing") && ($score >= 55 || $age_h <= 36 || $score >= 70);
         if (!$surfaced) {
@@ -307,7 +316,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
         if ($ost !== "sent") {
             continue;
         }
-        $mod = strtotime((string) $op->post_modified_gmt);
+        $mod = upsellio_crm_app_dashboard_gmt_timestamp($op->post_modified_gmt);
         if ($mod === false || ($now_ts - $mod) < 3 * DAY_IN_SECONDS) {
             continue;
         }
@@ -374,7 +383,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
         if ($ost === "sent") {
             $snapshot["offer_sent"]["count"]++;
             $snapshot["offer_sent"]["value_pln"] += $v;
-            $mod = strtotime((string) $op->post_modified_gmt);
+            $mod = upsellio_crm_app_dashboard_gmt_timestamp($op->post_modified_gmt);
             if ($mod !== false && ($now_ts - $mod) > 3 * DAY_IN_SECONDS) {
                 $snapshot["offer_sent"]["alert"] = __("Część ofert bez odzewu > 3 dni", "upsellio");
             }
@@ -545,7 +554,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
         if ($score < 60 || $st === "converted") {
             continue;
         }
-        $created = strtotime((string) $lp->post_date_gmt);
+        $created = upsellio_crm_app_dashboard_gmt_timestamp($lp->post_date_gmt);
         $hot_leads[] = [
             "post" => $lp,
             "score" => $score,
@@ -557,10 +566,11 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
     });
     $hot_leads = array_slice($hot_leads, 0, 8);
 
-    $actions_today = count($priorities) > 0 ? min(99, count($tasks)) : (int) count(array_filter($tasks, static function ($t) {
+    $end_today = (new DateTimeImmutable("tomorrow", $tz))->getTimestamp();
+    $actions_today = (int) count(array_filter($tasks, static function ($t) use ($end_today) {
         $st = (string) get_post_meta((int) $t->ID, "_upsellio_task_status", true);
-
-        return !in_array($st, ["done", "cancelled"], true);
+        $due = (int) get_post_meta((int) $t->ID, "_upsellio_task_due_at", true);
+        return !in_array($st, ["done", "cancelled"], true) && $due > 0 && $due < $end_today;
     }));
 
     return [
