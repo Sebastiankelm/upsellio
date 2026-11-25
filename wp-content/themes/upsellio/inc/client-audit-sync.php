@@ -553,7 +553,8 @@ function ups_audit_sync_ads_resource(int $resource_id, int $days = 30, bool $ful
         return;
     }
     if (is_wp_error($daily)) {
-        $daily = [];
+        ups_audit_save_resource_cache($resource_id, ["period_days" => $days, "error" => $daily->get_error_message(), "summary" => [], "previous_summary" => [], "timeseries" => []]);
+        return;
     }
     if (is_wp_error($search_terms)) {
         $search_terms = [];
@@ -616,14 +617,7 @@ function ups_audit_sync_ads_resource(int $resource_id, int $days = 30, bool $ful
         }
     }
 
-    if ($summary_cur["cost"] <= 0 && !empty($camp_agg)) {
-        foreach ($camp_agg as $camp) {
-            $summary_cur["cost"] += (float) ($camp["cost"] ?? 0);
-            $summary_cur["clicks"] += (int) ($camp["clicks"] ?? 0);
-            $summary_cur["impressions"] += (int) ($camp["impressions"] ?? 0);
-            $summary_cur["conversions"] += (float) ($camp["conversions"] ?? 0);
-        }
-    }
+    // Campaign totals cover the fetch horizon, not necessarily the selected window.
 
     uasort($camp_agg, static function ($a, $b) {
         return ((float) ($b["cost"] ?? 0)) <=> ((float) ($a["cost"] ?? 0));
@@ -778,14 +772,7 @@ function ups_audit_sync_meta_resource(int $resource_id, int $days = 30, bool $fu
         ];
     }
 
-    if ($summary_cur["cost"] <= 0 && !empty($camp_agg)) {
-        foreach ($camp_agg as $camp) {
-            $summary_cur["cost"] += (float) ($camp["cost"] ?? 0);
-            $summary_cur["clicks"] += (int) ($camp["clicks"] ?? 0);
-            $summary_cur["impressions"] += (int) ($camp["impressions"] ?? 0);
-            $summary_cur["conversions"] += (float) ($camp["conversions"] ?? 0);
-        }
-    }
+    // Campaign totals cover the fetch horizon, not necessarily the selected window.
 
     uasort($camp_agg, static function ($a, $b) {
         return ((float) ($b["cost"] ?? 0)) <=> ((float) ($a["cost"] ?? 0));
@@ -1138,6 +1125,16 @@ function ups_audit_sync_all_mapped_resources(int $days = 0, bool $full_history =
  * @param array<string, mixed> $setup
  * @return array<string, mixed>
  */
+function ups_audit_sitewide_mer(array $agg): ?float
+{
+    $revenue = $agg["ga4_revenue"] ?? null;
+    $cost = $agg["paid_cost"] ?? null;
+    if (($agg["ga4_revenue_source"] ?? "") !== "purchaseRevenue" || (int) ($agg["unavailable_resource_count"] ?? 0) > 0 || !is_numeric($revenue) || !is_numeric($cost) || !is_finite((float) $revenue) || !is_finite((float) $cost) || (float) $revenue < 0 || (float) $cost <= 0) {
+        return null;
+    }
+    return round((float) $revenue / (float) $cost, 2);
+}
+
 function ups_audit_aggregate_resources_data(array $resources, int $days = 30, int $offset = 0, bool $with_extras = true, array $setup = [], int $extras_client_id = 0): array
 {
     $agg = [
@@ -1176,12 +1173,14 @@ function ups_audit_aggregate_resources_data(array $resources, int $days = 30, in
         "meta_clicks_prev" => 0,
         "meta_conversions" => 0.0,
         "meta_conversions_prev" => 0.0,
-        "meta_roas" => 0.0,
-        "meta_roas_prev" => 0.0,
+        "meta_roas" => null,
+        "meta_roas_prev" => null,
         "paid_cost" => 0.0,
         "paid_cost_prev" => 0.0,
-        "roas" => 0.0,
-        "roas_prev" => 0.0,
+        "roas" => null,
+        "roas_prev" => null,
+        "mer" => null,
+        "mer_prev" => null,
         "resources" => [],
         "top_keywords" => [],
         "previous_top_keywords" => [],
@@ -1687,10 +1686,10 @@ function ups_audit_aggregate_resources_data(array $resources, int $days = 30, in
         : 0.0;
     $agg["paid_cost"] = (float) $agg["ads_cost"] + (float) $agg["meta_cost"];
     $agg["paid_cost_prev"] = (float) $agg["ads_cost_prev"] + (float) $agg["meta_cost_prev"];
-    $agg["roas"] = $agg["ads_cost"] > 0 ? round($agg["ga4_revenue"] / $agg["ads_cost"], 2) : 0.0;
-    $agg["roas_prev"] = $agg["ads_cost_prev"] > 0 ? round($agg["ga4_revenue_prev"] / $agg["ads_cost_prev"], 2) : 0.0;
-    $agg["meta_roas"] = $agg["meta_cost"] > 0 ? round($agg["ga4_revenue"] / $agg["meta_cost"], 2) : 0.0;
-    $agg["meta_roas_prev"] = $agg["meta_cost_prev"] > 0 ? round($agg["ga4_revenue_prev"] / $agg["meta_cost_prev"], 2) : 0.0;
+    // Sitewide revenue is not attributable to a single advertising channel.
+    // Until verified channel-level purchase values exist, channel ROAS stays unknown.
+    $agg["data_quality_notes"][] = "ROAS Google/Meta niedostępny bez zweryfikowanej atrybucji zakupów. MER obejmuje łączny przychód GA4 i koszt Google + Meta.";
+    $agg["mer"] = ups_audit_sitewide_mer($agg);
 
     uasort($kw_merge, static function ($a, $b) {
         return ((int) ($b["clicks"] ?? 0)) <=> ((int) ($a["clicks"] ?? 0));
@@ -1761,9 +1760,9 @@ function ups_audit_aggregate_resources_data(array $resources, int $days = 30, in
         "ads_conversions" => ups_audit_delta_pct((float) $agg["ads_conversions"], (float) $agg["ads_conversions_prev"]),
         "meta_cost" => ups_audit_delta_pct((float) $agg["meta_cost"], (float) $agg["meta_cost_prev"]),
         "meta_clicks" => ups_audit_delta_pct((float) $agg["meta_clicks"], (float) $agg["meta_clicks_prev"]),
-        "meta_roas" => ups_audit_delta_pct((float) $agg["meta_roas"], (float) $agg["meta_roas_prev"]),
+        "meta_roas" => null,
         "paid_cost" => ups_audit_delta_pct((float) $agg["paid_cost"], (float) $agg["paid_cost_prev"]),
-        "roas" => ups_audit_delta_pct((float) $agg["roas"], (float) $agg["roas_prev"]),
+        "roas" => null,
     ];
 
     $agg["derived"] = function_exists("ups_audit_compute_derived_metrics")
@@ -1951,7 +1950,7 @@ function ups_audit_get_portfolio_rows(): array
             "ga4_sessions" => (int) ($data["ga4_sessions"] ?? 0),
             "gsc_clicks" => (int) ($data["gsc_clicks"] ?? 0),
             "ads_cost" => (float) ($data["ads_cost"] ?? 0),
-            "roas" => (float) ($data["roas"] ?? 0),
+            "roas" => $data["roas"] ?? null,
             "deltas" => (array) ($data["deltas"] ?? []),
         ];
     }
@@ -2042,8 +2041,8 @@ function ups_audit_get_client_profile_rows(int $window = 0): array
             "ads_cost" => (float) ($data["ads_cost"] ?? 0),
             "meta_cost" => (float) ($data["meta_cost"] ?? 0),
             "paid_cost" => (float) ($data["paid_cost"] ?? 0),
-            "roas" => (float) ($data["roas"] ?? 0),
-            "meta_roas" => (float) ($data["meta_roas"] ?? 0),
+            "roas" => $data["roas"] ?? null,
+            "meta_roas" => $data["meta_roas"] ?? null,
             "clarity_sessions" => (int) ($data["clarity_sessions"] ?? 0),
             "clarity_dead_clicks" => (int) ($data["clarity_dead_clicks"] ?? 0),
             "deltas" => (array) ($data["deltas"] ?? []),
