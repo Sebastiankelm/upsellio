@@ -31,7 +31,8 @@ $rm_summary_today = function_exists("upsellio_rankmath_get_dashboard_summary") ?
 $gsc_src_label = (string) get_option("upsellio_keyword_metrics_source", "");
 ?>
 <section class="card">
-  <h3 style="margin:0 0 14px">Dziś</h3>
+  <h3 style="margin:0 0 8px">Dziś</h3>
+  <p class="muted">Bieżący brief, ostatnia synchronizacja źródeł i aktualne leady; dane GSC Rank Math dotyczą 30 dni.</p>
 
   <!-- AI brief -->
   <div class="crm-brief-card" style="margin-bottom:14px">
@@ -51,21 +52,21 @@ $gsc_src_label = (string) get_option("upsellio_keyword_metrics_source", "");
   <!-- Hot leady -->
   <h4 style="margin:0 0 8px;font-size:13px">Top 3 hot leady</h4>
   <?php
-    $hot_leads = get_posts([
-        "post_type" => "lead",
-        "posts_per_page" => 3,
-        "meta_query" => [["key" => "_upsellio_lead_score", "value" => 60, "compare" => ">="]],
-        "orderby" => "meta_value_num",
-        "meta_key" => "_upsellio_lead_score",
-        "order" => "DESC",
+    $hot_leads = upsellio_crm_app_collect_metric_posts("crm_lead", [
+        "meta_query" => [["key" => "_ups_lead_score_0_100", "value" => 60, "compare" => ">=", "type" => "NUMERIC"]],
     ]);
+    upsellio_crm_app_prime_post_meta_cache($hot_leads);
+    usort($hot_leads, static function ($a, $b) {
+        return ((int) get_post_meta($b->ID, "_ups_lead_score_0_100", true) <=> (int) get_post_meta($a->ID, "_ups_lead_score_0_100", true)) ?: ($b->ID <=> $a->ID);
+    });
+    $hot_leads = array_slice($hot_leads, 0, 3);
     if (empty($hot_leads)) :
         ?>
     <p class="muted" style="margin:0 0 14px">Brak leadów ze score ≥60.</p>
   <?php else : ?>
     <ul style="margin:0 0 14px;padding-left:16px">
       <?php foreach ($hot_leads as $lead) :
-          $score = (int) get_post_meta((int) $lead->ID, "_upsellio_lead_score", true);
+          $score = (int) get_post_meta((int) $lead->ID, "_ups_lead_score_0_100", true);
           $url = add_query_arg(["view" => "leads", "lead_id" => $lead->ID], home_url("/crm-app/"));
           ?>
       <li style="font-size:13px;margin-bottom:4px">
@@ -107,7 +108,7 @@ $gsc_src_label = (string) get_option("upsellio_keyword_metrics_source", "");
   <?php if ($idx_submitted === 0) : ?>
     <p class="muted" style="margin:0 0 14px">Brak zagregowanych danych z Search Console (sitemap). Po pierwszym cronie lub po odświeżeniu w zakładce SEO pojawią się liczniki.</p>
   <?php else : ?>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+    <div class="crm-report-kpis">
       <?php
         $today_idx_kpis = [
             [$idx_indexed . " / " . $idx_submitted, "Zaindeksowanych", $idx_color],
@@ -130,7 +131,7 @@ $gsc_src_label = (string) get_option("upsellio_keyword_metrics_source", "");
 
   <?php if (!empty($rm_summary_today["clicks"])) : ?>
   <h4 style="margin:0 0 8px;font-size:13px">GSC (jak Rank Math, 30 dni)</h4>
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+  <div class="crm-report-kpis">
     <?php
     foreach ([
         ["Kliknięcia", "clicks", false],
