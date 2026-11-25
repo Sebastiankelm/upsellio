@@ -520,22 +520,22 @@ $faq_items = [
         </div>
       </div>
       <div class="gads-kpi-box">
-        <h3 class="gads-h3">Realne benchmarki, na których pracujemy</h3>
+        <h3 class="gads-h3">Co sprawdzamy w raportach</h3>
         <div class="gads-kpi-row">
           <div class="gads-kpi">
             <span class="gads-kpi-label">CPL</span>
-            <span class="gads-kpi-value">37–89 zł</span>
-            <span class="gads-kpi-context">Średni koszt wartościowego leada w kampaniach B2B (usługi i IT, 2024).</span>
+            <span class="gads-kpi-value">CPL</span>
+            <span class="gads-kpi-context">Koszt pozyskania wartościowego zapytania lub telefonu.</span>
           </div>
           <div class="gads-kpi">
             <span class="gads-kpi-label">Quality Score</span>
-            <span class="gads-kpi-value">+2 / +3 pkt</span>
-            <span class="gads-kpi-context">Typowa poprawa jakości fraz po pierwszym cyklu optymalizacji i nowych landingach.</span>
+            <span class="gads-kpi-value">Jakość</span>
+            <span class="gads-kpi-context">Trafność słów kluczowych, reklam i stron docelowych.</span>
           </div>
           <div class="gads-kpi">
             <span class="gads-kpi-label">ROAS (e-com)</span>
-            <span class="gads-kpi-value">300–600%</span>
-            <span class="gads-kpi-context">Realistyczny zakres dla sklepów z marżą i poprawnym śledzeniem zakupów.</span>
+            <span class="gads-kpi-value">ROAS</span>
+            <span class="gads-kpi-context">Przychód z reklam w stosunku do wydatków; oceniany wraz z marżą.</span>
           </div>
         </div>
         <ul class="gads-effects-list" style="margin-top:22px;">
