@@ -22,6 +22,15 @@ jobs:
           release = "10ad9e5daf5fb0a338b758f5776f8ccb474fa9db"
           files = ["inc/anthropic-offer-ai.php", "inc/crm-app/actions.php", "inc/crm-app/render.php", "inc/followups.php", "inc/offer-landing.php", "inc/offers.php", "inc/sales-engine.php"]
           prefix = "wp-content/themes/upsellio/"
+          production_hashes = {
+              "inc/anthropic-offer-ai.php": "28f142b8ade90e77ee96b2229cee043040976d60bb783603b2e666049f4a617c",
+              "inc/crm-app/actions.php": "a72c1db065dac9f2ae4f6e8947eba082dde267c3725121cb6bcb23c4cf0d9bc7",
+              "inc/crm-app/render.php": "33fa81377d6ac93391cce1727b48962b1a7b70ae44eb62630a3dbce8b89fbe5c",
+              "inc/followups.php": "a34c5ab4d0bfd77f6781029710d194b8dd0178510e7a1368788bd864f03751d5",
+              "inc/offer-landing.php": "a9b3503b0e7790f50b3fa6e9edc3a0dafc2b23ab9bc5935c82c0023bf875635a",
+              "inc/offers.php": "3be559bfcf96b7d345625d88fe4454bbee371ddb0f8c36b220c18351a3eb3cd0",
+              "inc/sales-engine.php": "0aaa1d58e63462c8ca4a98cedb029c75dc795a1c328814fbc868fb1a6236ff8c",
+          }
           package = pathlib.Path("release-package/upsellio-offer-release")
           package.mkdir(parents=True, exist_ok=False)
           (package/"payload").mkdir()
@@ -31,6 +40,12 @@ jobs:
               manifest["files"][rel] = {}
               for label, revision in (("old",base),("new",release)):
                   data = subprocess.check_output(["git","show",f"{revision}:{prefix}{rel}"])
+                  if label == "old":
+                      data = data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+                      if hashlib.sha256(data).hexdigest() != production_hashes[rel]:
+                          raise RuntimeError("Production baseline differs: " + rel)
+                      print("Verified exact production baseline:", rel)
+                  # Preserve release bytes unchanged (the integration-tested Git blob).
                   tmp = pathlib.Path("/tmp/offer-release-lint.php")
                   tmp.write_bytes(data)
                   subprocess.run(["php","-l",str(tmp)],check=True)
@@ -94,7 +109,7 @@ jobs:
           php /tmp/test-offer-release.php
       - uses: actions/upload-artifact@v4
         with:
-          name: upsellio-offer-release-2.0.1
+          name: upsellio-offer-release-2.0.2
           path: release-package/
           retention-days: 7
           if-no-files-found: error
