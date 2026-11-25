@@ -687,8 +687,7 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
                 </h1>
 
                 <p class="ct-lead">
-                    Wystarczy krótki opis: ile masz ruchu, ile zapytań i gdzie rozmowy się rozsypują.
-                    Jeśli pasujemy — zadzwonimy. Jeśli nie — powiem wprost po 5 minutach.
+                    Nie musisz znać się na marketingu. Wystarczy, że czujesz, że Twój sklep, lokal czy reklamy mogłyby przynosić więcej.
                 </p>
 
                 <ol class="ct-hero-steps">
@@ -696,25 +695,6 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
                     <li><span class="ct-hero-step-num" aria-hidden="true">2</span><div><strong>Oddzwaniam w 24h roboczych</strong><p>Wcześniej zaglądam na Twoją stronę, sklep i reklamy.</p></div></li>
                     <li><span class="ct-hero-step-num" aria-hidden="true">3</span><div><strong>Dostajesz konkretną listę</strong><p>3–5 rzeczy do poprawy — możesz je wdrożyć sam, nawet bez współpracy.</p></div></li>
                 </ol>
-
-                <div class="ct-proof-grid">
-                    <div class="ct-proof-cell">
-                        <strong>30 min</strong>
-                        <span>rozmowa</span>
-                    </div>
-                    <div class="ct-proof-cell">
-                        <strong>0 zł</strong>
-                        <span>diagnoza</span>
-                    </div>
-                    <div class="ct-proof-cell">
-                        <strong>24h</strong>
-                        <span>odpowiedź</span>
-                    </div>
-                    <div class="ct-proof-cell">
-                        <strong>1 osoba</strong>
-                        <span>cały kontakt</span>
-                    </div>
-                </div>
 
                 <div class="ct-contact-person">
                     <span class="ct-person-avatar" aria-hidden="true">SK</span>
@@ -727,15 +707,15 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
             <aside class="ct-form-card" aria-labelledby="form-heading" data-animate="fade-left" data-delay="1">
                 <div class="ct-form-head">
                     <span class="ct-eyebrow">Wypełnij formularz</span>
-                    <h2 id="form-heading">Napisz, co chcesz poprawić</h2>
-                    <p>Wystarczy krótki opis sytuacji. Nie potrzebujesz gotowego briefu.</p>
+                    <h2 id="form-heading">Umów diagnozę</h2>
+                    <p>Odpowiadam osobiście w 24h roboczych.</p>
                 </div>
 
                 <?php
                 /* Renderuj formularz przez wspolny helper motywu */
                 echo upsellio_render_lead_form([
                     "origin" => "contact-page-form",
-                    "submit_label" => "Wyślij — odpiszę w 24h →",
+                    "submit_label" => "Wyślij — oddzwonię w 24h →",
                     "variant" => "full",
                     "heading" => "",
                     "subheading" => "",
@@ -781,7 +761,26 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
             <article class="ct-agenda-card"><span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 15l4-4 4 3 5-7"/></svg></span><div><h3>Rozsądny budżet na start</h3><p>Ile wydać, żeby reklama miała szansę się zwrócić.</p></div></article>
             <article class="ct-agenda-card"><span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4 10-10"/></svg></span><div><h3>Co zrobić samemu</h3><p>Co poprawisz sam od ręki, a co lepiej zlecić.</p></div></article>
         </div>
-    </div>
+    <div class="ct-proof-grid">
+                    <div class="ct-proof-cell">
+                        <strong>30 min</strong>
+                        <span>rozmowa</span>
+                    </div>
+                    <div class="ct-proof-cell">
+                        <strong>0 zł</strong>
+                        <span>diagnoza</span>
+                    </div>
+                    <div class="ct-proof-cell">
+                        <strong>24h</strong>
+                        <span>odpowiedź</span>
+                    </div>
+                    <div class="ct-proof-cell">
+                        <strong>1 osoba</strong>
+                        <span>cały kontakt</span>
+                    </div>
+                </div>
+
+                </div>
 </section>
 
 <!-- ====================================================================
