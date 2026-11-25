@@ -42,7 +42,7 @@ function upsellio_get_definition_dataset_item($slug)
 function upsellio_get_definition_permalink_by_slug($slug)
 {
     $post = upsellio_seo_resolve_public_content_alias("definicja", $slug);
-    return $post ? get_permalink($post->ID) : home_url("/definicje/");
+    return $post ? get_permalink($post->ID) : "";
 
 }
 
@@ -91,10 +91,14 @@ function upsellio_get_definition_related_links($slug, $limit = 6)
         if (!$item) {
             continue;
         }
+        $url = upsellio_get_definition_permalink_by_slug($relatedSlug);
+        if (!$url) {
+            continue;
+        }
         $links[] = [
             "slug" => $relatedSlug,
             "name" => $item["term"],
-            "url" => upsellio_get_definition_permalink_by_slug($relatedSlug),
+            "url" => $url,
         ];
     }
 
@@ -118,16 +122,18 @@ function upsellio_get_definition_adjacent_links($slug)
     $prevItem = upsellio_get_definition_dataset_item($slugs[$prevIndex]);
     $nextItem = upsellio_get_definition_dataset_item($slugs[$nextIndex]);
 
+    $prevUrl = $prevItem ? upsellio_get_definition_permalink_by_slug($prevItem["slug"]) : "";
+    $nextUrl = $nextItem ? upsellio_get_definition_permalink_by_slug($nextItem["slug"]) : "";
     return [
-        "prev" => $prevItem ? [
+        "prev" => $prevItem && $prevUrl ? [
             "name" => $prevItem["term"],
             "slug" => $prevItem["slug"],
-            "url" => upsellio_get_definition_permalink_by_slug($prevItem["slug"]),
+            "url" => $prevUrl,
         ] : null,
-        "next" => $nextItem ? [
+        "next" => $nextItem && $nextUrl ? [
             "name" => $nextItem["term"],
             "slug" => $nextItem["slug"],
-            "url" => upsellio_get_definition_permalink_by_slug($nextItem["slug"]),
+            "url" => $nextUrl,
         ] : null,
     ];
 }
