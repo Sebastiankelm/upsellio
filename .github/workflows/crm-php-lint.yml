@@ -67,6 +67,7 @@ jobs:
         run: |
           set -euo pipefail
           git fetch --no-tags --depth=1 origin "$RELEASE_SHA"
+          git fetch --no-tags --depth=1 origin 8282d25d5e67b46a71c32534aa5f6c8eb37333e5
           python3 - <<'PY'
           import hashlib, json, os, pathlib, re, subprocess
 
@@ -87,6 +88,12 @@ jobs:
           out = pathlib.Path(os.environ["RUNNER_TEMP"]) / "upsellio-crm-release"
           out.mkdir(exist_ok=False)
           records = []
+          offer_base = "8282d25d5e67b46a71c32534aa5f6c8eb37333e5"
+          # These two shared files were already deployed by Offer Release 2.0.3.
+          shared_live = {
+              "inc/crm-app/actions.php": "f3c15a948e776f656414101e342dd3c1dc7224d96b366ad403c585ce1d384b51",
+              "inc/crm-app/render.php": "aa6cd236386d3d1ee7aeac8de77210cf79ae8ac41a88f5c5b7519705ac2c018a",
+          }
           changed = git("diff", "--no-renames", "--name-status", "-z", base, head, "--", prefix).decode("utf-8").split("\0")
           assert changed.pop() == ""
           assert len(changed) % 2 == 0
@@ -99,13 +106,17 @@ jobs:
               assert status != "A" or rel == "assets/css/crm-redesign.css", rel
               assert git("ls-tree", head, "--", full).split()[0] == b"100644", rel
               after = git("show", f"{head}:{full}")
-              before = git("show", f"{base}:{full}") if status == "M" else None
+              file_base = offer_base if rel in shared_live else base
+              before = git("show", f"{file_base}:{full}") if status == "M" else None
               if before is not None:
-                  assert git("ls-tree", base, "--", full).split()[0] == b"100644", rel
+                  assert git("ls-tree", file_base, "--", full).split()[0] == b"100644", rel
+                  if rel in shared_live:
+                      assert hashlib.sha256(before).hexdigest() == shared_live[rel], rel
               target = out / "payload" / rel
               target.parent.mkdir(parents=True, exist_ok=True)
               target.write_bytes(after)
               records.append({"path": rel, "operation": "replace" if before is not None else "add",
+                              "base_git_commit": file_base if before is not None else None,
                               "base_git_sha256": hashlib.sha256(before).hexdigest() if before is not None else None,
                               "release_sha256": hashlib.sha256(after).hexdigest(), "bytes": len(after)})
           assert records, "No CRM files"
@@ -117,7 +128,8 @@ jobs:
           (out / "README.txt").write_text(
               "CRM release package; not a DevOps Bridge request.\n"
               "No production changes have been made by this workflow.\n"
-              "Base hashes are from Git, not from the live server.\n"
+              "Base hashes are from Git; the two shared offer files use a pinned deployed offer commit.\n"
+              "Live files must be rechecked before deployment.\n"
               "Before deploying: compare all live files, confirm a current database and file backup,\n"
               "verify permissions and PHP version, test on staging, and deploy as one coherent release.\n"
               "Stop on any hash mismatch. Rollback must restore actual live backups and remove newly added files.\n"
