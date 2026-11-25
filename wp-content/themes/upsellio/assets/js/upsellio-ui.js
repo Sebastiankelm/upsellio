@@ -182,6 +182,74 @@
       window.dataLayer = window.dataLayer || [];
       window.dataLayer.push({event, location});
     }
+    // Keep the full diagnosis form as fallback when the callback API is unavailable.
+    const diagLink = sheet.querySelector(".up-sheet-diag");
+    let callbackPhone = null;
+    const ajaxUrl = window.upsellioData?.ajaxUrl;
+    if (ajaxUrl && typeof fetch === "function") {
+      let endpoint;
+      try { endpoint = new URL(ajaxUrl, location.href); } catch (_) {}
+      if (endpoint && endpoint.origin === location.origin) {
+        const form = document.createElement("form");
+        form.className = "up-sheet-callback";
+        form.innerHTML = '<h3>Oddzwonię do Ciebie</h3><label for="up-callback-phone">Telefon</label><input id="up-callback-phone" name="lead_phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+48 000 000 000" maxlength="24" required><div class="up-callback-honeypot" aria-hidden="true"><label>Strona<input name="lead_website" tabindex="-1" autocomplete="off"></label></div><label class="up-callback-consent"><input type="checkbox" name="lead_consent" value="1" required><span>Zgadzam się na kontakt telefoniczny w sprawie diagnozy.</span></label><button class="up-callback-send" type="submit">Oddzwoń</button><p class="up-callback-status" role="status" aria-live="polite"></p>';
+        diagLink.before(form);
+        diagLink.querySelector("strong").textContent = "Wolisz opisać sytuację?";
+        diagLink.querySelector("span").textContent = "Przejdź do pełnego formularza diagnozy";
+        callbackPhone = form.querySelector('input[name="lead_phone"]');
+        const status = form.querySelector(".up-callback-status");
+        const submit = form.querySelector("button[type=submit]");
+        let busy = false;
+        let submitted = false;
+        callbackPhone.addEventListener("input", () => {
+          callbackPhone.setCustomValidity("");
+        });
+        form.addEventListener("submit", async e => {
+          e.preventDefault();
+          if (busy || submitted) return;
+          const phone = callbackPhone.value.trim();
+          const digits = phone.replace(/\D/g, "");
+          if (!/^\+?[0-9 ()-]+$/.test(phone) || digits.length < 9 || digits.length > 15) {
+            callbackPhone.setCustomValidity("Podaj poprawny numer telefonu.");
+            callbackPhone.reportValidity();
+            return;
+          }
+          if (!form.reportValidity()) return;
+          const data = new FormData(form);
+          busy = true;
+          submit.disabled = true;
+          form.setAttribute("aria-busy","true");
+          status.textContent = "Wysyłam…";
+          status.classList.remove("is-error");
+          try {
+            const nonceBody = new URLSearchParams({action:"upsellio_refresh_lead_form_nonce"});
+            const nonceResponse = await fetch(endpoint.href,{method:"POST",credentials:"same-origin",body:nonceBody,cache:"no-store"});
+            const nonceJson = await nonceResponse.json();
+            if (!nonceResponse.ok || !nonceJson.success || typeof nonceJson.data?.nonce !== "string") throw new Error("Nie udało się rozpocząć zgłoszenia.");
+            data.set("action","upsellio_mobile_callback");
+            data.set("nonce",nonceJson.data.nonce);
+            const response = await fetch(endpoint.href,{method:"POST",credentials:"same-origin",body:data,cache:"no-store"});
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+              throw new Error(typeof result.data?.message === "string" ? result.data.message : "Nie udało się potwierdzić zgłoszenia. Skorzystaj z pełnego formularza lub zadzwoń.");
+            }
+            submitted = true;
+            form.reset();
+            status.textContent = "Dzięki! Oddzwonię w ciągu 24h roboczych.";
+            submit.textContent = "Zgłoszenie wysłane";
+            form.querySelectorAll("input").forEach(input => { input.disabled = true; });
+            emit("callback_submit","sheet");
+          } catch (error) {
+            status.textContent = error instanceof Error && error.message.startsWith("Nie udało") ? error.message : "Nie udało się potwierdzić zgłoszenia. Sprawdź dane lub zadzwoń.";
+            status.classList.add("is-error");
+          } finally {
+            busy = false;
+            submit.disabled = submitted;
+            form.removeAttribute("aria-busy");
+          }
+        });
+      }
+    }
     let opener = null;
     function open(button) {
       if (!mobile.matches || sheet.open) return;
@@ -189,7 +257,8 @@
       sheet.showModal();
       document.body.classList.add("up-sheet-open");
       button.setAttribute("aria-expanded","true");
-      sheet.querySelector(".up-sheet-close").focus();
+      if (button === after && callbackPhone && !callbackPhone.disabled) callbackPhone.focus();
+      else sheet.querySelector(".up-sheet-close").focus();
       emit("open_contact_sheet","bar");
     }
     write.addEventListener("click", () => open(write));
