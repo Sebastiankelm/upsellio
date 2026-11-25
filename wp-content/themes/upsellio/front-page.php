@@ -587,7 +587,8 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
         <p class="hr-lead">Prowadzę reklamy w Google, na Facebooku i Instagramie oraz tworzę strony i sklepy, które pomagają zamieniać odwiedzających w zamówienia i telefony. Jedna osoba od reklamy do koszyka — bez prowizji od budżetu.</p>
         <div class="hr-hero-acts">
           <a href="#kontakt" class="hr-btn hr-btn-p">Umów bezpłatną diagnozę →</a>
-          <a href="#system" class="hr-btn hr-btn-g">Zobacz, co robię</a>
+          <a href="#system" class="hr-btn hr-btn-g up-hero-desktop">Zobacz, co robię</a>
+          <a href="tel:<?php echo esc_attr($contact_phone_href); ?>" class="hr-btn hr-btn-g up-hero-mobile" data-contact-location="hero">Zadzwoń teraz</a>
         </div>
 
         <div class="hr-hero-stats">
@@ -801,6 +802,8 @@ if (function_exists("upsellio_get_home_media_slot")) {
 <!-- ====================================================================
      SEKCJA 10 — FAQ (schema.org FAQPage)
      ==================================================================== -->
+<details class="up-extra-content"><summary>Szczegóły usług i współpracy</summary>
+<div class="up-extra-body">
 <section class="hr-section hr-section-soft" aria-label="Szczegóły usług"><div class="hr-wrap"><h2>Szczegóły usług i pomiaru</h2><div class="up-home-details"><article><h3>Reklamy Google które łapią klienta z intencją zakupową</h3><p>
           Search, Performance Max, Shopping i remarketing. Konfiguracja konta, struktura kampanii, codzienna optymalizacja. Z naciskiem na jakość leadów, nie tylko CTR.
         </p><ul>
@@ -824,7 +827,7 @@ if (function_exists("upsellio_get_home_media_slot")) {
   <div class="hr-wrap">
     <header class="hr-gain-head" data-hr-anim>
       <span class="hr-eyebrow">Co konkretnie zyskujesz</span>
-      <h2 id="hr-gain-h2">Cztery rzeczy, które zmieniają się w pierwszych 60 dniach współpracy</h2>
+      <h2 id="hr-gain-h2">Cztery obszary, nad którymi pracujemy</h2>
     </header>
 
     <div class="hr-gain-grid">
@@ -947,6 +950,8 @@ if (function_exists("upsellio_get_home_media_slot")) {
     </div>
   </div>
 </section>
+
+</div></details>
 <section class="hr-section" id="faq" aria-labelledby="hr-faq-h2">
   <div class="hr-wrap">
     <header class="hr-sec-head" data-hr-anim>
