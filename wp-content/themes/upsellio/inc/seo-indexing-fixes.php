@@ -88,7 +88,15 @@ function upsellio_seo_indexing_apply_legacy_redirects()
         return;
     }
 
-    wp_safe_redirect(home_url($map[$path]), 301);
+    $target_path = trim($map[$path], "/");
+    $target = get_page_by_path($target_path, OBJECT, ["post", "page"]);
+    if (strpos($target_path, "miasto/") === 0) {
+        $target = upsellio_seo_resolve_public_content_alias("miasto", substr($target_path, strlen("miasto/")));
+    }
+    if (!($target instanceof WP_Post) || $target->post_status !== "publish" || $target->post_password !== "") {
+        return;
+    }
+    wp_safe_redirect(get_permalink($target), 301);
     exit;
 }
 add_action("template_redirect", "upsellio_seo_indexing_apply_legacy_redirects", 1);
@@ -168,7 +176,7 @@ function upsellio_seo_redirect_legacy_content_alias(): void
     wp_safe_redirect($target, 301);
     exit;
 }
-add_action("template_redirect", "upsellio_seo_redirect_legacy_content_alias", 3);
+add_action("template_redirect", "upsellio_seo_redirect_legacy_content_alias", 1);
 
 function upsellio_seo_indexing_blog_filter_params()
 {
