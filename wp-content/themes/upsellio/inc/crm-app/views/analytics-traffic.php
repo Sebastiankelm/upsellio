@@ -1,7 +1,7 @@
 <?php
 if (!defined("ABSPATH")) { exit; }
 
-$range_days = isset($_GET["range"]) ? (int) wp_unslash($_GET["range"]) : 30;
+$range_days = isset($range_days) && in_array($range_days, [7, 14, 30, 60, 90, 365], true) ? $range_days : 30;
 $kpi_cards  = function_exists("upsellio_analytics_kpi_cards")     ? upsellio_analytics_kpi_cards($range_days)     : [];
 $charts     = function_exists("upsellio_analytics_charts_series") ? upsellio_analytics_charts_series($range_days) : [];
 
@@ -18,19 +18,19 @@ $clk_cur    = _ups_tc_vals($charts["clicks"]["current"]       ?? []);
 $clk_prev   = _ups_tc_vals($charts["clicks"]["previous"]      ?? []);
 $labels     = _ups_tc_lbls($charts["views"]["current"]        ?? []);
 
-$has_data = !empty($views_cur) && (array_sum($views_cur) + array_sum($impr_cur) + array_sum($leads_cur)) > 0;
+$has_data = !empty($views_cur) || !empty($impr_cur) || !empty($leads_cur) || !empty($clk_cur);
 
 // Dodatkowe statystyki
 $total_views   = array_sum($views_cur);
 $total_leads   = array_sum($leads_cur);
 $total_impr    = array_sum($impr_cur);
 $total_clicks  = array_sum($clk_cur);
-$conv_rate     = $total_views > 0 ? round($total_leads / $total_views * 100, 2) : 0;
-$avg_ctr       = $total_impr > 0  ? round($total_clicks / $total_impr * 100, 2) : 0;
+$conv_rate     = $total_views > 0 && !empty($leads_cur) ? round($total_leads / $total_views * 100, 2) : null;
+$avg_ctr       = $total_impr > 0 && !empty($clk_cur) ? round($total_clicks / $total_impr * 100, 2) : null;
 $prev_views    = array_sum($views_prev);
 $prev_leads    = array_sum($leads_prev);
-$delta_views   = $prev_views > 0  ? round(($total_views - $prev_views) / $prev_views * 100, 1) : 0;
-$delta_leads   = $prev_leads > 0  ? round(($total_leads - $prev_leads) / $prev_leads * 100, 1) : 0;
+$delta_views   = $prev_views > 0 && !empty($views_cur) ? round(($total_views - $prev_views) / $prev_views * 100, 1) : null;
+$delta_leads   = $prev_leads > 0 && !empty($leads_cur) ? round(($total_leads - $prev_leads) / $prev_leads * 100, 1) : null;
 
 // Win rate i MRR z kpi_cards
 $win_rate = 0; $mrr = 0; $forecast = 0; $ttc = 0;
@@ -72,17 +72,17 @@ foreach ($kpi_cards as $k) {
   <?php else: ?>
 
   <!-- Metryki w jednym wierszu z deltą -->
-  <div style="display:grid;grid-template-columns:repeat(3,1fr) repeat(2,1fr);gap:10px;margin-bottom:20px">
+  <div class="crm-report-kpis">
     <?php
     $traffic_kpis = [
-      ["Wyświetlenia",    number_format($total_views), $delta_views, "ti-eye"],
-      ["Leady z ruchu",   number_format($total_leads), $delta_leads, "ti-user-check"],
-      ["Konwersja",       $conv_rate . "%", null, "ti-percentage"],
-      ["Impressions GSC", number_format($total_impr),  null, "ti-search"],
-      ["CTR GSC",         $avg_ctr . "%",   null, "ti-cursor-text"],
+      ["Wyświetlenia",    !empty($views_cur) ? number_format($total_views) : "—", $delta_views, "ti-eye"],
+      ["Leady z ruchu",   !empty($leads_cur) ? number_format($total_leads) : "—", $delta_leads, "ti-user-check"],
+      ["Konwersja",       $conv_rate !== null ? $conv_rate . "%" : "—", null, "ti-percentage"],
+      ["Impressions GSC", !empty($impr_cur) ? number_format($total_impr) : "—",  null, "ti-search"],
+      ["CTR GSC",         $avg_ctr !== null ? $avg_ctr . "%" : "—",   null, "ti-cursor-text"],
     ];
     foreach ($traffic_kpis as [$lbl, $val, $delta, $ico]):
-      $has_delta = $delta !== null && ($views_prev || $leads_prev);
+      $has_delta = $delta !== null;
       $up = $delta >= 0;
     ?>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;position:relative">
@@ -99,7 +99,7 @@ foreach ($kpi_cards as $k) {
   </div>
 
   <!-- Wykresy 2×2 -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+  <div class="crm-report-charts">
     <?php
     $chart_defs = [
       ["id"=>"ups-tc-v", "label"=>"Wyświetlenia strony",  "color"=>"#0d9488", "cur"=>$views_cur,  "prev"=>$views_prev,  "sum"=>$total_views],
@@ -109,14 +109,14 @@ foreach ($kpi_cards as $k) {
     ];
     foreach ($chart_defs as $d):
       $s = $d["sum"]; $p = array_sum($d["prev"]);
-      $delta = $p > 0 ? round(($s - $p) / $p * 100, 1) : null;
+      $delta = $p > 0 && !empty($d["cur"]) ? round(($s - $p) / $p * 100, 1) : null;
       $pos = $delta !== null && $delta >= 0;
     ?>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:14px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div>
           <div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--text-3);text-transform:uppercase"><?php echo esc_html($d["label"]); ?></div>
-          <div style="font-size:20px;font-weight:800;color:var(--text-main)"><?php echo number_format($s); ?></div>
+          <div style="font-size:20px;font-weight:800;color:var(--text-main)"><?php echo !empty($d["cur"]) ? number_format($s) : "—"; ?></div>
         </div>
         <?php if ($delta !== null): ?>
         <div style="font-size:11px;font-weight:700;color:<?php echo $pos ? "var(--success)" : "var(--danger)"; ?>;padding:3px 8px;background:<?php echo $pos ? "#e8f5e9" : "#fce8e8"; ?>;border-radius:999px;white-space:nowrap">
@@ -130,24 +130,24 @@ foreach ($kpi_cards as $k) {
   </div>
 
   <!-- Insight bar -->
-  <?php if ($total_views > 0 && $total_leads === 0): ?>
+  <?php if ($total_views > 0 && !empty($leads_cur) && $total_leads === 0): ?>
   <div style="background:#fff8e1;border-left:4px solid #f59e0b;border-radius:0 var(--r-sm) var(--r-sm) 0;padding:10px 14px;font-size:13px;margin-bottom:12px">
     ⚠ Masz <?php echo number_format($total_views); ?> wyświetleń ale 0 leadów — sprawdź formularz kontaktowy i CTA na stronie.
   </div>
   <?php elseif ($conv_rate > 0 && $conv_rate < 0.5): ?>
   <div style="background:#e8f5e9;border-left:4px solid var(--success);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:10px 14px;font-size:13px;margin-bottom:12px">
-    💡 Konwersja <?php echo $conv_rate; ?>% — dla B2B norma to 1–3%. Rozważ A/B test formularza lub landing page.
+    💡 Konwersja <?php echo $conv_rate; ?>% — porównaj z własnym celem i historią. Rozważ A/B test formularza lub landing page.
   </div>
   <?php endif; ?>
 
   <script>
   (function () {
-    var labels = <?php echo wp_json_encode($labels); ?>;
+    var labels = <?php echo wp_json_encode($labels, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
     var charts = [
-      { id: "ups-tc-v", label: "Wyświetlenia", color: "#0d9488", cur: <?php echo wp_json_encode($views_cur); ?>, prev: <?php echo wp_json_encode($views_prev); ?> },
-      { id: "ups-tc-l", label: "Leady", color: "#2271b1", cur: <?php echo wp_json_encode($leads_cur); ?>, prev: <?php echo wp_json_encode($leads_prev); ?> },
-      { id: "ups-tc-i", label: "Impressions GSC", color: "#8b5cf6", cur: <?php echo wp_json_encode($impr_cur); ?>, prev: <?php echo wp_json_encode($impr_prev); ?> },
-      { id: "ups-tc-c", label: "Kliknięcia GSC", color: "#f59e0b", cur: <?php echo wp_json_encode($clk_cur); ?>, prev: <?php echo wp_json_encode($clk_prev); ?> },
+      { id: "ups-tc-v", label: "Wyświetlenia", color: "#0d9488", cur: <?php echo wp_json_encode($views_cur, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, prev: <?php echo wp_json_encode($views_prev, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?> },
+      { id: "ups-tc-l", label: "Leady", color: "#2271b1", cur: <?php echo wp_json_encode($leads_cur, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, prev: <?php echo wp_json_encode($leads_prev, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?> },
+      { id: "ups-tc-i", label: "Impressions GSC", color: "#8b5cf6", cur: <?php echo wp_json_encode($impr_cur, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, prev: <?php echo wp_json_encode($impr_prev, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?> },
+      { id: "ups-tc-c", label: "Kliknięcia GSC", color: "#f59e0b", cur: <?php echo wp_json_encode($clk_cur, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, prev: <?php echo wp_json_encode($clk_prev, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?> },
     ];
     function init() {
       if (!window.upsCrmChart) return;
