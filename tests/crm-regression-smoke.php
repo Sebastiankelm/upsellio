@@ -101,4 +101,10 @@ check(upsellio_crm_app_pipeline_bucket("lost", "awareness") === "lost", "lost de
 check(upsellio_crm_app_pipeline_bucket("sent", "consideration") === "offer_sent", "sent offer has its own column");
 check(upsellio_crm_app_pipeline_bucket("open", "decision") === "decision", "open deal follows saved stage");
 check(upsellio_crm_app_pipeline_bucket("open", "invalid") === "awareness", "unknown stage falls back to first column");
+check(upsellio_crm_app_parse_local_datetime("2026-11-25T11:00") === strtotime("2026-11-25T10:00:00Z"), "calendar local time converts to UTC in winter");
+check(upsellio_crm_app_parse_local_datetime("2026-07-25 11:00:00") === strtotime("2026-07-25T09:00:00Z"), "calendar local time converts to UTC in summer");
+check(upsellio_crm_app_parse_local_datetime("2026-02-30T11:00") === false, "invalid date is rejected rather than normalized");
+check(upsellio_crm_app_parse_local_datetime("2026-03-29T02:30") === false, "nonexistent DST hour is rejected");
+check(upsellio_crm_app_parse_local_datetime("tomorrow") === false, "relative dates are rejected");
+check(upsellio_crm_app_calendar_week(0)->format("N H:i") === "1 00:00", "calendar begins on Monday at local midnight");
 echo "CRM smoke checks complete." . PHP_EOL;
