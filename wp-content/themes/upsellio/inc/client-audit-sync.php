@@ -12,8 +12,13 @@ function ups_audit_save_resource_cache(int $resource_id, array $payload): void
         update_post_meta($resource_id, "_ups_resource_data_cache_previous", $prev);
     }
     $payload["synced_at"] = current_time("mysql");
-    update_post_meta($resource_id, "_ups_resource_data_cache", $payload);
-    update_post_meta($resource_id, "_ups_resource_last_data_sync", current_time("mysql"));
+    // Unique marker proves a new cache write even when two attempts share a timestamp.
+    $payload["sync_revision"] = wp_generate_uuid4();
+    $saved = update_post_meta($resource_id, "_ups_resource_data_cache", $payload);
+    if ($saved && empty($payload["error"])) {
+        update_post_meta($resource_id, "_ups_resource_last_data_sync", $payload["synced_at"]);
+    }
+    update_post_meta($resource_id, "_ups_resource_last_sync_attempt", $payload["synced_at"]);
 }
 
 function ups_audit_sync_gsc_resource(int $resource_id, int $days = 30, bool $full_history = false): void
@@ -951,9 +956,12 @@ function ups_audit_sync_resource_action(int $resource_id, int $days = 0, bool $f
             $days = (int) get_option("ups_audit_default_compare_window", 30);
         }
         $days = in_array($days, [7, 14, 30, 60, 90], true) ? $days : 30;
+        $before = get_post_meta($resource_id, "_ups_resource_data_cache", true);
+        $previous_revision = is_array($before) ? (string) ($before["sync_revision"] ?? "") : "";
         $handlers[$type]($resource_id, $days, $full_history);
         $cache = get_post_meta($resource_id, "_ups_resource_data_cache", true);
-        return is_array($cache) && !empty($cache["synced_at"]) && empty($cache["error"]);
+        return is_array($cache) && !empty($cache["sync_revision"]) &&
+            $cache["sync_revision"] !== $previous_revision && !empty($cache["synced_at"]) && empty($cache["error"]);
     } finally {
         $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock));
     }
