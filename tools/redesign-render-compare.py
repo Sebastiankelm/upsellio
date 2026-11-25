@@ -83,9 +83,22 @@ def main():
     for name in ("home", "google", "meta", "web", "contact", "blog", "article", "blog-core"):
         old, new = read_page(base, name), read_page(candidate, name)
         issues = old.errors + new.errors
-        for key in ("title", "description", "canonical", "robots", "hreflang"):
+        for key in ("title", "description", "robots", "hreflang"):
             if sorted(old.metadata[key]) != sorted(new.metadata[key]):
                 issues.append("Changed " + key)
+        expected_paths = {
+            "home": "/", "google": "/marketing-google-ads/",
+            "meta": "/marketing-meta-ads/", "web": "/tworzenie-stron-internetowych/",
+            "contact": "/kontakt/", "blog": "/blog/", "blog-core": "/blog/",
+            "article": "/fixture-seo-article/",
+        }
+        expected = "https://fixture.test" + expected_paths[name]
+        if new.metadata["canonical"] != [expected]:
+            issues.append("Expected exactly one canonical " + expected + ", got " + repr(new.metadata["canonical"]))
+        elif expected not in old.metadata["canonical"]:
+            issues.append("Canonical target absent from baseline: " + repr(old.metadata["canonical"]))
+        else:
+            print(f"{name}: canonical {len(old.metadata['canonical'])} -> 1")
         if not new.metadata["title"]:
             issues.append("Missing title")
         # Keep the original content headings, not the headings of the shared footer.
