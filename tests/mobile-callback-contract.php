@@ -6,6 +6,10 @@ $end = strpos($source, 'add_action("wp_ajax_upsellio_mobile_callback"', $start);
 if ($start === false || $end === false) {
     throw new RuntimeException("Callback handler not found");
 }
+$helpersStart = strpos($source, "function upsellio_crm_is_short_diagnosis_origin(");
+$helpersEnd = strpos($source, "function upsellio_crm_handle_lead_submission()", $helpersStart);
+if ($helpersStart === false || $helpersEnd === false) throw new RuntimeException("Diagnosis helpers not found");
+eval(substr($source, $helpersStart, $helpersEnd - $helpersStart));
 eval(substr($source, $start, $end - $start));
 
 class CallbackResponse extends Exception {
@@ -113,3 +117,13 @@ check(in_array([42,"_upsellio_synced_crm_lead_id",101], $metaWrites, true), "Lea
 check(in_array([42,"_upsellio_synced_inbox_offer_id",102], $metaWrites, true), "Lead linked to inbox");
 check(count($inboxWrites) === 1 && $inboxWrites[0][0] === 102, "Inbox message stored on correct record");
 echo "CRM sync failure and success contracts passed.\n";
+
+foreach (["home-hero-form","home-contact-form","contact-page-form"] as $origin) {
+    check(upsellio_crm_is_short_diagnosis_origin($origin), "Allowed short origin: ".$origin);
+}
+foreach (["blog-form","landing-butik-form","audit-form","contact-form","unknown","mobile-callback"] as $origin) {
+    check(!upsellio_crm_is_short_diagnosis_origin($origin), "Legacy origin unchanged: ".$origin);
+}
+check(upsellio_crm_normalize_diagnosis_phone("0048 575 123 456") === "+48575123456", "Shared phone normalization");
+check(upsellio_crm_is_phone_rate_limited("+48575123456"), "Shared rate limit with callback");
+echo "Short diagnosis origin and shared phone contracts passed.\n";
