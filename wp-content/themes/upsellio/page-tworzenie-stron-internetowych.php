@@ -441,8 +441,8 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
         <span class="web-eyebrow">Strony WWW pod konwersję</span>
         <h1 class="web-h1">Strona lub sklep, który zamienia <em>odwiedzających w klientów.</em></h1>
         <p class="web-lead">Robię strony i sklepy internetowe dla małych firm — z jasną ofertą i prostą drogą do zamówienia lub telefonu. Teksty, podstawowe SEO i panel do edycji w cenie.</p>
-        <ul class="up-mock-benefits"><li>Teksty w cenie</li><li>Sam edytujesz produkty i ceny</li><li>Bez opłat za platformę</li></ul>
-        <div class="web-btn-row"><a href="#kontakt" class="web-btn web-btn-primary" data-cta="web-hero-analysis" data-cta-section="hero" data-cta-position="primary">Umów bezpłatną diagnozę</a><a href="#cennik" class="web-btn web-btn-secondary">Zobacz cennik</a></div>
+        <ul class="up-mock-benefits"><li>Teksty w cenie</li><li>Sam edytujesz produkty i ceny</li><li>Bez abonamentu za WordPress</li></ul>
+        <div class="web-btn-row"><a href="#kontakt" class="web-btn web-btn-primary" data-cta="web-hero-analysis" data-cta-section="hero" data-cta-position="primary">Umów bezpłatną diagnozę</a><a href="#cennik" class="web-btn web-btn-secondary up-hero-desktop">Zobacz cennik</a><a href="tel:<?php echo esc_attr(preg_replace('/\s+/', '', $contact_phone)); ?>" class="web-btn web-btn-secondary up-hero-mobile" data-contact-location="hero">Zadzwoń teraz</a></div>
       </div>
 
       <aside class="web-blueprint" aria-label="Blueprint skutecznej strony">
@@ -519,8 +519,9 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
           <?php endforeach; ?>
         </div>
       <?php else : ?>
+        <p class="up-mock-caption">Przykładowe rodzaje projektów — nie są to realizacje klientów.</p>
         <div class="web-portfolio-grid">
-          <div class="web-portfolio-card"><span class="web-portfolio-thumb"></span><strong>Strona usługowa B2B</strong><p>Układ pod leady, sekcje zaufania, FAQ i prosty formularz kontaktowy.</p></div>
+          <div class="web-portfolio-card"><span class="web-portfolio-thumb"></span><strong>Strona usługowa</strong><p>Układ pod leady, sekcje zaufania, FAQ i prosty formularz kontaktowy.</p></div>
           <div class="web-portfolio-card"><span class="web-portfolio-thumb"></span><strong>Landing page pod kampanię</strong><p>Jedna ścieżka decyzji, mocny nagłówek i CTA dopasowane do reklamy.</p></div>
           <div class="web-portfolio-card"><span class="web-portfolio-thumb"></span><strong>Strona z portfolio</strong><p>Prezentacja realizacji, wyników i procesu pracy w formie case study.</p></div>
         </div>
@@ -551,6 +552,8 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
   <section class="web-section up-design-proces" id="proces"><div class="web-wrap"><h2 class="web-h2">Jak zaczynamy</h2><div class="up-design-grid up-design-three"><article><span class="up-design-number" aria-hidden="true">1</span><h3>Rozmowa i zakres</h3><p>Ustalamy, co sprzedajesz, komu i co ma się znaleźć na stronie.</p></article><article><span class="up-design-number" aria-hidden="true">2</span><h3>Teksty i projekt</h3><p>Najpierw przekaz, potem wygląd. Akceptujesz każdy etap.</p></article><article><span class="up-design-number" aria-hidden="true">3</span><h3>Wdrożenie i start</h3><p>Strona działa, zamówienia są mierzone, a Ty wiesz, jak ją edytować.</p></article></div></div></section>
 
   
+<details class="up-extra-content"><summary>Więcej o tworzeniu stron i sklepów</summary>
+<div class="up-extra-body">
 <section class="web-section up-mock-details" id="szczegoly-uslugi"><div class="web-wrap"><span class="web-eyebrow">Więcej o usłudze</span><h2 class="web-h2">Tworzenie stron internetowych dla firm: strona, która nie tylko wygląda dobrze, ale zamienia odwiedzających w klientów.</h2><p class="web-lead">Projektuję i tworzę strony internetowe oraz landing pages dla firm B2B, usługowych i e-commerce. Każda strona jest zaprojektowana pod jeden cel: przekształcenie ruchu w zapytania, kontakty i sprzedaż.</p><div class="web-copy">
           <p>Większość firm ma stronę internetową. Ale posiadanie strony i posiadanie strony, która sprzedaje, to dwie zupełnie różne rzeczy. Strona firmowa nie jest wizytówką do zawieszenia w internecie, tylko narzędziem sprzedażowym, które pracuje 24 godziny na dobę.</p>
           <p>Różnica między stroną, która konwertuje, a stroną, która nie konwertuje, rzadko leży w grafice. Leży w jasności komunikatu, strukturze przekonywania i zaufaniu budowanym przez liczby, opinie, case studies oraz konkretne CTA.</p>
@@ -857,7 +860,9 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
         </div>
       </div>
     </div>
-  </section><section class="web-section" id="faq">
+  </section>
+</div></details>
+<section class="web-section" id="faq">
     <div class="web-wrap">
       <span class="web-eyebrow">FAQ</span>
       <h2 class="web-h2">Najczęstsze pytania przed zleceniem strony internetowej.</h2>
