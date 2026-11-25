@@ -225,19 +225,25 @@ HTACCESS
   capture contact /kontakt/ "$dest"
   capture blog /blog/ "$dest"
   capture article /fixture-seo-article/ "$dest"
-  if [[ "$label" == candidate ]]; then
-    test_leads "$dest"
-    docker run --rm --network "$network" --ipc=host \
-      -v "$browser_dir:/tests:ro" -w /tests "$browser_image" node redesign-browser.mjs
-  fi
   # Explicitly exercise the selectable core template rather than only home.php.
   wpcli option update page_for_posts 0
   wpcli post meta update "$blog" _wp_page_template ups-blog-core.php
   capture blog-core /blog/ "$dest"
   capture blog-search '/blog/?blog_search=Ads' "$dest"
+  if [[ "$label" == candidate ]]; then
+    # Print SEO comparison before the functional checks so a later failure
+    # cannot obscure the canonical result; preserve the combined exit status.
+    local seo_status=0
+    python3 tools/redesign-render-compare.py "$out/baseline" "$out/candidate" || seo_status=$?
+    # Restore the native posts page for browser checks.
+    wpcli option update page_for_posts "$blog"
+    test_leads "$dest"
+    docker run --rm --network "$network" --ipc=host \
+      -v "$browser_dir:/tests:ro" -w /tests "$browser_image" node redesign-browser.mjs
+    if [[ "$seo_status" != 0 ]]; then return "$seo_status"; fi
+  fi
   docker rm -f "$wp" "$db" >/dev/null
   docker volume rm "$volume" >/dev/null
 }
 render "$base_ref" baseline
 render "$candidate_ref" candidate
-python3 tools/redesign-render-compare.py "$out/baseline" "$out/candidate"
