@@ -122,80 +122,102 @@ function upsellio_crm_app_handle_post_actions()
         $lead_id = isset($_POST["lead_id"]) ? (int) wp_unslash($_POST["lead_id"]) : 0;
         $decision = isset($_POST["lead_decision"]) ? sanitize_key(wp_unslash($_POST["lead_decision"])) : "";
         if ($lead_id > 0 && get_post_type($lead_id) === "crm_lead") {
-            if ($decision === "reject") {
-                update_post_meta($lead_id, "_ups_lead_qualification_status", "rejected");
-                upsellio_crm_app_append_entity_log("lead", $lead_id, "lead_rejected", "Lead odrzucony.", []);
-            } elseif ($decision === "create_client_deal") {
-                if ((string) get_post_meta($lead_id, "_ups_lead_qualification_status", true) === "converted" ||
-                    (int) get_post_meta($lead_id, "_ups_lead_converted_client_id", true) > 0 ||
-                    (int) get_post_meta($lead_id, "_ups_lead_converted_offer_id", true) > 0) {
-                    wp_die("Lead został już skonwertowany. Sprawdź istniejące powiązania.", "", ["response" => 409]);
-                }
-                $lead_title = (string) get_the_title($lead_id);
-                $client_id = (int) wp_insert_post([
-                    "post_type" => "crm_client",
-                    "post_status" => "publish",
-                    "post_title" => $lead_title !== "" ? $lead_title : "Nowy klient",
-                ]);
-                if ($client_id > 0) {
-                    update_post_meta($client_id, "_ups_client_email", (string) get_post_meta($lead_id, "_ups_lead_email", true));
-                    update_post_meta($client_id, "_ups_client_phone", (string) get_post_meta($lead_id, "_ups_lead_phone", true));
-                    update_post_meta($client_id, "_ups_client_lifecycle_status", "qualified");
-                    $offer_id = (int) wp_insert_post([
-                        "post_type" => "crm_offer",
+            global $wpdb;
+            // MySQL/MariaDB advisory locks serialize conversions across PHP workers.
+            $lock = "ups_crm_lead_" . md5($wpdb->prefix . ":" . $lead_id);
+            if ((string) $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 0)", $lock)) !== "1") {
+                wp_die("Inna operacja na tym leadzie jest w toku lub blokada jest niedostępna.", "", ["response" => 409]);
+            }
+            $release = static function () use ($wpdb, $lock): void {
+                $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock));
+            };
+            // wp_die() exits before finally; shutdown also releases the advisory lock.
+            register_shutdown_function($release);
+            try {
+                if ($decision === "reject") {
+                    update_post_meta($lead_id, "_ups_lead_qualification_status", "rejected");
+                    upsellio_crm_app_append_entity_log("lead", $lead_id, "lead_rejected", "Lead odrzucony.", []);
+                } elseif ($decision === "create_client_deal") {
+                    if ((string) get_post_meta($lead_id, "_ups_lead_qualification_status", true) === "converted" ||
+                        (int) get_post_meta($lead_id, "_ups_lead_converted_client_id", true) > 0 ||
+                        (int) get_post_meta($lead_id, "_ups_lead_converted_offer_id", true) > 0) {
+                        wp_die("Lead został już skonwertowany. Sprawdź istniejące powiązania.", "", ["response" => 409]);
+                    }
+                    $lead_title = (string) get_the_title($lead_id);
+                    $client_id = (int) wp_insert_post([
+                        "post_type" => "crm_client",
                         "post_status" => "publish",
-                        "post_title" => "Deal: " . $lead_title,
+                        "post_title" => $lead_title !== "" ? $lead_title : "Nowy klient",
                     ]);
-                    if ($offer_id > 0) {
-                        update_post_meta($offer_id, "_ups_offer_client_id", $client_id);
-                        update_post_meta($offer_id, "_ups_offer_status", "open");
-                        update_post_meta($offer_id, "_ups_offer_stage", "awareness");
-                        $utm_s = (string) get_post_meta($lead_id, "_ups_lead_utm_source", true);
-                        $utm_c = (string) get_post_meta($lead_id, "_ups_lead_utm_campaign", true);
-                        if ($utm_s !== "") {
-                            update_post_meta($offer_id, "_ups_offer_utm_source", $utm_s);
-                        } elseif ((string) get_post_meta($lead_id, "_ups_lead_source", true) !== "") {
-                            update_post_meta($offer_id, "_ups_offer_utm_source", (string) get_post_meta($lead_id, "_ups_lead_source", true));
-                        }
-                        if ($utm_c !== "") {
-                            update_post_meta($offer_id, "_ups_offer_utm_campaign", $utm_c);
-                        }
+                    if ($client_id <= 0) {
+                        wp_die("Nie udało się utworzyć klienta.", "", ["response" => 500]);
                     }
-                    if ($offer_id <= 0) {
-                        wp_trash_post($client_id);
-                        wp_die("Nie udało się utworzyć oferty. Lead nie został skonwertowany.", "", ["response" => 500]);
-                    }
-                    update_post_meta($lead_id, "_ups_lead_qualification_status", "converted");
-                    update_post_meta($lead_id, "_ups_lead_converted_client_id", $client_id);
-                    update_post_meta($lead_id, "_ups_lead_converted_offer_id", $offer_id);
-                    upsellio_crm_app_append_entity_log("lead", $lead_id, "lead_converted", "Lead skonwertowany do klienta i deala.", [
-                        "client_id" => $client_id,
-                        "offer_id" => $offer_id,
-                    ]);
-                    if ($offer_id > 0 && function_exists("upsellio_inbox_append_message")) {
-                        $sender = function_exists("upsellio_followup_get_sender_settings") ? upsellio_followup_get_sender_settings() : [];
-                        $from_em = sanitize_email((string) get_post_meta($client_id, "_ups_client_email", true));
-                        if (!is_email($from_em)) {
-                            $from_em = sanitize_email((string) get_post_meta($lead_id, "_ups_lead_email", true));
-                        }
-                        $need = trim((string) get_post_meta($lead_id, "_ups_lead_need", true));
-                        $notes = trim((string) get_post_meta($lead_id, "_ups_lead_notes", true));
-                        $body_plain = $need !== "" ? $need : $notes;
-                        if ($body_plain === "") {
-                            $body_plain = "Lead CRM #" . $lead_id . " przekształcony w deal — brak treści potrzeby w meta.";
-                        }
-                        upsellio_inbox_append_message($offer_id, [
-                            "direction" => "in",
-                            "from" => is_email($from_em) ? $from_em : "",
-                            "to" => (string) ($sender["from_email"] ?? ""),
-                            "subject" => "Źródło: konwersja leada CRM",
-                            "body_plain" => $body_plain,
-                            "body_html" => "",
-                            "source" => "lead_conversion",
-                            "read" => false,
+                    if ($client_id > 0) {
+                        update_post_meta($client_id, "_ups_client_email", (string) get_post_meta($lead_id, "_ups_lead_email", true));
+                        update_post_meta($client_id, "_ups_client_phone", (string) get_post_meta($lead_id, "_ups_lead_phone", true));
+                        update_post_meta($client_id, "_ups_client_lifecycle_status", "qualified");
+                        $offer_id = (int) wp_insert_post([
+                            "post_type" => "crm_offer",
+                            "post_status" => "publish",
+                            "post_title" => "Deal: " . $lead_title,
                         ]);
+                        if ($offer_id > 0) {
+                            update_post_meta($offer_id, "_ups_offer_client_id", $client_id);
+                            update_post_meta($offer_id, "_ups_offer_status", "open");
+                            update_post_meta($offer_id, "_ups_offer_stage", "awareness");
+                            $utm_s = (string) get_post_meta($lead_id, "_ups_lead_utm_source", true);
+                            $utm_c = (string) get_post_meta($lead_id, "_ups_lead_utm_campaign", true);
+                            if ($utm_s !== "") {
+                                update_post_meta($offer_id, "_ups_offer_utm_source", $utm_s);
+                            } elseif ((string) get_post_meta($lead_id, "_ups_lead_source", true) !== "") {
+                                update_post_meta($offer_id, "_ups_offer_utm_source", (string) get_post_meta($lead_id, "_ups_lead_source", true));
+                            }
+                            if ($utm_c !== "") {
+                                update_post_meta($offer_id, "_ups_offer_utm_campaign", $utm_c);
+                            }
+                        }
+                        if ($offer_id <= 0) {
+                            wp_trash_post($client_id);
+                            wp_die("Nie udało się utworzyć oferty. Lead nie został skonwertowany.", "", ["response" => 500]);
+                        }
+                        update_post_meta($lead_id, "_ups_lead_converted_client_id", $client_id);
+                        update_post_meta($lead_id, "_ups_lead_converted_offer_id", $offer_id);
+                        if ((int) get_post_meta($lead_id, "_ups_lead_converted_client_id", true) !== $client_id ||
+                            (int) get_post_meta($lead_id, "_ups_lead_converted_offer_id", true) !== $offer_id) {
+                            wp_die("Nie udało się zapisać powiązań konwersji. Sprawdź utworzone rekordy przed ponowieniem.", "", ["response" => 500]);
+                        }
+                        update_post_meta($lead_id, "_ups_lead_qualification_status", "converted");
+                        upsellio_crm_app_append_entity_log("lead", $lead_id, "lead_converted", "Lead skonwertowany do klienta i deala.", [
+                            "client_id" => $client_id,
+                            "offer_id" => $offer_id,
+                        ]);
+                        if ($offer_id > 0 && function_exists("upsellio_inbox_append_message")) {
+                            $sender = function_exists("upsellio_followup_get_sender_settings") ? upsellio_followup_get_sender_settings() : [];
+                            $from_em = sanitize_email((string) get_post_meta($client_id, "_ups_client_email", true));
+                            if (!is_email($from_em)) {
+                                $from_em = sanitize_email((string) get_post_meta($lead_id, "_ups_lead_email", true));
+                            }
+                            $need = trim((string) get_post_meta($lead_id, "_ups_lead_need", true));
+                            $notes = trim((string) get_post_meta($lead_id, "_ups_lead_notes", true));
+                            $body_plain = $need !== "" ? $need : $notes;
+                            if ($body_plain === "") {
+                                $body_plain = "Lead CRM #" . $lead_id . " przekształcony w deal — brak treści potrzeby w meta.";
+                            }
+                            upsellio_inbox_append_message($offer_id, [
+                                "direction" => "in",
+                                "from" => is_email($from_em) ? $from_em : "",
+                                "to" => (string) ($sender["from_email"] ?? ""),
+                                "subject" => "Źródło: konwersja leada CRM",
+                                "body_plain" => $body_plain,
+                                "body_html" => "",
+                                "source" => "lead_conversion",
+                                "read" => false,
+                            ]);
+                        }
                     }
                 }
+            } finally {
+                $release();
             }
         }
     } elseif ($action === "save_contact") {
