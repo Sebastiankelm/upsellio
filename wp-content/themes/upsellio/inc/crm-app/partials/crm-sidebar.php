@@ -18,17 +18,24 @@ $hints = [
     "insights" => __("Brief i rekomendacje", "upsellio"),
 ];
 ?>
-<aside class="side crm-sidebar">
+<aside class="side crm-sidebar" id="ups-crm-sidebar">
   <div class="side-brand crm-sb-top">
     <a class="crm-sb-top-link" href="<?php echo esc_url(upsellio_crm_url("dashboard")); ?>" style="display:flex;align-items:center;gap:9px;color:inherit;text-decoration:none">
       <div class="crm-sb-mark"><i class="ti ti-chart-dots" aria-hidden="true"></i></div>
       <div>
-        <div class="crm-sb-brand">Upsellio</div>
-        <div class="crm-sb-user"><?php echo esc_html(wp_get_current_user()->display_name ?: __("Ty", "upsellio")); ?></div>
+        <div class="crm-sb-brand">Upsellio CRM</div>
+        <div class="crm-sb-user"><?php esc_html_e("Panel operacyjny", "upsellio"); ?></div>
       </div>
     </a>
+    <button type="button" class="crm-mobile-menu" aria-controls="ups-crm-sidebar-nav" aria-expanded="true"><i class="ti ti-menu-2" aria-hidden="true"></i> <?php esc_html_e("Menu", "upsellio"); ?></button>
   </div>
-  <nav class="side-nav crm-side-nav crm-sb-body" aria-label="<?php esc_attr_e("Nawigacja CRM", "upsellio"); ?>">
+  <form class="crm-sidebar-search" method="get" action="<?php echo esc_url(upsellio_crm_base_url()); ?>">
+    <i class="ti ti-search" aria-hidden="true"></i>
+    <input type="hidden" name="view" value="search" />
+    <input type="search" name="crm_q" placeholder="<?php esc_attr_e("Szukaj…", "upsellio"); ?>" value="<?php echo esc_attr($crm_search_q ?? ""); ?>" aria-label="<?php esc_attr_e("Szukaj w CRM", "upsellio"); ?>" autocomplete="off" />
+    <kbd>Ctrl/⌘ K</kbd>
+  </form>
+  <nav id="ups-crm-sidebar-nav" class="side-nav crm-side-nav crm-sb-body" aria-label="<?php esc_attr_e("Nawigacja CRM", "upsellio"); ?>">
     <?php foreach ($items as $item) : ?>
       <?php if (($item["type"] ?? "") === "section") : ?>
         <?php
@@ -76,7 +83,7 @@ $hints = [
       }
       $hint = isset($hints[$nav_view]) ? $hints[$nav_view] : "";
       ?>
-      <a class="side-link crm-si <?php echo $active ? "active" : ""; ?>" href="<?php echo esc_url($href); ?>">
+      <a class="side-link crm-si <?php echo $active ? "active" : ""; ?>" href="<?php echo esc_url($href); ?>"<?php echo $active ? ' aria-current="page"' : ""; ?>>
         <i class="ti <?php echo esc_attr($meta["icon"]); ?>" aria-hidden="true"></i>
         <span class="crm-si-label">
           <?php echo esc_html($meta["label"]); ?>
@@ -95,3 +102,26 @@ $hints = [
     </a>
   </div>
 </aside>
+<script>
+(function () {
+  var side = document.getElementById("ups-crm-sidebar");
+  if (!side || !document.body.classList.contains("ups-crm-redesign")) return;
+  var toggle = side.querySelector(".crm-mobile-menu");
+  var search = side.querySelector('input[type="search"]');
+  function collapse(value) {
+    side.dataset.collapsed = value ? "true" : "false";
+    toggle.setAttribute("aria-expanded", value ? "false" : "true");
+  }
+  var narrow = window.matchMedia("(max-width: 1100px)");
+  collapse(narrow.matches);
+  if (narrow.addEventListener) narrow.addEventListener("change", function (e) { collapse(e.matches); });
+  toggle.addEventListener("click", function () { collapse(side.dataset.collapsed !== "true"); });
+  document.addEventListener("keydown", function (event) {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k" && !event.altKey) {
+      event.preventDefault();
+      collapse(false);
+      search.focus();
+    }
+  });
+})();
+</script>
