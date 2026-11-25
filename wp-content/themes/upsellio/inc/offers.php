@@ -462,6 +462,7 @@ function upsellio_offer_build_analytics_summary($offer_id)
     $accept_clicks = 0;
     $commit_selected = false;
     $started_sessions = [];
+    $step_sessions = [];
     $legacy_views = 0;
     $total_seconds = 0;
     $last_seen_ts = "";
@@ -506,9 +507,10 @@ function upsellio_offer_build_analytics_summary($offer_id)
         }
         if ($event_name === "offer_commit_selected" && $section_id !== "") { $commit_selected = true; }
         if ($event_name === "offer_accept_started" && !empty($event["session_id"])) { $started_sessions[$event["session_id"]] = true; }
+        if ($event_name === "offer_accept_step" && !empty($event["session_id"]) && preg_match("/^step_[1-4]$/", $section_id)) { $step_sessions[$section_id][$event["session_id"]] = true; }
     }
 
-    $pricing_seconds = (int) ($section_seconds["pricing"] ?? 0);
+    $pricing_seconds = (int) ($section_seconds["pricing"] ?? 0) + (int) ($section_seconds["cennik"] ?? 0);
     // Fixed component maxima sum to 100; generic navigation is not a purchase signal.
     $score_components = [
         "sessions" => min(15, count($seen_sessions) * 5 + min(5, $legacy_views * 5)),
@@ -534,6 +536,7 @@ function upsellio_offer_build_analytics_summary($offer_id)
         "cta_clicks" => $cta_clicks,
         "accept_clicks" => $accept_clicks,
         "accept_started_sessions" => count($started_sessions),
+        "accept_steps" => array_map("count", $step_sessions),
         "commit_selected" => $commit_selected,
         "score_components" => $score_components,
         "identified_views" => count($seen_sessions),
@@ -1563,6 +1566,95 @@ function upsellio_offer_render_analytics_page()
  *
  * @return array<string, mixed>
  */
+function upsellio_offer_render_intent_dashboard(int $offer_id, array $report): void
+{
+    if (!current_user_can("edit_post", $offer_id)) { return; }
+    $labels = [
+        "sessions" => ["Powroty", 15], "sections" => ["Czytane sekcje", 15],
+        "activity" => ["Aktywny czas", 20], "pricing" => ["Cennik", 20],
+        "variant" => ["Wybór wariantu", 10], "accept" => ["Rozpoczęcie akceptacji", 20],
+    ];
+    $event_labels = [
+        "offer_view" => "Wejście na ofertę", "offer_section_view" => "Wyświetlenie sekcji",
+        "offer_section_click" => "Nawigacja", "offer_cta_click" => "Kliknięcie CTA",
+        "offer_commit_selected" => "Wybór wariantu", "offer_accept_started" => "Rozpoczęcie akceptacji",
+        "offer_accept_step" => "Krok akceptacji", "offer_stage_detected" => "Próg czasu w cenniku",
+        "offer_pricing_exit" => "Opuszczenie cennika",
+    ];
+    $status = (string) get_post_meta($offer_id, "_ups_offer_status", true);
+    $accepted = get_post_meta($offer_id, "_ups_offer_accept_payload", true);
+    $steps = (array) ($report["accept_steps"] ?? []);
+    $variants = [];
+    if (function_exists("upsellio_offer_get_landing_payload")) {
+        $payload = upsellio_offer_get_landing_payload($offer_id);
+        $rows = json_decode((string) ($payload["services_json"] ?? "[]"), true);
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            if (is_array($row) && !empty($row["key"])) {
+                $variants[(string) $row["key"]] = (string) ($row["label"] ?? $row["key"]);
+            }
+        }
+    }
+    ?>
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border)">
+      <p style="font-size:12px;color:var(--text-3);margin:0 0 14px">
+        Dane z aktywności po zgodzie na statystykę. Historyczne wejścia bez identyfikatora: <?php echo (int) ($report["legacy_views"] ?? 0); ?> (szacunek, nie unikalne osoby). Raport obejmuje zachowane zdarzenia.
+      </p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px">
+        <section style="border:1px solid var(--border);border-radius:12px;padding:16px">
+          <h3 style="margin:0 0 12px">Wynik zaangażowania: <?php echo (int) ($report["score"] ?? 0); ?>/100</h3>
+          <?php foreach ($labels as $key => $item) : $points = (int) ($report["score_components"][$key] ?? 0); ?>
+            <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;margin:9px 0 4px"><span><?php echo esc_html($item[0]); ?></span><strong><?php echo $points; ?>/<?php echo (int) $item[1]; ?></strong></div>
+            <div style="height:6px;border-radius:8px;background:#e8edea;overflow:hidden"><div style="height:100%;background:#087f68;width:<?php echo (int) min(100, round($points / $item[1] * 100)); ?>%"></div></div>
+          <?php endforeach; ?>
+          <p style="font-size:12px;margin-bottom:0"><?php echo !empty($report["is_hot"]) ? "Gorąca oferta — wykryto sygnał intencji." : "Brak wystarczającego sygnału do oznaczenia jako gorąca."; ?></p>
+        </section>
+        <section style="border:1px solid var(--border);border-radius:12px;padding:16px">
+          <h3 style="margin:0 0 12px">Lejek akceptacji</h3>
+          <p>Rozpoczęte sesje: <strong><?php echo (int) ($report["accept_started_sessions"] ?? 0); ?></strong></p>
+          <?php foreach (["Kontakt", "Termin i budżet", "Decyzja", "Rozmowa"] as $index => $label) : ?>
+            <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span><?php echo esc_html(($index + 1) . ". " . $label); ?></span><strong><?php echo (int) ($steps["step_" . ($index + 1)] ?? 0); ?></strong></div>
+          <?php endforeach; ?>
+          <p>Akceptacja zapisana: <strong><?php echo is_array($accepted) && !empty($accepted) && $status === "won" ? "Tak" : "Nie potwierdzono"; ?></strong></p>
+          <p style="font-size:12px;color:var(--text-3);margin-bottom:0">Liczby oznaczają sesje z zarejestrowanym krokiem, a nie liczbę klientów. Brak pomiaru nie oznacza porzucenia formularza.</p>
+        </section>
+        <section style="border:1px solid var(--border);border-radius:12px;padding:16px">
+          <h3 style="margin:0 0 12px">Źródło i kontekst</h3>
+          <?php
+          $commit = (string) ($report["last_commit"] ?? "");
+          $context = [
+              "Pierwsze źródło" => (string) get_post_meta($offer_id, "_ups_offer_utm_source", true),
+              "Ostatnie źródło" => (string) get_post_meta($offer_id, "_ups_offer_last_utm_source", true),
+              "Pierwsza wersja" => (string) get_post_meta($offer_id, "_ups_offer_first_seen_version", true),
+              "Aktualna wersja" => (string) get_post_meta($offer_id, "_ups_offer_current_version", true),
+              "Wybrany wariant" => $variants[$commit] ?? $commit,
+              "Odpowiedzi Q&A" => get_post_meta($offer_id, "_ups_offer_qa_responses", true) ? "Zapisane" : "Brak zapisanych",
+          ];
+          foreach ($context as $label => $value) : ?>
+            <div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px"><span><?php echo esc_html($label); ?></span><strong style="text-align:right;overflow-wrap:anywhere"><?php echo esc_html($value !== "" ? $value : "—"); ?></strong></div>
+          <?php endforeach; ?>
+        </section>
+      </div>
+      <section style="margin-top:20px">
+        <h3>Oś zdarzeń</h3>
+        <div style="max-height:340px;overflow:auto">
+          <?php $shown = 0; foreach (($report["events_recent"] ?? []) as $event) :
+              $type = (string) ($event["event"] ?? "");
+              if (!isset($event_labels[$type])) { continue; }
+              $shown++;
+              $detail = (string) ($event["section_id"] ?? "");
+              if ($type === "offer_commit_selected") { $detail = $variants[$detail] ?? $detail; }
+          ?>
+            <div style="display:grid;grid-template-columns:minmax(110px,150px) 1fr;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:12px">
+              <span style="color:var(--text-3)"><?php echo esc_html((string) ($event["ts"] ?? "—")); ?></span>
+              <span><strong><?php echo esc_html($event_labels[$type]); ?></strong><?php if ($detail !== "") : ?> · <?php echo esc_html($detail); ?><?php endif; ?></span>
+            </div>
+          <?php endforeach; if (!$shown) : ?><p class="muted">Brak zarejestrowanych zdarzeń w tym zakresie.</p><?php endif; ?>
+        </div>
+      </section>
+    </div>
+    <?php
+}
+
 function upsellio_offer_build_full_analytics(int $offer_id): array
 {
     $events = get_post_meta($offer_id, "_ups_offer_events", true);
@@ -1625,6 +1717,7 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
         foreach ($sess as $ev) {
             $ename = (string) ($ev["event"] ?? "");
             $sid = (string) ($ev["section_id"] ?? "");
+            if ($sid === "cennik") { $sid = "pricing"; }
 
             if ($ename === "offer_section_view" && $sid !== "") {
                 $sections_viewed[$sid] = true;
@@ -1675,9 +1768,7 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
         $total_cta += count($s["cta_clicks"]);
     }
 
-    if (!empty($all_section_times["cennik"])) {
-        $all_section_times["pricing"] = ($all_section_times["pricing"] ?? 0) + (int) $all_section_times["cennik"];
-    }
+    // Aliases are normalized per event, avoiding double-counting the same section.
 
     $max_time = max(array_values($all_section_times) ?: [1]);
 
@@ -1766,6 +1857,7 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
         "legacy_views"        => $summary["legacy_views"],
         "active_seconds"      => $summary["total_seconds"],
         "accept_started_sessions" => $summary["accept_started_sessions"],
+        "accept_steps" => $summary["accept_steps"],
         "accept_clicks"       => $summary["accept_clicks"],
         "events_recent"       => array_slice(array_reverse($events), 0, 80),
         "stage"               => (string) get_post_meta($offer_id, "_ups_offer_stage", true),
