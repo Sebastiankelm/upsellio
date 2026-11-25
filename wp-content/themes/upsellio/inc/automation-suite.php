@@ -194,6 +194,10 @@ function upsellio_automation_refresh_task_priority_meta($task_id)
 
 function upsellio_automation_process_pipeline_sla_deals()
 {
+    global $wpdb;
+    $lock = "ups_sla_cron_" . md5($wpdb->prefix);
+    if ((string) $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 0)", $lock)) !== "1") { return; }
+    try {
     $defs = upsellio_automation_get_pipeline_sla_definitions();
     $offers = get_posts([
         "post_type" => "crm_offer",
@@ -234,18 +238,20 @@ function upsellio_automation_process_pipeline_sla_deals()
         if (!empty($breached_map[$sla_stage])) {
             continue;
         }
-        $breached_map[$sla_stage] = current_time("mysql");
-        update_post_meta($offer_id, "_ups_offer_pipeline_sla_breached_map", $breached_map);
-        update_post_meta($offer_id, "_ups_offer_sla_active_alert", "1");
-        update_post_meta($offer_id, "_ups_offer_priority", "high");
+
         $esc = (int) ($defs[$sla_stage]["escalation"] ?? 1);
         $action_label = (string) ($defs[$sla_stage]["action"] ?? "SLA");
         $task_title = "SLA: " . $action_label . " (E" . $esc . ")";
         $task_note = "Przekroczono limit " . $limit_h . "h w etapie " . $sla_stage . ". Wymagane działanie.";
-        upsellio_automation_create_task($offer_id, $task_title, $task_note, [
+        $task_id = upsellio_automation_create_task($offer_id, $task_title, $task_note, [
             "impact_score" => min(100, 60 + ($esc * 10)),
             "close_probability" => 70,
         ]);
+        if ($task_id <= 0) { continue; }
+        $breached_map[$sla_stage] = current_time("mysql");
+        update_post_meta($offer_id, "_ups_offer_pipeline_sla_breached_map", $breached_map);
+        update_post_meta($offer_id, "_ups_offer_sla_active_alert", "1");
+        update_post_meta($offer_id, "_ups_offer_priority", "high");
         $template_id = upsellio_automation_pick_followup_template($marketing_stage === "decision" ? "decision" : ($marketing_stage === "consideration" ? "consideration" : "awareness"));
         if ($template_id > 0 && function_exists("upsellio_followup_queue_message")) {
             upsellio_followup_queue_message($offer_id, $template_id, $marketing_stage);
@@ -274,6 +280,9 @@ function upsellio_automation_process_pipeline_sla_deals()
             $clean = [];
             update_post_meta($offer_id, "_ups_offer_pipeline_sla_breached_map", $clean);
         }
+    }
+    } finally {
+        $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock));
     }
 }
 
@@ -831,20 +840,7 @@ function upsellio_automation_data_hygiene()
         }
         if (!isset($seen[$email])) {
             $seen[$email] = $cid;
-            if ((float) get_post_meta($cid, "_ups_client_budget_range", true) <= 0) {
-                $industry = strtolower((string) get_post_meta($cid, "_ups_client_industry", true));
-                $defaults = [
-                    "saas" => 8000,
-                    "ecommerce" => 6000,
-                    "uslugi" => 4000,
-                ];
-                foreach ($defaults as $needle => $budget) {
-                    if ($industry !== "" && strpos($industry, $needle) !== false) {
-                        update_post_meta($cid, "_ups_client_budget_range", (string) $budget);
-                        break;
-                    }
-                }
-            }
+            // Never fabricate client budgets from industry labels.
             continue;
         }
         update_post_meta($cid, "_ups_client_duplicate_of", (int) $seen[$email]);
@@ -1280,9 +1276,12 @@ function upsellio_automation_sync_client_lifecycle_from_offer($offer_id, $new_st
         return;
     }
     $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
-    if ($client_id <= 0) {
+    if ($client_id <= 0 || get_post_type($client_id) !== "crm_client") {
         return;
     }
+    // A lost upsell must not downgrade an existing active client.
+    $existing = (string) get_post_meta($client_id, "_ups_client_lifecycle_status", true);
+    if ($existing === "active_client" && $new_status !== "won") { return; }
     if ($new_status === "won") {
         update_post_meta($client_id, "_ups_client_lifecycle_status", "active_client");
     } elseif ($new_status === "lost") {
