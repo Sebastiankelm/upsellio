@@ -2570,3 +2570,28 @@ add_action("wp_ajax_upsellio_crm_ai_query", static function (): void {
     if (!is_string($result) || trim($result) === "") { wp_send_json_error(["message" => "AI nie zwróciło analizy."], 502); }
     wp_send_json_success(["response" => wp_strip_all_tags($result)]);
 });
+
+
+/** Spreadsheet-safe cell: neutralize formulas before CSV serialization. */
+function upsellio_crm_app_csv_cell(string $value): string
+{
+    return preg_match('/^[\s\x00-\x1f]*[=+@-]/u', $value) || preg_match('/^[\t\r\n]/', $value) ? "'" . $value : $value;
+}
+
+add_action("wp_ajax_upsellio_crm_export_leads_csv", static function (): void {
+    if (!upsellio_crm_app_user_can_view("leads")) { wp_die("Brak uprawnień.", "", ["response" => 403]); }
+    check_ajax_referer("ups_crm_app_action", "nonce");
+    nocache_headers();
+    header("Content-Type: text/csv; charset=UTF-8");
+    header('Content-Disposition: attachment; filename="upsellio-leads.csv"');
+    $out = fopen("php://output", "w");
+    if (!$out) { exit; }
+    fwrite($out, "\xEF\xBB\xBF");
+    fputcsv($out, ["ID", "Nazwa", "Score"], ";", '"', "");
+    foreach (upsellio_crm_app_collect_metric_posts("crm_lead") as $lead) {
+        if (!current_user_can("read_post", $lead->ID) || !current_user_can("edit_post", $lead->ID)) { continue; }
+        fputcsv($out, [(int) $lead->ID, upsellio_crm_app_csv_cell((string) $lead->post_title), (int) get_post_meta($lead->ID, "_upsellio_lead_score", true)], ";", '"', "");
+    }
+    fclose($out);
+    exit;
+});
