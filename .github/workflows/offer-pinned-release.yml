@@ -1,0 +1,91 @@
+name: Offer pinned production release package
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [fix/offer-experience-v2]
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build allowlisted package from immutable release and base commits
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, json, pathlib, shutil, subprocess
+          base = "cfe6ef80746a0f8a51277b45cdebebf49045430f"
+          release = "10ad9e5daf5fb0a338b758f5776f8ccb474fa9db"
+          files = ["inc/anthropic-offer-ai.php", "inc/crm-app/actions.php", "inc/crm-app/render.php", "inc/followups.php", "inc/offer-landing.php", "inc/offers.php", "inc/sales-engine.php"]
+          prefix = "wp-content/themes/upsellio/"
+          package = pathlib.Path("release-package/upsellio-offer-release")
+          package.mkdir(parents=True, exist_ok=False)
+          (package/"payload").mkdir()
+          shutil.copyfile("tools/offer-release/upsellio-offer-release.php",package/"upsellio-offer-release.php")
+          manifest = {"base":base,"release":release,"files":{}}
+          for i, rel in enumerate(files):
+              manifest["files"][rel] = {}
+              for label, revision in (("old",base),("new",release)):
+                  data = subprocess.check_output(["git","show",f"{revision}:{prefix}{rel}"])
+                  tmp = pathlib.Path("/tmp/offer-release-lint.php")
+                  tmp.write_bytes(data)
+                  subprocess.run(["php","-l",str(tmp)],check=True)
+                  name = f"{i}-{label}.php"
+                  (package/"payload"/name).write_bytes(b"<?php exit; __halt_compiler();" + base64.b64encode(data))
+                  manifest["files"][rel][label] = {"file":name,"sha256":hashlib.sha256(data).hexdigest()}
+          encoded = base64.b64encode(json.dumps(manifest,separators=(",",":")).encode()).decode()
+          (package/"manifest.php").write_text("<?php if (!defined('ABSPATH')) { exit; } return json_decode(base64_decode('"+encoded+"'), true);\n")
+          for f in package.rglob("*.php"):
+              subprocess.run(["php","-l",str(f)],check=True)
+          PY
+      - name: Test exact file update, idempotence, rollback and mismatch refusal
+        run: |
+          cat > /tmp/test-offer-release.php <<'PHP'
+          <?php
+          $root = sys_get_temp_dir().'/ups-release-test-'.bin2hex(random_bytes(8));
+          mkdir($root.'/theme',0755,true);
+          define('ABSPATH',$root.'/');
+          define('PACKAGE',getcwd().'/release-package/upsellio-offer-release/');
+          function current_user_can($cap){return true;}
+          function wp_is_file_mod_allowed($context){return true;}
+          function is_multisite(){return false;}
+          function home_url(){return 'https://upsellio.pl';}
+          function get_template(){return 'upsellio';}
+          function get_template_directory(){return ABSPATH.'theme';}
+          function get_posts($args){return [];}
+          function register_activation_hook(...$args){}
+          function add_action(...$args){}
+          class MockDB { public $prefix='ci_'; public function prepare($sql,...$args){return $sql;} public function get_var($q){return '1';} }
+          $wpdb = new MockDB();
+          require PACKAGE.'upsellio-offer-release.php';
+          $m=require PACKAGE.'manifest.php';
+          function bytes($entry){return base64_decode(substr(file_get_contents(PACKAGE.'payload/'.$entry['file']),strlen('<?php exit; __halt_compiler();')),true);}
+          function check($ok,$msg){if(!$ok){throw new RuntimeException($msg);}echo "PASS: $msg\n";}
+          foreach($m['files'] as $rel=>$row){
+              $p=get_template_directory().'/'.$rel;
+              if(!is_dir(dirname($p)))mkdir(dirname($p),0755,true);
+              file_put_contents($p,bytes($row['old']));
+          }
+          check(Upsellio_Offer_Release_200::apply()==='deployed','Pinned update completed');
+          foreach($m['files'] as $rel=>$row)check(hash_file('sha256',get_template_directory().'/'.$rel)===$row['new']['sha256'],'New hash: '.$rel);
+          check(!file_exists(ABSPATH.'.maintenance'),'Maintenance removed');
+          check(Upsellio_Offer_Release_200::apply()==='already_deployed','Repeated activation is idempotent');
+          check(Upsellio_Offer_Release_200::apply(true)==='rolled_back','Rollback completed');
+          foreach($m['files'] as $rel=>$row)check(hash_file('sha256',get_template_directory().'/'.$rel)===$row['old']['sha256'],'Restored hash: '.$rel);
+          $first=array_key_first($m['files']);$p=get_template_directory().'/'.$first;file_put_contents($p,'mismatch');
+          $refused=false;
+          try{Upsellio_Offer_Release_200::apply();}catch(RuntimeException $e){$refused=str_contains($e->getMessage(),'Niezgodność pliku');}
+          check($refused && file_get_contents($p)==='mismatch','Refuses production drift without overwriting');
+          check(!file_exists(ABSPATH.'.maintenance'),'No maintenance left after refusal');
+          PHP
+          php /tmp/test-offer-release.php
+      - uses: actions/upload-artifact@v4
+        with:
+          name: upsellio-offer-release-2.0.0
+          path: release-package/
+          retention-days: 7
+          if-no-files-found: error
