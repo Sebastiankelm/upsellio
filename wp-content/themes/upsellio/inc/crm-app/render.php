@@ -68,7 +68,10 @@ function upsellio_crm_app_template_redirect()
     }
 
     if (!upsellio_crm_app_user_can_access()) {
-        auth_redirect();
+        if (!is_user_logged_in()) {
+            auth_redirect();
+        }
+        wp_die("Brak dostępu do CRM.", "", ["response" => 403]);
     }
     upsellio_crm_app_handle_post_actions();
 
