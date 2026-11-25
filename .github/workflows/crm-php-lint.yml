@@ -5,6 +5,7 @@ on:
     paths:
       - 'wp-content/themes/upsellio/**/*.php'
       - 'wp-content/themes/upsellio/**/*.js'
+      - 'wp-content/themes/upsellio/**/*.css'
       - '.github/workflows/crm-php-lint.yml'
       - 'tests/crm-regression-smoke.php'
   workflow_dispatch:
