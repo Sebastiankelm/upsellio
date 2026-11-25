@@ -445,7 +445,7 @@ window.UPS=<?php echo wp_json_encode([
 </script>
 <?php if ($upsellio_offer_track_public) : ?>
 <script type="text/plain" data-cookieconsent="marketing">
-dataLayer.push({event:"offer_view",offer_id:UPS.offer_id,offer_title:UPS.offer_title,person_id:UPS.person_id,utm_source:UPS.utm_source,utm_campaign:UPS.utm_campaign,gclid:UPS.gclid});
+dataLayer.push({event:"offer_view",page_location:window.location.origin+"/oferta/indywidualna/"});
 </script>
 <?php endif; ?>
 <style>
@@ -1304,13 +1304,13 @@ function trackEvent(eventName,extra){
   if(!navigator.sendBeacon || !navigator.sendBeacon(ajaxUrl,body)) fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString(),credentials:'same-origin',keepalive:true}).catch(function(){});
 
 }
-function pushDl(ev,ex){if(!__upsTrackPublic||__upsPreviewMode)return;window.dataLayer=window.dataLayer||[];dataLayer.push(Object.assign({event:ev,offer_id:String(offerId),person_id:String(personId||'')},ex||{}));}
+function pushDl(ev,ex){if(!__upsTrackPublic||__upsPreviewMode||!window.Cookiebot||!Cookiebot.consent||!Cookiebot.consent.marketing)return;window.dataLayer=window.dataLayer||[];dataLayer.push(Object.assign({event:ev,page_location:window.location.origin+'/oferta/indywidualna/'},ex||{}));}
 var sections=Array.from(document.querySelectorAll('[data-offer-section]')), seenSections={}, viewSession='', lastActivity=Date.now(), lastTick=Date.now();
 ['pointerdown','keydown','scroll','touchstart'].forEach(function(type){window.addEventListener(type,function(){lastActivity=Date.now();},{passive:true});});
 function measureSections(){
   var now=Date.now(),delta=Math.min(10,Math.floor((now-lastTick)/1000));
   lastTick=now;
-  if(!canTrack()||document.hidden)return;
+  if(!canTrack()||document.hidden||now-lastActivity>=60000)return;
   var session=getSession().id;
   if(viewSession!==session){viewSession=session;seenSections={};trackEvent('offer_view',{});}
   var viewport=window.innerHeight||document.documentElement.clientHeight;
@@ -1649,7 +1649,7 @@ function upsellio_offer_public_messaging_ajax()
     set_transient($rl_key, 1, 30);
 
     $msg_type = isset($_POST["msg_type"]) ? sanitize_key(wp_unslash($_POST["msg_type"])) : "";
-    if (!in_array($msg_type, ["accept", "question"], true)) {
+    if ($msg_type !== "question") {
         wp_send_json_error(["message" => "Nieobsługiwane żądanie."]);
     }
 
@@ -1680,41 +1680,6 @@ function upsellio_offer_public_messaging_ajax()
         "Content-Type: text/html; charset=UTF-8",
         "Cc: " . $client_email,
     ];
-
-    if ($msg_type === "accept") {
-        if (!function_exists("upsellio_offer_apply_public_accept")) {
-            wp_send_json_error(["message" => "Błąd konfiguracji serwera."]);
-        }
-        if (!upsellio_offer_apply_public_accept($offer_id)) {
-            wp_send_json_error(["message" => "Nie można zapisać akceptacji. Oferta mogła wygasnąć."]);
-        }
-        $commit_key = isset($_POST["commit_key"]) ? sanitize_key(wp_unslash($_POST["commit_key"])) : "";
-        $commit_label = isset($_POST["commit_label"]) ? sanitize_text_field(wp_unslash($_POST["commit_label"])) : "";
-        $commit_hint = $commit_label !== "" ? $commit_label : ($commit_key !== "" ? $commit_key : __("cały zakres / do uzgodnienia", "upsellio"));
-        $rows = [
-            __("Oferta", "upsellio") => $offer_title,
-            __("Klient", "upsellio") => $client_name,
-            __("E-mail (kopia CC)", "upsellio") => $client_email,
-            __("Wybrany wariant", "upsellio") => $commit_hint,
-            __("Przycisk", "upsellio") => $cta_source !== "" ? $cta_source : "—",
-        ];
-        $subject = "[Upsellio] " . __("Akceptacja oferty", "upsellio") . ": " . $offer_title;
-        $body = upsellio_offer_public_format_mail_html(
-            __("Klient zaakceptował ofertę na stronie publicznej.", "upsellio"),
-            $rows,
-            $owner_name
-        );
-        $mail_sent = wp_mail($owner_email, $subject, $body, $headers);
-        if (!$mail_sent) { wp_send_json_success(["message" => "Akceptacja zapisana, ale nie udało się wysłać potwierdzenia."]); }
-        wp_send_json_success([
-            "message" => sprintf(
-                /* translators: %s: client email */
-                __("Dziękujemy — akceptacja jest zapisana. Na adres %s wysłaliśmy kopię podsumowania (również opiekun dostał wiadomość).", "upsellio"),
-                $client_email
-            ),
-            "saved_contact" => $saved_contact,
-        ]);
-    }
 
     $question_body = isset($_POST["question_body"]) ? sanitize_textarea_field(wp_unslash($_POST["question_body"])) : "";
     if (strlen($question_body) < 3) {
