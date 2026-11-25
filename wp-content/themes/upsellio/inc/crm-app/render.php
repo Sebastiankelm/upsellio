@@ -1256,7 +1256,7 @@ function upsellio_crm_app_template_redirect()
                 </div>
                 <div class="crm-heading-actions">
                   <?php if ($view === "leads") : ?>
-                    <a class="btn alt" href="#crm-lead-import"><i class="ti ti-file-import" aria-hidden="true"></i> Import CSV</a>
+                    <a class="btn alt" href="#crm-lead-import" onclick="document.getElementById('crm-lead-import').open=true"><i class="ti ti-file-import" aria-hidden="true"></i> Import CSV</a>
                     <button type="button" class="btn" id="ups-open-add-lead"><i class="ti ti-plus" aria-hidden="true"></i> Dodaj lead</button>
                   <?php elseif ($view === "offers") : ?>
                     <a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("offer_analytics")); ?>">Lejek ofert</a>
@@ -1978,7 +1978,7 @@ function upsellio_crm_app_template_redirect()
                   ];
                   foreach ($lead_tab_links as $lt_key => $lt_label) :
                       ?>
-                    <a class="crm-tab-link <?php echo $lead_tab === $lt_key ? "is-active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "leads", "lead_tab" => $lt_key], home_url("/crm-app/"))); ?>"><?php echo esc_html($lt_label); ?></a>
+                    <a class="crm-tab-link <?php echo $lead_tab === $lt_key ? "is-active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "leads", "lead_tab" => $lt_key, "lead_q" => sanitize_text_field(wp_unslash($_GET["lead_q"] ?? "")), "lead_source_filter" => sanitize_text_field(wp_unslash($_GET["lead_source_filter"] ?? ""))], home_url("/crm-app/"))); ?>"><?php echo esc_html($lt_label); ?></a>
                   <?php endforeach; ?>
                 </div>
                 <form method="get" class="crm-list-filters" action="<?php echo esc_url(upsellio_crm_base_url()); ?>">
