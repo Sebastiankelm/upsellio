@@ -5,6 +5,7 @@ on:
     paths:
       - 'wp-content/themes/upsellio/**/*.php'
       - '.github/workflows/crm-php-lint.yml'
+      - 'tests/crm-regression-smoke.php'
   workflow_dispatch:
 
 permissions:
@@ -45,3 +46,5 @@ jobs:
             git ls-files -z 'wp-content/themes/upsellio/*.php' |
               xargs -0 -r -n 1 php -l
           fi
+      - name: CRM regression smoke tests
+        run: php tests/crm-regression-smoke.php
