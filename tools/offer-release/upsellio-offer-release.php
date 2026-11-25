@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Upsellio Offer Release 2.0
  * Description: One-time, pinned release of seven CRM theme files. Administrator-only deployment and rollback; no remote write endpoint.
- * Version: 2.0.3
+ * Version: 2.0.4
  * Requires PHP: 8.1
  */
 if (!defined('ABSPATH')) { exit; }
@@ -12,7 +12,8 @@ final class Upsellio_Offer_Release_200 {
         'inc/anthropic-offer-ai.php', 'inc/crm-app/actions.php', 'inc/crm-app/render.php',
         'inc/followups.php', 'inc/offer-landing.php', 'inc/offers.php', 'inc/sales-engine.php',
     ];
-    private const RELEASE = '5e7e74de0a671c73d84825f9aca976740902c3ef';
+    private const RELEASE = 'd9c0f75234c3051ddf73d68b127b533c688ab370';
+    private const PRIOR = '5e7e74de0a671c73d84825f9aca976740902c3ef';
     private const BASE = 'cfe6ef80746a0f8a51277b45cdebebf49045430f';
 
     public static function authorize(): void {
@@ -28,7 +29,7 @@ final class Upsellio_Offer_Release_200 {
 
     private static function manifest(): array {
         $m = require __DIR__ . '/manifest.php';
-        if (($m['release'] ?? '') !== self::RELEASE || ($m['base'] ?? '') !== self::BASE ||
+        if (($m['release'] ?? '') !== self::RELEASE || ($m['base'] ?? '') !== self::BASE || ($m['prior'] ?? '') !== self::PRIOR ||
             array_keys($m['files'] ?? []) !== self::PATHS) {
             throw new RuntimeException('Niezgodny manifest paczki.');
         }
@@ -99,7 +100,7 @@ final class Upsellio_Offer_Release_200 {
             $manifest = self::manifest();
             $old = $rollback ? 'new' : 'old';
             $new = $rollback ? 'old' : 'new';
-            $current_count = 0;
+            $current_count = 0; $base_count = 0; $prior_count = 0;
             foreach ($manifest as $rel => $row) {
                 $path = $root . '/' . $rel;
                 if (realpath($path) !== $path || is_link($path) || !is_file($path) ||
@@ -107,16 +108,33 @@ final class Upsellio_Offer_Release_200 {
                     throw new RuntimeException('Brak bezpiecznego dostępu do pliku: ' . $rel);
                 }
                 $current = hash_file('sha256', $path);
-                if (hash_equals($row[$new]['sha256'], $current)) { $current_count++; }
-                elseif (!hash_equals($row[$old]['sha256'], $current)) {
-                    throw new RuntimeException('Niezgodność pliku produkcyjnego z bazą wydania: ' . $rel . '. Nie nadpisano zmian.');
+                $is_base = hash_equals($row['old']['sha256'], $current);
+                $is_prior = hash_equals($row['prior']['sha256'], $current);
+                $is_release = hash_equals($row['new']['sha256'], $current);
+                $base_count += (int)$is_base;
+                $prior_count += (int)$is_prior;
+                $current_count += (int)hash_equals($row[$new]['sha256'], $current);
+                if (!$is_base && !$is_prior && !$is_release) {
+                    throw new RuntimeException('Niezgodność pliku produkcyjnego: ' . $rel . '. Nie nadpisano zmian.');
                 }
-                // Verify both target and original bytes before changing anything.
-                $restore[$path] = self::payload($row[$old]['file'], $row[$old]['sha256']);
-                $pending[$path] = self::payload($row[$new]['file'], $row[$new]['sha256']);
+                $source = $is_base ? 'old' : ($is_prior ? 'prior' : 'new');
+                // Verify original bytes and stage only files whose contents change.
+                $restore[$path] = self::payload($row[$source]['file'], $row[$source]['sha256']);
+                if (!hash_equals($row[$new]['sha256'], $current)) {
+                    $pending[$path] = self::payload($row[$new]['file'], $row[$new]['sha256']);
+                }
             }
             if ($current_count === count(self::PATHS)) { return $rollback ? 'already_rolled_back' : 'already_deployed'; }
-            if ($current_count !== 0) { throw new RuntimeException('Mieszane wersje plików. Wymagana ręczna kontrola; nic nie zmieniono.'); }
+            if ($rollback) {
+                foreach ($manifest as $rel => $row) {
+                    if (!hash_equals($row['new']['sha256'], (string)hash_file('sha256', $root . '/' . $rel))) { throw new RuntimeException('Rollback wymaga kompletnej wersji 2.0.4.'); }
+                }
+            } elseif ($base_count !== count(self::PATHS) && $prior_count !== count(self::PATHS)) {
+                throw new RuntimeException('Mieszane wersje plików. Wymagana ręczna kontrola; nic nie zmieniono.');
+            }
+            if (!$rollback && $prior_count === count(self::PATHS) && !is_array(get_option('upsellio_offer_legacy_payload_ids_v2', null))) {
+                throw new RuntimeException('Brak listy zgodności wcześniejszego wdrożenia. Wymagana diagnostyka.');
+            }
             if (file_exists($maintenance)) { throw new RuntimeException('Inna aktualizacja jest w toku.'); }
             $h = @fopen($maintenance, 'x');
             if (!$h) { throw new RuntimeException('Nie można uruchomić krótkiego trybu konserwacji.'); }
@@ -129,7 +147,7 @@ final class Upsellio_Offer_Release_200 {
             $staged = [];
             try {
                 foreach ($pending as $path => $bytes) { $staged[$path] = self::stage($path, $bytes); }
-                if (!$rollback) { self::preserve_existing_offers(); }
+                if (!$rollback && $base_count === count(self::PATHS)) { self::preserve_existing_offers(); }
                 foreach ($staged as $path => $temp) {
                     if (!hash_equals(hash('sha256', $restore[$path]), (string)hash_file('sha256', $path))) { throw new RuntimeException('Plik zmienił się w trakcie wdrożenia.'); }
                     if (!rename($temp, $path)) { throw new RuntimeException('Nie można podmienić pliku: ' . basename($path)); }
@@ -185,7 +203,7 @@ final class Upsellio_Offer_Release_200 {
             $data = file_get_contents($path);
             if (!is_string($data)) { $result[$rel] = ['state'=>'unavailable']; continue; }
             $actual = hash('sha256', $data);
-            $state = hash_equals($row['new']['sha256'],$actual) ? 'release' : (hash_equals($row['old']['sha256'],$actual) ? 'base' : 'mismatch');
+            $state = hash_equals($row['new']['sha256'],$actual) ? 'release' : (hash_equals($row['old']['sha256'],$actual) ? 'base' : (hash_equals($row['prior']['sha256'],$actual) ? 'prior' : 'mismatch'));
             $item = ['state'=>$state,'sha256'=>$actual,'bytes'=>strlen($data),'base_sha256'=>$row['old']['sha256'],'release_sha256'=>$row['new']['sha256']];
             if ($state === 'mismatch') {
                 $normalize = static function(string $bytes): string { return str_replace("\r\n", "\n", $bytes); };
@@ -200,19 +218,21 @@ final class Upsellio_Offer_Release_200 {
     public static function page(): void {
         try {
             $files = self::inspect();
-            $base = 0; $release = 0;
-            echo '<div class="wrap"><h1>Upsellio Offer Release 2.0.3</h1><p>Release: <code>' . esc_html(self::RELEASE) . '</code></p><table class="widefat striped"><thead><tr><th>Plik</th><th>Stan</th><th>SHA-256 produkcji</th></tr></thead><tbody>';
-            $labels=['release'=>'WDROŻONY','base'=>'ZGODNY Z BAZĄ','mismatch'=>'NIEZGODNY','unavailable'=>'NIEDOSTĘPNY'];
+            $base = 0; $release = 0; $prior = 0;
+            echo '<div class="wrap"><h1>Upsellio Offer Release 2.0.4</h1><p>Release: <code>' . esc_html(self::RELEASE) . '</code></p><table class="widefat striped"><thead><tr><th>Plik</th><th>Stan</th><th>SHA-256 produkcji</th></tr></thead><tbody>';
+            $labels=['release'=>'WDROŻONY','base'=>'ZGODNY Z BAZĄ','prior'=>'2.0.3 — WYMAGA POPRAWKI','mismatch'=>'NIEZGODNY','unavailable'=>'NIEDOSTĘPNY'];
             foreach ($files as $rel => $item) {
                 $state = $item['state'];
                 $base += (int)($state === 'base');
                 $release += (int)($state === 'release');
+                $prior += (int)($state === 'prior' || $state === 'release');
                 echo '<tr><td>' . esc_html($rel) . '</td><td>' . esc_html($labels[$state]) . '</td><td><code>' . esc_html($item['sha256'] ?? '') . '</code></td></tr>';
             }
             echo '</tbody></table><p>Raport obejmuje wyłącznie siedem plików motywu, nie zawiera bazy CRM, konfiguracji WordPressa ani danych ofert. Kod niezgodnych plików jest pobierany tylko przez uprawnionego administratora. Traktuj raport jako poufny.</p>';
             self::form('diagnostics','Pobierz raport zgodności (JSON)',false);
             if ($base === count(self::PATHS)) { echo '<p>Dotychczasowe opublikowane i prywatne oferty zachowają poprzedni sposób wyświetlania warunków. Nie uzupełniamy żadnych pól CRM. Nowe oferty nie dziedziczą nieuzgodnionych warunków.</p>'; self::form('deploy','Wdróż sprawdzone wydanie',true); }
-            elseif ($release === count(self::PATHS)) { self::form('rollback','Przywróć poprzednią wersję',false); }
+            elseif ($release === count(self::PATHS)) { self::form('rollback','Przywróć pierwotną wersję sprzed 2.0.3',false); }
+            elseif ($prior === count(self::PATHS)) { self::form('deploy','Napraw przekierowanie analityki',true); }
             else { echo '<p><strong>Wdrożenie zablokowane:</strong> pobierz raport i porównaj niezgodne pliki. Nie nadpisano motywu.</p>'; }
             echo '</div>';
         } catch (Throwable $e) { wp_die(esc_html($e->getMessage()), 'Upsellio: kontrola wstrzymana', ['response'=>409,'back_link'=>true]); }
