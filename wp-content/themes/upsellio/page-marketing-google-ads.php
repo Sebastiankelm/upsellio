@@ -429,7 +429,7 @@ $faq_items = [
         <h1 class="gads-h1">Google Ads, które przynoszą <em>zamówienia i telefony.</em></h1>
         <p class="gads-lead">Twoja reklama pojawia się wtedy, gdy ktoś sam szuka tego, co sprzedajesz. Pilnuję, żeby budżet szedł na właściwe frazy i produkty, a kliknięcie kończyło się zakupem lub telefonem.</p>
         <ul class="up-mock-benefits"><li>Reklamy produktowe ze zdjęciem i ceną</li><li>Płacisz za kliknięcia</li><li>Pomiar sprzedaży i telefonów</li></ul>
-        <div class="gads-btn-row"><a href="#kontakt" class="gads-btn gads-btn-primary" data-cta="googleads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Umów bezpłatną diagnozę</a><a href="#cennik" class="gads-btn gads-btn-secondary">Zobacz cennik</a></div>
+        <div class="gads-btn-row"><a href="#kontakt" class="gads-btn gads-btn-primary" data-cta="googleads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Umów bezpłatną diagnozę</a><a href="#cennik" class="gads-btn gads-btn-secondary up-hero-desktop">Zobacz cennik</a><a href="tel:<?php echo esc_attr(preg_replace('/\s+/', '', $contact_phone)); ?>" class="gads-btn gads-btn-secondary up-hero-mobile" data-contact-location="hero">Zadzwoń teraz</a></div>
       </div>
 
       <aside class="gads-search-card" aria-label="Przykład intencji w Google Ads">
@@ -523,6 +523,8 @@ $faq_items = [
   
 
   
+<details class="up-extra-content"><summary>Więcej o kampaniach Google Ads</summary>
+<div class="up-extra-body">
 <section class="gads-section up-mock-details" id="szczegoly-uslugi"><div class="gads-wrap"><span class="gads-eyebrow">Więcej o usłudze</span><h2 class="gads-h2">Google Ads dla firm: kampanie Search i Performance Max, które docierają do klientów z wysoką intencją zakupową.</h2><p class="gads-lead">Tworzenie i prowadzenie kampanii Google Ads dla firm B2B, usługowych i e-commerce. Słowa kluczowe z intencją zakupową, landing pages pod konwersję i systematyczna optymalizacja kosztu pozyskania leada.</p><div class="gads-copy">
           <p>Google Ads pozwala dotrzeć do klientów dokładnie wtedy, gdy szukają rozwiązania. Ktoś wpisuje „dostawca opakowań przemysłowych”, „agencja rekrutacyjna Warszawa” albo „serwis maszyn CNC Śląsk” i jest bliżej decyzji niż osoba przypadkowo scrollująca social media.</p>
           <p>Skuteczna kampania Google Ads to precyzyjny dobór słów kluczowych z wysoką intencją zakupową, wykluczenie fraz generujących drogi ruch, spójność reklamy ze stroną docelową, poprawne śledzenie konwersji i ciągła optymalizacja.</p>
@@ -787,7 +789,9 @@ $faq_items = [
         </div>
       </div>
     </div>
-  </section><section class="gads-section" id="faq">
+  </section>
+</div></details>
+<section class="gads-section" id="faq">
     <div class="gads-wrap">
       <span class="gads-eyebrow">FAQ</span>
       <h2 class="gads-h2">Najczęstsze pytania przed rozpoczęciem kampanii Google Ads.</h2>
