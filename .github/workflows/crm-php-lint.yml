@@ -8,6 +8,7 @@ on:
       - 'wp-content/themes/upsellio/**/*.css'
       - '.github/workflows/crm-php-lint.yml'
       - 'tests/crm-regression-smoke.php'
+      - 'tests/crm-today-regression.php'
       - 'tests/crm-research-regression.cjs'
   workflow_dispatch:
 
@@ -51,6 +52,8 @@ jobs:
           fi
       - name: CRM regression smoke tests
         run: php tests/crm-regression-smoke.php
+      - name: Daily report fixture regression
+        run: php tests/crm-today-regression.php
       - name: Check audit JavaScript syntax
         run: node --check wp-content/themes/upsellio/inc/crm-app/assets/js/audit.js
 
@@ -67,14 +70,14 @@ jobs:
         run: |
           set -euo pipefail
           git fetch --no-tags --depth=1 origin "$RELEASE_SHA"
-          git fetch --no-tags --depth=1 origin 8282d25d5e67b46a71c32534aa5f6c8eb37333e5
+          git fetch --no-tags --depth=1 origin 8a92568f6c69e8b17727ea386cd64237bcb6f14f
           python3 - <<'PY'
           import hashlib, json, os, pathlib, re, subprocess
 
           def git(*args):
               return subprocess.check_output(["git", *args])
 
-          base, head = os.environ["BASE_SHA"], os.environ["RELEASE_SHA"]
+          base, head = "8a92568f6c69e8b17727ea386cd64237bcb6f14f", os.environ["RELEASE_SHA"]
           assert all(re.fullmatch(r"[a-f0-9]{40}", s) for s in (base, head))
           prefix = "wp-content/themes/upsellio/"
           exact = {
@@ -88,12 +91,6 @@ jobs:
           out = pathlib.Path(os.environ["RUNNER_TEMP"]) / "upsellio-crm-release"
           out.mkdir(exist_ok=False)
           records = []
-          offer_base = "8282d25d5e67b46a71c32534aa5f6c8eb37333e5"
-          # These two shared files were already deployed by Offer Release 2.0.3.
-          shared_live = {
-              "inc/crm-app/actions.php": "f3c15a948e776f656414101e342dd3c1dc7224d96b366ad403c585ce1d384b51",
-              "inc/crm-app/render.php": "aa6cd236386d3d1ee7aeac8de77210cf79ae8ac41a88f5c5b7519705ac2c018a",
-          }
           changed = git("diff", "--no-renames", "--name-status", "-z", base, head, "--", prefix).decode("utf-8").split("\0")
           assert changed.pop() == ""
           assert len(changed) % 2 == 0
@@ -106,12 +103,10 @@ jobs:
               assert status != "A" or rel == "assets/css/crm-redesign.css", rel
               assert git("ls-tree", head, "--", full).split()[0] == b"100644", rel
               after = git("show", f"{head}:{full}")
-              file_base = offer_base if rel in shared_live else base
+              file_base = base
               before = git("show", f"{file_base}:{full}") if status == "M" else None
               if before is not None:
                   assert git("ls-tree", file_base, "--", full).split()[0] == b"100644", rel
-                  if rel in shared_live:
-                      assert hashlib.sha256(before).hexdigest() == shared_live[rel], rel
               target = out / "payload" / rel
               target.parent.mkdir(parents=True, exist_ok=True)
               target.write_bytes(after)
@@ -120,7 +115,7 @@ jobs:
                               "base_git_sha256": hashlib.sha256(before).hexdigest() if before is not None else None,
                               "release_sha256": hashlib.sha256(after).hexdigest(), "bytes": len(after)})
           assert records, "No CRM files"
-          assert len(records) == 29, "Unexpected release scope; review before changing this guard"
+          assert {r["path"] for r in records} == {"assets/css/crm-redesign.css", "inc/crm-app/render.php", "inc/crm-app/views/analytics-today.php"}, "Unexpected release scope; review before changing this guard"
           manifest = {"format": "upsellio-crm-release-preflight-v1", "base_git_commit": base,
                       "release_git_commit": head, "production_verified": False,
                       "files": records}
@@ -128,7 +123,7 @@ jobs:
           (out / "README.txt").write_text(
               "CRM release package; not a DevOps Bridge request.\n"
               "No production changes have been made by this workflow.\n"
-              "Base hashes are from Git; the two shared offer files use a pinned deployed offer commit.\n"
+              "Incremental package: base hashes are from the confirmed deployed CRM commit.\n"
               "Live files must be rechecked before deployment.\n"
               "Before deploying: compare all live files, confirm a current database and file backup,\n"
               "verify permissions and PHP version, test on staging, and deploy as one coherent release.\n"
