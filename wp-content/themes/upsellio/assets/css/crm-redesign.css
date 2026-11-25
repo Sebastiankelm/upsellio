@@ -124,3 +124,49 @@ body.ups-crm-redesign {
 .ups-crm-redesign .crm-sidebar-account-name { min-width:0; font-size:12px; color:var(--text-3); }
 .ups-crm-redesign .crm-sidebar-account-name strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font-size:13px; }
 .ups-crm-redesign .crm-sidebar-account-name a:hover { text-decoration:underline; color:var(--teal); }
+
+/* Reference-board layout: operational and sales views. */
+.ups-crm-redesign .crm-view-heading { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:4px; }
+.ups-crm-redesign .crm-view-heading p { color:var(--text-2); font-size:14px; margin:4px 0 0; }
+.ups-crm-redesign .crm-heading-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.ups-crm-redesign .crm-heading-actions .btn { min-height:40px; border-radius:10px; font-size:14px; padding:0 14px; font-weight:700; }
+.ups-crm-redesign .crm-main .card.kpi { border-radius:16px; padding:18px 20px; display:flex; flex-direction:column; gap:6px; min-width:0; }
+.ups-crm-redesign .crm-main .card.kpi b { overflow-wrap:anywhere; }
+.ups-crm-redesign .crm-main .crm-kpi { border-radius:16px; padding:18px 20px; }
+.ups-crm-redesign .crm-plan-item { display:grid; grid-template-columns:80px 1fr; align-items:center; gap:12px; border-bottom:1px solid #eceef1; padding:12px 0; font-size:14px; }
+.ups-crm-redesign .crm-plan-item:last-child { border:0; }
+.ups-crm-redesign .crm-plan-item time { color:var(--text-3); font-weight:600; font-variant-numeric:tabular-nums; }
+.ups-crm-redesign .crm-main .crm-ai-card { background:#eaf7f3; border:1px solid #b6e4d7; color:var(--text); border-radius:16px; }
+.ups-crm-redesign .crm-ai-card .crm-ai-badge, .ups-crm-redesign .crm-ai-card .crm-ai-txt { color:var(--teal); }
+.ups-crm-redesign .crm-list-filters { display:flex; align-items:flex-end; flex-wrap:wrap; gap:10px; margin:0 0 12px; }
+.ups-crm-redesign .crm-list-filters label { flex:1 1 180px; min-width:0; display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:600; }
+.ups-crm-redesign .crm-list-filters .btn { min-height:40px; }
+.ups-crm-redesign .crm-inline-import { padding:12px 0; margin:0 0 12px; border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+.ups-crm-redesign .crm-inline-import summary { cursor:pointer; font-weight:600; color:var(--teal); }
+.ups-crm-redesign .crm-inline-import form { margin:12px 0 0; }
+.ups-crm-redesign[data-crm-view="leads"] .crm-main .card:has(.crm-llist) { overflow-x:auto; }
+.ups-crm-redesign .crm-lhdr, .ups-crm-redesign .crm-lrow { grid-template-columns:36px minmax(150px,1.4fr) 125px 65px 65px 100px minmax(130px,1fr); gap:10px; min-width:740px; }
+.ups-crm-redesign .crm-lhdr { font-size:12px; text-transform:none; background:#f5f6f8; padding:12px; }
+.ups-crm-redesign .crm-lrow { padding:12px; border-color:#eceef1; }
+.ups-crm-redesign .crm-lrow:hover { background:#fafbfc; }
+.ups-crm-redesign .crm-lname { font-size:14px; font-weight:700; }
+.ups-crm-redesign .crm-lsub { font-size:12px; color:var(--text-3); }
+.ups-crm-redesign .crm-lacts { flex-wrap:wrap; }
+.ups-crm-redesign[data-crm-view="pipeline"] .pipeline { grid-template-columns:repeat(6,minmax(190px,1fr)); gap:12px; overflow-x:auto; padding:0 0 8px; }
+.ups-crm-redesign .pipeline-col { background:#f1f3f5; padding:10px; border-radius:12px; }
+.ups-crm-redesign .pipeline-col h3 { display:flex; align-items:center; justify-content:space-between; gap:6px; margin:0 0 12px; font-size:13px; }
+.ups-crm-redesign .crm-stage-count { display:inline-flex; justify-content:center; align-items:center; min-width:24px; padding:2px 6px; background:white; color:var(--text-2); border:1px solid var(--border); border-radius:999px; font-size:12px; }
+.ups-crm-redesign .pipeline-card { padding:12px; box-shadow:0 1px 2px rgba(15,17,21,.06); }
+.ups-crm-redesign .crm-pipeline-title { font-weight:700; font-size:14px; overflow-wrap:anywhere; }
+.ups-crm-redesign .crm-pipeline-value { color:var(--teal); font-size:15px; font-weight:700; margin:4px 0; }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-topbar { padding:16px 20px; background:white; border-bottom:1px solid var(--border); }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-title { font-family:var(--font-display); font-size:28px; font-weight:800; color:var(--text); }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-thread-card.is-active { background:var(--teal-soft); }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-thread-column { border-color:var(--border); }
+@media(max-width:1100px) {
+  .ups-crm-redesign .crm-main .card.kpi { grid-column:span 6; }
+}
+@media(max-width:600px) {
+  .ups-crm-redesign .crm-main .card.kpi { grid-column:span 12; }
+  .ups-crm-redesign .crm-heading-actions { width:100%; }
+}
