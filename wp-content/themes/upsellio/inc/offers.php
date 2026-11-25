@@ -301,6 +301,9 @@ function upsellio_offer_queue_builtin_sent_reminders($offer_id)
     if ($offer_id <= 0 || (string) get_option("ups_offer_builtin_sent_reminders", "1") !== "1") {
         return;
     }
+    if (!function_exists("upsellio_followup_queue_lock") || !upsellio_followup_queue_lock($offer_id)) { return; }
+    try {
+    if (upsellio_followup_offer_block_reason($offer_id) !== "") { return; }
     if ((string) get_post_meta($offer_id, "_ups_offer_builtin_reminders_scheduled", true) === "1") {
         return;
     }
@@ -319,7 +322,7 @@ function upsellio_offer_queue_builtin_sent_reminders($offer_id)
         $signature = "builtin_sent:" . $kind;
         $dup = false;
         foreach ($queue as $ex) {
-            if ((string) ($ex["signature"] ?? "") === $signature && (string) ($ex["status"] ?? "") !== "sent") {
+            if ((string) ($ex["signature"] ?? "") === $signature) {
                 $dup = true;
                 break;
             }
@@ -340,6 +343,7 @@ function upsellio_offer_queue_builtin_sent_reminders($offer_id)
     update_post_meta($offer_id, "_ups_offer_followup_queue", $queue);
     update_post_meta($offer_id, "_ups_offer_builtin_reminders_scheduled", "1");
     upsellio_offer_add_timeline_event($offer_id, "builtin_followups_queued", "Zaplanowano przypomnienia po wysłaniu oferty (2/5/10 dni).");
+    } finally { upsellio_followup_queue_unlock($offer_id); }
 }
 
 function upsellio_offer_builtin_reminder_parts($offer_id, $kind)
@@ -714,6 +718,9 @@ function upsellio_offer_update_followup_on_visit(int $offer_id): void
         return;
     }
 
+    if (!function_exists("upsellio_followup_queue_lock") || !upsellio_followup_queue_lock($offer_id)) { return; }
+    try {
+    if (upsellio_followup_offer_block_reason($offer_id) !== "") { return; }
     $queue = get_post_meta($offer_id, "_ups_offer_followup_queue", true);
     if (!is_array($queue) || empty($queue)) {
         return;
@@ -775,6 +782,7 @@ function upsellio_offer_update_followup_on_visit(int $offer_id): void
             );
         }
     }
+    } finally { upsellio_followup_queue_unlock($offer_id); }
 }
 
 function upsellio_offer_maybe_schedule_score_refresh($offer_id)
