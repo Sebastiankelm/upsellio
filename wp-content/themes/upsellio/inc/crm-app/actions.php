@@ -785,9 +785,23 @@ function upsellio_crm_app_handle_post_actions()
         }
         $offer_id = isset($_POST["task_offer_id"]) ? (int) wp_unslash($_POST["task_offer_id"]) : 0;
         $lead_id = isset($_POST["task_lead_id"]) ? (int) wp_unslash($_POST["task_lead_id"]) : 0;
-        $owner_id = isset($_POST["task_owner_id"]) ? (int) wp_unslash($_POST["task_owner_id"]) : get_current_user_id();
-        if ($owner_id <= 0) {
-            $owner_id = get_current_user_id();
+        $existing_task = $task_id > 0 ? get_post($task_id) : null;
+        $default_owner = $existing_task ? (int) $existing_task->post_author : get_current_user_id();
+        $owner_id = isset($_POST["task_owner_id"]) ? (int) wp_unslash($_POST["task_owner_id"]) : $default_owner;
+        if ($owner_id <= 0) { $owner_id = $default_owner; }
+        if ($owner_id !== $default_owner && !current_user_can("manage_options")) {
+            wp_die("Brak uprawnień do zmiany opiekuna zadania.", "", ["response" => 403]);
+        }
+        if ($owner_id <= 0 || !get_userdata($owner_id)) {
+            wp_die("Nieprawidłowy opiekun zadania.", "", ["response" => 400]);
+        }
+        foreach ([$offer_id => "crm_offer"] as $linked_id => $linked_type) {
+            if ($linked_id !== 0 && ($linked_id < 0 || get_post_type($linked_id) !== $linked_type || !current_user_can("edit_post", $linked_id))) {
+                wp_die("Brak dostępu do powiązanej oferty.", "", ["response" => 403]);
+            }
+        }
+        if ($lead_id !== 0 && ($lead_id < 0 || get_post_type($lead_id) !== "crm_lead" || !current_user_can("edit_post", $lead_id))) {
+            wp_die("Brak dostępu do powiązanego leada.", "", ["response" => 403]);
         }
         $status = isset($_POST["task_status"]) ? sanitize_key(wp_unslash($_POST["task_status"])) : "open";
         if (!in_array($status, ["open", "in_progress", "waiting", "done", "cancelled"], true)) {
@@ -797,25 +811,29 @@ function upsellio_crm_app_handle_post_actions()
         $due_at_raw = isset($_POST["task_due_at"]) ? sanitize_text_field(wp_unslash($_POST["task_due_at"])) : "";
         $due_at_ts = $due_at_raw !== "" ? upsellio_crm_app_parse_local_datetime($due_at_raw) : false;
         if ($due_at_raw !== "" && $due_at_ts === false) { wp_die("Nieprawidłowy termin zadania.", "", ["response" => 400]); }
-        $duration_minutes = isset($_POST["task_duration_minutes"]) ? max(15, (int) wp_unslash($_POST["task_duration_minutes"])) : 60;
+        $duration_minutes = isset($_POST["task_duration_minutes"]) ? (int) wp_unslash($_POST["task_duration_minutes"]) : 60;
+        if ($duration_minutes < 15 || $duration_minutes > 1440) { wp_die("Nieprawidłowy czas trwania zadania (15–1440 minut).", "", ["response" => 400]); }
         $impact_score = isset($_POST["task_impact_score"]) ? max(1, min(100, (int) wp_unslash($_POST["task_impact_score"]))) : 50;
         $close_probability = isset($_POST["task_close_probability"]) ? max(1, min(100, (int) wp_unslash($_POST["task_close_probability"]))) : 50;
         if ($task_id > 0 && get_post_type($task_id) === "lead_task") {
             if (!current_user_can("edit_post", $task_id)) {
                 return;
             }
-            wp_update_post([
+            $saved_task = wp_update_post([
                 "ID" => $task_id,
                 "post_title" => $title,
                 "post_author" => $owner_id,
-            ]);
+            ], true);
+            if (is_wp_error($saved_task) || !$saved_task) { wp_die("Nie udało się zapisać zadania.", "", ["response" => 500]); }
         } else {
-            $task_id = (int) wp_insert_post([
+            $saved_task = wp_insert_post([
                 "post_type" => "lead_task",
                 "post_status" => "publish",
                 "post_title" => $title,
                 "post_author" => $owner_id,
-            ]);
+            ], true);
+            if (is_wp_error($saved_task) || !$saved_task) { wp_die("Nie udało się utworzyć zadania.", "", ["response" => 500]); }
+            $task_id = (int) $saved_task;
         }
         if ($task_id > 0) {
             update_post_meta($task_id, "_upsellio_task_offer_id", $offer_id);
@@ -1498,7 +1516,7 @@ function upsellio_crm_app_ajax_schedule_task()
     }
     $task_id = isset($_POST["task_id"]) ? (int) wp_unslash($_POST["task_id"]) : 0;
     $start_at = isset($_POST["start_at"]) ? sanitize_text_field(wp_unslash($_POST["start_at"])) : "";
-    $duration_minutes = isset($_POST["duration_minutes"]) ? max(15, (int) wp_unslash($_POST["duration_minutes"])) : 60;
+    $duration_minutes = isset($_POST["duration_minutes"]) ? (int) wp_unslash($_POST["duration_minutes"]) : 60;
     if ($task_id <= 0 || get_post_type($task_id) !== "lead_task") {
         wp_send_json_error(["message" => "invalid_task"], 400);
     }
@@ -1508,6 +1526,12 @@ function upsellio_crm_app_ajax_schedule_task()
     $ts = upsellio_crm_app_parse_local_datetime($start_at);
     if ($ts === false || $ts <= 0) {
         wp_send_json_error(["message" => "invalid_start_at"], 400);
+    }
+    if (in_array((string) get_post_meta($task_id, "_upsellio_task_status", true), ["done", "cancelled"], true)) {
+        wp_send_json_error(["message" => "closed_task"], 409);
+    }
+    if (!upsellio_crm_app_calendar_slot_fits((int) $ts, $duration_minutes)) {
+        wp_send_json_error(["message" => "outside_work_hours"], 400);
     }
     update_post_meta($task_id, "_upsellio_task_due_at", (int) $ts);
     update_post_meta($task_id, "_upsellio_task_duration_minutes", $duration_minutes);
