@@ -273,6 +273,12 @@ function upsellio_offer_render_lines_as_checklist($lines, $use_optional_icon = f
     }
 }
 
+function upsellio_offer_terms_fingerprint(int $offer_id): string
+{
+    $terms = [get_post_field("post_title", $offer_id), get_post_field("post_content", $offer_id), get_post_meta($offer_id, "_ups_offer_price", true), get_post_meta($offer_id, "_ups_offer_timeline", true), get_post_meta($offer_id, "_ups_offer_expires_at", true), get_post_meta($offer_id, "_ups_offer_cta_text", true), upsellio_offer_get_landing_payload($offer_id)];
+    return hash_hmac("sha256", wp_json_encode($terms), wp_salt("nonce"));
+}
+
 function upsellio_offer_render_public_landing($offer)
 {
     if (!$offer instanceof WP_Post) {
@@ -281,6 +287,9 @@ function upsellio_offer_render_public_landing($offer)
     $offer_id = (int) $offer->ID;
     $is_preview_mode = isset($_GET["preview_mode"]) && current_user_can("edit_post", $offer_id);
     $offer_version = (int) get_post_meta($offer_id, "_ups_offer_current_version", true);
+    $offer_fingerprint = upsellio_offer_terms_fingerprint($offer_id);
+    $offer_status = (string) get_post_meta($offer_id, "_ups_offer_status", true);
+    $offer_can_accept = in_array($offer_status, ["open", "sent"], true);
     $slug = (string) get_post_meta($offer_id, "_ups_offer_public_slug", true);
     $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
     $person_id = (string) get_post_meta($offer_id, "_ups_offer_person_id", true);
@@ -434,9 +443,7 @@ function upsellio_offer_render_public_landing($offer)
 window.dataLayer=window.dataLayer||[];
 window.UPS=<?php echo wp_json_encode([
     "offer_id" => (string) $offer_id,
-    "offer_slug" => (string) $slug,
-    "offer_title" => (string) $offer_title,
-    "person_id" => (string) $person_id,
+    // Do not expose the bearer slug, client-specific title or person ID to tag manager.
     "utm_source" => "",
     "utm_campaign" => "",
     "gclid" => "",
@@ -708,6 +715,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 }
 .ups-modal__err.is-visible{outline:1px solid #b91c1c;border-radius:6px}
 .commit-opt{min-height:72px}
+/* Mobile action bar: keeps the selected offer and decision within reach. */
+.offer-mobile-bar{display:none}
+@media(max-width:768px){
+  body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+  .offer-mobile-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;position:fixed;bottom:0;left:0;right:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid var(--border);box-shadow:0 -8px 24px rgba(15,17,21,.08);z-index:45}
+  .offer-mobile-summary{min-width:0;display:flex;flex-direction:column;line-height:1.3}
+  .offer-mobile-summary small{font-size:11px;color:var(--muted)}
+  .offer-mobile-summary strong{font-family:var(--font-d);font-size:16px;overflow-wrap:anywhere}
+  .offer-mobile-bar .btn{flex:0 1 auto;max-width:58%;min-height:48px;justify-content:center;text-align:center;padding:10px 14px;border-radius:999px}
+  body.offer-modal-open .offer-mobile-bar{visibility:hidden}
+  .ups-toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
+}
+.btn:disabled{opacity:.65;cursor:not-allowed;transform:none}
 </style>
 </head>
 <body>
@@ -1209,6 +1229,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   </div>
 </div>
 
+<div class="offer-mobile-bar" aria-label="Działania dotyczące oferty">
+  <div class="offer-mobile-summary"><small>Inwestycja</small><strong id="mobileOfferPrice"><?php echo esc_html($price !== "" ? $price : "Do uzgodnienia"); ?></strong></div>
+  <button type="button" class="btn btn-p" id="btn-offer-accept-mobile"><?php echo esc_html($offer_can_accept ? $cta_text : ($offer_status === "won" ? "Zaakceptowana" : "Zamknięta")); ?></button>
+</div>
 <div class="ups-toast" id="ups-offer-toast" role="status" aria-live="polite"></div>
 
 <footer class="foot">
@@ -1230,7 +1254,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
       </a>
     </div>
     <div>Przygotowano <?php echo esc_html($offer_created_label); ?> · Ważna do <?php echo esc_html($offer_expires_label); ?></div>
-    <div>ID: <code style="font-size:11px;background:var(--bg);padding:2px 6px;border-radius:4px;font-family:monospace"><?php echo esc_html($slug); ?></code></div>
+    <div>Oferta #<?php echo (int) $offer_id; ?></div>
   </div>
 </footer>
 
@@ -1238,7 +1262,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 (function(){
 var offerId=<?php echo (int) $offer_id; ?>;
 var clientId=<?php echo (int) $client_id; ?>;
-var personId=<?php echo wp_json_encode((string) $person_id); ?>;
+
 var ajaxUrl=<?php echo wp_json_encode((string) $ajax_url); ?>;
 var __upsTrackPublic=<?php echo $upsellio_offer_track_public ? "true" : "false"; ?>;
 var __upsPreviewMode=<?php echo $is_preview_mode ? "true" : "false"; ?>;
@@ -1246,6 +1270,8 @@ var hasClientEmail=<?php echo $client_email_ok ? "true" : "false"; ?>;
 var publicNonce=<?php echo wp_json_encode((string) $public_nonce); ?>;
 var offerToken=<?php echo wp_json_encode($slug); ?>;
 var offerVersion=<?php echo (int) $offer_version; ?>;
+var offerFingerprint=<?php echo wp_json_encode($offer_fingerprint); ?>;
+var offerCanAccept=<?php echo $offer_can_accept ? "true" : "false"; ?>;
 var q=new URLSearchParams(window.location.search||'');
 var utmSource=q.get('utm_source')||'';
 var utmCampaign=q.get('utm_campaign')||'';
@@ -1382,7 +1408,8 @@ window.commitSelect=function(el){
   var labEl=el.querySelector('.commit-label');
   var t=labEl?labEl.textContent.trim():el.textContent.replace(/\s+/g,' ').trim();
   if(ctaEl&&val&&t)ctaEl.textContent='Chcę: '+t+' →';
-  ['btn-offer-accept-pricing','btn-offer-accept-footer'].forEach(function(id){var btn=document.getElementById(id);if(btn&&val&&t)btn.textContent='Chcę: '+t;});
+  ['btn-offer-accept-pricing','btn-offer-accept-footer','btn-offer-accept-mobile'].forEach(function(id){var btn=document.getElementById(id);if(btn&&val&&t&&offerCanAccept)btn.textContent='Chcę: '+t;});
+  var price=el.querySelector('.commit-price'),mp=document.getElementById('mobileOfferPrice');if(price&&mp&&price.textContent.trim())mp.textContent=price.textContent.trim();
 };
 window.cta=function(l){pushDl('offer_cta_click',{cta_label:l});trackEvent('offer_cta_click',{section_id:String(l)});};
 window.faqToggle=function(i){var o=i.classList.contains('open');document.querySelectorAll('.fi.open').forEach(function(el){el.classList.remove('open');});if(!o)i.classList.add('open');};
@@ -1419,13 +1446,14 @@ function showToast(msg,isErr){
 function openModal(id){
   document.querySelectorAll('.ups-modal').forEach(function(m){m.classList.remove('is-open');m.setAttribute('aria-hidden','true');});
   var m=document.getElementById(id);
-  if(m){m.classList.add('is-open');m.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';}
+  if(m){m.classList.add('is-open');m.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';document.body.classList.add("offer-modal-open");var dialog=m.querySelector("[role=dialog]");if(dialog){dialog.setAttribute("tabindex","-1");dialog.focus();}}
 }
 function closeModals(){
   document.querySelectorAll('.ups-modal.is-open').forEach(function(m){m.classList.remove('is-open');m.setAttribute('aria-hidden','true');});
-  document.body.style.overflow='';
+  document.body.style.overflow='';document.body.classList.remove('offer-modal-open');
 }
 function onAcceptClick(source){
+  if(!offerCanAccept){showToast("Ta oferta jest już zamknięta.",true);return;}
   var hasVariants=document.querySelectorAll('input[name="commit"]').length>0;
   var commit=getCommit();
   if(hasVariants&&!commit.key){
@@ -1438,7 +1466,7 @@ function onAcceptClick(source){
     showToast('Wybierz najpierw pakiet, którym jesteś zainteresowany.',true);
     return;
   }
-  cta(source==="pricing"?"pricing_accept_ajax":"footer_accept_ajax");
+  cta(source==="pricing"?"pricing_accept_ajax":source==="mobile"?"mobile_accept_ajax":"footer_accept_ajax");
   trackEvent("offer_accept_started",{section_id:source});
   openAcceptModal(source,commit);
 }
@@ -1512,6 +1540,9 @@ function onQuestionClick(source){
 }
 var elAccP=document.getElementById('btn-offer-accept-pricing');
 var elAccF=document.getElementById('btn-offer-accept-footer');
+var elAccM=document.getElementById('btn-offer-accept-mobile');
+if(elAccM)elAccM.addEventListener('click',function(){onAcceptClick('mobile');});
+if(!offerCanAccept){[elAccP,elAccF,elAccM].forEach(function(btn){if(btn){btn.disabled=true;btn.textContent='Oferta zamknięta';}});}
 if(elAccP)elAccP.addEventListener('click',function(){onAcceptClick('pricing');});
 if(elAccF)elAccF.addEventListener('click',function(){onAcceptClick('footer');});
 var elQp=document.getElementById('btn-offer-question-pricing');
@@ -1542,9 +1573,9 @@ if(elCs)elCs.addEventListener('click',function(){
   body.append('action','upsellio_offer_accept_full');
   body.append('offer_token',offerToken);
   body.append('offer_version',String(offerVersion));
+  body.append('offer_fingerprint',offerFingerprint);
   body.append('offer_id',String(offerId));
   body.append('client_id',String(clientId));
-  body.append('person_id',String(personId||''));
   body.append('nonce',publicNonce);
   body.append('contact_email',v);
   body.append('contact_name',((document.getElementById('accept_name')||{}).value||'').trim());
@@ -1563,7 +1594,8 @@ if(elCs)elCs.addEventListener('click',function(){
     .then(function(res){
       if(res&&res.success){
         hasClientEmail=true;
-        [elAccP,elAccF].forEach(function(btn){if(btn){btn.disabled=true;btn.textContent='Oferta zaakceptowana';}});
+        offerCanAccept=false;
+        [elAccP,elAccF,elAccM].forEach(function(btn){if(btn){btn.disabled=true;btn.textContent='Oferta zaakceptowana';}});
         closeModals();
         showToast((res.data&&res.data.message)||'Dzięki! Potwierdzenie wysłane, wracamy z kontaktem.');
         pushDl('offer_public_accept',{cta_label:((document.getElementById('acceptCtaSource')||{}).value||'pricing')});
@@ -1794,6 +1826,10 @@ function upsellio_offer_accept_full_ajax()
     if (!isset($_POST["offer_version"]) || (int) $_POST["offer_version"] !== (int) get_post_meta($offer_id, "_ups_offer_current_version", true)) {
         wp_send_json_error(["message" => "Oferta została zmieniona. Odśwież stronę przed akceptacją."], 409);
     }
+    $submitted_fingerprint = isset($_POST["offer_fingerprint"]) && is_string($_POST["offer_fingerprint"]) ? wp_unslash($_POST["offer_fingerprint"]) : "";
+    if (!hash_equals(upsellio_offer_terms_fingerprint($offer_id), $submitted_fingerprint)) {
+        wp_send_json_error(["message" => "Warunki oferty zostały zmienione. Odśwież stronę i sprawdź aktualny zakres."], 409);
+    }
     $variant_key = isset($_POST["commit_key"]) ? sanitize_key(wp_unslash($_POST["commit_key"])) : "";
     $variant_label = "";
     $variant_price = "";
@@ -1842,6 +1878,7 @@ function upsellio_offer_accept_full_ajax()
         "price" => $decision_payload["offer_price"],
         "variant" => $variant_map[$variant_key] ?? [],
         "version" => $decision_payload["offer_version"],
+        "fingerprint" => $submitted_fingerprint,
         "accepted_at" => current_time("mysql"),
     ];
     if (!function_exists("upsellio_offer_apply_public_accept") || !upsellio_offer_apply_public_accept($offer_id, $decision_payload, $terms_snapshot)) {
