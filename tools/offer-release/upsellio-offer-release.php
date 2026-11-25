@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Upsellio Offer Release 2.0
  * Description: One-time, pinned release of seven CRM theme files. Administrator-only deployment and rollback; no remote write endpoint.
- * Version: 2.0.4
+ * Version: 2.0.5
  * Requires PHP: 8.1
  */
 if (!defined('ABSPATH')) { exit; }
@@ -12,9 +12,9 @@ final class Upsellio_Offer_Release_200 {
         'inc/anthropic-offer-ai.php', 'inc/crm-app/actions.php', 'inc/crm-app/render.php',
         'inc/followups.php', 'inc/offer-landing.php', 'inc/offers.php', 'inc/sales-engine.php',
     ];
-    private const RELEASE = 'd9c0f75234c3051ddf73d68b127b533c688ab370';
-    private const PRIOR = '5e7e74de0a671c73d84825f9aca976740902c3ef';
-    private const BASE = 'cfe6ef80746a0f8a51277b45cdebebf49045430f';
+    private const RELEASE = 'crm-route-fix-20261125-205';
+    private const PRIOR = '918107d7ccca174f748499f573e57ddfc0b929ec';
+    private const BASE = 'production-20261125T104704Z';
 
     public static function authorize(): void {
         if (!current_user_can('manage_options') || !current_user_can('update_themes') ||
@@ -127,12 +127,12 @@ final class Upsellio_Offer_Release_200 {
             if ($current_count === count(self::PATHS)) { return $rollback ? 'already_rolled_back' : 'already_deployed'; }
             if ($rollback) {
                 foreach ($manifest as $rel => $row) {
-                    if (!hash_equals($row['new']['sha256'], (string)hash_file('sha256', $root . '/' . $rel))) { throw new RuntimeException('Rollback wymaga kompletnej wersji 2.0.4.'); }
+                    if (!hash_equals($row['new']['sha256'], (string)hash_file('sha256', $root . '/' . $rel))) { throw new RuntimeException('Rollback wymaga kompletnej wersji 2.0.5.'); }
                 }
             } elseif ($base_count !== count(self::PATHS) && $prior_count !== count(self::PATHS)) {
                 throw new RuntimeException('Mieszane wersje plików. Wymagana ręczna kontrola; nic nie zmieniono.');
             }
-            if (!$rollback && $prior_count === count(self::PATHS) && !is_array(get_option('upsellio_offer_legacy_payload_ids_v2', null))) {
+            if (!$rollback && !is_array(get_option('upsellio_offer_legacy_payload_ids_v2', null))) {
                 throw new RuntimeException('Brak listy zgodności wcześniejszego wdrożenia. Wymagana diagnostyka.');
             }
             if (file_exists($maintenance)) { throw new RuntimeException('Inna aktualizacja jest w toku.'); }
@@ -147,7 +147,7 @@ final class Upsellio_Offer_Release_200 {
             $staged = [];
             try {
                 foreach ($pending as $path => $bytes) { $staged[$path] = self::stage($path, $bytes); }
-                if (!$rollback && $base_count === count(self::PATHS)) { self::preserve_existing_offers(); }
+                // Existing offer metadata and compatibility list must remain untouched.
                 foreach ($staged as $path => $temp) {
                     if (!hash_equals(hash('sha256', $restore[$path]), (string)hash_file('sha256', $path))) { throw new RuntimeException('Plik zmienił się w trakcie wdrożenia.'); }
                     if (!rename($temp, $path)) { throw new RuntimeException('Nie można podmienić pliku: ' . basename($path)); }
@@ -219,8 +219,8 @@ final class Upsellio_Offer_Release_200 {
         try {
             $files = self::inspect();
             $base = 0; $release = 0; $prior = 0;
-            echo '<div class="wrap"><h1>Upsellio Offer Release 2.0.4</h1><p>Release: <code>' . esc_html(self::RELEASE) . '</code></p><table class="widefat striped"><thead><tr><th>Plik</th><th>Stan</th><th>SHA-256 produkcji</th></tr></thead><tbody>';
-            $labels=['release'=>'WDROŻONY','base'=>'ZGODNY Z BAZĄ','prior'=>'2.0.3 — WYMAGA POPRAWKI','mismatch'=>'NIEZGODNY','unavailable'=>'NIEDOSTĘPNY'];
+            echo '<div class="wrap"><h1>Upsellio Offer Release 2.0.5</h1><p>Release: <code>' . esc_html(self::RELEASE) . '</code></p><table class="widefat striped"><thead><tr><th>Plik</th><th>Stan</th><th>SHA-256 produkcji</th></tr></thead><tbody>';
+            $labels=['release'=>'WDROŻONY','base'=>'ZGODNY Z BAZĄ','prior'=>'WYMAGA POPRAWKI','mismatch'=>'NIEZGODNY','unavailable'=>'NIEDOSTĘPNY'];
             foreach ($files as $rel => $item) {
                 $state = $item['state'];
                 $base += (int)($state === 'base');
@@ -230,9 +230,8 @@ final class Upsellio_Offer_Release_200 {
             }
             echo '</tbody></table><p>Raport obejmuje wyłącznie siedem plików motywu, nie zawiera bazy CRM, konfiguracji WordPressa ani danych ofert. Kod niezgodnych plików jest pobierany tylko przez uprawnionego administratora. Traktuj raport jako poufny.</p>';
             self::form('diagnostics','Pobierz raport zgodności (JSON)',false);
-            if ($base === count(self::PATHS)) { echo '<p>Dotychczasowe opublikowane i prywatne oferty zachowają poprzedni sposób wyświetlania warunków. Nie uzupełniamy żadnych pól CRM. Nowe oferty nie dziedziczą nieuzgodnionych warunków.</p>'; self::form('deploy','Wdróż sprawdzone wydanie',true); }
-            elseif ($release === count(self::PATHS)) { self::form('rollback','Przywróć pierwotną wersję sprzed 2.0.3',false); }
-            elseif ($prior === count(self::PATHS)) { self::form('deploy','Napraw przekierowanie analityki',true); }
+            if ($release === count(self::PATHS)) { self::form('rollback','Cofnij wyłącznie poprawkę routingu 2.0.5',false); }
+            elseif ($base + $release === count(self::PATHS)) { self::form('deploy','Napraw przekierowanie analityki',true); }
             else { echo '<p><strong>Wdrożenie zablokowane:</strong> pobierz raport i porównaj niezgodne pliki. Nie nadpisano motywu.</p>'; }
             echo '</div>';
         } catch (Throwable $e) { wp_die(esc_html($e->getMessage()), 'Upsellio: kontrola wstrzymana', ['response'=>409,'back_link'=>true]); }
