@@ -1270,7 +1270,7 @@ add_action("wp_ajax_nopriv_upsellio_offer_track_event", "upsellio_offer_track_ev
 /**
  * Zapis akceptacji oferty ze strony publicznej (formularz POST bez JS lub wewnętrzny wywołanie z AJAX).
  */
-function upsellio_offer_apply_public_accept($offer_id)
+function upsellio_offer_apply_public_accept($offer_id, array $decision_payload = [], array $terms_snapshot = [])
 {
     $offer_id = (int) $offer_id;
     if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
@@ -1289,6 +1289,12 @@ function upsellio_offer_apply_public_accept($offer_id)
     // Compare-and-set prevents repeated status transitions on concurrent requests.
     if (!update_post_meta($offer_id, "_ups_offer_status", "won", $prev_accept_status)) {
         return false;
+    }
+    if ($decision_payload !== []) {
+        update_post_meta($offer_id, "_ups_offer_accept_payload", $decision_payload);
+    }
+    if ($terms_snapshot !== []) {
+        add_post_meta($offer_id, "_ups_offer_accepted_terms_snapshot", $terms_snapshot, true);
     }
     update_post_meta($offer_id, "_ups_offer_stage", "decision");
     update_post_meta($offer_id, "_ups_offer_closed_at", current_time("mysql"));
