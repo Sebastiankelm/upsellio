@@ -82,4 +82,11 @@ check(upsellio_crm_app_dashboard_gmt_timestamp("2026-11-25 12:00:00") === strtot
 check(upsellio_crm_app_dashboard_gmt_timestamp("0000-00-00 00:00:00") === false, "invalid zero timestamp ignored");
 $bounds = upsellio_crm_app_dashboard_period_bounds("30d");
 check($bounds["prev_end"] < $bounds["start"] && $bounds["start"] < $bounds["end"], "comparison periods do not overlap");
+$filtered = array_values(array_filter($GLOBALS["records"], static function ($post) { return $post->ID % 2 === 0; }));
+$page = upsellio_crm_app_slice_list_page($filtered, 2);
+check($page["total"] === 300 && $page["pages"] === 6 && count($page["posts"]) === 50 && $page["posts"][0]->ID === 102, "task pagination preserves filtered order and totals");
+$page = upsellio_crm_app_slice_list_page($filtered, 999);
+check($page["page"] === 6 && $page["posts"][49]->ID === 600, "task pagination clamps oversized page number");
+$page = upsellio_crm_app_slice_list_page([], 3);
+check($page["page"] === 1 && $page["pages"] === 0 && $page["posts"] === [], "empty task list handles pagination");
 echo "CRM smoke checks complete." . PHP_EOL;
