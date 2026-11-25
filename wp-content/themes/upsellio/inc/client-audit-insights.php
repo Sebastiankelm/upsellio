@@ -282,47 +282,21 @@ function ups_audit_build_recommendations(array $agg, array $setup = []): array
         if ($revenue_q === [] && function_exists("ups_audit_revenue_quality")) {
             $revenue_q = ups_audit_revenue_quality($agg);
         }
-        $ga4_roas_trusted = !empty($revenue_q["trusted"]);
-        $roas = (float) ($derived["roas"] ?? 0);
-        $crm_roas = 0.0;
-        $crm_rev = (float) (($agg["intelligence"]["crm_revenue"]["funnel_totals"]["revenue"] ?? 0));
-        $ads_cost_val = (float) ($agg["ads_cost"] ?? 0);
-        if ($crm_rev > 0 && $ads_cost_val > 0) {
-            $crm_roas = round($crm_rev / $ads_cost_val, 2);
-        }
-
-        if (!$ga4_roas_trusted) {
+        if (empty($revenue_q["trusted"])) {
             $tips[] = [
                 "priority" => "high",
                 "category" => "tracking",
-                "title" => "Revenue Quality Warning — nie ufaj ROAS GA4",
-                "detail" => (string) ($revenue_q["message"] ?? "Przychód GA4 jest zawyżony lub niespójny. Decyzje opieraj na ROAS CRM i lejku lead→wygrana.")
-                    . ($crm_roas > 0 ? " ROAS CRM: " . number_format($crm_roas, 1, ",", " ") . "×." : ""),
+                "title" => "Revenue Quality Warning — zweryfikuj przychód",
+                "detail" => (string) ($revenue_q["message"] ?? "Przychód GA4 jest niespójny. Zweryfikuj pomiar i atrybucję wygranych ofert."),
                 "metric" => "revenue_quality",
             ];
-        } elseif ($roas > 0 && $roas < 1 && $ads_cost_val > 100) {
+        } elseif (!isset($agg["roas"])) {
             $tips[] = [
-                "priority" => "high",
-                "category" => "ads",
-                "title" => "ROAS poniżej 1×",
-                "detail" => "Przychód GA4 / koszt Ads = " . number_format($roas, 2, ",", " ") . "×. Zatrzymaj słabe kampanie, popraw śledzenie purchase/lead, przetestuj landing.",
-                "metric" => "roas",
-            ];
-        } elseif ($roas >= 3) {
-            $tips[] = [
-                "priority" => "low",
-                "category" => "ads",
-                "title" => "Silny ROAS — możliwość skalowania",
-                "detail" => "ROAS " . number_format($roas, 2, ",", " ") . "×. Rozważ kontrolowane zwiększenie budżetu na kampanie z najwyższym udziałem konwersji.",
-                "metric" => "roas",
-            ];
-        } elseif ($crm_roas >= 3 && $crm_rev > 0) {
-            $tips[] = [
-                "priority" => "low",
-                "category" => "crm",
-                "title" => "Silny ROAS CRM — skaluj kanały z najlepszą jakością lejka",
-                "detail" => "ROAS CRM " . number_format($crm_roas, 1, ",", " ") . "× (przychód wygranych / koszt Ads). Porównaj lead→oferta i oferta→wygrana per kanał.",
-                "metric" => "crm_roas",
+                "priority" => "medium",
+                "category" => "tracking",
+                "title" => "Brak zweryfikowanego ROAS kanałowego",
+                "detail" => "Nie skaluj ani nie zatrzymuj kampanii na podstawie całkowitego przychodu GA4 lub CRM. Zweryfikuj wartość konwersji przypisanych do kanału, marżę i jakość lejka.",
+                "metric" => "attribution",
             ];
         }
 
