@@ -27,6 +27,21 @@ function upsellio_build_fbc(array $payload): ?string
     return "fb.1." . time() . "." . $fbclid;
 }
 
+/**
+ * Require an explicit category grant from the existing Cookiebot consent cookie.
+ * Missing, undecodable or unrecognized consent is denied.
+ */
+function upsellio_server_lead_tracking_consent(string $category): bool
+{
+    if (!in_array($category, ["statistics", "marketing"], true) ||
+        !isset($_COOKIE["CookieConsent"]) || !is_string($_COOKIE["CookieConsent"])) {
+        return false;
+    }
+    $raw = rawurldecode(wp_unslash($_COOKIE["CookieConsent"]));
+    $pattern = '/(?:^|[,{])\s*["\']?' . preg_quote($category, '/') . '["\']?\s*:\s*true\s*(?=[,}])/i';
+    return preg_match($pattern, $raw) === 1;
+}
+
 function upsellio_server_send_lead_conversion(int $lead_id, array $payload): void
 {
     $gaApiSecret = defined("UPSELLIO_GA4_API_SECRET") ? (string) UPSELLIO_GA4_API_SECRET : "";
@@ -34,7 +49,16 @@ function upsellio_server_send_lead_conversion(int $lead_id, array $payload): voi
     $metaToken = defined("UPSELLIO_META_CAPI_TOKEN") ? (string) UPSELLIO_META_CAPI_TOKEN : "";
     $metaPixelId = defined("UPSELLIO_META_PIXEL_ID") ? (string) UPSELLIO_META_PIXEL_ID : "";
 
+    $allowStatistics = upsellio_server_lead_tracking_consent("statistics");
+    $allowMarketing = upsellio_server_lead_tracking_consent("marketing");
+    if (!$allowStatistics && !$allowMarketing) {
+        return;
+    }
+
     $eventId = sanitize_text_field((string) ($payload["event_id"] ?? ""));
+    if ($eventId === "") {
+        $eventId = "lead_" . wp_generate_uuid4();
+    }
     $email = strtolower(trim((string) ($payload["email"] ?? "")));
     $phone = preg_replace("/\D+/", "", (string) ($payload["phone"] ?? ""));
     if ($phone !== "" && strpos($phone, "48") !== 0 && strlen($phone) === 9) {
@@ -45,7 +69,7 @@ function upsellio_server_send_lead_conversion(int $lead_id, array $payload): voi
     $ua = isset($_SERVER["HTTP_USER_AGENT"]) ? sanitize_text_field((string) $_SERVER["HTTP_USER_AGENT"]) : "";
     $eventTime = time();
 
-    if ($gaApiSecret !== "" && $gaMeasurementId !== "") {
+    if ($allowStatistics && $gaApiSecret !== "" && $gaMeasurementId !== "") {
         $ga4Url = add_query_arg([
             "measurement_id" => $gaMeasurementId,
             "api_secret" => $gaApiSecret,
@@ -74,7 +98,7 @@ function upsellio_server_send_lead_conversion(int $lead_id, array $payload): voi
         ]);
     }
 
-    if ($metaToken !== "" && $metaPixelId !== "") {
+    if ($allowMarketing && $metaToken !== "" && $metaPixelId !== "") {
         $capiBody = [
             "data" => [[
                 "event_name" => "Lead",
