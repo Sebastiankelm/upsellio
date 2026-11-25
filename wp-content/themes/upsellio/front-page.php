@@ -565,6 +565,8 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
 .hr .hr-audience-grid p{font-size:15px;line-height:1.5;margin:0;color:#3a3d44}
 @media(max-width:980px){.hr .hr-audience-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.hr .hr-hero .hr-lead{font-size:17px}.hr .hr-audience-grid{grid-template-columns:minmax(0,1fr)}}
+
+.hr .hr-process{grid-template-columns:repeat(3,minmax(0,1fr))}.hr .hr-step .hr-step-when{display:inline-block;margin:0 0 14px}@media(max-width:720px){.hr .hr-process{grid-template-columns:minmax(0,1fr)}}
 </style>
 
 <main class="hr" id="strona-glowna">
@@ -955,31 +957,14 @@ if (function_exists("upsellio_get_home_media_slot")) {
   <div class="hr-wrap">
     <header class="hr-sec-head" data-hr-anim>
       <span class="hr-eyebrow">Jak pracuję</span>
-      <h2 id="hr-process-h2">Cztery kroki od pierwszej rozmowy do mierzalnych wyników</h2>
-      <p>Bez slajdów, bez prezentacji, bez sales-talku. Diagnoza → strategia → wdrożenie → optymalizacja.</p>
+      <h2 id="hr-process-h2">Trzy proste kroki</h2>
+      <p>Od pierwszej rozmowy do regularnych poprawek na podstawie wyników.</p>
     </header>
 
     <div class="hr-process">
-      <article class="hr-step" data-hr-anim>
-        <h3>Diagnoza</h3>
-        <p>30-minutowa rozmowa. Sprawdzam stronę, kampanie, ofertę. Pokazuję, gdzie uciekają leady i co realnie warto poprawić.</p>
-        <span class="hr-step-when">0 zł, 30 min</span>
-      </article>
-      <article class="hr-step" data-hr-anim data-hr-delay="1">
-        <h3>Strategia</h3>
-        <p>Ustalam priorytety i KPI. Co poprawić w pierwszej kolejności, co testujemy, jak mierzymy efekty.</p>
-        <span class="hr-step-when">Tydzień 1</span>
-      </article>
-      <article class="hr-step" data-hr-anim data-hr-delay="2">
-        <h3>Wdrożenie</h3>
-        <p>Tworzę kampanie, copy, landing pages, integracje. Ty nie czekasz tygodniami na decyzje.</p>
-        <span class="hr-step-when">Tydz. 2-4</span>
-      </article>
-      <article class="hr-step" data-hr-anim data-hr-delay="3">
-        <h3>Optymalizacja</h3>
-        <p>Kampanie są stale analizowane i optymalizowane na podstawie jakości zapytań oraz realnych wyników sprzedażowych, nie tylko statystyk typu kliknięcia czy zasięg.</p>
-        <span class="hr-step-when">Stale</span>
-      </article>
+      <article class="hr-step" data-hr-anim><span class="hr-step-when">1 · 30 minut, 0 zł</span><h3>Rozmowa</h3><p>Patrzę na Twoją stronę i reklamy. Mówię wprost, gdzie uciekają klienci — nawet jeśli nie zaczniemy współpracy.</p></article>
+      <article class="hr-step" data-hr-anim><span class="hr-step-when">2 · Tygodnie 1–4</span><h3>Plan i wdrożenie</h3><p>Ustalamy priorytety i budżet. Ustawiam reklamy, poprawiam stronę lub sklep i pomiar sprzedaży.</p></article>
+      <article class="hr-step" data-hr-anim><span class="hr-step-when">3 · Co tydzień</span><h3>Poprawki na podstawie wyników</h3><p>Patrzymy na zamówienia i telefony, nie na kliknięcia. Więcej pieniędzy idzie tam, gdzie jest sprzedaż.</p></article>
     </div>
 
     <!-- Wewnetrzny CTA prowadzacy do FAQ -->
