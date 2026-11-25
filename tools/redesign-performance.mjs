@@ -29,7 +29,14 @@ try {
               for (const e of entries) window.fixturePerf.lcp = e.startTime;
             });
             observe("layout-shift", entries => {
-              for (const e of entries) if (!e.hadRecentInput) window.fixturePerf.shifts.push({ t: e.startTime, value: e.value });
+              for (const e of entries) if (!e.hadRecentInput) window.fixturePerf.shifts.push({
+                t: e.startTime, value: e.value,
+                sources: (e.sources || []).map(s => ({
+                  node: s.node ? (s.node.nodeName + (s.node.id ? "#" + s.node.id : "") + (typeof s.node.className === "string" ? "." + s.node.className.trim().replace(/\s+/g, ".") : "")) : "",
+                  previous: { x: s.previousRect.x, y: s.previousRect.y, width: s.previousRect.width, height: s.previousRect.height },
+                  current: { x: s.currentRect.x, y: s.currentRect.y, width: s.currentRect.width, height: s.currentRect.height }
+                }))
+              });
             });
             observe("longtask", entries => {
               for (const e of entries) window.fixturePerf.longTasks.push({ t: e.startTime, duration: e.duration });
@@ -78,7 +85,8 @@ try {
               total + Math.max(0, e.t + e.duration - Math.max(e.t, fcp) - 50), 0);
             return {
               ttfb: nav.responseStart - nav.startTime, fcp, lcp: p.lcp, cls,
-              blocking, domNodes: document.querySelectorAll("*").length
+              blocking, domNodes: document.querySelectorAll("*").length,
+              largestShifts: p.shifts.slice().sort((a,b) => b.value - a.value).slice(0, 3)
             };
           });
           samples.push({ width, path, attempt, ...metrics, localBytes, localRequests, blockedRequests, failures });
