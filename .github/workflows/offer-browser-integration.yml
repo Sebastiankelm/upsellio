@@ -39,7 +39,7 @@ jobs:
           mkdir -p "$theme/inc"
           printf '/* Theme Name: Offer CI */\n' > "$theme/style.css"
           printf '<?php // CI theme only\n' > "$theme/index.php"
-          cp wp-content/themes/upsellio/inc/{offers,offer-landing}.php "$theme/inc/"
+          cp wp-content/themes/upsellio/inc/{offers,offer-landing,followups}.php "$theme/inc/"
           cat > "$theme/functions.php" <<'PHP'
           <?php
           if (wp_get_environment_type() !== 'local') { exit; }
@@ -62,6 +62,8 @@ jobs:
           grep -q 'Oferta testowa' /tmp/offer-page.html
           php /tmp/wp-cli.phar --path=/tmp/offer-wordpress eval 'if (admin_url("admin-ajax.php") !== "http://127.0.0.1:8080/wp-admin/admin-ajax.php") { WP_CLI::error(admin_url("admin-ajax.php")); }'
           if grep -q '/offer-wordpress/wp-admin/admin-ajax.php' /tmp/offer-page.html; then echo 'Unexpected nested AJAX path'; exit 1; fi
+      - name: Verify follow-up policy and database locking
+        run: php /tmp/wp-cli.phar --path=/tmp/offer-wordpress eval-file "$GITHUB_WORKSPACE/tools/offer-ci-followups.php"
       - name: Install browser
         run: |
           npm install --no-save --package-lock=false playwright@1.51.1
