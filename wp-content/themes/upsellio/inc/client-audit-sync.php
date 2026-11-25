@@ -1129,7 +1129,7 @@ function ups_audit_sitewide_mer(array $agg): ?float
 {
     $revenue = $agg["ga4_revenue"] ?? null;
     $cost = $agg["paid_cost"] ?? null;
-    if (($agg["ga4_revenue_source"] ?? "") !== "purchaseRevenue" || (int) ($agg["unavailable_resource_count"] ?? 0) > 0 || !is_numeric($revenue) || !is_numeric($cost) || !is_finite((float) $revenue) || !is_finite((float) $cost) || (float) $revenue < 0 || (float) $cost <= 0) {
+    if (($agg["ga4_revenue_source"] ?? "") !== "purchaseRevenue" || empty($agg["ga4_purchase_window_verified"]) || (int) ($agg["ga4_purchase_source_count"] ?? 0) !== 1 || (int) ($agg["unavailable_resource_count"] ?? 0) > 0 || !is_numeric($revenue) || !is_numeric($cost) || !is_finite((float) $revenue) || !is_finite((float) $cost) || (float) $revenue < 0 || (float) $cost <= 0) {
         return null;
     }
     return round((float) $revenue / (float) $cost, 2);
@@ -1181,6 +1181,8 @@ function ups_audit_aggregate_resources_data(array $resources, int $days = 30, in
         "roas_prev" => null,
         "mer" => null,
         "mer_prev" => null,
+        "ga4_purchase_window_verified" => true,
+        "ga4_purchase_source_count" => 0,
         "resources" => [],
         "top_keywords" => [],
         "previous_top_keywords" => [],
@@ -1285,6 +1287,11 @@ function ups_audit_aggregate_resources_data(array $resources, int $days = 30, in
         else { $agg["unavailable_resource_count"]++; }
 
         if ($type === "ga4") {
+            if ($cache_period_days !== $days || ($summary["revenue_source"] ?? "") !== "purchaseRevenue") {
+                $agg["ga4_purchase_window_verified"] = false;
+            } else {
+                $agg["ga4_purchase_source_count"]++;
+            }
             $purchase_rev_base = (float) ($summary["revenue"] ?? 0);
             $session_rev_base = (float) ($summary["revenue_session_total"] ?? $purchase_rev_base);
             $rev_source = (string) ($summary["revenue_source"] ?? "");
