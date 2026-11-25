@@ -96,7 +96,13 @@ def main():
         if new.metadata["canonical"] != [expected]:
             issues.append("Expected exactly one canonical " + expected + ", got " + repr(new.metadata["canonical"]))
         elif expected not in old.metadata["canonical"]:
-            issues.append("Canonical target absent from baseline: " + repr(old.metadata["canonical"]))
+            # The old homepage routing flags classify / as the posts page.
+            # Permit only the observed baseline defect; candidate must still
+            # emit exactly one canonical pointing at the actual homepage.
+            if name == "home" and old.metadata["canonical"] == ["https://fixture.test/blog/"]:
+                print("home: corrected baseline canonical /blog/ -> /")
+            else:
+                issues.append("Canonical target absent from baseline: " + repr(old.metadata["canonical"]))
         else:
             print(f"{name}: canonical {len(old.metadata['canonical'])} -> 1")
         if not new.metadata["title"]:
