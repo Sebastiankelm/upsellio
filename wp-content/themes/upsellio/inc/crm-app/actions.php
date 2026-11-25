@@ -1355,7 +1355,8 @@ function upsellio_crm_app_handle_post_actions()
             }
             if ($is_admin) {
                 if (isset($_POST["ups_audit_default_compare_window"])) {
-                    update_option("ups_audit_default_compare_window", max(7, min(365, (int) wp_unslash($_POST["ups_audit_default_compare_window"]))));
+                     $window = (int) wp_unslash($_POST["ups_audit_default_compare_window"]);
+                    update_option("ups_audit_default_compare_window", in_array($window, [7, 14, 30, 60, 90], true) ? $window : 30);
                 }
                 if (isset($_POST["ups_audit_pdf_brand_color"])) {
                     update_option("ups_audit_pdf_brand_color", sanitize_text_field(wp_unslash($_POST["ups_audit_pdf_brand_color"])));
@@ -2377,7 +2378,7 @@ add_action("wp_ajax_upsellio_gsc_refresh_analysis", "upsellio_gsc_refresh_analys
 
 function upsellio_ai_today_brief_ajax(): void
 {
-    if (!upsellio_crm_app_user_can_access()) {
+    if (!upsellio_crm_app_user_can_access() || !current_user_can("manage_options")) {
         wp_send_json_error(["message" => "forbidden"], 403);
         return;
     }
@@ -2406,6 +2407,7 @@ function upsellio_ai_today_brief_ajax(): void
         "meta_key" => "_upsellio_lead_score",
         "order" => "DESC",
     ]);
+    $hot_leads = array_values(array_filter($hot_leads, static function ($lead) { return current_user_can("read_post", $lead->ID) && current_user_can("edit_post", $lead->ID); }));
     $hot_count = count($hot_leads);
     $hot_names = [];
     foreach (array_slice($hot_leads, 0, 2) as $hl) {
@@ -2448,6 +2450,7 @@ add_action("wp_ajax_upsellio_ai_today_brief", "upsellio_ai_today_brief_ajax");
 
 function upsellio_ai_refresh_weekly_brief_ajax(): void
 {
+    if (!current_user_can("manage_options")) { wp_send_json_error(["message" => "Brak uprawnień do globalnego briefu."], 403); }
     if (!upsellio_suggestions_ajax_gate()) {
         return;
     }
@@ -2494,7 +2497,9 @@ add_action("wp_ajax_upsellio_crm_ai_query", static function (): void {
 
     $prompt = sanitize_text_field(wp_unslash($_POST["prompt"] ?? ""));
 
-    if (strpos($prompt, "Blog Bot teraz") !== false) {
+    if ($prompt === "" || strlen($prompt) > 4000) { wp_send_json_error(["message" => "Nieprawidłowa długość polecenia."], 400); }
+    if ($prompt === "Blog Bot teraz") {
+        if (!current_user_can("manage_options")) { wp_send_json_error(["message" => "Brak uprawnień do uruchomienia Blog Bota."], 403); }
         if (
             !function_exists("upsellio_blog_bot_prepare_manual_run")
             || !function_exists("upsellio_blog_bot_flush_ajax_success_and_run_generate")
@@ -2510,7 +2515,5 @@ add_action("wp_ajax_upsellio_crm_ai_query", static function (): void {
         ]);
     }
 
-    wp_send_json_success([
-        "response" => "Akcja CRM AI: " . $prompt . " — brak handlera dla tego promptu.",
-    ]);
+    wp_send_json_error(["message" => "Ta akcja AI nie jest jeszcze obsługiwana. Użyj dedykowanej funkcji w odpowiednim module."], 422);
 });
