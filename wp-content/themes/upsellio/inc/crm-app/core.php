@@ -6,8 +6,25 @@ if (!defined("ABSPATH")) {
 
 function upsellio_crm_app_user_can_access()
 {
-    return is_user_logged_in() && (current_user_can("manage_options") || current_user_can("edit_posts"));
+    return is_user_logged_in() && (current_user_can("manage_options") || current_user_can("upsellio_access_crm"));
 }
+
+/**
+ * One-time capability migration: administrators retain access, editors are
+ * explicitly opted in. WordPress authors no longer inherit CRM access.
+ */
+function upsellio_crm_app_migrate_access_capability(): void
+{
+    if ((string) get_option("ups_crm_access_cap_version", "") === "1") {
+        return;
+    }
+    $editor = get_role("editor");
+    if ($editor) {
+        $editor->add_cap("upsellio_access_crm");
+    }
+    update_option("ups_crm_access_cap_version", "1", false);
+}
+add_action("init", "upsellio_crm_app_migrate_access_capability", 1);
 
 /**
  * Czy aktualne żądanie to publiczna aplikacja CRM (osobna strona, nie wp-admin).
