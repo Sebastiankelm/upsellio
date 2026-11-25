@@ -31,6 +31,12 @@ add_action("wp_head", static function () {
 
 get_header();
 
+// The schema below runs outside the wp_head callback, so resolve its URL in template scope.
+$url = function_exists("upsellio_get_websites_page_url") ? (string) upsellio_get_websites_page_url() : "";
+if ($url === "") {
+    $url = (string) get_permalink();
+}
+
 $front_page_sections = function_exists("upsellio_get_front_page_content_config") ? upsellio_get_front_page_content_config() : [];
 $contact_phone = function_exists("upsellio_get_contact_phone")
     ? upsellio_get_contact_phone()
@@ -937,10 +943,13 @@ if (function_exists("upsellio_render_service_schema")) {
     function setActiveQuickLink() {
       let current = "";
       sections.forEach((section) => {
-        if (window.scrollY >= section.offsetTop - 170) current = "#" + section.id;
+        if (section.getBoundingClientRect().top <= 100) current = "#" + section.id;
       });
       quickLinks.forEach((link) => {
-        link.classList.toggle("is-active", link.getAttribute("href") === current);
+        const active = link.getAttribute("href") === current;
+        link.classList.toggle("is-active", active);
+        if (active) link.setAttribute("aria-current", "location");
+        else link.removeAttribute("aria-current");
       });
     }
 
