@@ -96,3 +96,25 @@ body.ups-crm-redesign {
   .ups-crm-redesign .crm-page-heading h1, .ups-crm-redesign .crm-dash-pulse h1 { font-size:24px; }
   .ups-crm-redesign .crm-main .card { padding:14px; }
 }
+
+/* Shared component refinements for dashboard and customer cards. */
+.ups-crm-redesign .crm-main .crm-card, .ups-crm-redesign .crm-main .crm-cc {
+  background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px;
+}
+.ups-crm-redesign .crm-card-hd { font-size:15px; font-weight:700; }
+.ups-crm-redesign .crm-mid-row, .ups-crm-redesign .crm-bot-row { gap:16px; }
+.ups-crm-redesign .crm-lead-name { font-size:14px; }
+.ups-crm-redesign .crm-lead-meta { font-size:12px; }
+.ups-crm-redesign .crm-main .card:has(> table) { overflow-x:auto; min-width:0; }
+.ups-crm-redesign .crm-main .card:has(> table) > table { min-width: min(640px, 100%); }
+.ups-crm-redesign .crm-sidebar .side-link { text-decoration:none; }
+.ups-crm-redesign .crm-qa-strip { background:#fff; border-color:var(--border); padding:8px 28px; }
+.ups-crm-redesign .crm-qa-label { font-size:11px; color:var(--text-3); }
+.ups-crm-redesign .crm-main .crm-inbox-card { padding:0; }
+.ups-crm-redesign .crm-main .crm-inbox-card table { min-width:0; }
+@media(max-width:1100px) {
+  .ups-crm-redesign .crm-qa-strip { padding:8px 16px; }
+}
+@media(max-width:600px) {
+  .ups-crm-redesign .crm-main .crm-mid-row, .ups-crm-redesign .crm-main .crm-bot-row { grid-template-columns:1fr; }
+}
