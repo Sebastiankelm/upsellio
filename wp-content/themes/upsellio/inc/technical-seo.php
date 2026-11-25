@@ -720,3 +720,25 @@ function upsellio_canonical_fallback(): void
 }
 
 add_action("wp_head", "upsellio_canonical_fallback", 1);
+
+/**
+ * The root marketing template is intentionally forced by routing, which may leave
+ * is_home() true. Correct only the specific mistaken posts-page canonical.
+ * Preserve intentional plugin canonical overrides and disabled canonical output.
+ */
+function upsellio_correct_root_blog_canonical($canonical)
+{
+    if (!is_string($canonical) || $canonical === "" ||
+        !function_exists("upsellio_is_homepage_request") || !upsellio_is_homepage_request() ||
+        !function_exists("upsellio_get_blog_index_url")) {
+        return $canonical;
+    }
+    $blog_url = (string) upsellio_get_blog_index_url();
+    if ($blog_url !== "" && untrailingslashit($canonical) === untrailingslashit($blog_url)) {
+        return home_url("/");
+    }
+    return $canonical;
+}
+add_filter("rank_math/frontend/canonical", "upsellio_correct_root_blog_canonical", 99);
+add_filter("wpseo_canonical", "upsellio_correct_root_blog_canonical", 99);
+
