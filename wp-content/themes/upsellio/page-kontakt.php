@@ -267,8 +267,7 @@ a.ct-channel-link,.ct-art a.ct-channel-link{
 }
 
 /* === UKRYCIE POL FORMULARZA - Firma + Twoja miesieczna sprzedaz === */
-.ct-form-card .ups-form__row-2:first-of-type{grid-template-columns:1fr !important}
-.ct-form-card .ups-form__row-2:first-of-type > div:nth-child(2){display:none !important}
+/* Keep required name and telephone visible; shared form no longer has a company field. */
 .ct-form-card .ups-form label[for*="monthly-sales"],
 .ct-form-card .ups-form select[name="lead_monthly_sales"]{display:none !important}
 
