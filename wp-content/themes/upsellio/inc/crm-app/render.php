@@ -316,7 +316,9 @@ function upsellio_crm_app_template_redirect()
             function_exists("upsellio_inbox_mark_read") &&
             function_exists("upsellio_inbox_get_thread_summary")
         ) {
-            $io_pick = $inbox_offers_visible;
+            $io_pick = array_values(array_filter($inbox_offers_visible, static function ($offer) {
+                return $offer instanceof WP_Post && current_user_can("edit_post", $offer->ID);
+            }));
             $sel_inbox = isset($_GET["inbox_offer"]) ? (int) wp_unslash($_GET["inbox_offer"]) : 0;
             if ($sel_inbox > 0) {
                 $sel_ok = false;
@@ -338,14 +340,17 @@ function upsellio_crm_app_template_redirect()
                         break;
                     }
                 }
-                if ($sel_inbox <= 0) {
+                if ($sel_inbox <= 0 && !empty($io_pick)) {
                     $sel_inbox = (int) $io_pick[0]->ID;
                 }
             }
-            upsellio_inbox_mark_read($sel_inbox);
+            if ($sel_inbox > 0) {
+                upsellio_inbox_mark_read($sel_inbox);
+            }
             $crm_inbox_selected_offer_id = $sel_inbox;
         } else {
-            $crm_inbox_selected_offer_id = isset($_GET["inbox_offer"]) ? (int) wp_unslash($_GET["inbox_offer"]) : 0;
+            $candidate_id = isset($_GET["inbox_offer"]) ? (int) wp_unslash($_GET["inbox_offer"]) : 0;
+            $crm_inbox_selected_offer_id = $candidate_id > 0 && get_post_type($candidate_id) === "crm_offer" && current_user_can("edit_post", $candidate_id) ? $candidate_id : 0;
         }
     }
 
@@ -1393,6 +1398,11 @@ function upsellio_crm_app_template_redirect()
               <?php $ups_new_dashboard_layout = true; ?>
               <?php if ($ups_new_dashboard_layout) : ?>
                 <?php $dashboard_hot_offers = function_exists("upsellio_offers_active_today") ? upsellio_offers_active_today(3) : []; ?>
+                <?php if (count($leads) >= 500 || count($offers) >= 500 || count($tasks) >= 150) : ?>
+                  <div class="crm-alert-bar" role="alert" style="grid-column:1/-1">
+                    <?php esc_html_e("Osiągnięto limit danych pulpitu. Statystyki mogą nie obejmować wszystkich rekordów.", "upsellio"); ?>
+                  </div>
+                <?php endif; ?>
                 <div class="crm-content" style="grid-column:1/-1;width:100%;min-width:0">
                 <div class="crm-card-hd" style="margin-bottom:0">
                   <span><?php esc_html_e("Podsumowanie dnia", "upsellio"); ?></span>
@@ -8453,7 +8463,12 @@ function upsellio_crm_app_template_redirect()
             else if (clientId) p.client_id = String(clientId);
             var res = await fetch(window.CRM_AJAX_URL, {method:"POST", credentials:"same-origin", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body: new URLSearchParams(p).toString()});
             var json = await res.json();
-            if (json && json.success) window.location.reload();
+            if (json && json.success) {
+              var d = json.data || {};
+              alert("Zaplanowano: " + (d.queued || 0) + ", już w kolejce: " + (d.already || 0) + ", błędy: " + (d.fail || 0));
+            } else {
+              alert("Nie udało się zaplanować synchronizacji.");
+            }
           };
         }
         if (!window.upsAuditRefreshAllAccounts) {
