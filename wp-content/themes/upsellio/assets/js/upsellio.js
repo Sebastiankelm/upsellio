@@ -831,6 +831,14 @@
     pushDataLayerEvent("generate_lead", enrichedPayload);
     const extra = resolveLeadConversionEventName(payload.form_origin);
     if (extra) pushDataLayerEvent(extra, enrichedPayload);
+    // Retain the homepage's legacy GTM event, but only after confirmed save.
+    if (payload.form_origin === "home-hero-form" || payload.form_origin === "home-contact-form") {
+      pushDataLayerEvent("lead_form_submit", {
+        ...enrichedPayload,
+        form_type: "free_consultation",
+        page_section: "home_page",
+      });
+    }
     if (payload.lead_magnet_name) pushDataLayerEvent("lead_magnet_signup", enrichedPayload);
 
     if (!skipAnalytics && typeof window.fbq === "function") {
