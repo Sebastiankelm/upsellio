@@ -190,11 +190,11 @@ function upsellio_offer_merge_payload_into_offer_meta($offer_id, $payload)
     if (isset($merged["services_json"])) {
         $sj = $merged["services_json"];
         if (is_array($sj)) {
-            update_post_meta($offer_id, "_ups_offer_services_json", wp_json_encode($sj));
+            update_post_meta($offer_id, "_ups_offer_services_json", wp_slash(wp_json_encode($sj, JSON_UNESCAPED_UNICODE)));
         } else {
             $sjs = (string) $sj;
             if ($sjs !== "" && json_decode($sjs, true) !== null) {
-                update_post_meta($offer_id, "_ups_offer_services_json", $sjs);
+                update_post_meta($offer_id, "_ups_offer_services_json", wp_slash($sjs));
             }
         }
     }
@@ -282,7 +282,7 @@ function upsellio_offer_render_lines_as_checklist($lines, $use_optional_icon = f
 
 function upsellio_offer_terms_fingerprint(int $offer_id): string
 {
-    $terms = [get_post_field("post_title", $offer_id), get_post_field("post_content", $offer_id), get_post_meta($offer_id, "_ups_offer_price", true), upsellio_offer_get_commercial_timeline($offer_id), get_post_meta($offer_id, "_ups_offer_expires_at", true), get_post_meta($offer_id, "_ups_offer_cta_text", true), get_post_meta($offer_id, "_ups_offer_scope_items", true), get_post_meta($offer_id, "_ups_offer_client_id", true), upsellio_offer_get_landing_payload($offer_id)];
+    $terms = [get_post_field("post_title", $offer_id), get_post_field("post_content", $offer_id), get_post_meta($offer_id, "_ups_offer_price", true), upsellio_offer_get_commercial_timeline($offer_id), get_post_meta($offer_id, "_ups_offer_expires_at", true), get_post_meta($offer_id, "_ups_offer_cta_text", true), get_post_meta($offer_id, "_ups_offer_scope_items", true), get_post_meta($offer_id, "_ups_offer_scope_extra_html", true), get_post_meta($offer_id, "_ups_offer_client_id", true), upsellio_offer_get_landing_payload($offer_id)];
     return hash_hmac("sha256", wp_json_encode($terms), wp_salt("nonce"));
 }
 
@@ -522,7 +522,7 @@ a{text-decoration:none;color:inherit}
 .lbl::before{content:'';width:16px;height:2px;background:var(--teal);border-radius:2px}
 .h2{font-family:var(--font-d);font-size:clamp(24px,2.6vw,34px);font-weight:700;letter-spacing:-.8px;line-height:1.08;margin-bottom:10px}
 .sub{font-size:16px;color:var(--muted);line-height:1.65;max-width:58ch;margin-bottom:36px}
-.r{opacity:0;transform:translateY(18px);transition:opacity .55s ease,transform .55s ease}
+.r{opacity:1;transform:none}
 .r.in{opacity:1;transform:none}
 .hero{padding:48px 0 0}
 .hero-lbl{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--teal);margin-bottom:16px}
@@ -1310,8 +1310,7 @@ var snavSections=Array.from(snavLinks).map(function(l){return document.getElemen
 function stickyOffset(){
   var nav=document.querySelector('.nav');
   var snav=document.querySelector('.snav');
-  var pb=document.querySelector('.offer-process-bar');
-  return (nav?nav.offsetHeight:0)+(snav?snav.offsetHeight:0)+(pb?pb.offsetHeight:0)+20;
+  return (nav?nav.offsetHeight:0)+(snav?snav.offsetHeight:0)+20;
 }
 function updateSnav(){
   var top=window.scrollY+stickyOffset();
@@ -1332,8 +1331,7 @@ function jumpTo(id){
   trackEvent('offer_section_click',{section_id:id.replace('sec-','')});
 }
 window.jumpTo=jumpTo;
-var ro=new IntersectionObserver(function(e){e.forEach(function(x){if(x.isIntersecting)x.target.classList.add('in');});},{threshold:.1});
-document.querySelectorAll('.r').forEach(function(el){ro.observe(el);});
+// Offer content remains visible, including before JavaScript or while printing.
 function newEventId(){
   return window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'evt-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
 }
