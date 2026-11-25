@@ -343,3 +343,20 @@ body.ups-crm-redesign {
   .ups-crm-redesign .crm-today-board{grid-template-columns:minmax(0,1fr)}
   .ups-crm-redesign[data-crm-view="analytics"] .crm-page-tabs{flex-wrap:nowrap}
 }
+
+/* Work surfaces: keep task/calendar widths inside the CRM shell. */
+.ups-crm-redesign #crm-pane-list{grid-column:1/-1;min-width:0}
+.ups-crm-redesign .ups-cal-wrap,.ups-crm-redesign .ups-cal-wrap-tasks{grid-template-columns:minmax(150px,190px) minmax(0,1fr);min-width:0}
+.ups-crm-redesign .ups-cal-grid,.ups-crm-redesign .ups-cal-grid-tasks{min-width:0;overflow:auto}
+.ups-crm-redesign .ups-cal-table,.ups-crm-redesign .ups-cal-table-tasks{min-width:840px}
+.ups-crm-redesign .ups-cal-table th,.ups-crm-redesign .ups-cal-table-tasks th{position:sticky;top:0;z-index:1}
+.ups-crm-redesign .ups-cal-task,.ups-crm-redesign .ups-cal-task-tasks{overflow-wrap:anywhere}
+.ups-crm-redesign .ups-cal-task[draggable="false"],.ups-crm-redesign .ups-cal-task-tasks[draggable="false"]{cursor:default;background:var(--bg);border-color:var(--border)}
+.ups-crm-redesign .ups-cal-slot[data-saving="1"],.ups-crm-redesign .ups-cal-slot-tasks[data-saving="1"]{opacity:.6;cursor:progress}
+.ups-crm-redesign .crm-inbox-topbar,.ups-crm-redesign .crm-inbox-actions,.ups-crm-redesign .crm-inbox-kpi-row{min-width:0;flex-wrap:wrap}
+.ups-crm-redesign .crm-inbox-search-form{min-width:min(240px,100%);max-width:100%}
+.ups-crm-redesign .crm-inbox-search{width:100%;min-width:0}
+@media(max-width:800px){
+  .ups-crm-redesign .ups-cal-wrap,.ups-crm-redesign .ups-cal-wrap-tasks{grid-template-columns:minmax(0,1fr)}
+  .ups-crm-redesign .ups-cal-backlog,.ups-crm-redesign .ups-cal-backlog-tasks{max-height:240px}
+}
