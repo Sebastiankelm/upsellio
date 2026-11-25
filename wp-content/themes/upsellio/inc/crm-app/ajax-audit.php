@@ -422,15 +422,9 @@ add_action("wp_ajax_ups_agency_marketing_snapshot", function () {
     wp_send_json_success(["metrics" => $metrics]);
 });
 
-add_action("wp_ajax_ups_audit_sync_all", function () {
-    ups_audit_ajax_guard("edit_posts");
-    $days = isset($_POST["days"]) ? (int) $_POST["days"] : 0;
-    if ($days <= 0) {
-        $days = (int) get_option("ups_audit_default_compare_window", 30);
-    }
-    $days = in_array($days, [7, 14, 30, 60, 90], true) ? $days : 30;
-    $google_account_id = isset($_POST["google_account_id"]) ? (int) $_POST["google_account_id"] : 0;
-    $client_id = isset($_POST["client_id"]) ? (int) $_POST["client_id"] : 0;
+/** Resolve a synchronization scope with the same authorization for queue and status. */
+function ups_audit_ajax_sync_scope_ids(int $google_account_id, int $client_id): array
+{
     if ($google_account_id > 0) {
         if (get_post_type($google_account_id) !== "crm_google_account" || !current_user_can("edit_post", $google_account_id)) {
             wp_send_json_error(["msg" => "forbidden_or_invalid_account"], 403);
@@ -451,7 +445,6 @@ add_action("wp_ajax_ups_audit_sync_all", function () {
             "posts_per_page" => -1,
         ]);
     }
-    $queued = $already = $failed = 0;
     $ids = [];
     foreach ($resources as $resource) {
         if (!($resource instanceof WP_Post) || $resource->post_type !== "crm_audit_resource") {
@@ -462,24 +455,50 @@ add_action("wp_ajax_ups_audit_sync_all", function () {
         }
         $ids[(int) $resource->ID] = true;
     }
-    foreach (array_keys($ids) as $rid) {
-        $args = [$rid, $days];
-        if (wp_next_scheduled("ups_audit_queued_resource_sync", $args)) {
+    return array_keys($ids);
+}
+
+add_action("wp_ajax_ups_audit_sync_all", function () {
+    ups_audit_ajax_guard("edit_posts");
+    $days = isset($_POST["days"]) ? (int) $_POST["days"] : 0;
+    if ($days <= 0) {
+        $days = (int) get_option("ups_audit_default_compare_window", 30);
+    }
+    $days = in_array($days, [7, 14, 30, 60, 90], true) ? $days : 30;
+    $ids = ups_audit_ajax_sync_scope_ids((int) ($_POST["google_account_id"] ?? 0), (int) ($_POST["client_id"] ?? 0));
+    $queued = $already = $failed = 0;
+    foreach ($ids as $rid) {
+        $result = ups_audit_enqueue_resource_sync($rid, $days, 5 + $queued * 20);
+        if ($result === "queued") {
+            $queued++;
+        } elseif ($result === "already") {
             $already++;
-            continue;
-        }
-        $scheduled = wp_schedule_single_event(time() + 5 + $queued * 20, "ups_audit_queued_resource_sync", $args, true);
-        if (is_wp_error($scheduled) || !$scheduled) {
+        } else {
             $failed++;
-            continue;
         }
-        update_post_meta($rid, "_ups_resource_manual_sync_state", "queued");
-        $queued++;
     }
     if ($failed && !$queued && !$already) {
         wp_send_json_error(["msg" => "queue_failed", "fail" => $failed], 500);
     }
     wp_send_json_success(["queued" => $queued, "already" => $already, "fail" => $failed, "total" => count($ids)]);
+});
+
+add_action("wp_ajax_ups_audit_sync_status", function () {
+    ups_audit_ajax_guard("edit_posts");
+    $ids = ups_audit_ajax_sync_scope_ids((int) ($_POST["google_account_id"] ?? 0), (int) ($_POST["client_id"] ?? 0));
+    $counts = array_fill_keys(["queued", "running", "retrying", "completed", "failed", "stale", "idle"], 0);
+    foreach ($ids as $rid) {
+        $state = (string) get_post_meta($rid, "_ups_resource_manual_sync_state", true);
+        $started = (int) get_post_meta($rid, "_ups_resource_manual_sync_started", true);
+        $days = (int) get_post_meta($rid, "_ups_resource_manual_sync_days", true);
+        if ($state === "running" && $started < time() - 30 * MINUTE_IN_SECONDS) {
+            $state = "stale";
+        } elseif (in_array($state, ["queued", "retrying"], true) && !wp_next_scheduled("ups_audit_queued_resource_sync", [$rid, $days])) {
+            $state = "stale";
+        }
+        $counts[isset($counts[$state]) ? $state : "idle"]++;
+    }
+    wp_send_json_success(["counts" => $counts, "total" => count($ids)]);
 });
 
 add_action("wp_ajax_ups_audit_portfolio", function () {
@@ -545,6 +564,9 @@ add_action("wp_ajax_ups_audit_client_resources", function () {
             "health" => function_exists("ups_audit_resource_health") ? ups_audit_resource_health($rid) : [],
             "summary" => function_exists("ups_audit_cache_summary") ? ups_audit_cache_summary($cache) : [],
             "last_sync" => (string) get_post_meta($rid, "_ups_resource_last_data_sync", true),
+            "sync_state" => (string) get_post_meta($rid, "_ups_resource_manual_sync_state", true),
+            "sync_attempt" => (int) get_post_meta($rid, "_ups_resource_manual_sync_attempt", true),
+            "sync_finished_at" => (string) get_post_meta($rid, "_ups_resource_manual_sync_finished_at", true),
         ];
     }
     $setup = function_exists("ups_audit_client_setup_status") ? ups_audit_client_setup_status($client_id) : [];
