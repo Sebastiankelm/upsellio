@@ -935,7 +935,7 @@ function upsellio_followup_queue_message($offer_id, $template_id, $stage)
     }
     if (!upsellio_followup_queue_lock($offer_id)) { return; }
     try {
-    if (upsellio_followup_offer_block_reason($offer_id) !== "") { return; }
+    if (upsellio_followup_offer_block_reason($offer_id) !== "" || get_post_meta($offer_id, "_ups_offer_followup_pending_pause", true)) { return; }
     $queue = get_post_meta($offer_id, "_ups_offer_followup_queue", true);
     if (!is_array($queue)) {
         $queue = [];
@@ -1272,6 +1272,19 @@ function upsellio_followup_send_due_queue()
         }
         $queue = get_post_meta($offer_id, "_ups_offer_followup_queue", true);
         if (!is_array($queue) || empty($queue)) {
+            delete_post_meta($offer_id, "_ups_offer_followup_pending_pause");
+            continue;
+        }
+        if (get_post_meta($offer_id, "_ups_offer_followup_pending_pause", true)) {
+            $pause_changed = false;
+            foreach ($queue as $idx => $item) {
+                if (($item["status"] ?? "") === "queued") {
+                    $queue[$idx]["status"] = "paused_inbound_reply";
+                    $queue[$idx]["paused_at"] = current_time("mysql");
+                    $pause_changed = true;
+                }
+            }
+            if (!$pause_changed || update_post_meta($offer_id, "_ups_offer_followup_queue", $queue)) { delete_post_meta($offer_id, "_ups_offer_followup_pending_pause"); }
             continue;
         }
         $snooze_until_raw = (string) get_post_meta($offer_id, "_ups_offer_followup_snooze_until", true);
@@ -1310,6 +1323,7 @@ function upsellio_followup_send_due_queue()
             $builtin_kind = sanitize_key((string) ($item["builtin_reminder"] ?? ""));
             if ($template_id <= 0 && $builtin_kind !== "" && function_exists("upsellio_offer_send_builtin_reminder_email")) {
                 wp_cache_delete($offer_id, "post_meta");
+                if (get_post_meta($offer_id, "_ups_offer_followup_pending_pause", true)) { break; }
                 if (upsellio_followup_offer_block_reason($offer_id) !== "") { $queue[$idx]["status"] = "cancelled_inactive"; $updated = true; continue; }
                 $queue[$idx]["status"] = "sending";
                 $queue[$idx]["claimed_at_ts"] = time();
@@ -1398,6 +1412,7 @@ function upsellio_followup_send_due_queue()
             $html = "<html><head><meta charset='utf-8'><style>" . $css . "</style></head><body>" . $html_content . "</body></html>";
             $crm_mail_args = ["crm_smtp" => true];
                 wp_cache_delete($offer_id, "post_meta");
+                if (get_post_meta($offer_id, "_ups_offer_followup_pending_pause", true)) { break; }
                 if (upsellio_followup_offer_block_reason($offer_id) !== "") { $queue[$idx]["status"] = "cancelled_inactive"; $updated = true; continue; }
                 $queue[$idx]["status"] = "sending";
                 $queue[$idx]["claimed_at_ts"] = time();
