@@ -8,7 +8,8 @@ $roas_rows = function_exists("upsellio_sales_engine_build_roas_report_rows")
     : [];
 ?>
 <section class="card">
-  <h3 style="margin:0 0 16px">Źródła i ROAS</h3>
+  <h3 style="margin:0 0 8px">Źródła i ROAS</h3>
+  <p class="muted">Raport na podstawie zapisanych kosztów i atrybucji CRM. Nie jest ograniczony przełącznikiem dni.</p>
 
   <?php if (empty($roas_rows)) : ?>
     <div style="padding:32px;text-align:center;background:var(--bg);border-radius:var(--r-md);border:1px dashed var(--border)">
@@ -36,7 +37,8 @@ $roas_rows = function_exists("upsellio_sales_engine_build_roas_report_rows")
               continue;
           }
           $roas = (float) ($rr["roas"] ?? 0);
-          $roas_color = $roas >= 3 ? "var(--success)" : ($roas >= 1 ? "var(--warn)" : "var(--danger)");
+          $has_spend = isset($rr["spend"]) && is_numeric($rr["spend"]) && (float) $rr["spend"] > 0;
+          $roas_color = "var(--text-main)"; // No universal profitability target.
           ?>
       <tr style="border-bottom:1px solid var(--border)">
         <td style="padding:7px 10px"><?php echo esc_html((string) ($rr["source"] ?? "")); ?></td>
@@ -45,8 +47,8 @@ $roas_rows = function_exists("upsellio_sales_engine_build_roas_report_rows")
         <td style="text-align:right;padding:7px 10px"><?php echo (int) ($rr["leads"] ?? 0); ?></td>
         <td style="text-align:right;padding:7px 10px"><?php echo (int) ($rr["won"] ?? 0); ?></td>
         <td style="text-align:right;padding:7px 10px;font-weight:600"><?php echo esc_html(number_format((float) ($rr["revenue"] ?? 0), 0, ",", " ")); ?> zł</td>
-        <td style="text-align:right;padding:7px 10px;font-weight:700;color:<?php echo esc_attr($roas_color); ?>"><?php echo esc_html((string) ($rr["roas"] ?? 0)); ?>x</td>
-        <td style="text-align:right;padding:7px 10px;color:<?php echo esc_attr($roas_color); ?>"><?php echo esc_html((string) ($rr["roi_pct"] ?? 0)); ?>%</td>
+        <td style="text-align:right;padding:7px 10px;font-weight:700;color:<?php echo esc_attr($roas_color); ?>"><?php echo $has_spend && isset($rr["roas"]) && is_numeric($rr["roas"]) ? esc_html(number_format((float) $rr["roas"], 2, ",", " ") . "x") : "—"; ?></td>
+        <td style="text-align:right;padding:7px 10px;color:<?php echo esc_attr($roas_color); ?>"><?php echo $has_spend && isset($rr["roi_pct"]) && is_numeric($rr["roi_pct"]) ? esc_html(number_format((float) $rr["roi_pct"], 1, ",", " ") . "%") : "—"; ?></td>
       </tr>
       <?php endforeach; ?>
       </tbody>
