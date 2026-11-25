@@ -9761,8 +9761,8 @@ main.sp-art .sp-end-cta {
   .up-redesign-nav .up-nav-phone span{display:none}
   .up-redesign-nav.up-nav-ready .hamburger{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;border:1px solid #e3e6ea;border-radius:12px;background:#fff;gap:5px}
   .up-redesign-nav .mobile-menu{background:#fff;border-top:1px solid #e3e6ea;max-height:none;overflow:visible;transition:none}
-  .up-redesign-nav:not(.up-nav-ready){position:relative}
-  .up-redesign-nav:not(.up-nav-ready) .mobile-menu,.up-redesign-nav.up-nav-ready .mobile-menu.open{display:block}
+  html:not(.up-nav-js) .up-redesign-nav:not(.up-nav-ready){position:relative}
+  html:not(.up-nav-js) .up-redesign-nav:not(.up-nav-ready) .mobile-menu,.up-redesign-nav.up-nav-ready .mobile-menu.open{display:block}
   .up-redesign-nav.up-nav-ready .mobile-menu.open{max-height:calc(100vh - 84px);max-height:calc(100dvh - 84px);overflow-y:auto;overscroll-behavior:contain}
   .up-redesign-nav .mobile-menu>.wrap{width:calc(100% - 40px);padding:12px 0 24px}
   .up-redesign-nav .mobile-menu a{min-height:48px;padding:12px 0;color:#0f1115;font-size:16px;border-bottom:1px solid #e3e6ea}
