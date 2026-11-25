@@ -360,6 +360,11 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
 
         case "leads":
             $empty["leads"] = $qlist("crm_lead", 300);
+            if (isset($_GET["lead_id"])) {
+                $target_id = (int) wp_unslash($_GET["lead_id"]);
+                $target = $target_id > 0 ? get_post($target_id) : null;
+                $empty["leads"] = $target instanceof WP_Post && $target->post_type === "crm_lead" && in_array($target->post_status, $st, true) && current_user_can("read_post", $target_id) && current_user_can("edit_post", $target_id) ? [$target] : [];
+            }
             upsellio_crm_app_prime_post_meta_cache($empty["leads"]);
 
             return $empty;
@@ -378,6 +383,11 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
         case "contacts":
             $empty["clients"] = $qlist("crm_client", 300);
             $empty["contacts"] = $qlist("crm_contact", 300);
+            if (isset($_GET["contact_id"])) {
+                $target_id = (int) wp_unslash($_GET["contact_id"]);
+                $target = $target_id > 0 ? get_post($target_id) : null;
+                $empty["contacts"] = $target instanceof WP_Post && $target->post_type === "crm_contact" && in_array($target->post_status, $st, true) && current_user_can("read_post", $target_id) && current_user_can("edit_post", $target_id) ? [$target] : [];
+            }
             upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["contacts"]));
 
             return $empty;
@@ -536,37 +546,32 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
             return $empty;
 
         case "search":
-            $sq = isset($_GET["crm_q"]) ? sanitize_text_field(wp_unslash($_GET["crm_q"])) : "";
-            $sq = trim((string) $sq);
+            $sq = isset($_GET["crm_q"]) ? trim(sanitize_text_field(wp_unslash($_GET["crm_q"]))) : "";
             if ($sq !== "") {
-                if (post_type_exists("crm_client")) {
-                    $empty["clients"] = get_posts([
-                        "post_type" => "crm_client",
+                $types = [
+                    "clients" => "crm_client",
+                    "offers" => "crm_offer",
+                    "tasks" => "lead_task",
+                    "leads" => "crm_lead",
+                    "contacts" => "crm_contact",
+                    "contracts" => "crm_contract",
+                ];
+                foreach ($types as $collection => $post_type) {
+                    if (!post_type_exists($post_type)) {
+                        continue;
+                    }
+                    $matches = get_posts([
+                        "post_type" => $post_type,
                         "post_status" => $st,
                         "s" => $sq,
                         "posts_per_page" => 60,
                     ]);
-                }
-                if (post_type_exists("crm_offer")) {
-                    $empty["offers"] = get_posts([
-                        "post_type" => "crm_offer",
-                        "post_status" => $st,
-                        "s" => $sq,
-                        "posts_per_page" => 60,
-                    ]);
-                }
-                if (post_type_exists("lead_task")) {
-                    $empty["tasks"] = get_posts([
-                        "post_type" => "lead_task",
-                        "post_status" => $st,
-                        "s" => $sq,
-                        "posts_per_page" => 60,
-                    ]);
+                    $empty[$collection] = array_values(array_filter($matches, static function ($post) {
+                        return $post instanceof WP_Post && current_user_can("read_post", $post->ID) && current_user_can("edit_post", $post->ID);
+                    }));
                 }
             }
-
-            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"], $empty["tasks"]));
-
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"], $empty["tasks"], $empty["leads"], $empty["contacts"], $empty["contracts"]));
             return $empty;
 
         case "settings":
