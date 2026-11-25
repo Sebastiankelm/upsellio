@@ -8,6 +8,7 @@ on:
       - 'wp-content/themes/upsellio/**/*.css'
       - '.github/workflows/crm-php-lint.yml'
       - 'tests/crm-regression-smoke.php'
+      - 'tests/crm-research-regression.cjs'
   workflow_dispatch:
 
 permissions:
@@ -52,3 +53,6 @@ jobs:
         run: php tests/crm-regression-smoke.php
       - name: Check audit JavaScript syntax
         run: node --check wp-content/themes/upsellio/inc/crm-app/assets/js/audit.js
+
+      - name: Research UI regression checks
+        run: node tests/crm-research-regression.cjs
