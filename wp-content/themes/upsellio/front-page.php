@@ -484,6 +484,66 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
   .hr :is(a,button,.hr-problem,.hr-gain-card,.hr-target,.hr-svc):hover{transform:none}
 }
 
+/* === Redesign phase 2: composition and decorative service previews === */
+.hr .hr-hero-acts{margin-bottom:24px}
+.hr .hr-hero-stats{gap:16px}
+.hr .hr-hero-stat{align-items:flex-start;text-align:left;background:transparent;border:0;border-top:1px solid #c7e6dd;border-radius:0;padding:14px 0 0}
+.hr .hr-hero-call{border-top:0;margin-top:18px;padding-top:0}
+.hr .hr-form-card h2{font-size:24px;line-height:1.15}
+.hr .hr-gain-grid{gap:16px}
+.hr .hr-gain-card{padding:22px;gap:8px}
+.hr .hr-gain-card h3{font-size:17px;font-weight:700}
+.hr .hr-sec-head{margin-bottom:40px;max-width:760px}
+.hr .hr-problem{padding:28px;display:flex;flex-direction:column}
+.hr .hr-problem-num{align-self:flex-start;background:var(--up-warn-bg);border-radius:var(--up-r-pill);padding:6px 12px;margin-bottom:18px}
+.hr .hr-problem h3{font-size:21px;line-height:1.25;font-weight:700}
+.hr .hr-problem-body{margin:0}
+.hr .hr-system{gap:20px;align-items:stretch}
+.hr .hr-svc{padding:24px;overflow:hidden}
+.hr .hr-svc h3{font-size:22px;line-height:1.25;font-weight:700}
+.hr .hr-svc-preview{position:relative;display:grid;place-items:center;height:152px;border-radius:16px;margin-bottom:24px;overflow:hidden;background:var(--up-tint);color:var(--up-teal-dark)}
+.hr .hr-svc-preview svg{display:block;width:min(88%,240px);height:124px;overflow:visible}
+.hr .hr-svc-preview .hr-preview-paper{fill:#fff;stroke:#d8dde3;stroke-width:1.2}
+.hr .hr-svc-preview .hr-preview-line{fill:#d8dde3}
+.hr .hr-svc-preview .hr-preview-accent{fill:var(--up-teal-dark)}
+.hr .hr-svc-preview .hr-preview-mint{fill:var(--up-mint)}
+.hr .hr-svc-tag{background:transparent;border:0;padding:0;margin-bottom:8px}
+.hr .hr-svc-arrow{min-height:44px;align-items:center;border:0;color:var(--up-teal-dark);padding:0}
+.hr .hr-svc:hover .hr-svc-arrow{text-decoration:underline;text-underline-offset:4px}
+.hr #case-study .hr-sec-head{max-width:850px}
+.hr .hr-case{background:transparent;border:0;padding:0;gap:clamp(24px,4vw,64px);align-items:center}
+.hr .hr-case-stats{gap:12px}
+.hr .hr-case-stat{border:0;background:rgba(255,255,255,.065);padding:20px 14px;min-width:0}
+.hr .hr-case-stat-val{font-size:clamp(24px,3vw,36px)}
+.hr .hr-case-quote{background:rgba(255,255,255,.065);border-left:3px solid var(--up-teal-light);padding:32px}
+.hr #case-study a.hr-btn-d{background:transparent;color:var(--up-teal-light);border-color:rgba(127,227,210,.4)}
+.hr #case-study a.hr-btn-d:hover{background:rgba(127,227,210,.12)}
+.hr .hr-step{padding:24px;display:flex;flex-direction:column;align-items:flex-start}
+.hr .hr-step::before{position:static;display:block;color:var(--up-teal-dark);font-size:24px;margin-bottom:18px;letter-spacing:-.02em}
+.hr .hr-step h3{max-width:none;font-size:21px;line-height:1.25;font-weight:700}
+.hr .hr-step-when{margin-top:auto}
+.hr #faq>.hr-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.8fr);gap:24px 56px;align-items:start}
+.hr #faq .hr-sec-head{margin:0}
+.hr #faq .hr-faq{max-width:none;gap:0}
+.hr #faq .hr-faq-it{border:0;border-radius:0;border-bottom:1px solid var(--up-line);background:transparent}
+.hr #faq .hr-faq-it:first-child{border-top:1px solid var(--up-line)}
+.hr #faq .hr-faq-it summary{padding:20px 4px;font-size:17px}
+.hr #faq .hr-faq-it p{padding:0 4px 20px}
+.hr #faq .hr-step-cta{grid-column:1/-1;margin-top:0}
+.hr .hr-faq-help{margin-top:24px;background:var(--up-tint);padding:22px;border-radius:var(--up-r-card);font-size:14px;color:var(--up-ink-2)}
+.hr .hr-faq-help strong{display:block;color:var(--up-ink);font-size:17px;margin-bottom:6px}
+.hr .hr-faq-help a{display:inline-flex;min-height:44px;align-items:center;color:var(--up-teal-dark);font-weight:700}
+@media(max-width:980px){
+  .hr #faq>.hr-wrap{grid-template-columns:minmax(0,1fr);gap:24px}
+  .hr .hr-system{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:720px){
+  .hr .hr-system{grid-template-columns:minmax(0,1fr)}
+  .hr .hr-case-quote{padding:24px}
+  .hr .hr-hero-stats{gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hr .hr-svc-preview{height:140px}
+}
+
 </style>
 
 <main class="hr" id="strona-glowna">
@@ -680,6 +740,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
 
     <div class="hr-system">
       <a class="hr-svc is-google" href="<?php echo esc_url($google_ads_url); ?>" data-hr-anim>
+        <div class="hr-svc-preview" aria-hidden="true"><svg viewBox="0 0 240 124" aria-hidden="true" focusable="false"><rect class="hr-preview-paper" x="8" y="9" width="224" height="106" rx="10"/><rect class="hr-preview-mint" x="20" y="21" width="200" height="19" rx="9"/><circle cx="31" cy="30.5" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m34 34 4 4" stroke="currentColor" stroke-width="1.5"/><rect class="hr-preview-accent" x="43" y="28" width="88" height="5" rx="2"/><rect class="hr-preview-line" x="21" y="51" width="49" height="4" rx="2"/><rect class="hr-preview-accent" x="21" y="62" width="154" height="8" rx="3"/><rect class="hr-preview-line" x="21" y="78" width="188" height="5" rx="2"/><rect class="hr-preview-line" x="21" y="89" width="138" height="5" rx="2"/><rect class="hr-preview-mint" x="21" y="101" width="72" height="6" rx="3"/></svg></div>
         <span class="hr-svc-tag">Google Ads</span>
         <h3>Reklamy Google które łapią klienta z intencją zakupową</h3>
         <p class="hr-svc-desc">
@@ -694,6 +755,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
       </a>
 
       <a class="hr-svc is-meta" href="<?php echo esc_url($meta_ads_url); ?>" data-hr-anim data-hr-delay="1">
+        <div class="hr-svc-preview" aria-hidden="true"><svg viewBox="0 0 240 124" aria-hidden="true" focusable="false"><rect class="hr-preview-paper" x="66" y="3" width="108" height="118" rx="12"/><circle class="hr-preview-mint" cx="79" cy="17" r="6"/><rect class="hr-preview-line" x="89" y="13" width="40" height="4" rx="2"/><rect class="hr-preview-line" x="89" y="20" width="23" height="3" rx="1"/><rect class="hr-preview-mint" x="74" y="30" width="92" height="56" rx="5"/><path d="M84 72l22-23 17 16 12-9 21 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="142" cy="45" r="5" fill="currentColor"/><rect class="hr-preview-line" x="74" y="92" width="50" height="4" rx="2"/><rect class="hr-preview-accent" x="74" y="104" width="92" height="9" rx="4"/></svg></div>
         <span class="hr-svc-tag">Meta Ads</span>
         <h3>Facebook + Instagram dla budowania popytu i remarketing</h3>
         <p class="hr-svc-desc">
@@ -708,6 +770,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
       </a>
 
       <a class="hr-svc is-www" href="<?php echo esc_url($websites_url); ?>" data-hr-anim data-hr-delay="2">
+        <div class="hr-svc-preview" aria-hidden="true"><svg viewBox="0 0 240 124" aria-hidden="true" focusable="false"><rect class="hr-preview-paper" x="10" y="11" width="220" height="102" rx="9"/><circle class="hr-preview-line" cx="20" cy="20" r="2.5"/><circle class="hr-preview-line" cx="28" cy="20" r="2.5"/><circle class="hr-preview-line" cx="36" cy="20" r="2.5"/><path d="M11 28h218" stroke="#d8dde3"/><rect class="hr-preview-accent" x="22" y="38" width="60" height="6" rx="3"/><rect class="hr-preview-line" x="22" y="51" width="78" height="4" rx="2"/><rect class="hr-preview-line" x="22" y="60" width="62" height="4" rx="2"/><rect class="hr-preview-accent" x="22" y="74" width="54" height="12" rx="6"/><rect class="hr-preview-mint" x="114" y="37" width="104" height="49" rx="5"/><path d="m137 72 19-20 12 11 12-9 19 18" fill="none" stroke="currentColor" stroke-width="2"/><rect class="hr-preview-line" x="22" y="96" width="56" height="6" rx="3"/><rect class="hr-preview-line" x="92" y="96" width="56" height="6" rx="3"/><rect class="hr-preview-line" x="162" y="96" width="56" height="6" rx="3"/></svg></div>
         <span class="hr-svc-tag">Strony WWW</span>
         <h3>Strony i landing pages projektowane pod konwersję</h3>
         <p class="hr-svc-desc">
@@ -884,6 +947,11 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
       <span class="hr-eyebrow">FAQ</span>
       <h2 id="hr-faq-h2">Najczęstsze pytania przed rozmową</h2>
       <p>Bez owijania w bawełnę. Jeśli masz inne pytanie — zadaj je w formularzu poniżej.</p>
+      <div class="hr-faq-help">
+        <strong>Nie ma tu Twojego pytania?</strong>
+        Zadzwoń — odpowiadam osobiście, pn–pt 9–17.
+        <br><a href="tel:<?php echo esc_attr($contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
+      </div>
     </header>
 
     <div class="hr-faq" data-hr-anim>
