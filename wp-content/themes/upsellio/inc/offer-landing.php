@@ -450,8 +450,8 @@ dataLayer.push({event:"offer_view",offer_id:UPS.offer_id,offer_title:UPS.offer_t
 <?php endif; ?>
 <style>
 :root{
-  --bg:#fafaf7;--surface:#fff;--ink:#0a1410;--ink2:#2e2e2a;--muted:#6b6b63;
-  --border:#e6e6e0;--teal:#0d9488;--tealh:#0f766e;--teald:#134e4a;
+  --bg:#faf9f5;--surface:#fff;--ink:#0f1115;--ink2:#2e2e2a;--muted:#646663;
+  --border:#e6e6e0;--teal:#06745f;--tealh:#055e4d;--teald:#134e4a;
   --teals:#ccfbf1;--teall:#99f6e4;
   --font-d:'Bricolage Grotesque',sans-serif;--font-b:'DM Sans',sans-serif;--r:14px;--rl:22px;
 }
@@ -689,6 +689,17 @@ a{text-decoration:none;color:inherit}
 @media(max-width:640px){.hero-grid{gap:20px}.ptop{flex-direction:column;align-items:flex-start}.pamount{font-size:28px}}
 @media(max-width:580px){.w{padding:0 18px}.nav-for{display:none}.step{grid-template-columns:40px 1fr;gap:14px}.ptop{flex-direction:column;gap:12px}.snav-link{padding:11px 12px;font-size:12px}.cta-acts--stack .btn-ol{order:unset}.process-step-desc{font-size:10.5px}}
 @media(max-width:480px){.h1{font-size:28px!important}.hero-lead{font-size:15px}.w{padding:0 16px}.sc-row{padding:8px 0}}
+/* Offer redesign v2 — responsive variant cards and visible keyboard focus. */
+.commit-opts{display:grid;gap:12px;padding:24px;background:var(--surface)}
+.commit-opt{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:14px;border:1px solid var(--border);border-radius:14px;padding:18px;cursor:pointer;transition:border-color .15s,background .15s}
+.commit-opt:hover,.commit-opt:focus-within,.commit-opt.sel{border-color:var(--teal);background:#eaf7f2}
+.commit-opt input{accent-color:var(--teal);width:18px;height:18px}
+.commit-label{font-weight:700;color:var(--ink)}
+.commit-price{font-weight:700;color:var(--teal);text-align:right}
+.commit-opts--required{outline:2px solid var(--teal);outline-offset:-3px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+@media(max-width:580px){.commit-opts{padding:16px}.commit-opt{grid-template-columns:20px 1fr;padding:14px;gap:8px}.commit-price{grid-column:2;text-align:left}.btn{min-height:44px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
@@ -990,7 +1001,7 @@ a{text-decoration:none;color:inherit}
 <div class="sec r" id="pricing-section-element" data-offer-section="pricing">
   <div class="lbl">Inwestycja</div>
   <h2 class="h2">Transparentna wycena</h2>
-  <p class="sub">Jeden abonament w zakresie tej oferty — bez ukrytych opłat.</p>
+  <p class="sub">Zakres i warunki współpracy przygotowane indywidualnie dla Ciebie.</p>
   <div class="pbox">
     <div class="ptop">
       <div>
@@ -1006,6 +1017,22 @@ a{text-decoration:none;color:inherit}
     $has_include = trim((string) ($payload["include_lines"] ?? "")) !== "";
     $has_option = trim((string) ($payload["option_lines"] ?? "")) !== "";
     ?>
+    <?php if (!empty($services)) : ?>
+    <fieldset class="commit-opts" id="commitOpts" style="border:0;margin:0">
+      <legend style="padding:12px 24px 0;font-weight:700">Wybierz wariant współpracy</legend>
+      <?php foreach ($services as $service) :
+          if (!is_array($service) || empty($service["key"])) { continue; }
+          $variant_key = sanitize_key((string) $service["key"]);
+          $variant_label = (string) ($service["label"] ?? $variant_key);
+      ?>
+      <label class="commit-opt">
+        <input type="radio" name="commit" value="<?php echo esc_attr($variant_key); ?>" onchange="commitSelect(this.closest('.commit-opt'))">
+        <span class="commit-label"><?php echo esc_html($variant_label); ?></span>
+        <span class="commit-price"><?php echo esc_html((string) ($service["price_hint"] ?? "")); ?></span>
+      </label>
+      <?php endforeach; ?>
+    </fieldset>
+    <?php endif; ?>
     <div class="pbody<?php echo (!$has_include && !$has_option) ? " pbody-empty" : ""; ?>">
       <?php if (!$has_include && !$has_option) : ?>
       <div class="pbody-empty-msg">
@@ -1315,6 +1342,7 @@ window.commitSelect=function(el){
   var labEl=el.querySelector('.commit-label');
   var t=labEl?labEl.textContent.trim():el.textContent.replace(/\s+/g,' ').trim();
   if(ctaEl&&val&&t)ctaEl.textContent='Chcę: '+t+' →';
+  ['btn-offer-accept-pricing','btn-offer-accept-footer'].forEach(function(id){var btn=document.getElementById(id);if(btn&&val&&t)btn.textContent='Chcę: '+t;});
 };
 window.cta=function(l){pushDl('offer_cta_click',{cta_label:l});trackEvent('offer_cta_click',{section_id:String(l)});};
 window.faqToggle=function(i){var o=i.classList.contains('open');document.querySelectorAll('.fi.open').forEach(function(el){el.classList.remove('open');});if(!o)i.classList.add('open');};
@@ -1676,7 +1704,8 @@ function upsellio_offer_public_messaging_ajax()
             $rows,
             $owner_name
         );
-        wp_mail($owner_email, $subject, $body, $headers);
+        $mail_sent = wp_mail($owner_email, $subject, $body, $headers);
+        if (!$mail_sent) { wp_send_json_success(["message" => "Akceptacja zapisana, ale nie udało się wysłać potwierdzenia."]); }
         wp_send_json_success([
             "message" => sprintf(
                 /* translators: %s: client email */
@@ -1707,7 +1736,9 @@ function upsellio_offer_public_messaging_ajax()
         $rows,
         $owner_name
     );
-    wp_mail($owner_email, $subject, $body, $headers);
+    if (!wp_mail($owner_email, $subject, $body, $headers)) {
+        wp_send_json_error(["message" => "Nie udało się wysłać wiadomości. Spróbuj ponownie lub skontaktuj się telefonicznie."], 502);
+    }
     wp_send_json_success([
         "message" => sprintf(
             /* translators: %s: client email */
@@ -1750,6 +1781,24 @@ function upsellio_offer_accept_full_ajax()
     if (!isset($_POST["offer_version"]) || (int) $_POST["offer_version"] !== (int) get_post_meta($offer_id, "_ups_offer_current_version", true)) {
         wp_send_json_error(["message" => "Oferta została zmieniona. Odśwież stronę przed akceptacją."], 409);
     }
+    $variant_key = isset($_POST["commit_key"]) ? sanitize_key(wp_unslash($_POST["commit_key"])) : "";
+    $variant_label = "";
+    $variant_price = "";
+    $offer_payload = upsellio_offer_get_landing_payload($offer_id);
+    $variants = json_decode((string) ($offer_payload["services_json"] ?? "[]"), true);
+    $variant_map = [];
+    foreach (is_array($variants) ? $variants : [] as $variant) {
+        if (is_array($variant) && !empty($variant["key"])) {
+            $variant_map[sanitize_key((string) $variant["key"])] = $variant;
+        }
+    }
+    if ($variant_map !== [] && !isset($variant_map[$variant_key])) {
+        wp_send_json_error(["message" => "Wybierz aktualny wariant oferty."], 400);
+    }
+    if (isset($variant_map[$variant_key])) {
+        $variant_label = (string) ($variant_map[$variant_key]["label"] ?? "");
+        $variant_price = (string) ($variant_map[$variant_key]["price_hint"] ?? "");
+    }
     if (!function_exists("upsellio_offer_apply_public_accept") || !upsellio_offer_apply_public_accept($offer_id)) {
         wp_send_json_error(["message" => "Nie można zapisać akceptacji."]);
     }
@@ -1765,8 +1814,11 @@ function upsellio_offer_accept_full_ajax()
         "concerns" => isset($_POST["concerns"]) ? sanitize_textarea_field(wp_unslash($_POST["concerns"])) : "",
         "contact_pref" => isset($_POST["contact_pref"]) ? sanitize_key(wp_unslash($_POST["contact_pref"])) : "phone",
         "call_window" => isset($_POST["call_window"]) ? sanitize_key(wp_unslash($_POST["call_window"])) : "",
-        "commit_key" => isset($_POST["commit_key"]) ? sanitize_key(wp_unslash($_POST["commit_key"])) : "",
-        "commit_label" => isset($_POST["commit_label"]) ? sanitize_text_field(wp_unslash($_POST["commit_label"])) : "",
+        "commit_key" => $variant_key,
+        "commit_label" => $variant_label,
+        "commit_price" => $variant_price,
+        "offer_version" => (int) get_post_meta($offer_id, "_ups_offer_current_version", true),
+        "offer_price" => (string) get_post_meta($offer_id, "_ups_offer_price", true),
         "cta_source" => isset($_POST["cta_source"]) ? sanitize_key(wp_unslash($_POST["cta_source"])) : "pricing",
     ];
     update_post_meta($offer_id, "_ups_offer_accept_payload", $decision_payload);
@@ -1789,13 +1841,14 @@ function upsellio_offer_accept_full_ajax()
         $rows,
         $owner_name
     );
-    wp_mail($owner_email, $subject, $body, [
+    $mail_sent = wp_mail($owner_email, $subject, $body, [
         "Content-Type: text/html; charset=UTF-8",
         "Cc: " . $contact_email,
     ]);
+    update_post_meta($offer_id, "_ups_offer_accept_mail_status", $mail_sent ? "sent" : "failed");
 
     wp_send_json_success([
-        "message" => __("Dziękuję! Akceptacja zapisana. Wrócimy z kontaktem w ustalonym oknie czasowym.", "upsellio"),
+        "message" => $mail_sent ? __("Dziękuję! Akceptacja zapisana. Wrócimy z kontaktem w ustalonym oknie czasowym.", "upsellio") : __("Akceptacja zapisana. Nie udało się wysłać kopii e-mail; opiekun sprawdzi zgłoszenie.", "upsellio"),
     ]);
 }
 add_action("wp_ajax_upsellio_offer_accept_full", "upsellio_offer_accept_full_ajax");
