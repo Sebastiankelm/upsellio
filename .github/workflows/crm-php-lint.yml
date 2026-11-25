@@ -11,6 +11,7 @@ on:
       - 'tests/crm-today-regression.php'
       - 'tests/crm-analytics-regression.php'
       - 'tests/crm-seo-regression.php'
+      - 'tests/crm-dashboard-regression.php'
       - 'tests/crm-research-regression.cjs'
   workflow_dispatch:
 
@@ -60,6 +61,8 @@ jobs:
         run: php tests/crm-analytics-regression.php
       - name: SEO report regression
         run: php tests/crm-seo-regression.php
+      - name: Dashboard regression
+        run: php tests/crm-dashboard-regression.php
       - name: Check audit JavaScript syntax
         run: node --check wp-content/themes/upsellio/inc/crm-app/assets/js/audit.js
 
@@ -75,8 +78,16 @@ jobs:
           RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          git fetch --no-tags --depth=1 origin "$RELEASE_SHA"
-          git fetch --no-tags --depth=1 origin 8a92568f6c69e8b17727ea386cd64237bcb6f14f
+          # Avoid separate shallow-file updates; retry transient Git fetch errors.
+          for attempt in 1 2 3; do
+            if git fetch --no-tags --depth=1 origin "$RELEASE_SHA" 8a92568f6c69e8b17727ea386cd64237bcb6f14f; then
+              break
+            fi
+            if [[ "$attempt" == 3 ]]; then exit 1; fi
+            sleep "$attempt"
+          done
+          git cat-file -e "$RELEASE_SHA^{commit}"
+          git cat-file -e "8a92568f6c69e8b17727ea386cd64237bcb6f14f^{commit}"
           python3 - <<'PY'
           import hashlib, json, os, pathlib, re, subprocess
 
@@ -122,7 +133,7 @@ jobs:
                               "base_git_sha256": hashlib.sha256(before).hexdigest() if before is not None else None,
                               "release_sha256": hashlib.sha256(after).hexdigest(), "bytes": len(after)})
           assert records, "No CRM files"
-          expected = {"assets/css/crm-redesign.css", "inc/crm-app/render.php", "inc/rankmath-bridge.php", "inc/crm-app/views/rankmath-seo-widgets.php"} | {"inc/crm-app/views/analytics-" + view + ".php" for view in ("today", "marketing", "traffic", "sales", "paid", "roas", "seo")}
+          expected = {"assets/css/crm-redesign.css", "inc/crm-app/render.php", "inc/crm-app/dashboard-data.php", "inc/rankmath-bridge.php", "inc/crm-app/views/rankmath-seo-widgets.php"} | {"inc/crm-app/views/analytics-" + view + ".php" for view in ("today", "marketing", "traffic", "sales", "paid", "roas", "seo")}
           assert {r["path"] for r in records} == expected, "Unexpected release scope; review before changing this guard"
           manifest = {"format": "upsellio-crm-release-preflight-v1", "base_git_commit": base,
                       "release_git_commit": head, "production_verified": False,
