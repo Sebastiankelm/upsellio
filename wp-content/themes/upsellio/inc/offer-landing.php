@@ -1106,14 +1106,17 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   <div class="ups-modal__box" role="dialog" aria-modal="true" aria-labelledby="ups-modal-contact-title" style="max-width:620px">
     <h3 id="ups-modal-contact-title">Akceptacja oferty</h3>
     <div class="ups-modal-progress">
-      <div class="step active" data-step="1">1. Pakiet</div>
-      <div class="step" data-step="2">2. Start i budżet</div>
+      <div class="step active" data-step="1">1. Kontakt</div>
+      <div class="step" data-step="2">2. Termin i budżet</div>
       <div class="step" data-step="3">3. Decyzja</div>
-      <div class="step" data-step="4">4. Kontakt</div>
+      <div class="step" data-step="4">4. Rozmowa</div>
     </div>
     <div class="ups-modal__err" id="ups-modal-contact-err"></div>
     <div class="ups-modal-step active" data-step="1">
-      <h4>Potwierdź wybór</h4>
+      <h4>Dane kontaktowe</h4>
+      <label class="ups-modal__field"><span>Imię i nazwisko</span><input id="accept_name" autocomplete="name" maxlength="160" /></label>
+      <label class="ups-modal__field"><span>Email</span><input type="email" id="accept_email" autocomplete="email" placeholder="jan@firma.pl" required /></label>
+      <label class="ups-modal__field"><span>Telefon (opcjonalnie)</span><input type="tel" id="accept_phone" placeholder="+48..." /></label>
       <p>Wybrany pakiet: <strong id="confirmCommitLabel">—</strong></p>
       <div class="ups-modal__actions">
         <button type="button" class="btn btn-g" data-ups-close>Anuluj</button>
@@ -1154,9 +1157,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
       </div>
     </div>
     <div class="ups-modal-step" data-step="4">
-      <h4>Kontakt</h4>
-      <label class="ups-modal__field"><span>Email</span><input type="email" id="accept_email" autocomplete="email" placeholder="jan@firma.pl" required /></label>
-      <label class="ups-modal__field"><span>Telefon (opcjonalnie)</span><input type="tel" id="accept_phone" placeholder="+48..." /></label>
+      <h4>Ustalmy rozmowę</h4>
+      <p>Akceptacja jest potwierdzeniem zainteresowania współpracą, nie podpisaniem umowy.</p>
+
       <label class="ups-modal__field"><span>Kanał kontaktu</span>
         <select id="accept_contact_pref">
           <option value="phone">Telefon</option>
@@ -1386,7 +1389,6 @@ function closeModals(){
   document.body.style.overflow='';
 }
 function onAcceptClick(source){
-  cta(source==='pricing'?'pricing_accept_ajax':'footer_accept_ajax');
   var hasVariants=document.querySelectorAll('input[name="commit"]').length>0;
   var commit=getCommit();
   if(hasVariants&&!commit.key){
@@ -1399,21 +1401,30 @@ function onAcceptClick(source){
     showToast('Wybierz najpierw pakiet, którym jesteś zainteresowany.',true);
     return;
   }
+  cta(source==="pricing"?"pricing_accept_ajax":"footer_accept_ajax");
+  trackEvent("offer_accept_started",{section_id:source});
   openAcceptModal(source,commit);
 }
+var currentAcceptStep=1;
 function goStep(step){
   var err=document.getElementById('ups-modal-contact-err');
   if(err){err.classList.remove('is-visible');err.textContent='';}
-  if(step===3){
+  if(step===2&&currentAcceptStep===1){
+    var email=document.getElementById("accept_email");
+    if(!email||!email.value.trim()||!email.checkValidity()){if(err){err.textContent="Podaj poprawny adres e-mail.";err.classList.add("is-visible");}if(email)email.focus();return;}
+  }
+  if(step===3&&currentAcceptStep===2){
     var timeline=document.querySelector('input[name="accept_timeline"]:checked');
     var budget=document.querySelector('input[name="accept_ad_budget"]:checked');
     if(!timeline||!budget){if(err){err.textContent='Wybierz termin startu i budżet reklamowy.';err.classList.add('is-visible');}return;}
   }
-  if(step===4){
+  if(step===4&&currentAcceptStep===3){
     var decision=document.querySelector('input[name="accept_decision"]:checked');
     if(!decision){if(err){err.textContent='Wybierz sposób podejmowania decyzji.';err.classList.add('is-visible');}return;}
   }
+  currentAcceptStep=step;
   document.querySelectorAll('#ups-modal-contact .ups-modal-step').forEach(function(s){s.classList.toggle('active',String(s.dataset.step)===String(step));});
+  trackEvent('offer_accept_step',{section_id:'step_'+step});
   document.querySelectorAll('#ups-modal-contact .ups-modal-progress .step').forEach(function(s){s.classList.toggle('active',Number(s.dataset.step)<=Number(step));});
 }
 window.goStep=goStep;
@@ -1425,6 +1436,7 @@ function openAcceptModal(source,commit){
   if(concerns)concerns.value='';
   var email=document.getElementById('accept_email');
   if(email)email.value='';
+  var name=document.getElementById('accept_name');if(name)name.value='';
   var phone=document.getElementById('accept_phone');
   if(phone)phone.value='';
   var pref=document.getElementById('accept_contact_pref');
@@ -1498,6 +1510,7 @@ if(elCs)elCs.addEventListener('click',function(){
   body.append('person_id',String(personId||''));
   body.append('nonce',publicNonce);
   body.append('contact_email',v);
+  body.append('contact_name',((document.getElementById('accept_name')||{}).value||'').trim());
   body.append('contact_phone',((document.getElementById('accept_phone')||{}).value||'').trim());
   body.append('contact_pref',((document.getElementById('accept_contact_pref')||{}).value||'').trim());
   body.append('call_window',((document.getElementById('accept_call_window')||{}).value||'').trim());
@@ -1762,8 +1775,14 @@ function upsellio_offer_accept_full_ajax()
         $variant_price = (string) ($variant_map[$variant_key]["price_hint"] ?? "");
     }
     // Preserve the CRM's verified contact; store the acceptor separately.
+    $contact_pref = isset($_POST["contact_pref"]) ? sanitize_key(wp_unslash($_POST["contact_pref"])) : "phone";
+    $call_window = isset($_POST["call_window"]) ? sanitize_key(wp_unslash($_POST["call_window"])) : "";
+    if (!in_array($contact_pref, ["phone", "email", "meeting"], true) || !in_array($call_window, ["", "9_12", "12_15", "15_18"], true)) {
+        wp_send_json_error(["message" => "Wybierz poprawny kanał i porę kontaktu."], 400);
+    }
     $decision_payload = [
         "contact_email" => $contact_email,
+        "contact_name" => isset($_POST["contact_name"]) && is_string($_POST["contact_name"]) ? sanitize_text_field(wp_unslash($_POST["contact_name"])) : "",
         "contact_phone" => isset($_POST["contact_phone"]) ? sanitize_text_field(wp_unslash($_POST["contact_phone"])) : "",
         "timeline" => $timeline,
         "ad_budget" => $ad_budget,
@@ -1795,6 +1814,8 @@ function upsellio_offer_accept_full_ajax()
     $rows = [
         __("Oferta", "upsellio") => get_the_title($offer_id),
         __("Kontakt", "upsellio") => $contact_email,
+        __("Imię i nazwisko", "upsellio") => $decision_payload["contact_name"],
+        __("Telefon", "upsellio") => $decision_payload["contact_phone"],
         __("Wariant", "upsellio") => (string) $decision_payload["commit_label"],
         __("Start", "upsellio") => (string) $decision_payload["timeline"],
         __("Budżet reklamowy", "upsellio") => (string) $decision_payload["ad_budget"],
