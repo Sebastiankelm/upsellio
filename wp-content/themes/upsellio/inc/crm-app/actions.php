@@ -435,7 +435,7 @@ function upsellio_crm_app_handle_post_actions()
                     "price_hint" => $price_hint,
                 ];
             }
-            update_post_meta($offer_id, "_ups_offer_services_json", !empty($services) ? wp_json_encode(array_values($services)) : "");
+            update_post_meta($offer_id, "_ups_offer_services_json", !empty($services) ? wp_slash(wp_json_encode(array_values($services), JSON_UNESCAPED_UNICODE)) : "");
             update_post_meta($offer_id, "_ups_offer_include_lines", isset($_POST["offer_include_lines"]) ? sanitize_textarea_field(wp_unslash($_POST["offer_include_lines"])) : "");
             update_post_meta($offer_id, "_ups_offer_option_lines", isset($_POST["offer_option_lines"]) ? sanitize_textarea_field(wp_unslash($_POST["offer_option_lines"])) : "");
             update_post_meta($offer_id, "_ups_offer_scope_extra_html", isset($_POST["offer_scope_extra_html"]) ? wp_kses_post(wp_unslash($_POST["offer_scope_extra_html"])) : "");
