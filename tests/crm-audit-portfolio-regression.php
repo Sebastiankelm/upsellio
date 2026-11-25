@@ -39,3 +39,22 @@ check(!isset($rows[5]), "forbidden client is excluded");
 check($result["top_alerts"][0]["title"] === "Third", "critical alert beyond first two is retained and ranked");
 check(count($result["top_alerts"]) === 2, "informational alerts do not enter actionable queue");
 check($result["summary"] === ["total" => 4, "red" => 1, "yellow" => 1, "green" => 1, "unknown" => 1], "portfolio summary matches visible status counts");
+
+function get_post_meta($id, $key, $single = true) { return $GLOBALS["fixture_margin"] ?? ""; }
+$agg = ["ga4_purchase_window_verified" => true, "ga4_purchase_source_count" => 1, "ga4_revenue_source" => "purchaseRevenue", "ga4_revenue" => 10000, "paid_cost" => 2000, "unavailable_resource_count" => 0];
+$quality = ["trusted" => true];
+$GLOBALS["fixture_margin"] = "";
+$p = ups_audit_intel_profit_dashboard($agg, 1, [], $quality);
+check($p["margin_pct"] === null && $p["net_profit"] === null, "unknown margin does not invent profit");
+$GLOBALS["fixture_margin"] = "0";
+$p = ups_audit_intel_profit_dashboard($agg, 1, [], $quality);
+check($p["gross_profit"] === 0.0 && $p["net_profit"] === -2000.0, "explicit zero margin is valid");
+$GLOBALS["fixture_margin"] = "40";
+$p = ups_audit_intel_profit_dashboard($agg, 1, [], $quality);
+check($p["net_profit"] === 2000.0, "contribution uses configured margin minus paid spend");
+$p = ups_audit_intel_profit_dashboard($agg, 1, ["funnel_totals" => ["has_data" => true, "revenue" => 50000]], ["trusted" => false]);
+check($p["revenue"] === null && $p["net_profit"] === null && $p["crm_revenue"] === 50000.0, "won CRM value is separate from purchase revenue");
+$p = ups_audit_intel_profit_dashboard(array_replace($agg, ["unavailable_resource_count" => 1]), 1, [], $quality);
+check($p["net_profit"] === null, "incomplete sources suppress contribution");
+$p = ups_audit_intel_profit_dashboard(array_replace($agg, ["ga4_purchase_source_count" => 2]), 1, [], $quality);
+check($p["net_profit"] === null, "overlapping purchase sources suppress contribution");
