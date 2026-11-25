@@ -14,9 +14,7 @@ function upsellio_offer_ai_aggregate_events(int $offer_id): void
         return;
     }
     $log = get_post_meta($offer_id, "_ups_offer_events", true);
-    if (!is_array($log) || $log === []) {
-        return;
-    }
+    if (!is_array($log)) { $log = []; }
 
     $summary = upsellio_offer_build_analytics_summary($offer_id);
     $views = (int) ($summary["views"] ?? 0);
@@ -39,21 +37,12 @@ function upsellio_offer_ai_aggregate_events(int $offer_id): void
         }
     }
 
-    if ($views > 0) {
-        update_post_meta($offer_id, "_ups_offer_view_count", $views);
-    }
-    if ($pricing_sec > 0) {
-        update_post_meta($offer_id, "_ups_offer_pricing_engagement_seconds", $pricing_sec);
-    }
-    if ($cta !== "") {
-        update_post_meta($offer_id, "_ups_offer_cta_clicks", $cta);
-    }
-    if ($commit !== "") {
-        update_post_meta($offer_id, "_ups_offer_commit_selected", $commit);
-    }
-    if ($sections !== []) {
-        update_post_meta($offer_id, "_ups_offer_section_views", $sections);
-    }
+    update_post_meta($offer_id, "_ups_offer_view_count", $views);
+    update_post_meta($offer_id, "_ups_offer_pricing_engagement_seconds", $pricing_sec);
+    update_post_meta($offer_id, "_ups_offer_cta_clicks", $cta);
+    update_post_meta($offer_id, "_ups_offer_commit_selected", $commit);
+    update_post_meta($offer_id, "_ups_offer_section_views", $sections);
+    update_post_meta($offer_id, "_ups_offer_accept_started_sessions", (int) ($summary["accept_started_sessions"] ?? 0));
 }
 
 /**
@@ -90,14 +79,14 @@ function upsellio_offer_ai_behavior_context(int $offer_id): string
         return "BEHAVIOR DATA: brak — oferta nie była jeszcze otwierana lub tracking nie jest aktywny. NIE ZAKŁADAJ engagementu.";
     }
 
-    $lines = [];
+    $lines = ["Dane behawioralne są niepełne i nie identyfikują osoby. Nie wnioskuj o motywacji ani obiekcjach bez potwierdzenia."];
     if ($views > 0) {
-        $lines[] = "Oferta otwarta: {$views}×" . ($last_seen !== "" ? " (ostatnia aktywność: {$last_seen})" : "");
+        $lines[] = "Zarejestrowane sesje: " . (int) ($summary["identified_views"] ?? 0) . "; historyczne wejścia (szacunek): " . (int) ($summary["legacy_views"] ?? 0) . ($last_seen !== "" ? " (ostatnia aktywność: {$last_seen})" : "");
     } elseif ($last_seen !== "") {
         $lines[] = "Ostatnia aktywność na stronie oferty: {$last_seen}";
     }
     if ($pricing_sec > 30) {
-        $lines[] = "Czas na sekcji cennik (szac.): {$pricing_sec}s — klient analizował wycenę";
+        $lines[] = "Zarejestrowany czas widoczności cennika: {$pricing_sec}s (nie dowodzi przeczytania treści ani zamiaru zakupu).";
     }
     if ($commit !== "") {
         $lines[] = "Wybrana opcja / pakiet (radio): {$commit}";
@@ -114,6 +103,7 @@ function upsellio_offer_ai_behavior_context(int $offer_id): string
             $lines[] = "Najczęściej oglądane sekcje: " . implode(", ", $top);
         }
     }
+    $lines[] = "Rozpoczęcia formularza (sesje): " . (int) ($summary["accept_started_sessions"] ?? 0) . "; kliknięcia akceptacji: " . (int) ($summary["accept_clicks"] ?? 0) . ". Inne CTA nie są równoznaczne z akceptacją.";
     if ($hot) {
         $lines[] = "Oferta oznaczona jako HOT (intent ok. {$intent}/100)";
     } elseif ($intent > 0) {
