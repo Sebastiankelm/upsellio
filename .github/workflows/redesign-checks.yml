@@ -26,7 +26,7 @@ jobs:
       - name: Check PHP syntax
         run: |
           php -v
-          for file in front-page.php functions.php header.php footer.php home.php single.php ups-blog-core.php page-kontakt.php page-marketing-google-ads.php page-marketing-meta-ads.php page-tworzenie-stron-internetowych.php inc/form-component.php inc/server-side-tracking.php; do
+          for file in front-page.php functions.php header.php footer.php home.php single.php ups-blog-core.php page-kontakt.php page-marketing-google-ads.php page-marketing-meta-ads.php page-tworzenie-stron-internetowych.php inc/form-component.php inc/server-side-tracking.php inc/seo-indexing-fixes.php; do
             php -l "wp-content/themes/upsellio/$file" || exit 1
           done
       - name: Check shared JavaScript
@@ -67,3 +67,45 @@ jobs:
           assert '$allowMarketing && $metaToken' in tracking
           print("Static regression contracts passed.")
           PY
+
+      - name: Test filtered blog robots policies
+        run: |
+          php <<'PHP'
+          <?php
+          define("ABSPATH", __DIR__);
+          function add_action(...$args) {}
+          function add_filter(...$args) {}
+          function is_home() { return $GLOBALS["test_home"]; }
+          function is_page_template($template) { return $GLOBALS["test_template"] === $template; }
+          require "wp-content/themes/upsellio/inc/seo-indexing-fixes.php";
+          function check($ok, $message) {
+              if (!$ok) { fwrite(STDERR, $message . PHP_EOL); exit(1); }
+          }
+          $contexts = [
+              [true, ""],
+              [false, "ups-blog-core.php"],
+              [false, "template-blog-v4.php"],
+              [false, "template-blog-v4-alt.php"],
+              [false, "page-kontakt.php"],
+          ];
+          foreach ($contexts as [$home, $template]) {
+              $GLOBALS["test_home"] = $home;
+              $GLOBALS["test_template"] = $template;
+              foreach ([[], ["paged" => "2"], ["blog_search" => "ads"], ["s" => "ads"], ["category" => "meta-ads"], ["tags" => "ga4"], ["tag" => "ga4"]] as $query) {
+                  $_GET = $query;
+                  $expected = ($home || $template !== "page-kontakt.php") && count(array_diff(array_keys($query), ["paged"])) > 0;
+                  $wp = upsellio_seo_indexing_override_robots_meta_for_blog_filters(["max-image-preview" => "large"]);
+                  $rm = upsellio_seo_indexing_rank_math_robots_for_blog_filters(["index" => "index", "follow" => "follow"]);
+                  check(($wp["noindex"] ?? false) === $expected, "WordPress robots context mismatch");
+                  check(($rm["index"] === "noindex") === $expected, "Rank Math robots context mismatch");
+                  check($wp["max-image-preview"] === "large", "Lost unrelated robots directive");
+              }
+          }
+          $GLOBALS["test_home"] = true;
+          $_GET = ["blog_search" => "ads"];
+          $wp = upsellio_seo_indexing_override_robots_meta_for_blog_filters(["noindex" => true, "nofollow" => true]);
+          $rm = upsellio_seo_indexing_rank_math_robots_for_blog_filters(["index" => "noindex", "follow" => "nofollow"]);
+          check(!isset($wp["follow"]) && $wp["nofollow"], "WordPress global nofollow overridden");
+          check($rm["follow"] === "nofollow", "Rank Math global nofollow overridden");
+          echo "Filtered blog robots cases passed." . PHP_EOL;
+          PHP
