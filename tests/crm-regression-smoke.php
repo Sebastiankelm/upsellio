@@ -137,4 +137,13 @@ check(!upsellio_crm_app_can_access_audit_client(251), "client read permission is
 check(!upsellio_crm_app_can_access_audit_client(11) && !upsellio_crm_app_can_access_audit_client(0), "non-client and missing record denied");
 $GLOBALS["caps"] = ["manage_options"];
 check(upsellio_crm_app_user_can_view("settings") && upsellio_crm_app_user_can_view("ca-accounts"), "administrator retains configuration access");
+$local_slot = static function (string $value): int { return (new DateTimeImmutable($value, wp_timezone()))->getTimestamp(); };
+check(upsellio_crm_app_calendar_slot_fits($local_slot("2026-11-25 08:00"), 480), "full workday fits exactly");
+check(upsellio_crm_app_calendar_slot_fits($local_slot("2026-11-25 15:30"), 30), "appointment ending exactly at 16 fits");
+check(!upsellio_crm_app_calendar_slot_fits($local_slot("2026-11-25 15:30"), 60), "appointment exceeding 16 rejected");
+check(!upsellio_crm_app_calendar_slot_fits($local_slot("2026-11-25 07:59"), 15), "before workday rejected");
+check(!upsellio_crm_app_calendar_slot_fits($local_slot("2026-11-25 16:00"), 15), "at workday end rejected");
+check(!upsellio_crm_app_calendar_slot_fits($local_slot("2026-11-25 08:00"), 14), "duration below minimum rejected");
+check(!upsellio_crm_app_calendar_slot_fits($local_slot("2026-11-25 08:00"), 481), "duration exceeding workday rejected");
+check(upsellio_crm_app_calendar_slot_fits($local_slot("2026-07-01 08:00"), 60), "calendar checks summer local time");
 echo "CRM smoke checks complete." . PHP_EOL;
