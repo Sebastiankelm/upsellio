@@ -4,40 +4,31 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
-$rm_days = isset($range_days) ? (int) $range_days : 30;
+$rm_requested_days = isset($range_days) ? (int) $range_days : 30;
+$rm_supported = in_array($rm_requested_days, [7, 14, 30, 60, 90], true);
+$rm_days = $rm_supported ? $rm_requested_days : 30;
 $rm_status = function_exists("upsellio_rankmath_connection_status") ? upsellio_rankmath_connection_status() : [];
-$rm_summary = function_exists("upsellio_rankmath_get_dashboard_summary") ? upsellio_rankmath_get_dashboard_summary($rm_days) : [];
-$rm_top_pages = function_exists("upsellio_rankmath_top_pages") ? upsellio_rankmath_top_pages(12, $rm_days) : [];
-$rm_quick = function_exists("upsellio_rankmath_quick_win_keywords") ? upsellio_rankmath_quick_win_keywords(15, $rm_days) : [];
+$rm_summary = $rm_supported && function_exists("upsellio_rankmath_get_dashboard_summary") ? upsellio_rankmath_get_dashboard_summary($rm_days) : [];
+$rm_source = (string) ($rm_summary["source"] ?? "empty");
+$rm_series = $rm_supported && function_exists("upsellio_rankmath_gsc_daily_series") ? upsellio_rankmath_gsc_daily_series($rm_days) : [];
+$rm_end = new DateTimeImmutable("today", wp_timezone());
+$rm_start = $rm_end->modify("-" . ($rm_days - 1) . " days")->format("Y-m-d");
+$rm_end_date = $rm_end->format("Y-m-d");
+$rm_series = array_filter((array) $rm_series, static fn($date) => is_string($date) && $date >= $rm_start && $date <= $rm_end_date, ARRAY_FILTER_USE_KEY);
+ksort($rm_series);
+$rm_top_pages = $rm_supported && function_exists("upsellio_rankmath_top_pages") ? upsellio_rankmath_top_pages(12, $rm_days) : [];
+$rm_quick = $rm_supported && function_exists("upsellio_rankmath_quick_win_keywords") ? upsellio_rankmath_quick_win_keywords(15, $rm_days) : [];
 $gsc_source = (string) get_option("upsellio_keyword_metrics_source", "");
 $ga4_source = (string) get_option("ups_automation_ga4_source", "");
 $gsc_last = (string) get_option("upsellio_keyword_metrics_last_sync", "");
 $ga4_last = (string) get_option("ups_automation_ga4_last_sync", "");
 $sync_nonce = wp_create_nonce("ups_crm_app_action");
 
-function ups_rm_fmt_delta(float $diff): string
-{
-    if (abs($diff) < 0.05) {
-        return "0%";
-    }
-
-    return ($diff > 0 ? "+" : "") . rtrim(rtrim(number_format($diff, 1, ",", " "), "0"), ",") . "%";
-}
-
-function ups_rm_delta_color(float $diff, bool $invert = false): string
-{
-    $up = $diff > 0;
-    if ($invert) {
-        $up = !$up;
-    }
-
-    return $up ? "var(--success,#16a34a)" : ($diff < 0 ? "var(--danger,#dc2626)" : "var(--text-3)");
-}
 ?>
 <section class="card" id="ups-rm-seo-panel">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
     <div>
-      <h3 style="margin:0 0 4px;font-size:15px;">Search Console — jak w Rank Math</h3>
+      <h2 style="margin:0 0 4px;">Search Console</h2>
       <p class="muted" style="margin:0;font-size:12px;">
         <?php if (!empty($rm_status["gsc"])) : ?>
           Połączone przez Rank Math
@@ -49,15 +40,18 @@ function ups_rm_delta_color(float $diff, bool $invert = false): string
         · GA4: <?php echo esc_html($ga4_last !== "" ? $ga4_last : "brak"); ?> (<?php echo esc_html($ga4_source !== "" ? $ga4_source : "—"); ?>)
       </p>
     </div>
+    <?php if ($rm_supported && current_user_can("manage_options")) : ?>
     <button type="button" class="btn alt" id="ups-rm-sync-btn" style="font-size:12px;padding:6px 14px;"
             data-nonce="<?php echo esc_attr($sync_nonce); ?>"
             data-days="<?php echo (int) $rm_days; ?>">
       <i class="ti ti-refresh" aria-hidden="true"></i> Sync Google (RM + Upsellio)
     </button>
+    <?php endif; ?>
   </div>
   <div id="ups-rm-sync-msg" style="display:none;margin-bottom:12px;padding:8px 12px;border-radius:var(--r-sm);font-size:12px;"></div>
 
-  <?php if (!empty($rm_summary)) : ?>
+  <?php if (!$rm_supported) : ?><p class="muted">Integracja Rank Math obsługuje tutaj okresy od 7 do 90 dni. Wybierz obsługiwany zakres; nie podstawiamy danych 30-dniowych pod 365 dni.</p><?php endif; ?>
+  <?php if ($rm_supported && !empty($rm_summary) && !in_array($rm_source, ["computed", "empty"], true)) : ?>
   <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px;">
     <?php
     $blocks = [
@@ -68,21 +62,31 @@ function ups_rm_delta_color(float $diff, bool $invert = false): string
     ];
     foreach ($blocks as $b) :
         $m = (array) ($rm_summary[$b["key"]] ?? []);
-        $total = (float) ($m["total"] ?? 0);
-        $diff = (float) ($m["difference"] ?? 0);
-        $val = $b["fmt"] === "pos" ? number_format($total, 1, ",", " ") : number_format($total, 0, ",", " ");
+        $total = $m["total"] ?? null;
+        $previous = $m["previous"] ?? null;
+        $valid = empty($m["na"]) && is_numeric($total) && ($b["fmt"] !== "pos" || (float) $total > 0);
+        $val = $valid ? number_format((float) $total, $b["fmt"] === "pos" ? 1 : 0, ",", " ") : "—";
+        $comparison = "Brak porównywalnego okresu";
+        $delta_color = "var(--text-3)";
+        if ($valid && $rm_source === "rank_math_widget" && is_numeric($previous) && (float) $previous > 0) {
+            $delta = (float) $total - (float) $previous;
+            $delta = $b["invert"] ? $delta : 100 * $delta / (float) $previous;
+            $comparison = ($delta > 0 ? "+" : "") . number_format($delta, 1, ",", " ") . ($b["invert"] ? " poz." : "%");
+            if ($delta != 0.0) { $delta_color = ($b["invert"] ? $delta < 0 : $delta > 0) ? "var(--success)" : "var(--danger)"; }
+        }
         ?>
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-md);padding:12px;text-align:center;">
       <div style="font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text-3);text-transform:uppercase;"><?php echo esc_html($b["label"]); ?></div>
       <div style="font-size:22px;font-weight:800;margin:4px 0;"><?php echo esc_html($val); ?></div>
-      <div style="font-size:11px;font-weight:600;color:<?php echo esc_attr(ups_rm_delta_color($diff, $b["invert"])); ?>"><?php echo esc_html(ups_rm_fmt_delta($diff)); ?> vs poprz.</div>
+      <div style="font-size:11px;font-weight:600;color:<?php echo esc_attr($delta_color); ?>"><?php echo esc_html($comparison); ?></div>
     </div>
     <?php endforeach; ?>
   </div>
   <p class="muted" style="margin:-8px 0 14px;font-size:11px;">Źródło KPI: <?php echo esc_html((string) ($rm_summary["source"] ?? "—")); ?></p>
   <?php endif; ?>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+  <?php if ($rm_supported) : ?>
+  <div class="crm-report-charts" style="gap:14px;">
     <div style="border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
       <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Szybkie wygrane (poz. 4–20)</div>
       <p class="muted" style="margin:0 0 8px;font-size:11px;">Frazy z dużą liczbą wyświetleń — kandydaci do rozbudowy treści (odpowiednik Striking Distance).</p>
@@ -110,7 +114,8 @@ function ups_rm_delta_color(float $diff, bool $invert = false): string
       <?php endif; ?>
     </div>
     <div style="border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
-      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Top strony (GSC)</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Top strony (zapisane dane GSC)</div>
+      <p class="muted">Zestawienie z cache; zakres może różnić się od wybranego okresu.</p>
       <?php if (empty($rm_top_pages)) : ?>
         <p class="muted" style="margin:0;font-size:12px;">Brak danych — sync lub cache Rank Math (<code>rank_math_analytics_objects</code>).</p>
       <?php else : ?>
@@ -139,8 +144,9 @@ function ups_rm_delta_color(float $diff, bool $invert = false): string
 
   <div style="margin-top:14px;">
     <div style="font-weight:700;font-size:13px;margin-bottom:6px;">Trend GSC (<?php echo (int) $rm_days; ?> dni)</div>
-    <div class="ups-crm-chart-box" style="height:160px;"><canvas id="ups-rm-gsc-trend"></canvas></div>
+    <?php if ($rm_series) : ?><div class="ups-crm-chart-box" style="height:160px;"><canvas id="ups-rm-gsc-trend" aria-label="Trend GSC"></canvas></div><?php else : ?><p class="muted">Brak dostępnej serii dziennej.</p><?php endif; ?>
   </div>
+  <?php endif; ?>
 </section>
 <script>
 (function () {
@@ -184,7 +190,7 @@ function ups_rm_delta_color(float $diff, bool $invert = false): string
   var canvas = document.getElementById("ups-rm-gsc-trend");
   if (!canvas || !window.Chart) return;
   var series = <?php
-    $series = function_exists("upsellio_rankmath_gsc_daily_series") ? upsellio_rankmath_gsc_daily_series($rm_days) : [];
+    $series = $rm_series;
     $labels = array_keys($series);
     $clicks = [];
     $impr = [];
@@ -192,7 +198,7 @@ function ups_rm_delta_color(float $diff, bool $invert = false): string
         $clicks[] = (int) (($series[$lb]["clicks"] ?? 0));
         $impr[] = (int) (($series[$lb]["impressions"] ?? 0));
     }
-    echo wp_json_encode(["labels" => $labels, "clicks" => $clicks, "impressions" => $impr]);
+    echo wp_json_encode(["labels" => $labels, "clicks" => $clicks, "impressions" => $impr], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
     ?>;
   if (!series.labels || !series.labels.length) return;
   new Chart(canvas, {
