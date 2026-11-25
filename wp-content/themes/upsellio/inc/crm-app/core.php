@@ -398,6 +398,37 @@ function upsellio_crm_app_parse_local_datetime(string $raw)
     return $date->getTimestamp();
 }
 
+/** Shared business-hour grid. The end is exclusive: 15:00–16:00 is the final slot. */
+function upsellio_crm_app_calendar_work_hours(): array
+{
+    return ["start" => 8, "end" => 16];
+}
+
+/** Retain appointments outside the grid, limited to the selected local week. */
+function upsellio_crm_app_calendar_outside_hours(array $by_day, DateTimeImmutable $week_start): array
+{
+    $hours = upsellio_crm_app_calendar_work_hours();
+    $first = $week_start->format("Y-m-d");
+    $last = $week_start->modify("+7 days")->format("Y-m-d");
+    $outside = [];
+    foreach ($by_day as $day => $items) {
+        if ($day < $first || $day >= $last) {
+            continue;
+        }
+        foreach ($items as $item) {
+            $hour = (int) ($item["hour"] ?? -1);
+            if ($hour < $hours["start"] || $hour >= $hours["end"]) {
+                $item["date"] = $day;
+                $outside[] = $item;
+            }
+        }
+    }
+    usort($outside, static function ($a, $b) {
+        return strcmp($a["date"] . " " . ($a["time"] ?? ""), $b["date"] . " " . ($b["time"] ?? ""));
+    });
+    return $outside;
+}
+
 function upsellio_crm_app_calendar_week(int $offset): DateTimeImmutable
 {
     $offset = max(-260, min(260, $offset));
