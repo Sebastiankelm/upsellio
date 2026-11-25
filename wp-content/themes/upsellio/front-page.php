@@ -240,8 +240,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
 
 /* === UKRYCIE PÓL FORMULARZA — Firma + Twoja miesięczna sprzedaż === */
 /* Pierwsze pole drugie w row-2: lead_company. Reszta zostaje. */
-.hr-form-card .ups-form__row-2:first-of-type{grid-template-columns:1fr !important}
-.hr-form-card .ups-form__row-2:first-of-type > div:nth-child(2){display:none !important}
+/* Keep required name and telephone visible; shared form no longer has a company field. */
 /* Twoja miesieczna sprzedaż — label + select po nim */
 .hr-form-card .ups-form label[for*="monthly-sales"],
 .hr-form-card .ups-form select[name="lead_monthly_sales"]{display:none !important}
@@ -1241,20 +1240,7 @@ echo wp_json_encode([
     document.querySelectorAll('[data-hr-anim]').forEach(function(el){el.classList.add('is-visible');});
   }
 
-  /* === Smooth scroll z offsetem === */
-  document.querySelectorAll('a[href^="#"]').forEach(function(link){
-    link.addEventListener('click',function(e){
-      var href=link.getAttribute('href');
-      if(href.length<2)return;
-      var target=document.querySelector(href);
-      if(target){
-        e.preventDefault();
-        var rect=target.getBoundingClientRect();
-        var y=rect.top+window.scrollY-80;
-        window.scrollTo({top:y,behavior:'smooth'});
-      }
-    });
-  });
+  /* Same-page anchors are handled by the shared theme script. */
 
   /* === dataLayer push przy submit (osobny dla hero i contact) === */
   ['home-hero-form','home-contact-form'].forEach(function(formId){
