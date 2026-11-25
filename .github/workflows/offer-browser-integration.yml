@@ -61,6 +61,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Test real module in browser
         run: node tools/offer-browser-test.cjs
+      - name: Verify persisted integration data
+        run: php /tmp/wp-cli.phar --path=/tmp/offer-wordpress eval-file "$GITHUB_WORKSPACE/tools/offer-ci-verify.php"
       - name: Collect test screenshots and server log
         if: always()
         run: |
