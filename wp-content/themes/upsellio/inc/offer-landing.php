@@ -219,7 +219,7 @@ function upsellio_offer_get_landing_payload($offer_id)
     ];
     foreach ($meta_map as $key => $mk) {
         $v = (string) get_post_meta($offer_id, $mk, true);
-        if ($v !== "") {
+        if (metadata_exists("post", $offer_id, $mk)) {
             $base[$key] = $v;
         }
     }
@@ -1439,7 +1439,9 @@ function showToast(msg,isErr){
   clearTimeout(t._tto);
   t._tto=setTimeout(function(){t.classList.remove('is-visible');},7000);
 }
+var modalReturnFocus=null;
 function openModal(id){
+  modalReturnFocus=document.activeElement;
   document.querySelectorAll('.ups-modal').forEach(function(m){m.classList.remove('is-open');m.setAttribute('aria-hidden','true');});
   var m=document.getElementById(id);
   if(m){m.classList.add('is-open');m.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';document.body.classList.add("offer-modal-open");var dialog=m.querySelector("[role=dialog]");if(dialog){dialog.setAttribute("tabindex","-1");dialog.focus();}}
@@ -1447,6 +1449,8 @@ function openModal(id){
 function closeModals(){
   document.querySelectorAll('.ups-modal.is-open').forEach(function(m){m.classList.remove('is-open');m.setAttribute('aria-hidden','true');});
   document.body.style.overflow='';document.body.classList.remove('offer-modal-open');
+  if(modalReturnFocus&&document.contains(modalReturnFocus)&&!modalReturnFocus.disabled)modalReturnFocus.focus();
+  modalReturnFocus=null;
 }
 function onAcceptClick(source){
   if(!offerCanAccept){showToast("Ta oferta jest już zamknięta.",true);return;}
@@ -1616,6 +1620,8 @@ if(elQs)elQs.addEventListener('click',function(){
     }
   }
   if(err)err.classList.remove('is-visible');
+  if(elQs.disabled)return;
+  elQs.disabled=true;
   var payload={msg_type:'question',question_body:q,cta_source:questionSource};
   if(email)payload.contact_email=email;
   postMessaging(payload).then(function(res){
@@ -1626,13 +1632,14 @@ if(elQs)elQs.addEventListener('click',function(){
     }else{
       showToast((res&&res.data&&res.data.message)||'Nie udało się wysłać.',true);
     }
-  }).catch(function(){showToast('Błąd sieci.',true);});
+  }).catch(function(){showToast('Błąd sieci.',true);}).finally(function(){elQs.disabled=false;});
 });
 window.submitQA=function(){
   if(__upsPreviewMode){showToast('Tryb podglądu — bez zapisu.',true);return;}
   var form=document.getElementById('qaForm');
   var status=document.getElementById('qaStatus');
-  if(!form||!status){return;}
+  if(!form||!status||form.dataset.submitting==='1'){return;}
+  if(!form.reportValidity())return;
   var fd=new FormData(form);
   var answers=[];
   fd.forEach(function(v,k){
@@ -1643,6 +1650,7 @@ window.submitQA=function(){
     status.style.color='#d94c4c';
     return;
   }
+  form.dataset.submitting='1';
   status.textContent='Wysyłam...';
   status.style.color='var(--muted)';
   var body=new URLSearchParams();
@@ -1660,12 +1668,22 @@ window.submitQA=function(){
   }).catch(function(){
     status.textContent='❌ Błąd sieci';
     status.style.color='#d94c4c';
-  });
+  }).finally(function(){form.dataset.submitting='0';});
 };
 document.querySelectorAll('[data-ups-close]').forEach(function(el){
   el.addEventListener('click',closeModals);
 });
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModals();});
+document.addEventListener('keydown',function(e){
+  var modal=document.querySelector('.ups-modal.is-open');
+  if(!modal)return;
+  if(e.key==='Escape'){e.preventDefault();closeModals();return;}
+  if(e.key!=='Tab')return;
+  var items=Array.from(modal.querySelectorAll('button:not([disabled]),input:not([disabled]):not([type=hidden]),select:not([disabled]),textarea:not([disabled]),a[href]')).filter(function(el){return el.getClientRects().length>0;});
+  if(!items.length){e.preventDefault();return;}
+  var first=items[0],last=items[items.length-1];
+  if(e.shiftKey&&(document.activeElement===first||!items.includes(document.activeElement))){e.preventDefault();last.focus();}
+  else if(!e.shiftKey&&(document.activeElement===last||!items.includes(document.activeElement))){e.preventDefault();first.focus();}
+});
 })();
 </script>
 </body>
