@@ -50,7 +50,7 @@ $hints = [
 
       <?php
       $nav_view = (string) ($item["view"] ?? "");
-      if ($nav_view === "" || !isset($registry[$nav_view])) {
+      if ($nav_view === "" || !isset($registry[$nav_view]) || !upsellio_crm_app_user_can_view($nav_view)) {
           continue;
       }
       $meta = $registry[$nav_view];
@@ -60,7 +60,7 @@ $hints = [
           if ($nav_cid <= 0 && function_exists("ups_audit_default_profile_client_id")) {
               $nav_cid = ups_audit_default_profile_client_id();
           }
-          if ($nav_cid > 0) {
+          if (upsellio_crm_app_can_access_audit_client($nav_cid)) {
               $args["cid"] = $nav_cid;
           }
       }
@@ -73,7 +73,7 @@ $hints = [
       if (($item["badge"] ?? "") === "tasks" && $crm_tasks_open_count > 0) {
           $badge = '<span class="crm-sb-badge">' . (int) min(99, $crm_tasks_open_count) . "</span>";
       }
-      if (($item["badge"] ?? "") === "audit_clients") {
+      if (($item["badge"] ?? "") === "audit_clients" && current_user_can("manage_options")) {
           $ca_cnt = function_exists("ups_audit_count_active_clients")
               ? (int) ups_audit_count_active_clients()
               : (function_exists("ups_audit_count_google_accounts") ? (int) ups_audit_count_google_accounts() : 0);
@@ -96,10 +96,12 @@ $hints = [
     <?php endforeach; ?>
   </nav>
   <div class="crm-sb-foot">
+    <?php if (upsellio_crm_app_user_can_view("settings")) : ?>
     <a class="side-link crm-si <?php echo $view === "settings" ? "active" : ""; ?>" href="<?php echo esc_url(upsellio_crm_url("settings", ["settings_tab" => "general"])); ?>">
       <i class="ti ti-settings" aria-hidden="true"></i>
       <span class="crm-si-label"><?php esc_html_e("Ustawienia", "upsellio"); ?></span>
     </a>
+    <?php endif; ?>
     <div class="crm-sidebar-account">
       <span class="crm-sidebar-avatar" aria-hidden="true"><i class="ti ti-user"></i></span>
       <div class="crm-sidebar-account-name">
