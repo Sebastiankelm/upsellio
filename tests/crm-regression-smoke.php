@@ -202,4 +202,11 @@ check(upsellio_crm_app_client_ltv_estimate(true, "active", 1000, "2026-12-01", "
 check(upsellio_crm_app_client_ltv_estimate(true, "cancelled", 1000, "2026-01-15", "", "2026-11-25") === null, "missing cancellation date yields unknown LTV");
 check(upsellio_crm_app_client_ltv_estimate(true, "paused", 1000, "2026-01-15", "", "2026-11-25") === null, "paused history cannot be inferred");
 check(upsellio_crm_app_client_ltv_estimate(false, "active", 1000, "2026-01-15", "", "2026-11-25") === null, "one-time revenue is not estimated as recurring LTV");
+check(upsellio_crm_app_csv_cell("Normalna nazwa") === "Normalna nazwa", "CSV preserves ordinary title");
+check(upsellio_crm_app_csv_cell("=1+1") === "'=1+1", "CSV neutralizes formula");
+check(upsellio_crm_app_csv_cell("  @SUM(A1)") === "'  @SUM(A1)", "CSV neutralizes whitespace-prefixed formula");
+check(upsellio_crm_app_csv_cell("+48123456789") === "'+48123456789", "CSV preserves phone-like string as text");
+$rows = upsellio_crm_app_ai_context("leads");
+check(count($rows) === 50 && array_keys($rows[0]) === ["id", "score"], "AI context is bounded and contains no personal fields");
+check(upsellio_crm_app_ai_context("settings") === [], "AI context cannot read global settings");
 echo "CRM smoke checks complete." . PHP_EOL;
