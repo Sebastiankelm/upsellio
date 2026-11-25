@@ -205,9 +205,14 @@ function upsellio_offer_merge_payload_into_offer_meta($offer_id, $payload)
 function upsellio_offer_get_landing_payload($offer_id)
 {
     $offer_id = (int) $offer_id;
-    // Templates keep their defaults, but a public offer must not imply unsaved commercial terms.
+    // Only offers existing at the production migration retain their previous effective template behavior.
+    // This is a compatibility marker, not an assertion that the inherited terms were negotiated.
+    $legacy_ids = get_option("upsellio_offer_legacy_payload_ids_v2", []);
+    $legacy = is_array($legacy_ids) && !empty($legacy_ids[$offer_id]);
     $base = upsellio_offer_layout_get_default_payload();
-    foreach (["duration", "billing", "price_note", "proof_lines", "questions_raw", "include_lines", "option_lines"] as $field) { $base[$field] = ""; }
+    if (!$legacy) {
+        foreach (["duration", "billing", "price_note", "proof_lines", "questions_raw", "include_lines", "option_lines"] as $field) { $base[$field] = ""; }
+    }
     $meta_map = [
         "lead" => "_ups_offer_lead",
         "duration" => "_ups_offer_duration",
@@ -221,13 +226,15 @@ function upsellio_offer_get_landing_payload($offer_id)
     ];
     foreach ($meta_map as $key => $mk) {
         $v = (string) get_post_meta($offer_id, $mk, true);
-        if (metadata_exists("post", $offer_id, $mk)) {
+        if ($legacy ? $v !== "" : metadata_exists("post", $offer_id, $mk)) {
             $base[$key] = $v;
         }
     }
     $base["show_proof"] = (string) get_post_meta($offer_id, "_ups_offer_show_proof", true) === "1";
-    $base["has_google"] = (string) get_post_meta($offer_id, "_ups_offer_has_google", true) === "1";
-    $base["has_meta"] = (string) get_post_meta($offer_id, "_ups_offer_has_meta", true) === "1";
+    $google = (string) get_post_meta($offer_id, "_ups_offer_has_google", true);
+    $meta = (string) get_post_meta($offer_id, "_ups_offer_has_meta", true);
+    $base["has_google"] = $legacy ? $google !== "0" : $google === "1";
+    $base["has_meta"] = $legacy ? $meta !== "0" : $meta === "1";
     $base["has_web"] = (string) get_post_meta($offer_id, "_ups_offer_has_web", true) === "1";
     return $base;
 }
