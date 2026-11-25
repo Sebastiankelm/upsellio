@@ -4,7 +4,7 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
-$range_days = isset($_GET["range"]) ? (int) wp_unslash($_GET["range"]) : 30;
+$range_days = isset($range_days) && in_array($range_days, [7, 14, 30, 60, 90, 365], true) ? $range_days : 30;
 $m = function_exists("upsellio_agency_marketing_metrics")
     ? upsellio_agency_marketing_metrics($range_days)
     : [];
@@ -37,13 +37,13 @@ $health = (int) ($m["health_score"] ?? 0);
     Połączone dane: <strong>GA4</strong> (<?php echo esc_html((string) ($sources["ga4"] ?? "—")); ?>),
     <strong>GSC</strong> (<?php echo esc_html((string) ($sources["gsc"] ?? "—")); ?>),
     <strong>Ads</strong> (<?php echo esc_html((string) ($sources["ads"] ?? "—")); ?>).
-    Health score: <strong style="color:<?php echo $health >= 75 ? "var(--success)" : ($health >= 50 ? "var(--warn)" : "var(--danger)"); ?>"><?php echo (int) $health; ?>/100</strong>
+    Health score: <strong style="color:<?php echo $health >= 75 ? "var(--success)" : ($health >= 50 ? "var(--warn)" : "var(--danger)"); ?>"><?php echo isset($m["health_score"]) && is_numeric($m["health_score"]) ? (int) $health . "/100" : "—"; ?></strong>
   </p>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;">
+  <div class="crm-report-kpis">
     <?php
     $kpis = [
-        ["Wyświetlenia / sesje", (int) ($m["ga4_sessions"] ?? 0), "ga4_sessions"],
-        ["Leady / konwersje", (int) ($m["ga4_conversions"] ?? 0), "ga4_conversions"],
+        ["Sesje GA4", (int) ($m["ga4_sessions"] ?? 0), "ga4_sessions"],
+        ["Konwersje GA4", (float) ($m["ga4_conversions"] ?? 0), "ga4_conversions"],
         ["CR%", (float) ($derived["ga4_conversion_rate"] ?? 0), ""],
         ["GSC klik.", (int) ($m["gsc_clicks"] ?? 0), "gsc_clicks"],
         ["GSC CTR", (float) ($derived["gsc_ctr"] ?? 0), ""],
@@ -52,12 +52,12 @@ $health = (int) ($m["health_score"] ?? 0);
     ];
     foreach ($kpis as $k) :
         $dkey = $k[2];
-        $d = $dkey !== "" ? (float) ($deltas[$dkey] ?? 0) : null;
-        $val = is_float($k[1]) && $k[0] !== "GSC klik." && strpos($k[0], "koszt") === false && $k[0] !== "Leady / konwersje" && strpos($k[0], "Wyśw") === false
+        $d = $dkey !== "" && isset($deltas[$dkey]) && is_numeric($deltas[$dkey]) ? (float) $deltas[$dkey] : null;
+        $val = is_float($k[1]) && $k[0] !== "GSC klik." && strpos($k[0], "koszt") === false &&  $k[0] !== "Konwersje GA4" && strpos($k[0], "Wyśw") === false
             ? number_format($k[1], 2, ",", " ") . (strpos($k[0], "%") !== false || $k[0] === "CR%" || $k[0] === "GSC CTR" || $k[0] === "ROAS" ? (strpos($k[0], "ROAS") !== false ? "x" : "%") : "")
             : (strpos($k[0], "koszt") !== false
                 ? number_format($k[1], 0, ",", " ") . " PLN"
-                : number_format((int) $k[1], 0, ",", " "));
+                : number_format($k[1], $k[0] === "Konwersje GA4" ? 2 : 0, ",", " "));
         ?>
       <div style="padding:12px;border:1px solid var(--border);border-radius:var(--r-md);">
         <div class="muted" style="font-size:10px;font-weight:700;text-transform:uppercase;"><?php echo esc_html($k[0]); ?></div>
@@ -75,7 +75,7 @@ $ups_audit_recommendations = $recs;
 require __DIR__ . "/partials/audit-recommendations.php";
 ?>
 
-<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px">
+<div class="crm-report-charts">
   <section class="card">
     <h4 style="margin:0 0 8px;font-size:13px;">Ruch na stronie</h4>
     <div class="ups-crm-chart-box"><canvas id="ups-mkt-chart-views"></canvas></div>
@@ -113,11 +113,11 @@ require __DIR__ . "/partials/audit-recommendations.php";
 </section>
 <?php endif; ?>
 
-<script type="application/json" id="ups-mkt-labels"><?php echo wp_json_encode($labels); ?></script>
-<script type="application/json" id="ups-mkt-views"><?php echo wp_json_encode($views_cur); ?></script>
-<script type="application/json" id="ups-mkt-leads"><?php echo wp_json_encode($leads_cur); ?></script>
-<script type="application/json" id="ups-mkt-impr"><?php echo wp_json_encode($impr_cur); ?></script>
-<script type="application/json" id="ups-mkt-clicks"><?php echo wp_json_encode($clk_cur); ?></script>
+<script type="application/json" id="ups-mkt-labels"><?php echo wp_json_encode($labels, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+<script type="application/json" id="ups-mkt-views"><?php echo wp_json_encode($views_cur, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+<script type="application/json" id="ups-mkt-leads"><?php echo wp_json_encode($leads_cur, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+<script type="application/json" id="ups-mkt-impr"><?php echo wp_json_encode($impr_cur, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+<script type="application/json" id="ups-mkt-clicks"><?php echo wp_json_encode($clk_cur, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
 <script>
 (function () {
   function parse(id) {
