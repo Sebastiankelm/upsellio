@@ -383,6 +383,27 @@ function upsellio_crm_app_list_page(string $post_type, array $extra = []): array
 
 /** Paginate already filtered, priority-sorted records (tasks and calendar share data). */
 /** One canonical column for each deal; terminal status takes precedence. */
+/** Parse a calendar wall-clock value in the site's timezone, without silent normalization. */
+function upsellio_crm_app_parse_local_datetime(string $raw)
+{
+    $raw = str_replace("T", " ", trim($raw));
+    if (!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2})?$/D', $raw)) {
+        return false;
+    }
+    $format = strlen($raw) === 16 ? "Y-m-d H:i" : "Y-m-d H:i:s";
+    $date = DateTimeImmutable::createFromFormat("!" . $format, $raw, wp_timezone());
+    if (!$date || $date->format($format) !== $raw) {
+        return false;
+    }
+    return $date->getTimestamp();
+}
+
+function upsellio_crm_app_calendar_week(int $offset): DateTimeImmutable
+{
+    $offset = max(-260, min(260, $offset));
+    return (new DateTimeImmutable("today", wp_timezone()))->modify("monday this week")->modify(sprintf("%+d weeks", $offset));
+}
+
 function upsellio_crm_app_pipeline_bucket(string $status, string $stage): string
 {
     if (in_array($status, ["won", "lost"], true)) {
