@@ -277,6 +277,21 @@ function upsellio_crm_app_handle_post_actions()
         if ($title === "") {
             return;
         }
+        $monthly_raw = isset($_POST["client_monthly_value"]) ? trim((string) wp_unslash($_POST["client_monthly_value"])) : "0";
+        $subscription_status = isset($_POST["client_subscription_status"]) ? sanitize_key(wp_unslash($_POST["client_subscription_status"])) : "active";
+        if (!in_array($subscription_status, ["active", "paused", "cancelled"], true) || !is_numeric($monthly_raw) || !is_finite((float) $monthly_raw) || (float) $monthly_raw < 0) {
+            wp_die("Nieprawidłowy status abonamentu lub stawka miesięczna.", "", ["response" => 400]);
+        }
+        $client_dates = [];
+        foreach (["client_billing_start", "client_cancellation_date", "client_next_contact_date"] as $date_field) {
+            $client_dates[$date_field] = isset($_POST[$date_field]) ? trim((string) wp_unslash($_POST[$date_field])) : "";
+            if ($client_dates[$date_field] !== "" && !upsellio_crm_app_client_date($client_dates[$date_field])) {
+                wp_die("Nieprawidłowa data w formularzu klienta.", "", ["response" => 400]);
+            }
+        }
+        if ($client_dates["client_billing_start"] !== "" && $client_dates["client_cancellation_date"] !== "" && $client_dates["client_cancellation_date"] < $client_dates["client_billing_start"]) {
+            wp_die("Data zakończenia nie może poprzedzać rozpoczęcia współpracy.", "", ["response" => 400]);
+        }
         if ($client_id > 0 && get_post_type($client_id) === "crm_client") {
             $saved_client_id = wp_update_post(["ID" => $client_id, "post_title" => $title], true);
             if (is_wp_error($saved_client_id) || !$saved_client_id) {
@@ -301,18 +316,17 @@ function upsellio_crm_app_handle_post_actions()
             update_post_meta($client_id, "_ups_client_company_size", isset($_POST["client_company_size"]) ? sanitize_text_field(wp_unslash($_POST["client_company_size"])) : "");
             update_post_meta($client_id, "_ups_client_budget_range", isset($_POST["client_budget_range"]) ? sanitize_text_field(wp_unslash($_POST["client_budget_range"])) : "");
             update_post_meta($client_id, "_ups_client_is_recurring", isset($_POST["client_is_recurring"]) ? "1" : "0");
-            update_post_meta($client_id, "_ups_client_monthly_value", isset($_POST["client_monthly_value"]) ? (float) wp_unslash($_POST["client_monthly_value"]) : 0);
-            update_post_meta($client_id, "_ups_client_billing_start", isset($_POST["client_billing_start"]) ? sanitize_text_field(wp_unslash($_POST["client_billing_start"])) : "");
-            $subscription_status = isset($_POST["client_subscription_status"]) ? sanitize_key(wp_unslash($_POST["client_subscription_status"])) : "active";
+            update_post_meta($client_id, "_ups_client_monthly_value", round((float) $monthly_raw, 2));
+            update_post_meta($client_id, "_ups_client_billing_start", $client_dates["client_billing_start"]);
             update_post_meta($client_id, "_ups_client_subscription_status", $subscription_status);
-            update_post_meta($client_id, "_ups_client_cancellation_date", isset($_POST["client_cancellation_date"]) ? sanitize_text_field(wp_unslash($_POST["client_cancellation_date"])) : "");
+            update_post_meta($client_id, "_ups_client_cancellation_date", $client_dates["client_cancellation_date"]);
             update_post_meta($client_id, "_ups_client_cancellation_reason", isset($_POST["client_cancellation_reason"]) ? sanitize_textarea_field(wp_unslash($_POST["client_cancellation_reason"])) : "");
             update_post_meta($client_id, "_ups_client_notes", isset($_POST["client_notes"]) ? sanitize_textarea_field(wp_unslash($_POST["client_notes"])) : "");
             if (isset($_POST["client_last_call_notes"])) {
                 update_post_meta($client_id, "_ups_client_last_call_notes", sanitize_textarea_field(wp_unslash($_POST["client_last_call_notes"])));
             }
             if (isset($_POST["client_next_contact_date"])) {
-                update_post_meta($client_id, "_ups_client_next_contact_date", sanitize_text_field(wp_unslash($_POST["client_next_contact_date"])));
+                update_post_meta($client_id, "_ups_client_next_contact_date", $client_dates["client_next_contact_date"]);
             }
             if ($previous_subscription_status !== "cancelled" && $subscription_status === "cancelled") {
                 do_action("upsellio_client_subscription_cancelled", $client_id);
