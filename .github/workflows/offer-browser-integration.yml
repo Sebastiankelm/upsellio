@@ -27,6 +27,8 @@ jobs:
           mkdir -p /tmp/offer-wordpress
           php /tmp/wp-cli.phar --path=/tmp/offer-wordpress core download --version=6.8.3
           php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config create --dbname=wordpress --dbuser=root --dbpass=ci-local-only --dbhost=127.0.0.1:3306 --skip-check
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config set WP_HOME http://127.0.0.1:8080
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config set WP_SITEURL http://127.0.0.1:8080
           php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config set WP_ENVIRONMENT_TYPE local
           php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config set DISABLE_WP_CRON true --raw
           php /tmp/wp-cli.phar --path=/tmp/offer-wordpress config set WP_DEBUG true --raw
@@ -58,6 +60,8 @@ jobs:
           for i in $(seq 1 20); do if curl -fsS http://127.0.0.1:8080/ >/dev/null; then break; fi; sleep 1; done
           curl -fsS http://127.0.0.1:8080/oferta/ci-offer-synthetic-42/ -o /tmp/offer-page.html
           grep -q 'Oferta testowa' /tmp/offer-page.html
+          php /tmp/wp-cli.phar --path=/tmp/offer-wordpress eval 'if (admin_url("admin-ajax.php") !== "http://127.0.0.1:8080/wp-admin/admin-ajax.php") { WP_CLI::error(admin_url("admin-ajax.php")); }'
+          if grep -q '/offer-wordpress/wp-admin/admin-ajax.php' /tmp/offer-page.html; then echo 'Unexpected nested AJAX path'; exit 1; fi
       - name: Install browser
         run: |
           npm install --no-save --package-lock=false playwright@1.51.1
