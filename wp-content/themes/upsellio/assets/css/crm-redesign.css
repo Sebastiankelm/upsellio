@@ -234,3 +234,14 @@ body.ups-crm-redesign {
 @media(max-width:760px) {
   .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-shell.is-composing .crm-inbox-thread-column { display:none; }
 }
+
+/* Business hours: eight one-hour slots, with existing out-of-hours appointments retained. */
+.ups-crm-redesign :is(.ups-cal-hour,.ups-cal-hour-tasks) { width:96px; white-space:nowrap; font-size:11px; }
+.ups-crm-redesign :is(.ups-cal-slot,.ups-cal-slot-tasks) { height:66px; }
+.ups-crm-redesign .crm-cal-outside-hours { border-top:1px solid var(--border); margin-top:16px; padding-top:12px; }
+.ups-crm-redesign .crm-cal-outside-hours h3 { font-size:13px; margin-bottom:10px; }
+.ups-crm-redesign .crm-cal-outside-item { background:#fff7ed; border-color:#fed7aa; color:#9a3412; }
+.ups-crm-redesign .crm-cal-outside-item small { color:#9a3412; }
+.ups-crm-redesign .crm-cal-outside-item a { color:inherit; text-decoration:underline; overflow-wrap:anywhere; }
+.ups-crm-redesign .crm-cal-outside-item[draggable="false"] { cursor:default; opacity:.8; }
+.ups-crm-redesign :is(.ups-cal-slot,.ups-cal-slot-tasks)[data-saving="1"] { opacity:.55; cursor:wait; }
