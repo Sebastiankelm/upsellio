@@ -60,7 +60,6 @@ add_action("wp_head", static function () use ($seo_description, $seo_og_title, $
         return;
     }
     echo '<meta name="description" content="' . esc_attr($seo_description) . '">' . "\n";
-    echo '<link rel="canonical" href="' . esc_url($site_url) . '">' . "\n";
     echo '<meta property="og:type" content="website">' . "\n";
     echo '<meta property="og:url" content="' . esc_url($site_url) . '">' . "\n";
     echo '<meta property="og:title" content="' . esc_attr($seo_og_title) . '">' . "\n";
