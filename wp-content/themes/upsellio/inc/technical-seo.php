@@ -722,6 +722,49 @@ function upsellio_canonical_fallback(): void
 add_action("wp_head", "upsellio_canonical_fallback", 1);
 
 /**
+ * Plugin installation/activation alone is not proof its frontend head ran.
+ * Fall back only when neither supported SEO plugin executed its head hook,
+ * and preserve explicit noindex and custom canonical settings.
+ */
+function upsellio_redesign_canonical_if_plugin_head_missing(): void
+{
+    if (is_admin() || !upsellio_is_seo_plugin_managing_frontend_meta() ||
+        did_action("rank_math/head") || did_action("wpseo_head") ||
+        !(int) get_option("blog_public") ||
+        (function_exists("upsellio_seo_indexing_is_filtered_blog") && upsellio_seo_indexing_is_filtered_blog())) {
+        return;
+    }
+    $url = upsellio_redesign_canonical_url();
+    if ($url === null || $url === "") {
+        return;
+    }
+    $robots = apply_filters("wp_robots", []);
+    if (!empty($robots["noindex"])) {
+        return;
+    }
+    $post_id = get_queried_object_id();
+    if (defined("RANK_MATH_VERSION")) {
+        $settings = get_option("rank-math-options-titles", []);
+        $global_robots = (array) ($settings["robots_global"] ?? []);
+        $post_robots = $post_id ? (array) get_post_meta($post_id, "rank_math_robots", true) : [];
+        if (in_array("noindex", $global_robots, true) || in_array("noindex", $post_robots, true)) {
+            return;
+        }
+        $custom = $post_id ? (string) get_post_meta($post_id, "rank_math_canonical_url", true) : "";
+        if ($custom !== "") {
+            $url = $custom;
+        }
+    }
+    if (defined("WPSEO_VERSION")) {
+        // Leave Yoast-specific policy to Yoast rather than infer its settings.
+        return;
+    }
+    echo '<link rel="canonical" href="' . esc_url($url) . '">' . "\n";
+}
+add_action("wp_head", "upsellio_redesign_canonical_if_plugin_head_missing", 9999);
+
+
+/**
  * The root marketing template is intentionally forced by routing, which may leave
  * is_home() true. Correct only the specific mistaken posts-page canonical.
  * Preserve intentional plugin canonical overrides and disabled canonical output.
