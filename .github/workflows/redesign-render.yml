@@ -23,6 +23,7 @@ jobs:
     name: Render (${{ matrix.mode }})
     env:
       FIXTURE_RANK_MATH_VERSION: ${{ matrix.rank_math_version }}
+      FIXTURE_MEASURE_PERFORMANCE: ${{ matrix.mode == 'core' && '1' || '0' }}
     steps:
       - name: Fetch baseline and candidate without submodules
         env:
@@ -47,7 +48,19 @@ jobs:
       - name: Verify test harness syntax
         run: |
           bash -n tools/redesign-render-fixture.sh
-          python3 -m py_compile tools/redesign-render-compare.py
+          python3 -m py_compile tools/redesign-render-compare.py tools/redesign-performance-compare.py
+          node --check tools/redesign-performance.mjs
       - name: Render and compare synthetic WordPress sites
         run: |
           bash tools/redesign-render-fixture.sh "$(cat /tmp/upsellio-base-sha)" "$GITHUB_SHA" "$RUNNER_TEMP/upsellio-render"
+      - name: Upload laboratory performance results
+        if: ${{ always() && matrix.mode == 'core' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: redesign-performance
+          path: |
+            ${{ runner.temp }}/upsellio-render/baseline/performance.json
+            ${{ runner.temp }}/upsellio-render/candidate/performance.json
+            ${{ runner.temp }}/upsellio-render/performance-summary.json
+          if-no-files-found: warn
+          retention-days: 7
