@@ -411,6 +411,8 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
 @media(max-width:720px){.up-mock-grid{grid-template-columns:minmax(0,1fr)}}
 
 .up-mock-scope{background:#fff}.up-mock-subtitle{max-width:56ch;color:#5f636b;font-size:17px;line-height:1.6}.up-mock-scope .up-mock-grid article{background:#fff}.up-mock-check{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#dff5ef;color:#06745f;font-size:22px;font-weight:700;margin-bottom:14px}
+
+.up-design-problemy{background:#f5f6f8}.up-design-proces{background:#fff}.up-design-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:24px}.up-design-grid.up-design-three{grid-template-columns:repeat(3,minmax(0,1fr))}.up-design-grid article{background:white;border:1px solid #e3e6ea;border-radius:20px;padding:24px;min-width:0}.up-design-grid h3{font:700 20px/1.25 "Bricolage Grotesque",sans-serif;color:#0f1115;margin:14px 0 8px}.up-design-grid p{font:400 16px/1.6 "DM Sans",sans-serif;color:#3a3d44;margin:0}.up-design-number{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:12px;color:#06745f;background:#dff5ef;font-weight:800}@media(max-width:979px){.up-design-grid,.up-design-grid.up-design-three{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:640px){.up-design-grid,.up-design-grid.up-design-three{grid-template-columns:minmax(0,1fr)}}
 </style>
 
 <main class="web-page">
@@ -474,39 +476,7 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
 <section class="web-section up-mock-audience" id="dla-kogo"><div class="web-wrap"><span class="web-eyebrow">Dla kogo</span><h2 class="web-h2">Co jest Ci potrzebne?</h2><div class="up-mock-grid"><article><h3>Sklep internetowy</h3><p>Dla marek z własnymi produktami. Sam dodajesz produkty i zmieniasz ceny.</p></article><article><h3>Strona firmowa</h3><p>Dla lokali i usług: oferta, menu lub cennik, opinie, mapa dojazdu i szybki kontakt.</p></article><article><h3>Landing page</h3><p>Jedna strona pod jedną ofertę lub promocję. Najlepsza pod kampanie reklamowe.</p></article></div></div></section>
 
 
-  <section class="web-section" id="problemy">
-    <div class="web-wrap">
-      <span class="web-eyebrow">Dlaczego strona nie generuje zapytań</span>
-      <h2 class="web-h2">Gdzie najczęściej uciekają pieniądze</h2>
-      <div class="web-copy">
-        <p>Brak zapytań ze strony internetowej to jeden z najczęstszych problemów firm. Strona jest, wejścia są, budżet reklamowy jest wydawany, ale formularz milczy, a telefon nie dzwoni. Problem zwykle leży w komunikacji, zaufaniu i prowadzeniu do kontaktu.</p>
-        <p>Pierwsze sekundy na stronie decydują, czy użytkownik zostanie. Jeśli nagłówek nie mówi, czym się zajmujesz, dla kogo jest oferta i dlaczego warto zostać, odwiedzający wróci do Google albo kliknie reklamę konkurencji.</p>
-      </div>
-
-      <div class="web-problem-grid">
-        <div class="web-problem-card is-feature">
-          <div>
-            <strong>Niejasny komunikat na górze strony</strong>
-            <p>Nagłówek powinien od razu wyjaśniać, co oferujesz, komu pomagasz i jaki problem rozwiązujesz. To pojedyncza zmiana, która ma największy wpływ na konwersję — jeśli pierwsze 3 sekundy nie tłumaczą oferty, użytkownik wraca do Google.</p>
-          </div>
-          <p>Najczęściej spotykany błąd: hero zaczyna się od „Witamy na naszej stronie” lub od opisu firmy. Tymczasem powinien zaczynać się od pytania albo problemu klienta i obiecywać konkretny rezultat.</p>
-        </div>
-        <div class="web-problem-card"><strong>Strona mówi o firmie, nie o kliencie</strong><p>Klient nie szuka opisu firmy, tylko rozwiązania swojego problemu i powodu, żeby zaufać właśnie Tobie.</p></div>
-        <div class="web-problem-card"><strong>Brak lub słabe CTA</strong><p>Wezwanie do działania musi być widoczne, konkretne i pojawiać się w kilku miejscach ścieżki.</p></div>
-        <div class="web-problem-card"><strong>Brak elementów zaufania</strong><p>Liczby, opinie, case studies i logotypy klientów obniżają opór przed kontaktem.</p></div>
-        <div class="web-problem-card"><strong>Strona nie jest dostosowana do kampanii</strong><p>Ruch z Google Ads lub Meta Ads potrzebuje spójnego landing page, a nie przypadkowej strony głównej.</p></div>
-        <div class="web-problem-card"><strong>Wolne ładowanie na mobile</strong><p>Strona wolniejsza niż kilka sekund traci użytkownika zanim przeczyta pierwszą linijkę tekstu.</p></div>
-      </div>
-
-      <div class="web-mid-note">
-        <div>
-          <strong>Nie zawsze potrzebujesz nowej strony. Czasem wystarczy naprawić sekcje, które blokują kontakt.</strong>
-          <p>Audyt konwersji pokazuje, czy problem leży w treści, strukturze, szybkości, CTA, zaufaniu czy dopasowaniu do kampanii reklamowej.</p>
-        </div>
-        <a href="#kontakt" class="web-btn web-btn-primary" data-cta="web-check-current" data-cta-section="services" data-cta-position="inline">Sprawdźmy obecną stronę</a>
-      </div>
-    </div>
-  </section>
+  <section class="web-section up-design-problemy" id="problemy"><div class="web-wrap"><h2 class="web-h2">Gdzie najczęściej uciekają pieniądze</h2><p class="up-mock-subtitle">To naprawiam w pierwszej kolejności — zwykle bez zwiększania budżetu.</p><div class="up-design-grid "><article><span class="up-design-number" aria-hidden="true">01</span><h3>Niejasna oferta</h3><p>W pierwszych sekundach klient nie wie, co sprzedajesz i dlaczego u Ciebie.</p></article><article><span class="up-design-number" aria-hidden="true">02</span><h3>Brak zaufania</h3><p>Brak opinii, zdjęć i konkretów — klient woli kupić u znanej marki.</p></article><article><span class="up-design-number" aria-hidden="true">03</span><h3>Za długa droga do zamówienia</h3><p>Za dużo kliknięć, pól i rozpraszaczy przed koszykiem lub telefonem.</p></article><article><span class="up-design-number" aria-hidden="true">04</span><h3>Niewygodna wersja na telefon</h3><p>Wolne ładowanie i małe przyciski tam, gdzie klienci robią zakupy.</p></article></div></div></section>
 
   <section class="web-section up-mock-scope" id="zakres"><div class="web-wrap"><span class="web-eyebrow">Zakres</span><h2 class="web-h2">Co dostajesz</h2><p class="up-mock-subtitle">Wszystko prowadzę osobiście — od pierwszej rozmowy do raportu.</p><div class="up-mock-grid"><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Analiza</h3><p>Kim jest Twój klient i co ma go przekonać do zakupu.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Teksty sprzedażowe</h3><p>Nagłówki, opisy oferty i produktów, przyciski, FAQ.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Projekt i wdrożenie</h3><p>WordPress lub WooCommerce, dopasowany do Twojej marki.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Wersja na telefon</h3><p>Wygodne zakupy i szybkie ładowanie na każdym ekranie.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>SEO i pomiar</h3><p>Podstawowe SEO oraz pomiar zamówień i formularzy.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Panel do edycji</h3><p>Sam zmieniasz produkty, ceny, menu i zdjęcia.</p></article></div></div></section>
 
@@ -578,49 +548,7 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
     </div>
   </section>
 
-  <section class="web-section web-process" id="proces">
-    <div class="web-wrap">
-      <span class="web-eyebrow">Proces współpracy</span>
-      <h2 class="web-h2">Od pierwszej rozmowy do uruchomienia strony, która konwertuje.</h2>
-      <div class="web-copy">
-        <p>Tworzenie strony zaczyna się od diagnozy, a nie od wyboru szablonu. Najpierw trzeba zrozumieć klienta, obiekcje, proces decyzyjny, konkurencję w Google i cel biznesowy strony.</p>
-      </div>
-      <div class="web-process-grid">
-        <div class="web-step">
-          <div class="web-step-head">
-            <span class="web-step-num">1</span>
-            <span class="web-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          </div>
-          <strong>Analiza</strong>
-          <p>Obecna strona, oferta, grupa docelowa, konkurencja i frazy w Google.</p>
-        </div>
-        <div class="web-step">
-          <div class="web-step-head">
-            <span class="web-step-num">2</span>
-            <span class="web-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 2 14 8 20 8"/><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></span>
-          </div>
-          <strong>Projekt i treści</strong>
-          <p>Copywriting, propozycja wartości, hierarchia informacji, mobile-first i jasne CTA.</p>
-        </div>
-        <div class="web-step">
-          <div class="web-step-head">
-            <span class="web-step-num">3</span>
-            <span class="web-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
-          </div>
-          <strong>Wdrożenie</strong>
-          <p>Core Web Vitals, meta tagi, formularze, tracking, sitemap i robots.txt.</p>
-        </div>
-        <div class="web-step">
-          <div class="web-step-head">
-            <span class="web-step-num">4</span>
-            <span class="web-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
-          </div>
-          <strong>Optymalizacja</strong>
-          <p>Analiza zachowań, testy nagłówków, CTA, sekcji i formularzy po uruchomieniu.</p>
-        </div>
-      </div>
-    </div>
-  </section>
+  <section class="web-section up-design-proces" id="proces"><div class="web-wrap"><h2 class="web-h2">Jak zaczynamy</h2><div class="up-design-grid up-design-three"><article><span class="up-design-number" aria-hidden="true">1</span><h3>Rozmowa i zakres</h3><p>Ustalamy, co sprzedajesz, komu i co ma się znaleźć na stronie.</p></article><article><span class="up-design-number" aria-hidden="true">2</span><h3>Teksty i projekt</h3><p>Najpierw przekaz, potem wygląd. Akceptujesz każdy etap.</p></article><article><span class="up-design-number" aria-hidden="true">3</span><h3>Wdrożenie i start</h3><p>Strona działa, zamówienia są mierzone, a Ty wiesz, jak ją edytować.</p></article></div></div></section>
 
   
 <section class="web-section up-mock-details" id="szczegoly-uslugi"><div class="web-wrap"><span class="web-eyebrow">Więcej o usłudze</span><h2 class="web-h2">Tworzenie stron internetowych dla firm: strona, która nie tylko wygląda dobrze, ale zamienia odwiedzających w klientów.</h2><p class="web-lead">Projektuję i tworzę strony internetowe oraz landing pages dla firm B2B, usługowych i e-commerce. Każda strona jest zaprojektowana pod jeden cel: przekształcenie ruchu w zapytania, kontakty i sprzedaż.</p><div class="web-copy">
@@ -854,7 +782,82 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
       </div>
     </div>
   </section>
-<section class="web-section" id="faq">
+<section class="web-section" id="problemy-szczegoly">
+    <div class="web-wrap">
+      <span class="web-eyebrow">Dlaczego strona nie generuje zapytań</span>
+      <h2 class="web-h2">Szczegółowa analiza problemów</h2>
+      <div class="web-copy">
+        <p>Brak zapytań ze strony internetowej to jeden z najczęstszych problemów firm. Strona jest, wejścia są, budżet reklamowy jest wydawany, ale formularz milczy, a telefon nie dzwoni. Problem zwykle leży w komunikacji, zaufaniu i prowadzeniu do kontaktu.</p>
+        <p>Pierwsze sekundy na stronie decydują, czy użytkownik zostanie. Jeśli nagłówek nie mówi, czym się zajmujesz, dla kogo jest oferta i dlaczego warto zostać, odwiedzający wróci do Google albo kliknie reklamę konkurencji.</p>
+      </div>
+
+      <div class="web-problem-grid">
+        <div class="web-problem-card is-feature">
+          <div>
+            <strong>Niejasny komunikat na górze strony</strong>
+            <p>Nagłówek powinien od razu wyjaśniać, co oferujesz, komu pomagasz i jaki problem rozwiązujesz. To pojedyncza zmiana, która ma największy wpływ na konwersję — jeśli pierwsze 3 sekundy nie tłumaczą oferty, użytkownik wraca do Google.</p>
+          </div>
+          <p>Najczęściej spotykany błąd: hero zaczyna się od „Witamy na naszej stronie” lub od opisu firmy. Tymczasem powinien zaczynać się od pytania albo problemu klienta i obiecywać konkretny rezultat.</p>
+        </div>
+        <div class="web-problem-card"><strong>Strona mówi o firmie, nie o kliencie</strong><p>Klient nie szuka opisu firmy, tylko rozwiązania swojego problemu i powodu, żeby zaufać właśnie Tobie.</p></div>
+        <div class="web-problem-card"><strong>Brak lub słabe CTA</strong><p>Wezwanie do działania musi być widoczne, konkretne i pojawiać się w kilku miejscach ścieżki.</p></div>
+        <div class="web-problem-card"><strong>Brak elementów zaufania</strong><p>Liczby, opinie, case studies i logotypy klientów obniżają opór przed kontaktem.</p></div>
+        <div class="web-problem-card"><strong>Strona nie jest dostosowana do kampanii</strong><p>Ruch z Google Ads lub Meta Ads potrzebuje spójnego landing page, a nie przypadkowej strony głównej.</p></div>
+        <div class="web-problem-card"><strong>Wolne ładowanie na mobile</strong><p>Strona wolniejsza niż kilka sekund traci użytkownika zanim przeczyta pierwszą linijkę tekstu.</p></div>
+      </div>
+
+      <div class="web-mid-note">
+        <div>
+          <strong>Nie zawsze potrzebujesz nowej strony. Czasem wystarczy naprawić sekcje, które blokują kontakt.</strong>
+          <p>Audyt konwersji pokazuje, czy problem leży w treści, strukturze, szybkości, CTA, zaufaniu czy dopasowaniu do kampanii reklamowej.</p>
+        </div>
+        <a href="#kontakt" class="web-btn web-btn-primary" data-cta="web-check-current" data-cta-section="services" data-cta-position="inline">Sprawdźmy obecną stronę</a>
+      </div>
+    </div>
+  </section>
+<section class="web-section web-process" id="proces-szczegoly">
+    <div class="web-wrap">
+      <span class="web-eyebrow">Proces współpracy</span>
+      <h2 class="web-h2">Szczegółowy przebieg współpracy</h2>
+      <div class="web-copy">
+        <p>Tworzenie strony zaczyna się od diagnozy, a nie od wyboru szablonu. Najpierw trzeba zrozumieć klienta, obiekcje, proces decyzyjny, konkurencję w Google i cel biznesowy strony.</p>
+      </div>
+      <div class="web-process-grid">
+        <div class="web-step">
+          <div class="web-step-head">
+            <span class="web-step-num">1</span>
+            <span class="web-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          </div>
+          <strong>Analiza</strong>
+          <p>Obecna strona, oferta, grupa docelowa, konkurencja i frazy w Google.</p>
+        </div>
+        <div class="web-step">
+          <div class="web-step-head">
+            <span class="web-step-num">2</span>
+            <span class="web-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="14 2 14 8 20 8"/><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg></span>
+          </div>
+          <strong>Projekt i treści</strong>
+          <p>Copywriting, propozycja wartości, hierarchia informacji, mobile-first i jasne CTA.</p>
+        </div>
+        <div class="web-step">
+          <div class="web-step-head">
+            <span class="web-step-num">3</span>
+            <span class="web-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+          </div>
+          <strong>Wdrożenie</strong>
+          <p>Core Web Vitals, meta tagi, formularze, tracking, sitemap i robots.txt.</p>
+        </div>
+        <div class="web-step">
+          <div class="web-step-head">
+            <span class="web-step-num">4</span>
+            <span class="web-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
+          </div>
+          <strong>Optymalizacja</strong>
+          <p>Analiza zachowań, testy nagłówków, CTA, sekcji i formularzy po uruchomieniu.</p>
+        </div>
+      </div>
+    </div>
+  </section><section class="web-section" id="faq">
     <div class="web-wrap">
       <span class="web-eyebrow">FAQ</span>
       <h2 class="web-h2">Najczęstsze pytania przed zleceniem strony internetowej.</h2>
