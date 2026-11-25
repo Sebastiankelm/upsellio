@@ -16,6 +16,29 @@ function upsellio_ai_pricing_table(): array
     ];
 }
 
+/** Atomic numeric option updates, including when PHP requests run concurrently. */
+function upsellio_ai_increment_spend_option(string $key, float $amount): bool
+{
+    global $wpdb;
+    $amount = number_format(max(0, $amount), 8, ".", "");
+    $result = $wpdb->query($wpdb->prepare(
+        "INSERT INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')
+         ON DUPLICATE KEY UPDATE option_value = CAST(option_value AS DECIMAL(24,8)) + CAST(%s AS DECIMAL(24,8))",
+        $key, $amount, $amount
+    ));
+    wp_cache_delete($key, "options");
+    wp_cache_delete("notoptions", "options");
+    wp_cache_delete("alloptions", "options");
+    return $result !== false;
+}
+
+/** Read the accounting total directly, avoiding stale persistent option caches. */
+function upsellio_ai_read_spend_option(string $key): float
+{
+    global $wpdb;
+    return (float) $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", $key));
+}
+
 /**
  * Wywołuj po każdym successful API response. $usage z odpowiedzi Anthropic.
  *
@@ -40,9 +63,9 @@ function upsellio_ai_record_usage(string $model, array $usage, string $task): vo
     }
     $rate = $pricing[$base_model];
 
-    $in = (int) ($usage["input_tokens"] ?? 0);
-    $out = (int) ($usage["output_tokens"] ?? 0);
-    $cache_in = (int) ($usage["cache_read_input_tokens"] ?? 0);
+    $in = max(0, (int) ($usage["input_tokens"] ?? 0));
+    $out = max(0, (int) ($usage["output_tokens"] ?? 0));
+    $cache_in = max(0, (int) ($usage["cache_read_input_tokens"] ?? 0));
 
     $cost_usd = ($in * $rate["in"] / 1000000)
         + ($out * $rate["out"] / 1000000)
@@ -55,8 +78,23 @@ function upsellio_ai_record_usage(string $model, array $usage, string $task): vo
     $daily_key = "ups_ai_spend_d_{$today}";
     $monthly_key = "ups_ai_spend_m_{$month}";
 
-    update_option($daily_key, ((float) get_option($daily_key, 0)) + $cost_pln, false);
-    update_option($monthly_key, ((float) get_option($monthly_key, 0)) + $cost_pln, false);
+    $daily_ok = upsellio_ai_increment_spend_option($daily_key, $cost_pln);
+    $monthly_ok = upsellio_ai_increment_spend_option($monthly_key, $cost_pln);
+    if (!$daily_ok || !$monthly_ok) {
+        error_log("[ai-cost-tracker] Failed to persist AI spend counters.");
+    }
+
+    global $wpdb;
+    $lock = "ups_ai_logs_" . md5($wpdb->prefix);
+    if ((string) $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 3)", $lock)) !== "1") {
+        error_log("[ai-cost-tracker] Spend counters recorded; detailed log lock unavailable.");
+        return;
+    }
+    try {
+        wp_cache_delete("ups_ai_spend_tasks_" . $month, "options");
+        wp_cache_delete("ups_ai_spend_log", "options");
+        wp_cache_delete("notoptions", "options");
+        wp_cache_delete("alloptions", "options");
 
     $task_log = get_option("ups_ai_spend_tasks_" . $month, []);
     if (!is_array($task_log)) {
@@ -82,6 +120,9 @@ function upsellio_ai_record_usage(string $model, array $usage, string $task): vo
         $log = array_slice($log, 0, 1000);
     }
     update_option("ups_ai_spend_log", $log, false);
+    } finally {
+        $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock));
+    }
 }
 
 /**
@@ -90,7 +131,8 @@ function upsellio_ai_record_usage(string $model, array $usage, string $task): vo
 function upsellio_ai_can_call(string $task, float $estimated_pln = 0.20): bool
 {
     $month = current_time("Y-m");
-    $current = (float) get_option("ups_ai_spend_m_{$month}", 0);
+    $current = upsellio_ai_read_spend_option("ups_ai_spend_m_{$month}");
+    $estimated_pln = max(0, $estimated_pln);
     $budget = (float) get_option("ups_ai_monthly_budget_pln", 300);
 
     if ($budget <= 0) {
@@ -128,13 +170,25 @@ function upsellio_ai_can_call_strict_global(string $task, float $estimated_pln =
 
     $today = current_time("Y-m-d");
     $today_key = "ups_ai_anon_calls_" . $today;
-    $daily_calls = (int) get_transient($today_key);
-    if ($daily_calls >= 100) {
+    global $wpdb;
+    $counter_key = "ups_ai_anon_daily_" . $today;
+    // Seed today's existing legacy count once. The conditional SQL update is atomic.
+    $seed = max(0, (int) get_transient($today_key));
+    $created = $wpdb->query($wpdb->prepare(
+        "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %d, 'no')",
+        $counter_key, $seed
+    ));
+    if ($created === false) {
         return false;
     }
-
-    set_transient($today_key, $daily_calls + 1, DAY_IN_SECONDS);
-    return true;
+    $changed = $wpdb->query($wpdb->prepare(
+        "UPDATE {$wpdb->options} SET option_value = CAST(option_value AS UNSIGNED) + 1
+         WHERE option_name = %s AND CAST(option_value AS UNSIGNED) < 100",
+        $counter_key
+    ));
+    wp_cache_delete($counter_key, "options");
+    wp_cache_delete("notoptions", "options");
+    return $changed === 1;
 }
 
 function upsellio_prune_option_log_by_ts(string $option_name, int $max_items = 1000, string $time_key = "ts"): void
