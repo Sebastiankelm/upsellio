@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'wp-content/themes/upsellio/**/*.php'
+      - 'wp-content/themes/upsellio/**/*.js'
       - '.github/workflows/crm-php-lint.yml'
       - 'tests/crm-regression-smoke.php'
   workflow_dispatch:
@@ -48,3 +49,5 @@ jobs:
           fi
       - name: CRM regression smoke tests
         run: php tests/crm-regression-smoke.php
+      - name: Check audit JavaScript syntax
+        run: node --check wp-content/themes/upsellio/inc/crm-app/assets/js/audit.js
