@@ -659,7 +659,7 @@ a{text-decoration:none;color:inherit}
 .ups-radio-group{display:grid;gap:8px}
 .ups-radio-group label{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink2)}
 .ups-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120px);z-index:220;max-width:min(420px,calc(100% - 32px));background:var(--ink);color:#fff;padding:14px 20px;border-radius:var(--r);font-size:14px;line-height:1.45;box-shadow:0 12px 40px rgba(0,0,0,.25);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
-.ups-toast.is-visible{transform:translateX(-50%) translateY(0)}
+.ups-toast{visibility:hidden;opacity:0;pointer-events:none}.ups-toast.is-visible{visibility:visible;opacity:1;transform:translateX(-50%) translateY(0)}
 .ups-toast strong{color:#5eead4;font-weight:600}
 .pnote{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
 .faq{display:grid;gap:0}
@@ -751,6 +751,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .offer-state-notice{margin:20px 0 0;padding:16px 20px;border:1px solid #b8d8cf;background:#edf8f4;color:#12483e;border-radius:14px;line-height:1.5}
 .offer-state-notice[hidden]{display:none}.offer-state-notice strong,.offer-state-notice span{display:block}
 .offer-state-notice span{font-size:14px;margin-top:3px}
+@media(min-width:769px){.acts--hero{flex-direction:row;flex-wrap:wrap;align-items:center}}
+@media(max-width:768px){.hero{padding-top:24px}.hero-name{margin-bottom:10px}.hero-owner{margin-top:16px;padding-top:12px}.acts--hero{flex-direction:row;flex-wrap:wrap;gap:8px}.acts--hero .btn{padding:0 16px;min-height:44px}.hero-grid{gap:18px}}
 </style>
 </head>
 <body>
@@ -1114,7 +1116,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
       <div class="pfoot-meta">
         <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 2L3 5v5c0 4.4 3.1 8.1 7 9 3.9-.9 7-4.6 7-9V5l-7-3Z"/></svg>
         Ważna do <strong style="color:var(--ink)"><?php echo esc_html($offer_expires_label); ?></strong>
-        · Po kliknięciu „<?php echo esc_html($cta_text); ?>” wyślemy podsumowanie do opiekuna i kopię na Twój e-mail.
+        · Po kliknięciu „<?php echo esc_html($cta_text); ?>” przekażemy podsumowanie opiekunowi.
       </div>
       <noscript><p>Do akceptacji online włącz JavaScript lub skontaktuj się z opiekunem.</p></noscript>
     </div>
@@ -1244,7 +1246,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   <div class="ups-modal__backdrop" data-ups-close></div>
   <div class="ups-modal__box" role="dialog" aria-modal="true" aria-labelledby="ups-modal-q-title">
     <h3 id="ups-modal-q-title">Twoje pytanie</h3>
-    <p>Opisz krótko, o co chodzi — dostaniesz <strong>kopię wiadomości</strong> na podany e-mail, a opiekun odpowie bezpośrednio.</p>
+    <p>Opisz krótko, o co chodzi — opiekun odpowie na podany adres e-mail.</p>
     <div class="ups-modal__err" id="ups-modal-q-err" role="alert" aria-live="assertive"></div>
     <label class="ups-modal__field"><span>Pytanie</span><textarea id="ups-modal-q-text" placeholder="Np. czy możemy zacząć od jednego kanału?"></textarea></label>
     <label class="ups-modal__field" id="ups-modal-q-email-wrap"><span>Twój e-mail (kontakt)</span><input type="email" id="ups-modal-q-email" autocomplete="email" placeholder="jan@firma.pl" required /></label>
@@ -1663,7 +1665,7 @@ if(elQs)elQs.addEventListener('click',function(){
     if(res&&res.success){
       if(res.data&&res.data.saved_contact)hasClientEmail=true;
       closeModals();
-      showToast((res.data&&res.data.message)||'Wysłano. Dostałeś kopię na maila.');
+      showToast((res.data&&res.data.message)||'Pytanie przekazane opiekunowi.');
     }else{
       showToast((res&&res.data&&res.data.message)||'Nie udało się wysłać.',true);
     }
@@ -1756,8 +1758,26 @@ function upsellio_offer_public_format_mail_html($intro, $rows, $owner_name)
     return $out;
 }
 
+// Public contact addresses are not verified identities. Never send private offer details to them.
+function upsellio_offer_public_verified_copy_allowed(int $offer_id, string $email): bool
+{
+    $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
+    $stored = $client_id > 0 ? sanitize_email((string) get_post_meta($client_id, "_ups_client_email", true)) : "";
+    return is_email($stored) && is_email($email) && strcasecmp($stored, $email) === 0;
+}
+
+function upsellio_offer_public_validate_scalar_fields(array $fields): void
+{
+    foreach ($fields as $field) {
+        if (isset($_POST[$field]) && !is_string($_POST[$field])) {
+            wp_send_json_error(["message" => "Nieprawidłowe dane formularza."], 400);
+        }
+    }
+}
+
 function upsellio_offer_public_messaging_ajax()
 {
+    upsellio_offer_public_validate_scalar_fields(["offer_id", "offer_token", "nonce", "msg_type", "contact_email", "cta_source", "question_body"]);
     $offer_id = isset($_POST["offer_id"]) ? (int) $_POST["offer_id"] : 0;
     if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
         wp_send_json_error(["message" => "Nieprawidłowa oferta."]);
@@ -1802,8 +1822,9 @@ function upsellio_offer_public_messaging_ajax()
 
     $headers = [
         "Content-Type: text/html; charset=UTF-8",
-        "Cc: " . $client_email,
     ];
+    $copy_allowed = upsellio_offer_public_verified_copy_allowed($offer_id, $client_email);
+    if ($copy_allowed) { $headers[] = "Cc: " . $client_email; }
 
     $question_body = isset($_POST["question_body"]) ? sanitize_textarea_field(wp_unslash($_POST["question_body"])) : "";
     if (strlen($question_body) < 3) {
@@ -1831,7 +1852,8 @@ function upsellio_offer_public_messaging_ajax()
         upsellio_inbox_append_message($offer_id, ["direction" => "in", "from" => $client_email, "to" => $owner_email, "subject" => $subject, "body_plain" => $question_body, "body_html" => "", "source" => "offer_public_question", "read" => false]);
     }
     if (!$mail_sent && !$question_id) { wp_send_json_error(["message" => "Nie udało się zapisać wiadomości. Skontaktuj się telefonicznie."], 502); }
-    if (!$mail_sent) { wp_send_json_success(["message" => "Pytanie zapisane w CRM, ale nie wysłano kopii e-mail."]); }
+    if (!$mail_sent) { wp_send_json_success(["message" => "Pytanie zapisane w CRM, ale powiadomienie e-mail nie zostało wysłane."]); }
+    if (!$copy_allowed) { wp_send_json_success(["message" => "Pytanie przekazane opiekunowi. Odpowie na podany adres.", "saved_contact" => false]); }
     wp_send_json_success([
         "message" => sprintf(
             /* translators: %s: client email */
@@ -1846,6 +1868,7 @@ add_action("wp_ajax_nopriv_upsellio_offer_public_messaging", "upsellio_offer_pub
 
 function upsellio_offer_accept_full_ajax()
 {
+    upsellio_offer_public_validate_scalar_fields(["offer_id", "offer_token", "nonce", "contact_email", "timeline", "ad_budget", "decision", "offer_version", "offer_fingerprint", "commit_key", "contact_pref", "call_window", "contact_name", "contact_phone", "concerns", "cta_source"]);
     $offer_id = isset($_POST["offer_id"]) ? (int) $_POST["offer_id"] : 0;
     if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
         wp_send_json_error(["message" => "Nieprawidłowa oferta."]);
@@ -1930,6 +1953,10 @@ function upsellio_offer_accept_full_ajax()
         "title" => get_the_title($offer_id),
         "content" => (string) get_post_field("post_content", $offer_id),
         "layout" => $offer_payload,
+        "timeline" => upsellio_offer_get_commercial_timeline($offer_id),
+        "scope_items" => get_post_meta($offer_id, "_ups_offer_scope_items", true),
+        "scope_extra_html" => get_post_meta($offer_id, "_ups_offer_scope_extra_html", true),
+        "expires_at" => get_post_meta($offer_id, "_ups_offer_expires_at", true),
         "price" => $decision_payload["offer_price"],
         "variant" => $variant_map[$variant_key] ?? [],
         "version" => $decision_payload["offer_version"],
@@ -1960,10 +1987,9 @@ function upsellio_offer_accept_full_ajax()
         $rows,
         $owner_name
     );
-    $mail_sent = wp_mail($owner_email, $subject, $body, [
-        "Content-Type: text/html; charset=UTF-8",
-        "Cc: " . $contact_email,
-    ]);
+    $headers = ["Content-Type: text/html; charset=UTF-8"];
+    if (upsellio_offer_public_verified_copy_allowed($offer_id, $contact_email)) { $headers[] = "Cc: " . $contact_email; }
+    $mail_sent = wp_mail($owner_email, $subject, $body, $headers);
     update_post_meta($offer_id, "_ups_offer_accept_mail_status", $mail_sent ? "sent" : "failed");
 
     wp_send_json_success([
@@ -1975,6 +2001,7 @@ add_action("wp_ajax_nopriv_upsellio_offer_accept_full", "upsellio_offer_accept_f
 
 function upsellio_offer_qa_submit_handler()
 {
+    upsellio_offer_public_validate_scalar_fields(["offer_id", "offer_token", "nonce", "qa_email", "offer_fingerprint"]);
     $offer_id = isset($_POST["offer_id"]) ? (int) $_POST["offer_id"] : 0;
     if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
         wp_send_json_error(["message" => "Nieprawidłowa oferta."]);
