@@ -875,11 +875,19 @@ function upsellio_followup_resolve_placeholders($text, $offer_id, $stage)
     return strtr((string) $text, $replace);
 }
 
+function upsellio_followup_offer_block_reason(int $offer_id): string
+{
+    if (get_post_type($offer_id) !== "crm_offer" || get_post_status($offer_id) !== "publish") { return "unpublished"; }
+    if (!in_array((string) get_post_meta($offer_id, "_ups_offer_status", true), ["open", "sent"], true)) { return "closed"; }
+    if (function_exists("upsellio_offer_is_expired") && upsellio_offer_is_expired($offer_id)) { return "expired"; }
+    return "";
+}
+
 function upsellio_followup_queue_message($offer_id, $template_id, $stage)
 {
     $offer_id = (int) $offer_id;
     $template_id = (int) $template_id;
-    if ($offer_id <= 0 || $template_id <= 0) {
+    if ($offer_id <= 0 || $template_id <= 0 || upsellio_followup_offer_block_reason($offer_id) !== "") {
         return;
     }
     $queue = get_post_meta($offer_id, "_ups_offer_followup_queue", true);
@@ -978,11 +986,13 @@ function upsellio_followup_find_matching_templates($event_name, $stage)
 function upsellio_followup_handle_offer_event($offer_id, $event_name, $summary, $stage)
 {
     $offer_id = (int) $offer_id;
-    if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
+    if ($offer_id <= 0 || upsellio_followup_offer_block_reason($offer_id) !== "") {
         return;
     }
     $stage = sanitize_key((string) $stage);
     $event_name = sanitize_key((string) $event_name);
+    // Keep high-frequency telemetry from scheduling generic follow-ups.
+    if (!in_array($event_name, ["offer_view", "offer_section_view", "offer_engagement_tick", "offer_cta_click", "offer_commit_selected", "offer_accept_started"], true)) { return; }
     foreach (upsellio_followup_find_matching_templates($event_name, $stage) as $template_id) {
         upsellio_followup_queue_message($offer_id, (int) $template_id, $stage);
     }
@@ -1207,13 +1217,14 @@ function upsellio_followup_send_due_queue()
     ]);
     foreach ($offers as $offer_id) {
         $offer_id = (int) $offer_id;
-        if (function_exists("upsellio_offer_is_expired") && upsellio_offer_is_expired($offer_id)) {
+        $block_reason = upsellio_followup_offer_block_reason($offer_id);
+        if ($block_reason !== "") {
             $queue = get_post_meta($offer_id, "_ups_offer_followup_queue", true);
             if (is_array($queue) && !empty($queue)) {
                 $updated = false;
                 foreach ($queue as $idx => $item) {
                     if ((string) ($item["status"] ?? "") === "queued") {
-                        $queue[$idx]["status"] = "cancelled_expired";
+                        $queue[$idx]["status"] = "cancelled_" . $block_reason;
                         $queue[$idx]["cancelled_at"] = current_time("mysql");
                         $updated = true;
                     }
@@ -1221,7 +1232,7 @@ function upsellio_followup_send_due_queue()
                 if ($updated) {
                     update_post_meta($offer_id, "_ups_offer_followup_queue", $queue);
                     if (function_exists("upsellio_offer_add_timeline_event")) {
-                        upsellio_offer_add_timeline_event($offer_id, "followup_cancelled", "Wstrzymano kolejke follow-up: oferta wygasla.");
+                        upsellio_offer_add_timeline_event($offer_id, "followup_cancelled", "Wstrzymano kolejke follow-up: " . $block_reason);
                     }
                 }
             }
@@ -1241,11 +1252,17 @@ function upsellio_followup_send_due_queue()
             if ((string) ($item["status"] ?? "") !== "queued") {
                 continue;
             }
-            $send_at = strtotime((string) ($item["send_at"] ?? ""));
+            if (upsellio_followup_offer_block_reason($offer_id) !== "") {
+                $queue[$idx]["status"] = "cancelled_inactive";
+                $updated = true;
+                continue;
+            }
+            $send_at = strtotime((string) ($item["send_at"] ?? "") . " UTC");
             if ($send_at === false || $send_at > time()) {
                 continue;
             }
             $template_id = (int) ($item["template_id"] ?? 0);
+            $stage = sanitize_key((string) ($item["stage"] ?? "awareness"));
             $builtin_kind = sanitize_key((string) ($item["builtin_reminder"] ?? ""));
             if ($template_id <= 0 && $builtin_kind !== "" && function_exists("upsellio_offer_send_builtin_reminder_email")) {
                 $sent_builtin = upsellio_offer_send_builtin_reminder_email($offer_id, $builtin_kind, $stage);
@@ -1286,7 +1303,7 @@ function upsellio_followup_send_due_queue()
                 }
                 continue;
             }
-            if ($template_id <= 0) {
+            if ($template_id <= 0 || get_post_status($template_id) !== "publish" || (string) get_post_meta($template_id, "_ups_followup_active", true) !== "1") {
                 $queue[$idx]["status"] = "skipped";
                 $updated = true;
                 continue;
