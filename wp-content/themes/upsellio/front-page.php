@@ -552,6 +552,19 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
 .hr .hr-about-copy .hr-btn{margin-top:12px}
 @media(max-width:860px){.hr .hr-about-grid{grid-template-columns:minmax(0,1fr)}.hr .hr-about-photo{width:100%;max-width:360px}}
 
+
+.hr .hr-hero .hr-eyebrow{font-size:14px;letter-spacing:0;text-transform:none;margin-bottom:16px}
+.hr .hr-hero .hr-eyebrow::before{width:8px;height:8px;border-radius:50%}
+.hr .hr-hero .hr-lead{font-size:19px;max-width:54ch;line-height:1.6}
+.hr .hr-hero-stats{grid-template-columns:repeat(2,minmax(0,1fr));max-width:440px}
+.hr .hr-audience{padding:32px 0;background:#fff;border-bottom:1px solid #e3e6ea}
+.hr .hr-audience h2{font:700 16px/1.4 "DM Sans",system-ui,sans-serif;color:#3a3d44;margin:0 0 18px}
+.hr .hr-audience-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.hr .hr-audience-grid article{padding:20px;background:#f5f6f8;border-radius:16px;min-width:0}
+.hr .hr-audience-grid h3{font:700 18px/1.25 "Bricolage Grotesque",sans-serif;margin:0 0 6px;color:#0f1115}
+.hr .hr-audience-grid p{font-size:15px;line-height:1.5;margin:0;color:#3a3d44}
+@media(max-width:980px){.hr .hr-audience-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.hr .hr-hero .hr-lead{font-size:17px}.hr .hr-audience-grid{grid-template-columns:minmax(0,1fr)}}
 </style>
 
 <main class="hr" id="strona-glowna">
@@ -563,43 +576,24 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
   <div class="hr-wrap">
     <div class="hr-hero-grid">
       <div data-hr-anim>
-        <div class="hr-eyebrow">Dla firm, którym reklama nie zamienia się w klientów</div>
+        <div class="hr-eyebrow">Reklamy, strony i sklepy dla małych firm</div>
         <h1 class="hr-h1" id="hr-h1">
-          Twoja reklama działa. <s>Klientów</s> jakoś brak. <em>Naprawmy to.</em>
+          Więcej zamówień i klientów <em>z tego samego budżetu.</em>
         </h1>
-        <p class="hr-lead">
-          Płacisz za reklamy, masz ruch na stronie, ale klientów dalej brakuje. Problem może zaczynać się już na etapie targetowania kampanii, albo później, gdy strona nie tłumaczy jasno, dlaczego klient ma wybrać właśnie Ciebie.
-        </p>
-        <ul class="hr-bullets">
-          <li><span class="hr-bullets-icn">&#10003;</span><span>Więcej kwalifikowanych zapytań z tego samego budżetu reklamowego</span></li>
-          <li><span class="hr-bullets-icn">&#10003;</span><span>Strona i kampania prowadzone wspólnie — nie tłumaczysz briefu trzem osobom</span></li>
-          <li><span class="hr-bullets-icn">&#10003;</span><span>Mierzalny lejek: znasz koszt leada, jakość i źródło, nie tylko CTR</span></li>
-          <li><span class="hr-bullets-icn">&#10003;</span><span>Konkretne odpowiedzi w 30 minut, bez slajdów i sales-talku</span></li>
-        </ul>
+        <p class="hr-lead">Prowadzę reklamy w Google, na Facebooku i Instagramie oraz tworzę strony i sklepy, które pomagają zamieniać odwiedzających w zamówienia i telefony. Jedna osoba od reklamy do koszyka — bez prowizji od budżetu.</p>
         <div class="hr-hero-acts">
           <a href="#kontakt" class="hr-btn hr-btn-p">Umów bezpłatną diagnozę →</a>
-          <a href="#problem" class="hr-btn hr-btn-g">Sprawdź czy to o Tobie</a>
+          <a href="#system" class="hr-btn hr-btn-g">Zobacz, co robię</a>
         </div>
 
-        <!-- Mini-stats z perspektywy klienta (zastapily liczby Sebastiana) -->
         <div class="hr-hero-stats">
-          <div class="hr-hero-stat">
-            <strong>2-4 tyg.</strong>
-            <span>do pierwszych leadów</span>
-          </div>
-          <div class="hr-hero-stat">
-            <strong>0 zł</strong>
-            <span>Tylko kosztuje pierwsza analiza twojej sytuacji</span>
-          </div>
-          <div class="hr-hero-stat">
-            <strong>0%</strong>
-            <span>prowizji od budżetu reklamowego</span>
-          </div>
+          <div class="hr-hero-stat"><strong>30 min</strong><span>bezpłatna diagnoza</span></div>
+          <div class="hr-hero-stat"><strong>0%</strong><span>prowizji od budżetu</span></div>
         </div>
 
         <!-- Konkretny CTA telefoniczny pod stats — dla klientów, którzy już wiedzą, że chcą rozmowy -->
         <div class="hr-hero-call">
-          Wolisz od razu zadzwońić?
+          Wolisz od razu zadzwonić?
           <a href="tel:<?php echo esc_attr($contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
           · odpowiadam osobiście pn–pt 9-17
         </div>
@@ -609,7 +603,7 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
         <span class="hr-form-tag">&#9658; Zacznij tu</span>
         <h2>Bezpłatna 30-min diagnoza</h2>
         <p class="hr-form-sub">
-          Pokaż link do strony i opisz w 2 zdaniach, z czym dziś masz największy problem lub co chcesz poprawić. Odpowiadam w 24h roboczych.
+          Zostaw dane kontaktowe — oddzwonię w 24h roboczych.
         </p>
         <?php
         if (function_exists("upsellio_render_lead_form")) {
@@ -643,6 +637,17 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
      Zastapilo sekcje "Liczby" — mówi o korzysciach klienta, nie o moim CV
      Na koncu wewnetrzne CTA do nastepnej sekcji (Problem)
      ==================================================================== -->
+<section class="hr-audience" aria-labelledby="hr-audience-h2">
+  <div class="hr-wrap">
+    <h2 id="hr-audience-h2">Pracuję z małymi firmami, na przykład:</h2>
+    <div class="hr-audience-grid">
+      <article><h3>Sklepy internetowe</h3><p>Dom i ogród, odzież, kosmetyki, akcesoria.</p></article>
+      <article><h3>Wyroby własne</h3><p>Świece, ceramika, rękodzieło, małe marki.</p></article>
+      <article><h3>Lokale</h3><p>Pizzerie, kawiarnie, restauracje z dowozem.</p></article>
+      <article><h3>Usługi lokalne</h3><p>Salony, gabinety, warsztaty, ekipy remontowe.</p></article>
+    </div>
+  </div>
+</section>
 <section class="hr-gain" id="zyski" aria-labelledby="hr-gain-h2">
   <div class="hr-wrap">
     <header class="hr-gain-head" data-hr-anim>
