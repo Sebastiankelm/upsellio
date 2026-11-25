@@ -28,7 +28,7 @@ browser_image=mcr.microsoft.com/playwright:v1.51.1-noble
 browser_dir=$(mktemp -d)
 trap 'rm -rf "$browser_dir"; cleanup' EXIT
 npm install --prefix "$browser_dir" --no-audit --no-fund --ignore-scripts playwright@1.51.1
-cp tools/redesign-browser.mjs "$browser_dir/"
+cp tools/redesign-browser.mjs tools/redesign-performance.mjs "$browser_dir/"
 docker pull "$browser_image"
 # Optional real Rank Math fixture. Download on runner before isolation,
 # never permit the WordPress containers to reach the plugin repository.
@@ -243,6 +243,11 @@ HTACCESS
   capture contact /kontakt/ "$dest"
   capture blog /blog/ "$dest"
   capture article /fixture-seo-article/ "$dest"
+  if [[ -z "$rank_math_version" && "${FIXTURE_MEASURE_PERFORMANCE:-0}" == 1 ]]; then
+    docker run --rm --network "$network" --ipc=host \
+      -v "$browser_dir:/tests:ro" -v "$dest:/results" -w /tests "$browser_image" \
+      node redesign-performance.mjs /results/performance.json
+  fi
   # Explicitly exercise the selectable core template rather than only home.php.
   wpcli option update page_for_posts 0
   wpcli post meta update "$blog" _wp_page_template ups-blog-core.php
@@ -267,3 +272,6 @@ HTACCESS
 }
 render "$base_ref" baseline
 render "$candidate_ref" candidate
+if [[ -z "$rank_math_version" && "${FIXTURE_MEASURE_PERFORMANCE:-0}" == 1 ]]; then
+  python3 tools/redesign-performance-compare.py "$out/baseline/performance.json" "$out/candidate/performance.json" "$out/performance-summary.json"
+fi
