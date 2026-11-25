@@ -1426,7 +1426,7 @@ function ups_audit_intel_benchmark_compare(array $agg, array $benchmark, array $
  *
  * @return array<string, mixed>
  */
-function ups_audit_build_command_center(int $window = 30): array
+function ups_audit_build_command_center(int $window = 30, bool $restrict_to_current_user = false): array
 {
     $window = in_array($window, [7, 14, 30, 60, 90], true) ? $window : 30;
     $rows = [];
@@ -1435,10 +1435,18 @@ function ups_audit_build_command_center(int $window = 30): array
     foreach (function_exists("ups_audit_collect_profile_client_ids") ? ups_audit_collect_profile_client_ids() : [] as $cid) {
         $cid = (int) $cid;
         $client = get_post($cid);
-        if (!($client instanceof WP_Post)) {
+        if (!($client instanceof WP_Post) || $client->post_type !== "crm_client" || ($restrict_to_current_user && !upsellio_crm_app_can_access_audit_client($cid))) {
             continue;
         }
-        $agg = ups_audit_aggregate_client_data($cid, $window, 0, false);
+        try {
+            $agg = ups_audit_aggregate_client_data($cid, $window, 0, false);
+        } catch (Throwable $e) {
+            $agg = [];
+        }
+        if (!is_array($agg) || $agg === []) {
+            $rows[] = ["id" => $cid, "title" => (string) $client->post_title, "status" => "unknown", "health_score" => null, "attention" => ["Brak danych — sprawdź synchronizację"], "dashboard_url" => upsellio_crm_url("ca-dashboard", ["cid" => $cid, "window" => $window])];
+            continue;
+        }
         $intel = (array) ($agg["intelligence"] ?? []);
         $alerts = (array) ($intel["alerts"] ?? []);
         $critical = count(array_filter($alerts, static fn($a) => is_array($a) && ($a["severity"] ?? "") === "critical"));
@@ -1483,7 +1491,7 @@ function ups_audit_build_command_center(int $window = 30): array
     });
 
     usort($rows, static function ($a, $b) {
-        $order = ["red" => 0, "yellow" => 1, "green" => 2];
+        $order = ["red" => 0, "yellow" => 1, "unknown" => 2, "green" => 3];
         $sa = $order[$a["status"] ?? "green"] ?? 9;
         $sb = $order[$b["status"] ?? "green"] ?? 9;
         if ($sa !== $sb) {
@@ -1502,6 +1510,7 @@ function ups_audit_build_command_center(int $window = 30): array
             "red" => count(array_filter($rows, static fn($r) => ($r["status"] ?? "") === "red")),
             "yellow" => count(array_filter($rows, static fn($r) => ($r["status"] ?? "") === "yellow")),
             "green" => count(array_filter($rows, static fn($r) => ($r["status"] ?? "") === "green")),
+            "unknown" => count(array_filter($rows, static fn($r) => ($r["status"] ?? "") === "unknown")),
         ],
     ];
 }
