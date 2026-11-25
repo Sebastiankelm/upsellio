@@ -9,9 +9,11 @@ function add_filter(...$args) {}
 function sanitize_key($v) { return preg_replace('/[^a-z0-9_-]/', '', strtolower($v)); }
 function wp_timezone() { return new DateTimeZone("Europe/Warsaw"); }
 function wp_unslash($value) { return $value; }
+function get_post_type($id) { return in_array((int) $id, [10, 250, 251], true) ? "crm_client" : "crm_offer"; }
 function post_type_exists($type) { return $type === "crm_lead"; }
 function is_user_logged_in() { return $GLOBALS["logged_in"]; }
 function current_user_can($cap, ...$args) {
+    if ($cap === "read_post") { return (int) $args[0] !== 251; }
     if ($cap === "edit_post") {
         return (int) $args[0] !== 250;
     }
@@ -125,4 +127,14 @@ $outside = upsellio_crm_app_calendar_outside_hours([
 check(array_column($outside, "id") === [2, 5, 6], "outside hours keep before 08 and from 16 in selected week only");
 check($outside[0]["date"] === "2026-11-23", "outside hours preserve original date");
 check(upsellio_crm_app_calendar_outside_hours([], $week) === [], "empty calendar has no outside-hours appointments");
+$GLOBALS["caps"] = ["upsellio_access_crm"];
+check(upsellio_crm_app_user_can_view("ca-dashboard"), "CRM staff retain client dashboard access");
+check(!upsellio_crm_app_user_can_view("settings") && !upsellio_crm_app_user_can_view("ca-library"), "CRM staff cannot read global settings");
+check(!upsellio_crm_app_user_can_view("ca-accounts") && !upsellio_crm_app_user_can_view("ca-meta-accounts"), "global account configuration is administrator only");
+check(upsellio_crm_app_can_access_audit_client(10), "authorized client profile allowed");
+check(!upsellio_crm_app_can_access_audit_client(250), "client edit permission is required");
+check(!upsellio_crm_app_can_access_audit_client(251), "client read permission is required");
+check(!upsellio_crm_app_can_access_audit_client(11) && !upsellio_crm_app_can_access_audit_client(0), "non-client and missing record denied");
+$GLOBALS["caps"] = ["manage_options"];
+check(upsellio_crm_app_user_can_view("settings") && upsellio_crm_app_user_can_view("ca-accounts"), "administrator retains configuration access");
 echo "CRM smoke checks complete." . PHP_EOL;
