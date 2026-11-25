@@ -2318,7 +2318,7 @@ function upsellio_crm_app_template_redirect()
             <?php endif; ?>
             <?php if ($view === "clients") : ?>
               <section class="card">
-                <h2>Lista klientow</h2>
+                <h2>Lista klientów</h2>
                 <div class="crm-cc-grid">
                   <?php foreach ($clients as $client) : $cid = (int) $client->ID; ?>
                     <?php
@@ -2330,7 +2330,7 @@ function upsellio_crm_app_template_redirect()
                         $ltv = $ce_mrr * $months;
                     }
                     $next = (string) get_post_meta($cid, "_ups_client_next_contact_date", true);
-                    $today_ymd = wp_date("Y-m-d", current_time("timestamp"));
+                    $today_ymd = wp_date("Y-m-d");
                     $next_overdue = $next !== "" && $next < $today_ymd;
                     $sub = (string) get_post_meta($cid, "_ups_client_subscription_status", true);
                     $sub_cls = $sub === "active" ? "a" : ($sub === "paused" ? "p" : "c");
@@ -2355,7 +2355,7 @@ function upsellio_crm_app_template_redirect()
                       </div>
                       <div class="crm-cc-acts">
                         <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "client-edit", "client_id" => $cid], home_url("/crm-app/"))); ?>">Edytuj</a>
-                        <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "inbox"], home_url("/crm-app/"))); ?>">Inbox</a>
+                        <a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("account-360", ["account_client_id" => $cid])); ?>">Karta 360°</a>
                         <button type="button" class="btn alt crm-btn ai" onclick="crmAI('Przygotuj raport miesięczny dla klienta <?php echo esc_js((string) $client->post_title); ?> CRM Upsellio')">Raport AI</button>
                         <button type="button" class="btn alt crm-btn ai" onclick="crmAI('Zaproponuj upsell dla klienta <?php echo esc_js((string) $client->post_title); ?> CRM Upsellio')">Upsell AI</button>
                       </div>
@@ -3598,6 +3598,8 @@ function upsellio_crm_app_template_redirect()
             <?php if ($view === "pipeline") : ?>
               <?php
               $pipeline_total_deals = 0;
+              $pipeline_value = $pipeline_weighted_value = 0.0;
+              $pipeline_stage_counts = [];
               $pipeline_open_deals = 0;
               $pipeline_won_deals = 0;
               $pipeline_lost_deals = 0;
@@ -3608,12 +3610,19 @@ function upsellio_crm_app_template_redirect()
                   $deal_id_stats = (int) $offer_stats->ID;
                   $deal_status_stats = (string) get_post_meta($deal_id_stats, "_ups_offer_status", true);
                   $pipeline_total_deals++;
+                  $stage = (string) get_post_meta($deal_id_stats, "_ups_offer_stage", true);
+                  $bucket = upsellio_crm_app_pipeline_bucket($deal_status_stats, $stage);
+                  $pipeline_stage_counts[$bucket] = ($pipeline_stage_counts[$bucket] ?? 0) + 1;
                   if ($deal_status_stats === "won") {
                       $pipeline_won_deals++;
                   } elseif ($deal_status_stats === "lost") {
                       $pipeline_lost_deals++;
                   } else {
                       $pipeline_open_deals++;
+                      $value = upsellio_crm_app_offer_estimated_value_pln($deal_id_stats);
+                      $pipeline_value += $value;
+                      $probability = get_post_meta($deal_id_stats, "_ups_offer_deal_probability_0_100", true);
+                      if (is_numeric($probability)) { $pipeline_weighted_value += $value * max(0, min(100, (float) $probability)) / 100; }
                       $created_ts_stats = strtotime((string) $offer_stats->post_date_gmt);
                       if ($created_ts_stats !== false && $created_ts_stats > 0) {
                           $pipeline_total_age_days += max(0, (int) floor((time() - $created_ts_stats) / DAY_IN_SECONDS));
@@ -3638,8 +3647,8 @@ function upsellio_crm_app_template_redirect()
               $pipeline_avg_age_days = $pipeline_open_age_count > 0 ? (int) round($pipeline_total_age_days / $pipeline_open_age_count) : 0;
               $pipeline_avg_stage_days = $pipeline_open_age_count > 0 ? (int) round($pipeline_total_stage_days / $pipeline_open_age_count) : 0;
               ?>
-              <section class="card kpi"><span class="muted">Wszystkie deale</span><b><?php echo esc_html((string) $pipeline_total_deals); ?></b></section>
-              <section class="card kpi"><span class="muted">Otwarte deale</span><b><?php echo esc_html((string) $pipeline_open_deals); ?></b></section>
+              <section class="card kpi"><span class="muted">Wartość pipeline</span><b><?php echo esc_html(number_format($pipeline_value, 0, ",", " ")); ?> zł</b><small class="muted"><?php echo (int) $pipeline_open_deals; ?> otwartych</small></section>
+              <section class="card kpi"><span class="muted">Ważona prognoza</span><b><?php echo esc_html(number_format($pipeline_weighted_value, 0, ",", " ")); ?> zł</b><small class="muted">Tylko zapisane prawdopodobieństwa</small></section>
               <section class="card kpi"><span class="muted">Śr. wiek deala</span><b><?php echo esc_html((string) $pipeline_avg_age_days); ?> dni</b></section>
               <section class="card kpi"><span class="muted">Śr. czas w etapie</span><b><?php echo esc_html((string) $pipeline_avg_stage_days); ?> dni</b></section>
               <section class="card" style="grid-column:1/-1;padding:12px 18px">
@@ -3659,13 +3668,13 @@ function upsellio_crm_app_template_redirect()
                       "consideration" => "Rozważanie",
                       "decision" => "Decyzja",
                       "offer_sent" => "Oferta wysłana",
-                      "won" => "Won",
-                      "lost" => "Lost",
+                      "won" => "Wygrane",
+                      "lost" => "Przegrane",
                   ];
                   foreach ($pipeline_cols as $pipeline_key => $pipeline_label) :
                       ?>
                     <div class="pipeline-col" data-pipeline-col="<?php echo esc_attr($pipeline_key); ?>">
-                      <h3><?php echo esc_html($pipeline_label); ?></h3>
+                      <h3><?php echo esc_html($pipeline_label); ?> <span class="crm-stage-count"><?php echo (int) ($pipeline_stage_counts[$pipeline_key] ?? 0); ?></span></h3>
                       <div class="pipeline-drop">
                         <?php foreach ($offers as $offer) : ?>
                           <?php
@@ -3675,21 +3684,8 @@ function upsellio_crm_app_template_redirect()
                           if ($offer_stage === "") {
                               $offer_stage = "awareness";
                           }
-                          if ($pipeline_key === "offer_sent") {
-                              if ($offer_status !== "sent") {
-                                  continue;
-                              }
-                          } elseif ($offer_status === "won" || $offer_status === "lost") {
-                              if ($offer_status !== $pipeline_key) {
-                                  continue;
-                              }
-                          } else {
-                              if ($offer_status === "sent") {
-                                  continue;
-                              }
-                              if ($offer_stage !== $pipeline_key) {
-                                  continue;
-                              }
+                          if (upsellio_crm_app_pipeline_bucket($offer_status, $offer_stage) !== $pipeline_key) {
+                              continue;
                           }
                           $deal_created_ts = strtotime((string) $offer->post_date_gmt);
                           $deal_age_days = ($deal_created_ts !== false && $deal_created_ts > 0) ? max(0, (int) floor((time() - $deal_created_ts) / DAY_IN_SECONDS)) : 0;
@@ -3728,7 +3724,7 @@ function upsellio_crm_app_template_redirect()
                           $pipeline_score_color = $pipeline_offer_score >= 70 ? "#0f766e" : ($pipeline_offer_score >= 40 ? "#b45309" : "#6b7280");
                           ?>
                           <article class="pipeline-card <?php echo esc_attr($sla_class); ?>" draggable="true" data-offer-id="<?php echo esc_attr((string) $offer_id); ?>">
-                            <strong>Deal #<?php echo esc_html((string) $offer_id); ?> - <?php echo esc_html((string) $offer->post_title); ?></strong>
+                            <a class="crm-pipeline-title" href="<?php echo esc_url(upsellio_crm_url("offers", ["offer_editor_id" => $offer_id])); ?>"><?php echo esc_html((string) $offer->post_title); ?></a><div class="crm-pipeline-value"><?php echo esc_html(number_format(upsellio_crm_app_offer_estimated_value_pln($offer_id), 0, ",", " ")); ?> zł</div>
                             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
                               <span class="badge" style="background:rgba(15,118,110,.12);color:<?php echo esc_attr($pipeline_score_color); ?>">
                                 <?php echo esc_html__("Score", "upsellio"); ?>: <?php echo esc_html((string) $pipeline_offer_score); ?>/100
@@ -4962,7 +4958,7 @@ function upsellio_crm_app_template_redirect()
                   <div class="crm-inbox-brand">
                     <span class="crm-inbox-logo" aria-hidden="true">U</span>
                     <div>
-                      <h1 class="crm-inbox-title"><?php esc_html_e("Inbox CRM", "upsellio"); ?></h1>
+                      <h1 class="crm-inbox-title"><?php esc_html_e("Skrzynka", "upsellio"); ?></h1>
                       <p class="crm-inbox-sub"><?php esc_html_e("Formularze, maile bezpośrednie i oferty w jednym ciągłym wątku klienta.", "upsellio"); ?></p>
                     </div>
                   </div>
