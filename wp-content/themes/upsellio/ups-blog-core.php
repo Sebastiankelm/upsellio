@@ -58,7 +58,6 @@ $categories = get_categories(["hide_empty" => true]);
    ============================================================ */
 $contact_url   = function_exists("upsellio_get_contact_page_url")  ? upsellio_get_contact_page_url()  : home_url("/kontakt/");
 $lead_mag_url  = home_url("/lead-magnety/");
-$admin_post    = admin_url("admin-post.php");
 $upsellio_blog_variant = isset($upsellio_blog_variant) ? (string) $upsellio_blog_variant : "default";
 
 get_header();
@@ -353,13 +352,8 @@ a.bg-final-btn,.bg-art a.bg-final-btn{color:#fff}
             Masz problem? Napisz →
           </a>
           <div class="bg-newsletter">
-            <p>Co 2 tygodnie: jeden praktyczny artykuł. Bez clickbaitu.</p>
-            <form method="post" action="<?php echo esc_url($admin_post); ?>" class="bg-newsletter-form">
-              <input type="hidden" name="action" value="upsellio_lead_form_submit">
-              <input type="hidden" name="lead_form_origin" value="blog-newsletter">
-              <input type="email" name="email" aria-label="Twój adres e-mail" placeholder="twoj@email.pl" required>
-              <button type="submit">Subskrybuj →</button>
-            </form>
+            <p>Praktyczne artykuły o marketingu, reklamach i sprzedaży. Bez clickbaitu.</p>
+            <a class="bg-hero-btn" href="#wpisy-blogowe">Przejdź do artykułów →</a>
           </div>
         </div>
       </div>
@@ -393,7 +387,7 @@ a.bg-final-btn,.bg-art a.bg-final-btn{color:#fff}
        SEKCJA 03 — WPISY BLOGA
        Układ: 1 featured (2-kol karta) + author bar + grid 3-kol
        ============================================================ -->
-  <section aria-label="Wpisy blogowe">
+  <section id="wpisy-blogowe" aria-label="Wpisy blogowe">
     <div class="bg-wrap">
 
       <?php
