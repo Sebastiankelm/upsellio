@@ -88,18 +88,19 @@ function upsellio_crm_app_dashboard_period_bounds($period_key)
 
 function upsellio_crm_app_dashboard_source_bucket($haystack)
 {
-    $h = strtolower((string) $haystack);
+    $h = strtolower(trim((string) $haystack));
     if ($h === "") {
         return __("nieznane", "upsellio");
     }
-    if (strpos($h, "google") !== false || strpos($h, "ads") !== false && strpos($h, "meta") === false) {
-        return "Google Ads";
-    }
-    if (strpos($h, "meta") !== false || strpos($h, "facebook") !== false) {
-        return "Meta Ads";
-    }
+    $paid = preg_match('/\b(cpc|ppc|paid|ads|gads|adwords)\b/', $h) === 1;
     if (strpos($h, "seo") !== false || strpos($h, "organic") !== false) {
         return "SEO";
+    }
+    if ($paid && preg_match('/\b(google|gads|adwords)\b/', $h)) {
+        return "Google Ads";
+    }
+    if ($paid && preg_match('/\b(meta|facebook|instagram|fb|ig)\b/', $h)) {
+        return "Meta Ads";
     }
     if (strpos($h, "direct") !== false || strpos($h, "(direct)") !== false) {
         return "Direct";
@@ -124,23 +125,13 @@ function upsellio_crm_app_dashboard_lead_passes_source_filter($lead_id, $filter)
     $utm_m = strtolower((string) get_post_meta((int) $lead_id, "_ups_lead_utm_medium", true));
     $src = strtolower((string) get_post_meta((int) $lead_id, "_ups_lead_source", true));
     $hay = $utm . " " . $utm_m . " " . $src;
-    if ($filter === "seo") {
-        return strpos($hay, "seo") !== false || strpos($hay, "organic") !== false;
-    }
-    if ($filter === "google") {
-        return strpos($hay, "google") !== false || strpos($hay, "gads") !== false;
-    }
-    if ($filter === "meta") {
-        return strpos($hay, "meta") !== false || strpos($hay, "facebook") !== false || strpos($hay, "fb") !== false;
-    }
-    if ($filter === "direct") {
-        return strpos($hay, "direct") !== false || $hay === " ";
-    }
-    if ($filter === "referral") {
-        return strpos($hay, "referral") !== false || strpos($hay, "refer") !== false;
+    $bucket = upsellio_crm_app_dashboard_source_bucket($hay);
+    $buckets = ["seo" => "SEO", "google" => "Google Ads", "meta" => "Meta Ads", "direct" => "Direct", "referral" => "Referral"];
+    if (isset($buckets[$filter])) {
+        return $bucket === $buckets[$filter];
     }
     if ($filter === "paid") {
-        return strpos($hay, "cpc") !== false || strpos($hay, "ppc") !== false || strpos($hay, "paid") !== false;
+        return in_array($bucket, ["Google Ads", "Meta Ads"], true) || (preg_match('/\b(cpc|ppc|paid|ads)\b/', $hay) === 1 && $bucket !== "SEO");
     }
 
     return true;
@@ -215,7 +206,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
 
     $new_leads_cur = $count_leads_in_range($leads_f, $start, $end);
     $new_leads_prev = $count_leads_in_range($leads_f, $ps, $pe);
-    $lead_delta_pct = $new_leads_prev > 0 ? (int) round((($new_leads_cur - $new_leads_prev) / $new_leads_prev) * 100) : ($new_leads_cur > 0 ? 100 : 0);
+    $lead_delta_pct = $new_leads_prev > 0 ? (int) round((($new_leads_cur - $new_leads_prev) / $new_leads_prev) * 100) : null;
 
     $need_contact = 0;
     $need_contact_overdue = 0;
@@ -254,6 +245,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
     $pipeline_open_value = 0.0;
     $nearest_win_value = 0.0;
     $nearest_win_id = 0;
+    $pipeline_weighted_value = 0.0;
     foreach ($offers as $op) {
         $oid = (int) $op->ID;
         $ost = (string) get_post_meta($oid, "_ups_offer_status", true);
@@ -264,6 +256,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
         $pipeline_open_value += $v;
         $prob = (int) get_post_meta($oid, "_ups_offer_deal_probability_0_100", true);
         $weighted = $v * max(0, min(100, $prob)) / 100;
+        $pipeline_weighted_value += $weighted;
         if ($weighted > $nearest_win_value) {
             $nearest_win_value = $weighted;
             $nearest_win_id = $oid;
@@ -271,9 +264,9 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
     }
 
     $kpi_leads_tone = "neutral";
-    if ($lead_delta_pct >= 10) {
+    if ($lead_delta_pct !== null && $lead_delta_pct >= 10) {
         $kpi_leads_tone = "up";
-    } elseif ($lead_delta_pct <= -10) {
+    } elseif ($lead_delta_pct !== null && $lead_delta_pct <= -10) {
         $kpi_leads_tone = "down";
     }
 
@@ -296,7 +289,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
             $pri += 50;
         }
         $src_label = upsellio_crm_app_dashboard_source_bucket(
-            (string) get_post_meta($lid, "_ups_lead_utm_source", true) . " " . (string) get_post_meta($lid, "_ups_lead_source", true)
+            (string) get_post_meta($lid, "_ups_lead_utm_source", true) . " " . (string) get_post_meta($lid, "_ups_lead_utm_medium", true) . " " . (string) get_post_meta($lid, "_ups_lead_source", true)
         );
         $priorities[] = [
             "priority" => min(999, $pri),
@@ -389,7 +382,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
             }
         } else {
             $stage = (string) get_post_meta($oid, "_ups_offer_stage", true);
-            if ($stage === "") {
+            if (!isset($snapshot[$stage]) || $stage === "offer_sent") {
                 $stage = "awareness";
             }
             if (isset($snapshot[$stage])) {
@@ -413,7 +406,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
     foreach ($leads_f as $lp) {
         $lid = (int) $lp->ID;
         $bucket = upsellio_crm_app_dashboard_source_bucket(
-            (string) get_post_meta($lid, "_ups_lead_utm_source", true) . " " . (string) get_post_meta($lid, "_ups_lead_source", true)
+            (string) get_post_meta($lid, "_ups_lead_utm_source", true) . " " . (string) get_post_meta($lid, "_ups_lead_utm_medium", true) . " " . (string) get_post_meta($lid, "_ups_lead_source", true)
         );
         if (!isset($sources_rows[$bucket])) {
             $sources_rows[$bucket] = [
@@ -507,13 +500,13 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
         $oid = (int) $op->ID;
         $status = (string) get_post_meta($oid, "_ups_offer_status", true);
         $sent_at = (string) get_post_meta($oid, "_ups_offer_first_sent_at", true);
-        $sent_key = $sent_at !== "" ? $key_for_date($sent_at, $tz) : ($status === "sent" ? $key_for_date($op->post_date_gmt, $utc) : "");
+        $sent_key = $sent_at !== "" ? $key_for_date($sent_at, $tz) : "";
         if (isset($days_by_key[$sent_key])) {
             $days_by_key[$sent_key]["sent"]++;
         }
         if ($status === "won") {
             $closed_at = (string) get_post_meta($oid, "_ups_offer_closed_at", true);
-            $won_key = $closed_at !== "" ? $key_for_date($closed_at, $tz) : $key_for_date($op->post_modified_gmt, $utc);
+            $won_key = $closed_at !== "" ? $key_for_date($closed_at, $tz) : "";
             if (isset($days_by_key[$won_key])) {
                 $days_by_key[$won_key]["won"]++;
             }
@@ -527,7 +520,9 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
     }
 
     $diag_parts = [];
-    if ($new_leads_cur > $new_leads_prev * 1.2) {
+    if ($new_leads_prev === 0 && $new_leads_cur > 0) {
+        $diag_parts[] = __("Pojawiły się nowe leady; brak dodatniej bazy do porównania procentowego.", "upsellio");
+    } elseif ($new_leads_cur > $new_leads_prev * 1.2) {
         $diag_parts[] = __("Leady rosną vs poprzedni okres.", "upsellio");
     } elseif ($new_leads_cur < $new_leads_prev * 0.8 && $new_leads_prev > 0) {
         $diag_parts[] = __("Spadek liczby leadów vs poprzedni okres — sprawdź źródła.", "upsellio");
@@ -551,7 +546,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
         $lid = (int) $lp->ID;
         $score = (int) get_post_meta($lid, "_ups_lead_score_0_100", true);
         $st = (string) get_post_meta($lid, "_ups_lead_qualification_status", true);
-        if ($score < 60 || $st === "converted") {
+        if ($score < 60 || in_array($st, ["converted", "rejected"], true)) {
             continue;
         }
         $created = upsellio_crm_app_dashboard_gmt_timestamp($lp->post_date_gmt);
@@ -586,6 +581,7 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
             "offers_followup_stale" => $offers_followup_stale,
             "pipeline_open_value" => $pipeline_open_value,
             "nearest_win_value" => $nearest_win_value,
+            "pipeline_weighted_value" => $pipeline_weighted_value,
             "nearest_win_id" => $nearest_win_id,
         ],
         "priorities" => $priorities,
@@ -603,5 +599,6 @@ function upsellio_crm_app_build_dashboard_payload(array $leads, array $offers, a
         "alerts" => $alerts,
         "hot_leads" => $hot_leads,
         "actions_today_hint" => max($need_contact + $offers_followup_stale, $actions_today),
+        "tasks_due_today_or_overdue" => $actions_today,
     ];
 }
