@@ -1,0 +1,50 @@
+name: Redesign static checks
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check PHP syntax
+        run: |
+          php -v
+          for file in front-page.php functions.php header.php footer.php home.php single.php ups-blog-core.php page-kontakt.php page-marketing-google-ads.php page-marketing-meta-ads.php page-tworzenie-stron-internetowych.php inc/form-component.php; do
+            php -l "wp-content/themes/upsellio/$file" || exit 1
+          done
+      - name: Check shared JavaScript
+        run: node --check wp-content/themes/upsellio/assets/js/upsellio.js
+      - name: Check redesign regression contracts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root = Path("wp-content/themes/upsellio")
+          for name, origins in {
+              "front-page.php": ("home-hero-form", "home-contact-form"),
+              "page-kontakt.php": ("contact-page-form",),
+              "single.php": ("single-post-contact-form",),
+          }.items():
+              text = (root / name).read_text()
+              for origin in origins:
+                  assert re.search(r'"origin"\s*=>\s*"' + origin + '"', text), (name, origin)
+              assert not re.search(r'\.ups-form__row-2[^{}]*nth-child\(2\)\s*\{[^}]*display\s*:\s*none', text), name
+          form = (root / "inc/form-component.php").read_text()
+          for marker in ['name="lead_phone"', 'name="lead_email"', 'name="lead_consent"', 'value="upsellio_submit_lead"', 'upsellio_lead_form_nonce']:
+              assert marker in form, marker
+          for name in ("page-marketing-google-ads.php", "page-marketing-meta-ads.php", "page-tworzenie-stron-internetowych.php", "page-kontakt.php", "ups-blog-core.php"):
+              text = (root / name).read_text()
+              ids = set(re.findall(r'\bid="([a-zA-Z0-9_-]+)"', text))
+              anchors = set(re.findall(r'href="#([a-zA-Z0-9_-]+)"', text))
+              assert anchors <= ids, (name, anchors - ids)
+          assert 'wp_footer();' in (root / "footer.php").read_text()
+          assert 'value="upsellio_lead_form_submit"' not in (root / "ups-blog-core.php").read_text()
+          print("Static regression contracts passed.")
+          PY
