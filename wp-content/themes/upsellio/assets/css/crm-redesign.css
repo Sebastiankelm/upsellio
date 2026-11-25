@@ -286,3 +286,26 @@ body.ups-crm-redesign {
   .ups-crm-redesign .crm-audit-kpi { padding:12px !important; }
   .ups-crm-redesign .crm-audit-kpi b { font-size:20px !important; }
 }
+
+/* Stage 11: Research and reporting layouts. Scoped to CRM only. */
+.ups-crm-redesign .crm-research-shell { min-width:0; }
+.ups-crm-redesign .crm-research-tabs { padding:4px 12px; gap:4px; overflow-x:auto; }
+.ups-crm-redesign .crm-research-tabs a { flex:0 0 auto; border-radius:8px 8px 0 0; }
+.ups-crm-redesign .crm-research-tabs a[aria-current="page"] { background:var(--teal-soft); color:var(--teal); }
+.ups-crm-redesign .crm-research-query > *, .ups-crm-redesign .crm-research-client-form > *, .ups-crm-redesign .crm-research-kpis > * { min-width:0; }
+.ups-crm-redesign .crm-research-shell :is(input,select,textarea,button,a):focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+.ups-crm-redesign .crm-research-shell :is(#kw-table,#comp-table,.crm-research-table table) { min-width:690px; }
+.ups-crm-redesign .crm-research-kpis { grid-template-columns:repeat(auto-fit,minmax(145px,1fr)) !important; }
+.ups-crm-redesign .crm-report-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:16px; }
+.ups-crm-redesign .crm-report-kpis > * { min-width:0; background:var(--surface,#fff); border:1px solid var(--border); border-radius:12px; padding:14px; overflow-wrap:anywhere; }
+.ups-crm-redesign .crm-report-charts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-bottom:16px; }
+.ups-crm-redesign .crm-report-charts > * { min-width:0; }
+@media(max-width:760px) {
+  .ups-crm-redesign .crm-research-query, .ups-crm-redesign .crm-research-client-form { grid-template-columns:minmax(0,1fr) !important; }
+  .ups-crm-redesign .crm-report-charts { grid-template-columns:minmax(0,1fr); }
+  .ups-crm-redesign .crm-report-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .ups-crm-redesign .crm-report-kpis > * { padding:10px; }
+}
+@media(max-width:420px) {
+  .ups-crm-redesign .crm-report-kpis { grid-template-columns:minmax(0,1fr); }
+}
