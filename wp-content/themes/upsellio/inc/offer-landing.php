@@ -6,7 +6,9 @@ if (!defined("ABSPATH")) {
 
 function upsellio_get_site_gtm_container_id()
 {
-    return (string) apply_filters("upsellio_site_gtm_container_id", "GTM-KM9J5XC2");
+    // Private offer links must not load the shared website container by default.
+    $container = (string) apply_filters("upsellio_private_offer_gtm_container_id", "");
+    return preg_match("/^GTM-[A-Z0-9]+$/", $container) ? $container : "";
 }
 
 /**
@@ -275,7 +277,7 @@ function upsellio_offer_render_lines_as_checklist($lines, $use_optional_icon = f
 
 function upsellio_offer_terms_fingerprint(int $offer_id): string
 {
-    $terms = [get_post_field("post_title", $offer_id), get_post_field("post_content", $offer_id), get_post_meta($offer_id, "_ups_offer_price", true), upsellio_offer_get_commercial_timeline($offer_id), get_post_meta($offer_id, "_ups_offer_expires_at", true), get_post_meta($offer_id, "_ups_offer_cta_text", true), upsellio_offer_get_landing_payload($offer_id)];
+    $terms = [get_post_field("post_title", $offer_id), get_post_field("post_content", $offer_id), get_post_meta($offer_id, "_ups_offer_price", true), upsellio_offer_get_commercial_timeline($offer_id), get_post_meta($offer_id, "_ups_offer_expires_at", true), get_post_meta($offer_id, "_ups_offer_cta_text", true), get_post_meta($offer_id, "_ups_offer_scope_items", true), get_post_meta($offer_id, "_ups_offer_client_id", true), upsellio_offer_get_landing_payload($offer_id)];
     return hash_hmac("sha256", wp_json_encode($terms), wp_salt("nonce"));
 }
 
@@ -441,14 +443,6 @@ function upsellio_offer_render_public_landing($offer)
 <?php endif; ?>
 <script>
 window.dataLayer=window.dataLayer||[];
-window.UPS=<?php echo wp_json_encode([
-    "offer_id" => (string) $offer_id,
-    // Do not expose the bearer slug, client-specific title or person ID to tag manager.
-    "utm_source" => "",
-    "utm_campaign" => "",
-    "gclid" => "",
-], JSON_UNESCAPED_UNICODE); ?>;
-(function(){var q=new URLSearchParams(window.location.search||'');UPS.utm_source=q.get('utm_source')||'';UPS.utm_campaign=q.get('utm_campaign')||'';UPS.gclid=q.get('gclid')||'';})();
 </script>
 <?php if ($upsellio_offer_track_public) : ?>
 <script type="text/plain" data-cookieconsent="marketing">
@@ -738,9 +732,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 </div>
 <style>body{padding-top:40px}</style>
 <?php endif; ?>
-<?php if ($gtm !== "" && $upsellio_offer_track_public) : ?>
-<noscript data-cookieconsent="marketing"><iframe src="https://www.googletagmanager.com/ns.html?id=<?php echo esc_attr($gtm); ?>" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<?php endif; ?>
+<!-- No noscript tracking iframe on confidential offer pages. -->
 <div id="bar"></div>
 
 <nav class="nav">
@@ -1261,7 +1253,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 <script>
 (function(){
 var offerId=<?php echo (int) $offer_id; ?>;
-var clientId=<?php echo (int) $client_id; ?>;
 
 var ajaxUrl=<?php echo wp_json_encode((string) $ajax_url); ?>;
 var __upsTrackPublic=<?php echo $upsellio_offer_track_public ? "true" : "false"; ?>;
@@ -1350,8 +1341,8 @@ function trackEvent(eventName,extra){
   body.append('offer_token',offerToken);
   body.append('session_id',getSession().id);
   body.append('event_id',newEventId());
+  body.append('offer_version',String(offerVersion));
   body.append('offer_id',String(offerId));
-  body.append('client_id',String(clientId));
   body.append('utm_source',utmSource);
   body.append('utm_campaign',utmCampaign);
   if(window.Cookiebot&&Cookiebot.consent&&Cookiebot.consent.marketing)body.append('gclid',gclid);
@@ -1575,7 +1566,6 @@ if(elCs)elCs.addEventListener('click',function(){
   body.append('offer_version',String(offerVersion));
   body.append('offer_fingerprint',offerFingerprint);
   body.append('offer_id',String(offerId));
-  body.append('client_id',String(clientId));
   body.append('nonce',publicNonce);
   body.append('contact_email',v);
   body.append('contact_name',((document.getElementById('accept_name')||{}).value||'').trim());
@@ -1653,6 +1643,7 @@ window.submitQA=function(){
   var body=new URLSearchParams();
   fd.forEach(function(v,k){body.append(k,String(v));});
   body.append('offer_token',offerToken);
+  body.append('offer_fingerprint',offerFingerprint);
   fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body.toString(),credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){
     if(data&&data.success){
       form.innerHTML='<div style="text-align:center;padding:24px;background:#f0fdfa;border-radius:12px;">✓ Dziękuję za odpowiedzi. Przygotuję się do rozmowy.</div>';
@@ -1933,31 +1924,46 @@ function upsellio_offer_qa_submit_handler()
     if (!is_email($email)) {
         wp_send_json_error(["message" => "Email niepoprawny."]);
     }
+    $submitted_fingerprint = isset($_POST["offer_fingerprint"]) && is_string($_POST["offer_fingerprint"]) ? wp_unslash($_POST["offer_fingerprint"]) : "";
+    if (!hash_equals(upsellio_offer_terms_fingerprint($offer_id), $submitted_fingerprint)) {
+        wp_send_json_error(["message" => "Pytania zostały zmienione. Odśwież ofertę."], 409);
+    }
+    $payload = upsellio_offer_get_landing_payload($offer_id);
+    $questions = upsellio_offer_parse_questions_block((string) ($payload["questions_raw"] ?? ""));
     $answers = [];
-    foreach ($_POST as $k => $v) {
-        if (strpos((string) $k, "answer_") === 0) {
-            $ans = sanitize_textarea_field((string) wp_unslash($v));
-            if (trim($ans) !== "") {
-                $answers[] = $ans;
-            }
+    $question_answers = [];
+    foreach ($questions as $idx => $question) {
+        $key = "answer_" . $idx;
+        if (!isset($_POST[$key]) || !is_string($_POST[$key])) { continue; }
+        $ans = sanitize_textarea_field(wp_unslash($_POST[$key]));
+        if (strlen($ans) > 5000) { wp_send_json_error(["message" => "Odpowiedź jest za długa."], 400); }
+        if (trim($ans) !== "") {
+            $answers[] = $ans;
+            $question_answers[] = ["question_index" => $idx, "question" => (string) $question["text"], "answer" => $ans];
         }
     }
+    if (count($answers) > 50 || strlen(implode("", $answers)) > 30000) { wp_send_json_error(["message" => "Zbyt duża liczba odpowiedzi."], 400); }
     if (empty($answers)) {
         wp_send_json_error(["message" => "Brak odpowiedzi."]);
     }
+    $rl_key = "ups_offer_qa_" . md5($offer_id . "|" . ($_SERVER["REMOTE_ADDR"] ?? ""));
+    if (get_transient($rl_key)) { wp_send_json_error(["message" => "Odczekaj chwilę przed kolejną wysyłką."], 429); }
+    set_transient($rl_key, 1, 30);
     $response = [
         "email" => $email,
         "answers" => $answers,
+        "question_answers" => $question_answers,
+        "offer_version" => (int) get_post_meta($offer_id, "_ups_offer_current_version", true),
         "submitted_at" => current_time("mysql"),
     ];
-    add_post_meta($offer_id, "_ups_offer_qa_history", $response);
+    if (!add_post_meta($offer_id, "_ups_offer_qa_history", $response)) { wp_send_json_error(["message" => "Nie udało się zapisać odpowiedzi."], 503); }
     update_post_meta($offer_id, "_ups_offer_qa_responses", $response);
     if (function_exists("upsellio_inbox_append_message")) {
         upsellio_inbox_append_message($offer_id, [
             "direction" => "in",
             "from" => $email,
             "subject" => "Odpowiedzi na pytania z oferty",
-            "body_plain" => "Klient odpowiedział na pytania:\n\n" . implode("\n\n---\n\n", $answers),
+            "body_plain" => "Odpowiedzi na pytania:\n\n" . implode("\n\n---\n\n", array_map(static function ($row) { return $row["question"] . "\n" . $row["answer"]; }, $question_answers)),
             "source" => "offer_qa_form",
         ]);
     }
