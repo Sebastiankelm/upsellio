@@ -36,4 +36,23 @@ ci_expect(upsellio_offer_public_verified_copy_allowed($id,'fixture@example.inval
 ci_expect(!upsellio_offer_public_verified_copy_allowed($id,'unknown@example.invalid'),'Other address is not eligible');
 $payload = upsellio_offer_get_landing_payload($id);
 ci_expect($payload['duration']==='' && $payload['billing']==='' && $payload['price_note']==='' ,'Unsaved terms do not appear in public offer');
+$legacy_id = wp_insert_post(['post_type'=>'crm_offer','post_status'=>'publish','post_title'=>'CI legacy payload only'],true);
+ci_expect(!is_wp_error($legacy_id) && $legacy_id > 0,'Legacy fixture created');
+try {
+    update_option('upsellio_offer_legacy_payload_ids_v2',[(int)$legacy_id=>true],false);
+    $old = upsellio_offer_get_landing_payload($legacy_id);
+    $defaults = upsellio_offer_layout_get_default_payload();
+    ci_expect($old === $defaults,'Legacy offer retains previous effective defaults');
+    update_post_meta($legacy_id,'_ups_offer_duration','6 miesięcy');
+    update_post_meta($legacy_id,'_ups_offer_billing','');
+    update_post_meta($legacy_id,'_ups_offer_has_google','0');
+    $old = upsellio_offer_get_landing_payload($legacy_id);
+    ci_expect($old['duration']==='6 miesięcy' && $old['billing']===$defaults['billing'] && $old['has_google']===false,'Legacy explicit override and former empty-field behavior preserved');
+    $new = upsellio_offer_get_landing_payload($id);
+    ci_expect($new['duration']==='' && $new['billing']==='' && $new['price_note']==='', 'Existing migration list does not affect unlisted new offers');
+    ci_expect(!metadata_exists('post',$legacy_id,'_ups_offer_price_note'),'Compatibility does not write missing offer terms');
+} finally {
+    delete_option('upsellio_offer_legacy_payload_ids_v2');
+    wp_delete_post($legacy_id,true);
+}
 WP_CLI::success('Database persistence checks passed.');
