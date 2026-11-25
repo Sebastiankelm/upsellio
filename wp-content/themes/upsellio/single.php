@@ -170,6 +170,74 @@ if (have_posts()) :
           .ups-inline-links a{color:var(--brand,#0d9488);font-weight:600;text-decoration:none}
           .ups-inline-links a:hover{color:var(--brand-dark,#0f766e);text-decoration:underline}
           <?php endif; ?>
+
+          /* Redesign — article typography, right-hand TOC, cover and related cards. */
+          .sp-art{background:#fff;color:#0f1115;--sp-muted:#5f636b;--sp-line:#e3e6ea;--sp-tint:#effaf7;--sp-cta:#06745f}
+          .sp-art .sp-wrap{width:min(1160px,calc(100% - 48px))}
+          .sp-art .sp-wrap-narrow{width:min(880px,calc(100% - 48px))}
+          .sp-art .sp-crumbs{padding:32px 0 0;color:#5f636b}
+          .sp-art .sp-crumbs a{color:#5f636b}
+          .sp-art .sp-crumbs a:hover{color:#06745f;text-decoration:underline}
+          .sp-art .sp-head{padding:32px 0 32px}
+          .sp-art .sp-h1{font-size:clamp(36px,4.6vw,54px);line-height:1.1;letter-spacing:-.035em;font-weight:800;max-width:100%}
+          .sp-art .sp-eyebrow{color:#06745f;letter-spacing:.05em}
+          .sp-art .sp-eyebrow::before{display:none}
+          .sp-art .sp-head .sp-eyebrow{padding:6px 12px;background:#effaf7;border-radius:999px}
+          .sp-art .sp-lead{font-size:19px;line-height:1.65;color:#3a3d44}
+          .sp-art .sp-author{border-color:#e3e6ea}
+          .sp-art .sp-avatar{background:#dff5ef;border:0;color:#06745f;flex-shrink:0}
+          .sp-art .sp-author .sp-meta-line{color:#5f636b}
+          .sp-art .sp-share a{width:44px;height:44px;border-color:#e3e6ea;color:#0f1115}
+          .sp-art .sp-share a:hover{background:#effaf7;color:#06745f}
+          .sp-art .sp-share-status{font-size:12px;color:#06745f;flex-basis:100%;margin:0}
+          .sp-art .sp-share-status:empty{display:none}
+          .sp-art .sp-cover{padding-bottom:48px}
+          .sp-art .sp-cover-img{aspect-ratio:1600/840;border-radius:24px;background:#dff5ef}
+          .sp-art .sp-cover-img img{object-fit:cover}
+          .sp-art .sp-thumb-stripes{background-image:repeating-linear-gradient(135deg,rgba(6,116,95,.07) 0 14px,transparent 14px 28px)}
+          .sp-art .sp-thumb-label{color:#5f636b}
+          .sp-art .sp-grid{width:min(1060px,calc(100% - 48px));grid-template-columns:minmax(0,720px) minmax(0,260px);grid-template-areas:"article toc";gap:64px}
+          .sp-art .sp-prose{grid-area:article;min-width:0;overflow-wrap:break-word}
+          .sp-art .sp-toc{grid-area:toc;top:112px;max-height:calc(100vh - 136px);max-height:calc(100dvh - 136px);overflow-y:auto;scrollbar-width:thin}
+          .sp-art .sp-toc-head{font-family:"Bricolage Grotesque",sans-serif;font-size:17px;font-weight:800;text-transform:none;letter-spacing:0;color:#0f1115}
+          .sp-art .sp-toc ol{border-color:#e3e6ea}
+          .sp-art .sp-toc ol li a{color:#5f636b;font-size:14px;min-height:44px;display:flex;align-items:center;padding:8px 0}
+          .sp-art .sp-toc ol li.is-active{border-color:#06745f}
+          .sp-art .sp-toc ol li.is-active a{color:#06745f}
+          .sp-art .sp-toc-cta{background:#effaf7;border:1px solid #c7e6dd;color:#0f1115;border-radius:20px;padding:24px}
+          .sp-art .sp-toc-cta p{color:#3a3d44}
+          .sp-art .sp-toc-cta a{display:inline-flex;min-height:44px;align-items:center;color:#06745f}
+          .sp-art .sp-prose p,.sp-art .sp-prose li{font-size:17px;line-height:1.8;color:#3a3d44}
+          .sp-art .sp-prose :is(h2,h3,h4){color:#0f1115;scroll-margin-top:108px;font-family:"Bricolage Grotesque",sans-serif;line-height:1.2}
+          .sp-art .sp-prose h2{font-size:clamp(26px,3vw,32px);margin:40px 0 18px}
+          .sp-art .sp-prose h3{font-size:clamp(21px,2.2vw,25px);margin:28px 0 14px}
+          .sp-art .sp-prose blockquote{background:#effaf7;border-left-color:#06745f;color:#0f1115;border-radius:0 16px 16px 0}
+          .sp-art .sp-prose blockquote p{font-size:inherit;color:inherit}
+          .sp-art .sp-prose img{max-width:100%;height:auto}
+          .sp-art .sp-prose pre{max-width:100%;overflow-x:auto}
+          .sp-art .sp-prose .wp-block-table{max-width:100%;overflow-x:auto}
+          .sp-art .sp-prose a:not(.sp-btn):not(.post-cta):not(.sp-tags a){color:#06745f;text-underline-offset:3px}
+          .sp-art .sp-end-cta,.sp-art .sp-author-box{background:#effaf7;border:1px solid #c7e6dd;border-radius:20px}
+          .sp-art .sp-btn{background:#06745f;color:#fff;min-height:48px}
+          .sp-art .sp-btn:hover{background:#055e4d;color:#fff}
+          .sp-art .sp-tags a{background:#f5f6f8;border-color:#e3e6ea;color:#3a3d44;min-height:44px;display:inline-flex;align-items:center}
+          .sp-art .sp-author-box p{font-size:15px}
+          .sp-art .sp-related{padding:64px 0 96px;background:#f5f6f8}
+          .sp-art .sp-related .sp-wrap-narrow{width:min(1160px,calc(100% - 48px))}
+          .sp-art .sp-related .sp-h2{font-size:clamp(30px,3.4vw,42px);margin:0}
+          .sp-art .sp-related .sp-divider{margin:24px 0}
+          .sp-art .sp-rel-grid{gap:24px;grid-template-columns:repeat(3,minmax(0,1fr))}
+          .sp-art .sp-rel-card{border:1px solid #e3e6ea;border-radius:20px;background:#fff}
+          .sp-art .sp-rel-card:hover{border-color:#c7e6dd;box-shadow:0 12px 28px rgba(15,17,21,.06)}
+          .sp-art .sp-rel-thumb{aspect-ratio:16/9;background:#dff5ef}
+          .sp-art .sp-rel-meta{color:#5f636b;flex-wrap:wrap}
+          .sp-art .sp-rel-card h3{font-size:20px;line-height:1.25}
+          .sp-art .hr-contact-shell{scroll-margin-top:108px}
+          .sp-art :is(a,button,input,select,textarea,summary):focus-visible{outline:3px solid #06745f;outline-offset:3px}
+          .sp-art [data-animate]{opacity:1;transform:none}
+          @media(max-width:980px){.sp-art .sp-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"toc" "article";gap:32px;max-width:800px}.sp-art .sp-toc{position:static;max-height:none;overflow:visible}.sp-art .sp-rel-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+          @media(max-width:720px){.sp-art .sp-wrap,.sp-art .sp-wrap-narrow,.sp-art .sp-grid,.sp-art .sp-related .sp-wrap-narrow{width:calc(100% - 40px)}.sp-art .sp-h1{font-size:clamp(32px,8.5vw,40px)}.sp-art .sp-cover{padding-bottom:32px}.sp-art .sp-body{padding-bottom:64px}.sp-art .sp-rel-grid{grid-template-columns:minmax(0,1fr)}.sp-art .sp-related{padding:48px 0 64px}.sp-art .sp-author-box{padding:20px}}
+          @media(prefers-reduced-motion:reduce){.sp-art *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
         </style>
 
         <main class="sp-art">
@@ -183,7 +251,7 @@ if (have_posts()) :
               $author_name = "Upsellio";
           }
           ?>
-          <nav class="sp-crumbs">
+          <nav class="sp-crumbs" aria-label="Ścieżka nawigacji artykułu">
             <div class="sp-wrap-narrow">
               <a href="<?php echo esc_url(home_url("/")); ?>">Strona główna</a>
               <span>›</span>
@@ -206,11 +274,13 @@ if (have_posts()) :
                   <strong><?php echo esc_html($author_name); ?></strong>
                   <span class="sp-meta-line"><?php echo esc_html(get_the_date("j F Y", $post_id)); ?> · Upsellio</span>
                 </div>
-                <div class="sp-share">
-                  <a href="https://www.linkedin.com/sharing/share-offsite/?url=<?php echo rawurlencode(get_permalink($post_id)); ?>" target="_blank" rel="noopener">in</a>
-                  <a href="https://twitter.com/intent/tweet?url=<?php echo rawurlencode(get_permalink($post_id)); ?>" target="_blank" rel="noopener">𝕏</a>
-                  <a href="<?php echo esc_url(get_permalink($post_id)); ?>">⎘</a>
+                <div class="sp-share" aria-label="Udostępnij artykuł">
+                  <a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo rawurlencode(get_permalink($post_id)); ?>" target="_blank" rel="noopener noreferrer" aria-label="Udostępnij na Facebooku">f</a>
+                  <a href="https://www.linkedin.com/sharing/share-offsite/?url=<?php echo rawurlencode(get_permalink($post_id)); ?>" target="_blank" rel="noopener noreferrer" aria-label="Udostępnij na LinkedIn">in</a>
+                  <a href="https://twitter.com/intent/tweet?url=<?php echo rawurlencode(get_permalink($post_id)); ?>" target="_blank" rel="noopener noreferrer" aria-label="Udostępnij w X">𝕏</a>
+                  <a href="<?php echo esc_url(get_permalink($post_id)); ?>" data-sp-copy-link aria-label="Kopiuj adres artykułu">⎘</a>
                 </div>
+                <p class="sp-share-status" role="status" aria-live="polite"></p>
               </div>
             </div>
           </header>
@@ -230,7 +300,7 @@ if (have_posts()) :
                   />
                 <?php else : ?>
                   <div class="sp-thumb-stripes"></div>
-                  <div class="sp-thumb-label">[ artwork — okładka artykułu ]</div>
+                  <div class="sp-thumb-label" aria-hidden="true">Upsellio · Blog</div>
                 <?php endif; ?>
               </div>
             </div>
@@ -238,7 +308,7 @@ if (have_posts()) :
 
           <section class="sp-body">
             <div class="sp-wrap-narrow sp-grid">
-              <aside class="sp-toc" data-animate="fade-up" data-delay="1">
+              <aside class="sp-toc" aria-label="Spis treści i kontakt" data-animate="fade-up" data-delay="1">
                 <div class="sp-toc-head">Spis treści</div>
                 <?php if (!empty($toc_items)) : ?>
                   <ol>
@@ -269,9 +339,22 @@ if (have_posts()) :
 
                 <?php if (!empty($post_categories)) : ?>
                   <div class="sp-tags">
-                    <span>Tagi:</span>
+                    <span>Kategorie:</span>
                     <?php foreach ($post_categories as $post_category) : ?>
                       <a href="<?php echo esc_url(get_category_link($post_category->term_id)); ?>"><?php echo esc_html($post_category->name); ?></a>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endif; ?>
+
+                <?php $article_tags = get_the_tags($post_id); ?>
+                <?php if (!empty($article_tags) && !is_wp_error($article_tags)) : ?>
+                  <div class="sp-tags" aria-label="Tagi artykułu">
+                    <span>Tematy:</span>
+                    <?php foreach ($article_tags as $article_tag) : ?>
+                      <?php $article_tag_url = get_tag_link($article_tag->term_id); ?>
+                      <?php if (!is_wp_error($article_tag_url)) : ?>
+                        <a href="<?php echo esc_url($article_tag_url); ?>"><?php echo esc_html("#" . $article_tag->name); ?></a>
+                      <?php endif; ?>
                     <?php endforeach; ?>
                   </div>
                 <?php endif; ?>
@@ -309,6 +392,7 @@ if (have_posts()) :
                 <header class="sp-sec-head">
                   <div class="sp-eyebrow">Czytaj też</div>
                   <h2 class="sp-h2">Powiązane artykuły.</h2>
+                  <a href="<?php echo esc_url($blog_index_url); ?>" class="sp-btn">Wszystkie wpisy</a>
                 </header>
                 <div class="sp-divider"></div>
                 <div class="sp-rel-grid">
@@ -343,6 +427,48 @@ if (have_posts()) :
             </section>
           <?php endif; ?>
         </main>
+
+        <script>
+        (function () {
+          var root = document.querySelector(".sp-art");
+          if (!root) return;
+          var copy = root.querySelector("[data-sp-copy-link]");
+          var status = root.querySelector(".sp-share-status");
+          if (copy && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+            copy.addEventListener("click", function (event) {
+              if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+              event.preventDefault();
+              navigator.clipboard.writeText(copy.href).then(function () {
+                if (status) status.textContent = "Skopiowano adres artykułu.";
+              }).catch(function () {
+                if (status) status.textContent = "Nie udało się skopiować adresu. Skopiuj go z paska przeglądarki.";
+              });
+            });
+          }
+          var entries = Array.from(root.querySelectorAll(".sp-toc ol a")).map(function (link) {
+            return {link: link, section: document.getElementById(link.hash.slice(1))};
+          }).filter(function (entry) { return entry.section && root.contains(entry.section); });
+          if (!entries.length) return;
+          var pending = false;
+          function updateToc() {
+            pending = false;
+            var active = entries[0];
+            entries.forEach(function (entry) {
+              if (entry.section.getBoundingClientRect().top <= 128) active = entry;
+            });
+            entries.forEach(function (entry) {
+              var current = entry === active;
+              entry.link.parentElement.classList.toggle("is-active", current);
+              if (current) entry.link.setAttribute("aria-current", "location");
+              else entry.link.removeAttribute("aria-current");
+            });
+          }
+          window.addEventListener("scroll", function () {
+            if (!pending) { pending = true; window.requestAnimationFrame(updateToc); }
+          }, {passive: true});
+          updateToc();
+        })();
+        </script>
         <?php
     endwhile;
 endif;
