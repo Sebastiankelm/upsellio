@@ -285,6 +285,16 @@ HTACCESS
       test_leads "$dest"
       docker run --rm --network "$network" --ipc=host \
         -v "$browser_dir:/tests:ro" -w /tests "$browser_image" node redesign-browser.mjs
+      wpcli eval '
+        $ids = get_posts(["post_type"=>"lead","post_status"=>"any","numberposts"=>-1,"fields"=>"ids","meta_key"=>"_upsellio_lead_email","meta_value"=>"browser-contact@example.invalid"]);
+        if (count($ids)!==1) { WP_CLI::error("Browser submit did not create exactly one lead"); }
+        $id = $ids[0];
+        if (!get_post_meta($id,"_upsellio_lead_event_id",true) || get_post_meta($id,"_upsellio_lead_form_origin",true)!=="contact-page-form") { WP_CLI::error("Browser event ID or origin missing"); }
+        if (get_post_meta($id,"_upsellio_lead_utm_source",true)!=="fixture-browser") { WP_CLI::error("Browser UTM missing"); }
+        $mirror=(int)get_post_meta($id,"_upsellio_synced_crm_lead_id",true);
+        if ($mirror<=0 || get_post_type($mirror)!=="crm_lead") { WP_CLI::error("Browser CRM mirror missing"); }
+        WP_CLI::success("Browser lead stored once with CRM mirror, event ID and UTM");
+      '
     fi
     if [[ "$seo_status" != 0 ]]; then return "$seo_status"; fi
   fi
