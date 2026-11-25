@@ -255,7 +255,7 @@ function upsellio_crm_app_template_redirect()
     $crm_collections = upsellio_crm_app_load_render_collections($view, $template_studio_tab, $crm_inbox_ctx);
     $clients = $crm_collections["clients"];
     $crm_list_page = $crm_collections["list_page"] ?? null;
-    $crm_render_list_pagination = static function () use ($crm_list_page, $view, $lead_tab): void {
+    $crm_render_list_pagination = static function () use (&$crm_list_page, $view, $lead_tab, $task_tab): void {
         if (!is_array($crm_list_page)) {
             return;
         }
@@ -264,6 +264,8 @@ function upsellio_crm_app_template_redirect()
         $base = ["view" => $view];
         if ($view === "leads") {
             $base["lead_tab"] = $lead_tab;
+        } elseif ($view === "tasks") {
+            $base["task_tab"] = $task_tab;
         }
         echo '<nav class="crm-view-tabs" aria-label="Paginacja" style="margin-top:16px;align-items:center">';
         echo '<span class="muted">' . esc_html(sprintf("Strona %d z %d · rekordy: %d", $page, max(1, $pages), (int) $crm_list_page["total"])) . '</span>';
@@ -3345,6 +3347,7 @@ function upsellio_crm_app_template_redirect()
                   <?php endforeach; ?>
                   </tbody>
                 </table>
+              <?php $crm_render_list_pagination(); ?>
               </section>
             <?php endif; ?>
             <?php if ($view === "template-studio") : ?>
@@ -4053,10 +4056,11 @@ function upsellio_crm_app_template_redirect()
                       }
                   }
               }
-              $today_start_ts = (int) strtotime(wp_date("Y-m-d 00:00:00"));
-              $today_end_ts = $today_start_ts + DAY_IN_SECONDS - 1;
-              $tomorrow_start_ts = $today_start_ts + DAY_IN_SECONDS;
-              $tomorrow_end_ts = $tomorrow_start_ts + DAY_IN_SECONDS - 1;
+              $local_today = new DateTimeImmutable("today", wp_timezone());
+              $today_start_ts = $local_today->getTimestamp();
+              $tomorrow_start_ts = $local_today->modify("+1 day")->getTimestamp();
+              $today_end_ts = $tomorrow_start_ts - 1;
+              $tomorrow_end_ts = $local_today->modify("+2 days")->getTimestamp() - 1;
               $tasks_filtered = [];
               foreach ($tasks as $task_tf) {
                   $tf_id = (int) $task_tf->ID;
@@ -4086,6 +4090,10 @@ function upsellio_crm_app_template_redirect()
                           $tasks_filtered[] = $task_tf;
                       }
                   }
+              }
+              if ($task_tab !== "week") {
+                  $crm_list_page = upsellio_crm_app_slice_list_page($tasks_filtered, (int) ($_GET["crm_page"] ?? 1));
+                  $tasks_filtered = $crm_list_page["posts"];
               }
               $task_tab_url = static function (string $tab) use ($task_cal_week_offset, $selected_task_id) {
                   $args = ["view" => "tasks", "task_tab" => $tab];
@@ -4299,6 +4307,7 @@ function upsellio_crm_app_template_redirect()
                     <?php endif; ?>
                   </tbody>
                 </table>
+                <?php $crm_render_list_pagination(); ?>
                 <?php endif; ?>
               </section>
               <?php endif; ?>
