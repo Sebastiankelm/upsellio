@@ -29,7 +29,7 @@ wpcli() {
   docker run --rm --network "$network" --volumes-from "$wp" --user 33:33 \
     -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_NAME=fixture -e WORDPRESS_DB_USER=fixture \
     -e WORDPRESS_DB_PASSWORD=fixture-only \
-    -e WORDPRESS_CONFIG_EXTRA='define("DISABLE_WP_CRON", true); define("WP_DEBUG", true); define("WP_DEBUG_DISPLAY", false); define("WP_HTTP_BLOCK_EXTERNAL", true); define("WP_ENVIRONMENT_TYPE", "local");' \
+    -e WORDPRESS_CONFIG_EXTRA='define("DISABLE_WP_CRON", true); if (!defined("WP_DEBUG")) { define("WP_DEBUG", true); } define("WP_DEBUG_DISPLAY", false); define("WP_HTTP_BLOCK_EXTERNAL", true); define("WP_ENVIRONMENT_TYPE", "local");' \
     --workdir /var/www/html --entrypoint wp "$cli_image" --url=https://fixture.test "$@"
 }
 capture() {
@@ -38,6 +38,112 @@ capture() {
     -H 'Host: fixture.test' -H 'X-Forwarded-Proto: https' \
     -o /tmp/fixture-page.html -w '%{http_code}' "http://127.0.0.1$url" > "$dest/$key.status"
   docker cp "$wp:/tmp/fixture-page.html" "$dest/$key.html"
+}
+# Exercise the real public handler using a nonce from the actual rendered form.
+# All synthetic records, mail and requests stay in the disposable fixture.
+test_leads() {
+  local dest=$1 origin key nonce result mode email
+  for origin in home-hero-form home-contact-form contact-page-form single-post-contact-form; do
+    case "$origin" in
+      home-*) key=home ;;
+      contact-*) key=contact ;;
+      single-*) key=article ;;
+    esac
+    nonce=$(python3 - "$dest/$key.html" "$origin" <<'PY'
+from html.parser import HTMLParser
+from pathlib import Path
+import sys
+class Forms(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.current = None
+        self.forms = []
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "form":
+            self.current = {"action": a.get("action", "")}
+        elif tag == "input" and self.current is not None:
+            self.current[a.get("name", "")] = a.get("value", "")
+    def handle_endtag(self, tag):
+        if tag == "form" and self.current is not None:
+            self.forms.append(self.current)
+            self.current = None
+p = Forms()
+p.feed(Path(sys.argv[1]).read_text())
+matches = [f for f in p.forms if f.get("lead_form_origin") == sys.argv[2]]
+assert len(matches) == 1, (sys.argv[2], len(matches))
+f = matches[0]
+assert f.get("action") == "upsellio_submit_lead"
+assert f.get("upsellio_lead_form_nonce")
+print(f["upsellio_lead_form_nonce"])
+PY
+)
+    email="$origin@example.invalid"
+    result=$(docker exec "$wp" curl -sS --max-time 45 -o /dev/null -w '%{http_code} %{redirect_url}' \
+      -H 'Host: fixture.test' -H 'X-Forwarded-Proto: https' \
+      --data-urlencode 'action=upsellio_submit_lead' \
+      --data-urlencode "upsellio_lead_form_nonce=$nonce" \
+      --data-urlencode 'redirect_url=https://fixture.test/kontakt/' \
+      --data-urlencode 'lead_name=Fixture synthetic' \
+      --data-urlencode "lead_email=$email" \
+      --data-urlencode 'lead_phone=000000000' \
+      --data-urlencode 'lead_consent=1' \
+      --data-urlencode "lead_form_origin=$origin" \
+      --data-urlencode "lead_event_id=fixture-$origin" \
+      --data-urlencode 'utm_source=fixture-source' \
+      --data-urlencode 'utm_medium=fixture-medium' \
+      --data-urlencode 'utm_campaign=fixture-campaign' \
+      http://127.0.0.1/wp-admin/admin-post.php)
+    [[ "$result" == 302*ups_lead_status=success* || "$result" == 303*ups_lead_status=success* ]] || { echo "Lead $origin failed: $result"; return 1; }
+    echo "Lead POST $origin: PASS"
+  done
+  for mode in nonce consent phone honeypot; do
+    local token="$nonce" consent=1 phone=000000000 trapfield='' expected=fields
+    case "$mode" in
+      nonce) token=invalid-fixture-nonce; expected=nonce ;;
+      consent) consent=0 ;;
+      phone) phone=123 ;;
+      honeypot) trapfield=bot; expected=success ;;
+    esac
+    result=$(docker exec "$wp" curl -sS --max-time 45 -o /dev/null -w '%{http_code} %{redirect_url}' \
+      -H 'Host: fixture.test' -H 'X-Forwarded-Proto: https' \
+      --data-urlencode 'action=upsellio_submit_lead' \
+      --data-urlencode "upsellio_lead_form_nonce=$token" \
+      --data-urlencode 'redirect_url=https://fixture.test/kontakt/' \
+      --data-urlencode 'lead_name=Fixture rejected' \
+      --data-urlencode "lead_email=rejected-$mode@example.invalid" \
+      --data-urlencode "lead_phone=$phone" \
+      --data-urlencode "lead_consent=$consent" \
+      --data-urlencode "lead_website=$trapfield" \
+      http://127.0.0.1/wp-admin/admin-post.php)
+    if [[ "$expected" == success ]]; then
+      [[ "$result" == *ups_lead_status=success* ]]
+    else
+      [[ "$result" == *ups_lead_status=error* && "$result" == *ups_lead_reason="$expected"* ]]
+    fi
+    echo "Lead rejection $mode: PASS"
+  done
+  wpcli eval '
+    $origins = ["home-hero-form", "home-contact-form", "contact-page-form", "single-post-contact-form"];
+    foreach ($origins as $origin) {
+        $ids = get_posts(["post_type"=>"lead", "post_status"=>"any", "numberposts"=>-1, "fields"=>"ids", "meta_key"=>"_upsellio_lead_email", "meta_value"=>$origin."@example.invalid"]);
+        if (count($ids) !== 1) { WP_CLI::error("Expected one lead: ".$origin); }
+        $id = $ids[0];
+        $expected = ["form_origin"=>$origin, "event_id"=>"fixture-".$origin, "utm_source"=>"fixture-source", "utm_medium"=>"fixture-medium", "utm_campaign"=>"fixture-campaign", "consent_form"=>$origin];
+        foreach ($expected as $key=>$value) {
+            if (get_post_meta($id, "_upsellio_lead_".$key, true) !== $value) { WP_CLI::error("Lead meta mismatch ".$origin." ".$key); }
+        }
+        if (!get_post_meta($id, "_upsellio_lead_consent_at", true)) { WP_CLI::error("Missing consent timestamp"); }
+        $mirror = (int) get_post_meta($id, "_upsellio_synced_crm_lead_id", true);
+        if ($mirror <= 0 || get_post_type($mirror) !== "crm_lead") { WP_CLI::error("Missing CRM mirror: ".$origin); }
+        WP_CLI::success("CRM stored and mirrored: ".$origin);
+    }
+    foreach (["nonce", "consent", "phone", "honeypot"] as $mode) {
+        $ids = get_posts(["post_type"=>"lead","post_status"=>"any","numberposts"=>-1,"fields"=>"ids","meta_key"=>"_upsellio_lead_email","meta_value"=>"rejected-".$mode."@example.invalid"]);
+        if ($ids) { WP_CLI::error("Rejected lead persisted: ".$mode); }
+    }
+    WP_CLI::success("No rejected leads stored");
+  '
 }
 render() {
   local revision=$1 label=$2
@@ -50,7 +156,7 @@ render() {
   docker run -d --name "$wp" --network "$network" -v "$volume:/var/www/html" \
     -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_NAME=fixture -e WORDPRESS_DB_USER=fixture \
     -e WORDPRESS_DB_PASSWORD=fixture-only \
-    -e WORDPRESS_CONFIG_EXTRA='define("DISABLE_WP_CRON", true); define("WP_DEBUG", true); define("WP_DEBUG_DISPLAY", false); define("WP_HTTP_BLOCK_EXTERNAL", true); define("WP_ENVIRONMENT_TYPE", "local");' \
+    -e WORDPRESS_CONFIG_EXTRA='define("DISABLE_WP_CRON", true); if (!defined("WP_DEBUG")) { define("WP_DEBUG", true); } define("WP_DEBUG_DISPLAY", false); define("WP_HTTP_BLOCK_EXTERNAL", true); define("WP_ENVIRONMENT_TYPE", "local");' \
     "$wp_image" >/dev/null
   for i in $(seq 1 60); do
     if docker exec "$db" mariadb-admin ping -uroot -pfixture-root-only --silent >/dev/null 2>&1 &&
@@ -102,6 +208,7 @@ HTACCESS
   capture contact /kontakt/ "$dest"
   capture blog /blog/ "$dest"
   capture article /fixture-seo-article/ "$dest"
+  if [[ "$label" == candidate ]]; then test_leads "$dest"; fi
   # Explicitly exercise the selectable core template rather than only home.php.
   wpcli option update page_for_posts 0
   wpcli post meta update "$blog" _wp_page_template ups-blog-core.php
