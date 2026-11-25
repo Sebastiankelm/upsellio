@@ -209,18 +209,25 @@
           if (busy || submitted) return;
           const phone = callbackPhone.value.trim();
           const digits = phone.replace(/\D/g, "");
-          if (!/^\+?[0-9 ()-]+$/.test(phone) || digits.length < 9 || digits.length > 15) {
-            callbackPhone.setCustomValidity("Podaj poprawny numer telefonu.");
+          let normalized = "";
+          if (phone.startsWith("+")) normalized = "+" + digits;
+          else if (digits.startsWith("00")) normalized = "+" + digits.slice(2);
+          else if (digits.length === 9) normalized = "+48" + digits;
+          else if (digits.length === 11 && digits.startsWith("48")) normalized = "+" + digits;
+          if (!/^\+?[0-9 ()-]+$/.test(phone) || !/^\+[1-9][0-9]{8,14}$/.test(normalized) || (normalized.startsWith("+48") && !/^\+48[1-9][0-9]{8}$/.test(normalized))) {
+            callbackPhone.setCustomValidity("Podaj poprawny numer telefonu. Dla numeru zagranicznego użyj prefiksu kraju.");
             callbackPhone.reportValidity();
             return;
           }
           if (!form.reportValidity()) return;
           const data = new FormData(form);
+          data.set("lead_phone", normalized);
           busy = true;
           submit.disabled = true;
           form.setAttribute("aria-busy","true");
           status.textContent = "Wysyłam…";
           status.classList.remove("is-error");
+          let serverMessage = "";
           try {
             const nonceBody = new URLSearchParams({action:"upsellio_refresh_lead_form_nonce"});
             const nonceResponse = await fetch(endpoint.href,{method:"POST",credentials:"same-origin",body:nonceBody,cache:"no-store"});
@@ -231,7 +238,8 @@
             const response = await fetch(endpoint.href,{method:"POST",credentials:"same-origin",body:data,cache:"no-store"});
             const result = await response.json();
             if (!response.ok || !result.success) {
-              throw new Error(typeof result.data?.message === "string" ? result.data.message : "Nie udało się potwierdzić zgłoszenia. Skorzystaj z pełnego formularza lub zadzwoń.");
+              if ([400,403,429,500].includes(response.status) && typeof result.data?.message === "string") serverMessage = result.data.message;
+              throw new Error("Callback request rejected");
             }
             submitted = true;
             form.reset();
@@ -240,7 +248,7 @@
             form.querySelectorAll("input").forEach(input => { input.disabled = true; });
             emit("callback_submit","sheet");
           } catch (error) {
-            status.textContent = error instanceof Error && error.message.startsWith("Nie udało") ? error.message : "Nie udało się potwierdzić zgłoszenia. Sprawdź dane lub zadzwoń.";
+            status.textContent = serverMessage || "Nie udało się potwierdzić zgłoszenia. Skorzystaj z pełnego formularza lub zadzwoń.";
             status.classList.add("is-error");
           } finally {
             busy = false;
