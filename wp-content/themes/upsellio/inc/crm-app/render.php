@@ -264,6 +264,11 @@ function upsellio_crm_app_template_redirect()
         $base = ["view" => $view];
         if ($view === "leads") {
             $base["lead_tab"] = $lead_tab;
+            foreach (["lead_q", "lead_source_filter"] as $filter_key) {
+                if (isset($_GET[$filter_key])) { $base[$filter_key] = sanitize_text_field(wp_unslash($_GET[$filter_key])); }
+            }
+        } elseif ($view === "offers") {
+            $base["offer_status_filter"] = sanitize_key(wp_unslash($_GET["offer_status_filter"] ?? ""));
         } elseif ($view === "tasks") {
             $base["task_tab"] = $task_tab;
         }
@@ -964,7 +969,7 @@ function upsellio_crm_app_template_redirect()
       <link rel="stylesheet" href="<?php echo esc_url(get_template_directory_uri() . "/assets/css/crm-redesign.css"); ?>?ver=<?php echo esc_attr((string) filemtime($redesign_css)); ?>" />
     <?php endif; ?>
     </head>
-    <body class="<?php echo is_readable($redesign_css) ? "ups-crm-redesign" : ""; ?>">
+    <body class="<?php echo is_readable($redesign_css) ? "ups-crm-redesign" : ""; ?>" data-crm-view="<?php echo esc_attr($view); ?>">
       <?php
       $custom_logo_id = (int) get_theme_mod("custom_logo");
       $custom_logo_url = $custom_logo_id > 0 ? (string) wp_get_attachment_image_url($custom_logo_id, "full") : "";
@@ -1244,7 +1249,28 @@ function upsellio_crm_app_template_redirect()
           </script>
           <div class="grid">
             <?php if ($view !== "dashboard" && $view !== "inbox") : ?>
-              <div class="crm-page-heading"><h1><?php echo esc_html($crm_topbar_title); ?></h1></div>
+              <div class="crm-page-heading crm-view-heading">
+                <div><h1><?php echo esc_html($crm_topbar_title); ?></h1>
+                <?php $view_descriptions = ["leads" => "Nowe zapytania ze strony, telefonu, Meta Lead Ads i prospectingu", "pipeline" => "Przeciągaj karty między etapami sprzedaży", "offers" => "Każda oferta to strona publiczna z akceptacją online", "clients" => "Aktywne współprace i ich kondycja"]; ?>
+                <?php if (isset($view_descriptions[$view])) : ?><p><?php echo esc_html($view_descriptions[$view]); ?></p><?php endif; ?>
+                </div>
+                <div class="crm-heading-actions">
+                  <?php if ($view === "leads") : ?>
+                    <a class="btn alt" href="#crm-lead-import"><i class="ti ti-file-import" aria-hidden="true"></i> Import CSV</a>
+                    <button type="button" class="btn" id="ups-open-add-lead"><i class="ti ti-plus" aria-hidden="true"></i> Dodaj lead</button>
+                  <?php elseif ($view === "offers") : ?>
+                    <a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("offer_analytics")); ?>">Lejek ofert</a>
+                    <a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("template-studio")); ?>">Szablony</a>
+                    <button type="button" class="btn" onclick="document.getElementById('crm-add-btn')?.click()">Nowa oferta</button>
+                  <?php elseif ($view === "clients") : ?>
+                    <a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("contacts")); ?>">Kontakty</a>
+                    <a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("services")); ?>">Katalog usług</a>
+                    <a class="btn" href="<?php echo esc_url(upsellio_crm_url("client-edit")); ?>">Dodaj klienta</a>
+                  <?php elseif ($view === "pipeline") : ?>
+                    <a class="btn" href="<?php echo esc_url(upsellio_crm_url("offers")); ?>">Nowy deal / oferta</a>
+                  <?php endif; ?>
+                </div>
+              </div>
             <?php endif; ?>
             <?php if ($view === "search") : ?>
               <section class="card" style="grid-column:span 12">
@@ -1433,7 +1459,7 @@ function upsellio_crm_app_template_redirect()
                 <?php $dashboard_hot_offers = function_exists("upsellio_offers_active_today") ? upsellio_offers_active_today(3) : []; ?>
 
                 <div class="crm-content" style="grid-column:1/-1;width:100%;min-width:0">
-                  <div class="crm-page-heading"><h1><?php echo esc_html(sprintf(__("Dzień dobry, %s", "upsellio"), $pulse_name)); ?></h1><p class="muted"><?php echo esc_html(wp_date("l, j F Y")); ?></p></div>
+                  <div class="crm-page-heading crm-view-heading"><div><h1><?php echo esc_html(sprintf(__("Dzień dobry, %s", "upsellio"), $pulse_name)); ?></h1><p><?php echo esc_html(wp_date("l, j F Y")); ?> · <?php echo (int) $actions_hint; ?> zadań do dziś · <?php echo count($dash_alerts); ?> alertów</p></div><div class="crm-heading-actions"><a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("contact-queue")); ?>"><i class="ti ti-phone" aria-hidden="true"></i> Kolejka kontaktu</a><a class="btn" href="<?php echo esc_url(upsellio_crm_url("leads", ["lead_tab" => "new"])); ?>"><i class="ti ti-plus" aria-hidden="true"></i> Leady</a></div></div>
                 <div class="crm-card-hd" style="margin-bottom:0">
                   <span><?php esc_html_e("Podsumowanie dnia", "upsellio"); ?></span>
                   <a class="crm-card-lnk" href="<?php echo esc_url(add_query_arg(["view" => "alerts"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Alerty →", "upsellio"); ?></a>
@@ -1891,10 +1917,18 @@ function upsellio_crm_app_template_redirect()
               $overdue_leads = 0;
               $qualified_leads = 0;
               $active_budget_total = 0.0;
+              $new_7d = $score_sum = $score_count = $unanswered = $converted = 0;
+              $week_start = (new DateTimeImmutable("-7 days", wp_timezone()))->getTimestamp();
               $lead_metric_posts = $crm_collections["lead_metric_posts"] ?? $leads;
               foreach ($lead_metric_posts as $lead_stat) {
                   $lead_id_stat = (int) $lead_stat->ID;
                   $st = (string) get_post_meta($lead_id_stat, "_ups_lead_qualification_status", true);
+                  $created = upsellio_crm_app_dashboard_gmt_timestamp($lead_stat->post_date_gmt);
+                  if ($created !== false && $created >= $week_start) { $new_7d++; }
+                  $score_raw = get_post_meta($lead_id_stat, "_ups_lead_score_0_100", true);
+                  if ($score_raw === "") { $score_raw = get_post_meta($lead_id_stat, "_upsellio_lead_score", true); }
+                  if (is_numeric($score_raw)) { $score_sum += max(0, min(100, (int) $score_raw)); $score_count++; }
+                  if ($st === "converted") { $converted++; }
                   if ($st === "qualified") {
                       $qualified_leads++;
                   }
@@ -1905,16 +1939,18 @@ function upsellio_crm_app_template_redirect()
                   if ($first_c !== "") {
                       continue;
                   }
-                  $age_h = (time() - strtotime((string) $lead_stat->post_date_gmt)) / 3600;
+                  if (in_array($st, ["converted", "rejected", "done"], true)) { continue; }
+                  $unanswered++;
+                  $age_h = $created !== false ? (time() - $created) / 3600 : 0;
                   if ($age_h > 48) {
                       $overdue_leads++;
                   }
               }
               ?>
-              <section class="card kpi"><span class="muted">Wszystkie leady</span><b><?php echo esc_html((string) count($lead_metric_posts)); ?></b></section>
-              <section class="card kpi"><span class="muted">Zaległe (&gt;48h)</span><b><?php echo esc_html((string) $overdue_leads); ?></b></section>
-              <section class="card kpi"><span class="muted">Zakwalifikowane</span><b><?php echo esc_html((string) $qualified_leads); ?></b></section>
-              <section class="card kpi"><span class="muted">Wartość potencjalna</span><b><?php echo esc_html(number_format($active_budget_total, 0, ",", " ")); ?> PLN</b></section>
+              <section class="card kpi"><span class="muted">Nowe (7 dni)</span><b><?php echo (int) $new_7d; ?></b><small class="muted">Wszystkie: <?php echo count($lead_metric_posts); ?></small></section>
+              <section class="card kpi"><span class="muted">Średni score</span><b><?php echo $score_count ? (int) round($score_sum / $score_count) : "—"; ?></b></section>
+              <section class="card kpi"><span class="muted">Bez kontaktu</span><b><?php echo (int) $unanswered; ?></b><small class="muted">Zaległe (&gt;48h): <?php echo (int) $overdue_leads; ?></small></section>
+              <section class="card kpi"><span class="muted">Konwersja lead → klient/deal</span><b><?php echo count($lead_metric_posts) ? esc_html((string) round(100 * $converted / count($lead_metric_posts))) . "%" : "—"; ?></b><small class="muted">Wszystkie okresy</small></section>
               <section class="card">
                 <h2><?php esc_html_e("Leady i kwalifikacja", "upsellio"); ?></h2>
                 <div class="crm-view-tabs">
@@ -1932,9 +1968,24 @@ function upsellio_crm_app_template_redirect()
                     <a class="crm-tab-link <?php echo $lead_tab === $lt_key ? "is-active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "leads", "lead_tab" => $lt_key], home_url("/crm-app/"))); ?>"><?php echo esc_html($lt_label); ?></a>
                   <?php endforeach; ?>
                 </div>
-                <div class="crm-lead-add-toolbar" style="display:flex;justify-content:flex-end;margin:0 0 12px">
-                  <button type="button" class="btn" id="ups-open-add-lead"><?php esc_html_e("Dodaj lead", "upsellio"); ?></button>
-                </div>
+                <form method="get" class="crm-list-filters" action="<?php echo esc_url(upsellio_crm_base_url()); ?>">
+                  <input type="hidden" name="view" value="leads" />
+                  <input type="hidden" name="lead_tab" value="<?php echo esc_attr($lead_tab); ?>" />
+                  <label><span>Szukaj leada</span><input type="search" name="lead_q" value="<?php echo esc_attr(sanitize_text_field(wp_unslash($_GET["lead_q"] ?? ""))); ?>" placeholder="Nazwa / firma…" /></label>
+                  <label><span>Źródło</span><input type="text" name="lead_source_filter" value="<?php echo esc_attr(sanitize_text_field(wp_unslash($_GET["lead_source_filter"] ?? ""))); ?>" placeholder="Wszystkie źródła" /></label>
+                  <button class="btn alt" type="submit">Filtruj</button>
+                  <a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("leads", ["lead_tab" => $lead_tab])); ?>">Wyczyść</a>
+                </form>
+                <details id="crm-lead-import" class="crm-inline-import">
+                  <summary>Import leadów CSV</summary>
+                  <form method="post" enctype="multipart/form-data" class="crm-list-filters">
+                    <?php wp_nonce_field("ups_crm_app_action", "ups_crm_app_nonce"); ?>
+                    <input type="hidden" name="ups_action" value="import_leads_csv" />
+                    <input type="hidden" name="crm_view" value="leads" />
+                    <label><span>Plik CSV (name,email,phone,source,type,status)</span><input type="file" name="leads_csv" accept=".csv,text/csv" required /></label>
+                    <button class="btn" type="submit">Importuj</button>
+                  </form>
+                </details>
                 <div id="ups-lead-add-modal" class="crm-modal-overlay" aria-hidden="true">
                   <div class="crm-modal" role="dialog" aria-labelledby="ups-lead-add-title" aria-modal="true" onclick="event.stopPropagation()" style="max-width:min(560px,calc(100vw - 32px))">
                     <h3 id="ups-lead-add-title" style="margin-top:0"><?php esc_html_e("Nowy lead", "upsellio"); ?></h3>
