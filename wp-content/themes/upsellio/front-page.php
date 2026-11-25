@@ -396,6 +396,94 @@ a.hr-btn-d:hover,button.hr-btn-d:hover{background:#000;transform:translateY(-1px
   .hr-kontakt{padding:64px 0 80px}
   .hr-hero-stats{grid-template-columns:1fr 1fr}
 }
+/* === UPSELLIO REDESIGN — phase 1: visual only, scoped to homepage ===
+   Original copy, anchors, schema, forms and tracking remain untouched.
+   Source: supplied implementation guidelines (mint / ink / teal). */
+.hr {
+  --up-ink:#0f1115; --up-ink-2:#3a3d44; --up-muted:#5f636b;
+  --up-line:#e3e6ea; --up-input:#d8dde3; --up-soft:#f5f6f8;
+  --up-tint:#effaf7; --up-mint:#dff5ef; --up-teal:#0bb39c;
+  --up-teal-dark:#06745f; --up-teal-light:#7fe3d2; --up-on-dark:#c4c8ce;
+  --up-cta:#06745f; --up-cta-hover:#055e4d;
+  --up-warn:#b54708; --up-warn-bg:#fff4e5; --up-error:#b42318;
+  --up-font-head:'Bricolage Grotesque',sans-serif;
+  --up-font-body:'DM Sans',-apple-system,sans-serif;
+  --up-h1:clamp(40px,5vw,62px); --up-h2:clamp(30px,3.4vw,42px);
+  --up-container:1160px; --up-gutter:24px; --up-section:96px; --up-section-m:64px;
+  --up-r-field:12px; --up-r-card:20px; --up-r-panel:24px; --up-r-pill:999px;
+  --up-shadow-lift:0 24px 48px rgba(15,17,21,.08);
+  --up-shadow-hover:0 12px 28px rgba(15,17,21,.08);
+  --up-ease:cubic-bezier(.2,.7,.2,1); --up-fast:150ms; --up-base:200ms; --up-slow:600ms;
+  /* Local aliases: no changes to global theme variables or CRM. */
+  --hr-ink:var(--up-ink); --hr-ink2:var(--up-ink-2); --hr-muted:var(--up-muted);
+  --hr-bg:#fff; --hr-surface:#fff; --hr-soft:var(--up-soft); --hr-softer:var(--up-soft);
+  --hr-border:var(--up-line); --hr-border2:var(--up-input); --hr-line:var(--up-line);
+  --hr-teal:var(--up-teal); --hr-tealh:var(--up-teal-dark); --hr-teald:var(--up-teal-dark);
+  --hr-tealx:var(--up-teal-light); --hr-teals:var(--up-mint); --hr-tealss:var(--up-tint); --hr-tealb:var(--up-mint);
+  --hr-dark:var(--up-ink); --hr-r:var(--up-r-field); --hr-rl:var(--up-r-card);
+  --hr-rxl:var(--up-r-card); --hr-rxxl:var(--up-r-panel);
+  --hr-fd:var(--up-font-head); --hr-fb:var(--up-font-body);
+  background:#fff;
+}
+.hr .hr-wrap{max-width:calc(var(--up-container) + 2 * var(--up-gutter));padding-inline:var(--up-gutter)}
+.hr .hr-hero{background:var(--up-tint);padding:72px 0 88px}
+.hr .hr-hero::before,.hr .hr-section-dark::before{display:none}
+.hr .hr-hero-grid{gap:clamp(32px,4vw,64px);align-items:start}
+.hr .hr-hero-grid>*{min-width:0}
+.hr .hr-h1{font-size:var(--up-h1);line-height:1.02}
+.hr .hr-h1 em,.hr .hr-hero-stat strong em{color:var(--up-teal-dark)}
+.hr .hr-h1 s{color:var(--up-muted)}
+.hr .hr-eyebrow{color:var(--up-teal-dark)}
+.hr .hr-eyebrow-light{color:var(--up-teal-light)}
+.hr .hr-btn{min-height:48px;border-radius:var(--up-r-pill);transition:background-color var(--up-fast),border-color var(--up-fast),color var(--up-fast),transform var(--up-fast)}
+.hr a.hr-btn-p,.hr button.hr-btn-p,.hr a.hr-btn-d,.hr button.hr-btn-d,
+.hr .hr-form-card .ups-form__submit,.hr .hr-form-card button[type="submit"]{background:var(--up-cta);color:#fff}
+.hr a.hr-btn-p:hover,.hr button.hr-btn-p:hover,.hr a.hr-btn-d:hover,.hr button.hr-btn-d:hover,
+.hr .hr-form-card .ups-form__submit:hover,.hr .hr-form-card button[type="submit"]:hover{background:var(--up-cta-hover);color:#fff}
+.hr .hr-form-card{position:static;border-radius:var(--up-r-panel);box-shadow:var(--up-shadow-lift)}
+.hr .hr-form-card .ups-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.hr .hr-form-card .ups-form select,.hr .hr-form-card .ups-form textarea{border-color:var(--up-input);border-radius:var(--up-r-field);min-height:48px}
+.hr .hr-form-card .ups-form__consent{min-height:44px;align-items:center}
+.hr .hr-form-card .ups-form__submit,.hr .hr-form-card button[type="submit"]{min-height:54px}
+.hr :is(a,button,input,select,textarea,summary):focus-visible{outline:3px solid var(--up-teal-dark);outline-offset:3px}
+.hr .hr-section-dark :is(a,button,summary):focus-visible{outline-color:var(--up-teal-light)}
+.hr .hr-form-card .ups-form :is(input,select,textarea):focus{border-color:var(--up-teal-dark);box-shadow:0 0 0 3px rgba(11,179,156,.18)}
+.hr .hr-gain{padding:56px 0;background:#fff}
+.hr .hr-section{padding:var(--up-section) 0}
+.hr .hr-section-soft{background:var(--up-soft)}
+.hr .hr-section-dark{background:var(--up-ink);padding:88px 0}
+.hr .hr-sec-head h2,.hr .hr-gain-head h2,.hr .hr-kontakt-info h2{font-size:var(--up-h2);line-height:1.08}
+.hr .hr-gain-card,.hr .hr-problem,.hr .hr-svc,.hr .hr-diff-card,.hr .hr-step,.hr .hr-target{border-radius:var(--up-r-card)}
+.hr .hr-problem-num{color:var(--up-warn)}
+.hr .hr-problem:hover,.hr .hr-svc:hover,.hr .hr-gain-card:hover,.hr .hr-target:hover{border-color:#cdeee6;box-shadow:var(--up-shadow-hover);transform:translateY(-2px)}
+.hr .hr-svc-list li::before,.hr .hr-target-list li::before,.hr .hr-kontakt-info-list li::before{color:var(--up-teal-dark)}
+.hr .hr-case{border-radius:var(--up-r-panel)}
+.hr .hr-case-stat-label,.hr .hr-case-quote-author,.hr .hr-case p,.hr .hr-section-dark .hr-sec-head p,.hr .hr-section-dark .hr-step-cta p{color:var(--up-on-dark)}
+.hr .hr-faq-it summary{min-height:56px}
+.hr .hr-faq-it[open]{border-color:var(--up-line)}
+.hr .hr-faq-it[open] .hr-faq-icn{background:var(--up-mint);color:var(--up-teal-dark)}
+.hr .hr-kontakt{background:var(--up-tint);padding:var(--up-section) 0}
+/* Progressive enhancement: content is never hidden if scripts fail. */
+.hr [data-hr-anim]{opacity:1;transform:none;transition-delay:0s}
+@media (min-width:981px){
+  .hr .hr-hero-grid{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+}
+@media (max-width:980px){
+  .hr .hr-hero-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:720px){
+  .hr .hr-hero{padding:40px 0 var(--up-section-m)}
+  .hr .hr-section,.hr .hr-gain,.hr .hr-kontakt{padding:var(--up-section-m) 0}
+  .hr .hr-wrap{padding-inline:20px}
+  .hr .hr-form-card{padding:24px;border-radius:var(--up-r-panel)}
+  .hr .hr-case-stats{grid-template-columns:minmax(0,1fr)}
+  .hr .hr-hero-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){
+  .hr *, .hr *::before, .hr *::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  .hr :is(a,button,.hr-problem,.hr-gain-card,.hr-target,.hr-svc):hover{transform:none}
+}
+
 </style>
 
 <main class="hr" id="strona-glowna">
