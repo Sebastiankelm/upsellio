@@ -959,8 +959,12 @@ function upsellio_crm_app_template_redirect()
       });
     })();
     </script>
+    <?php $redesign_css = get_template_directory() . "/assets/css/crm-redesign.css"; ?>
+    <?php if (is_readable($redesign_css)) : ?>
+      <link rel="stylesheet" href="<?php echo esc_url(get_template_directory_uri() . "/assets/css/crm-redesign.css"); ?>?ver=<?php echo esc_attr((string) filemtime($redesign_css)); ?>" />
+    <?php endif; ?>
     </head>
-    <body>
+    <body class="<?php echo is_readable($redesign_css) ? "ups-crm-redesign" : ""; ?>">
       <?php
       $custom_logo_id = (int) get_theme_mod("custom_logo");
       $custom_logo_url = $custom_logo_id > 0 ? (string) wp_get_attachment_image_url($custom_logo_id, "full") : "";
@@ -1023,7 +1027,7 @@ function upsellio_crm_app_template_redirect()
         <main class="main crm-main">
           <?php if ($view === "dashboard") : ?>
           <div class="topbar crm-topbar">
-            <div class="crm-topbar-title"><?php esc_html_e("Pulpit operacyjny", "upsellio"); ?><small><?php echo esc_html(wp_date("l, j F Y")); ?></small></div>
+            <div class="crm-topbar-title"><?php require __DIR__ . "/partials/crm-breadcrumbs.php"; ?></div>
             <div class="crm-period-tabs">
               <?php foreach (["today" => __("Dziś", "upsellio"), "7d" => "7 dni", "30d" => "30 dni", "month" => __("Miesiąc", "upsellio"), "quarter" => __("Kwartał", "upsellio")] as $pk => $plab) : ?>
                 <a class="crm-period-tab <?php echo $dash_period === $pk ? "is-on" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "dashboard", "dash_period" => $pk, "dash_src" => $dash_src, "dash_svc" => $dash_svc, "dash_trend" => $dash_trend_days], home_url("/crm-app/"))); ?>"><?php echo esc_html($plab); ?></a>
@@ -1124,7 +1128,7 @@ function upsellio_crm_app_template_redirect()
           <div class="topbar crm-topbar">
             <div class="topbar-zone topbar-zone--title">
               <?php require __DIR__ . "/partials/crm-breadcrumbs.php"; ?>
-              <div class="topbar-title" id="crm-tb-title"><?php echo esc_html($crm_topbar_title); ?></div>
+              <div class="topbar-title" id="crm-tb-title" hidden><?php echo esc_html($crm_topbar_title); ?></div>
               <form class="crm-global-search" method="get" action="<?php echo esc_url(home_url("/crm-app/")); ?>">
                 <input type="hidden" name="view" value="search" />
                 <input type="search" name="crm_q" value="<?php echo esc_attr($crm_search_q); ?>" placeholder="<?php esc_attr_e('Szukaj klientów, leadów, ofert, zadań…', 'upsellio'); ?>" autocomplete="off" aria-label="<?php esc_attr_e('Szukaj w CRM', 'upsellio'); ?>" />
@@ -1239,6 +1243,9 @@ function upsellio_crm_app_template_redirect()
           };
           </script>
           <div class="grid">
+            <?php if ($view !== "dashboard" && $view !== "inbox") : ?>
+              <div class="crm-page-heading"><h1><?php echo esc_html($crm_topbar_title); ?></h1></div>
+            <?php endif; ?>
             <?php if ($view === "search") : ?>
               <section class="card" style="grid-column:span 12">
                 <h2>Wyniki wyszukiwania</h2>
@@ -1426,6 +1433,7 @@ function upsellio_crm_app_template_redirect()
                 <?php $dashboard_hot_offers = function_exists("upsellio_offers_active_today") ? upsellio_offers_active_today(3) : []; ?>
 
                 <div class="crm-content" style="grid-column:1/-1;width:100%;min-width:0">
+                  <div class="crm-page-heading"><h1><?php echo esc_html(sprintf(__("Dzień dobry, %s", "upsellio"), $pulse_name)); ?></h1><p class="muted"><?php echo esc_html(wp_date("l, j F Y")); ?></p></div>
                 <div class="crm-card-hd" style="margin-bottom:0">
                   <span><?php esc_html_e("Podsumowanie dnia", "upsellio"); ?></span>
                   <a class="crm-card-lnk" href="<?php echo esc_url(add_query_arg(["view" => "alerts"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Alerty →", "upsellio"); ?></a>
@@ -2757,7 +2765,7 @@ function upsellio_crm_app_template_redirect()
               $oe_exp_at = $oe_id > 0 ? (int) get_post_meta($oe_id, "_ups_offer_expires_at", true) : 0;
               $oe_exp_local = $oe_exp_at > 0 ? gmdate("Y-m-d\TH:i", $oe_exp_at + (int) (get_option("gmt_offset", 0) * HOUR_IN_SECONDS)) : "";
               ?>
-              <script type="application/json" id="ups-crm-clients-json"><?php echo wp_json_encode($crm_clients_json); ?></script>
+              <script type="application/json" id="ups-crm-clients-json"><?php echo wp_json_encode($crm_clients_json, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
               <section class="card">
                 <h2><?php echo $view === "deals" ? "Deale" : "Oferty"; ?></h2>
                 <p class="muted" style="margin-bottom:12px"><?php echo $view === "deals" ? "Tabela dealów i quick actions. Szczegóły strony publicznej edytujesz w budowniczku (widok Oferty)." : "Lista aktywnych dealów. Konfiguracja strony publicznej (layout, zakres, pytania) jest w oknie <strong>budowniczka</strong>."; ?></p>
