@@ -381,6 +381,21 @@ function upsellio_crm_app_list_page(string $post_type, array $extra = []): array
     ];
 }
 
+/** Paginate already filtered, priority-sorted records (tasks and calendar share data). */
+function upsellio_crm_app_slice_list_page(array $posts, int $requested_page, int $per_page = 50): array
+{
+    $per_page = max(1, $per_page);
+    $total = count($posts);
+    $pages = (int) ceil($total / $per_page);
+    $page = max(1, min($requested_page, max(1, $pages)));
+    return [
+        "posts" => array_slice($posts, ($page - 1) * $per_page, $per_page),
+        "page" => $page,
+        "pages" => $pages,
+        "total" => $total,
+    ];
+}
+
 function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $inbox_ctx = null)
 {
     $st = upsellio_crm_app_post_statuses_visible();
@@ -507,7 +522,8 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
 
         case "offers":
             $empty["clients"] = $qlist("crm_client", 300);
-            $empty["offers"] = $qlist("crm_offer", 300);
+            $empty["list_page"] = upsellio_crm_app_list_page("crm_offer");
+            $empty["offers"] = $empty["list_page"]["posts"];
             $empty["followups"] = $qlist("ups_followup_template", 300);
             $empty["offer_layout_templates"] = $qlist("crm_offer_layout", 200, "title", "ASC");
             upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"]));
@@ -555,7 +571,7 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
         case "tasks":
         case "calendar":
             if (post_type_exists("lead_task")) {
-                $empty["tasks"] = upsellio_crm_app_sort_tasks_by_priority(get_posts(upsellio_crm_app_get_tasks_query_args(500)));
+                $empty["tasks"] = upsellio_crm_app_sort_tasks_by_priority(upsellio_crm_app_collect_metric_posts("lead_task", upsellio_crm_app_get_tasks_query_args(500)));
             }
             $empty["offers"] = $qlist("crm_offer", 300);
             upsellio_crm_app_prime_post_meta_cache(array_merge($empty["tasks"], $empty["offers"]));
@@ -634,7 +650,8 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
 
         case "deals":
             $empty["clients"] = $qlist("crm_client", 300);
-            $empty["offers"] = $qlist("crm_offer", 300);
+            $empty["list_page"] = upsellio_crm_app_list_page("crm_offer");
+            $empty["offers"] = $empty["list_page"]["posts"];
             $empty["followups"] = $qlist("ups_followup_template", 300);
             $empty["offer_layout_templates"] = $qlist("crm_offer_layout", 200, "title", "ASC");
             upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"]));
