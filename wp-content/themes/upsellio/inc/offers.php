@@ -1382,20 +1382,34 @@ function upsellio_offer_apply_public_accept($offer_id, array $decision_payload =
     if (!in_array($prev_accept_status, ["open", "sent"], true)) {
         return false;
     }
+    // Recheck the submitted commercial revision immediately before claiming acceptance.
+    if (!empty($terms_snapshot["fingerprint"]) && function_exists("upsellio_offer_terms_fingerprint")) {
+        wp_cache_delete($offer_id, "post_meta");
+        clean_post_cache($offer_id);
+        if (!hash_equals(upsellio_offer_terms_fingerprint($offer_id), (string) $terms_snapshot["fingerprint"]) || (int) ($terms_snapshot["version"] ?? -1) !== (int) get_post_meta($offer_id, "_ups_offer_current_version", true)) { return false; }
+    }
     // Compare-and-set prevents repeated status transitions on concurrent requests.
     if (!update_post_meta($offer_id, "_ups_offer_status", "won", $prev_accept_status)) {
         return false;
     }
+    $payload_ok = true;
+    $snapshot_ok = true;
     if ($decision_payload !== []) {
-        update_post_meta($offer_id, "_ups_offer_accept_payload", $decision_payload);
+        $payload_ok = (bool) update_post_meta($offer_id, "_ups_offer_accept_payload", wp_slash($decision_payload));
+        if (!$payload_ok) { $payload_ok = get_post_meta($offer_id, "_ups_offer_accept_payload", true) === $decision_payload; }
     }
     if ($terms_snapshot !== []) {
-        add_post_meta($offer_id, "_ups_offer_accepted_terms_snapshot", $terms_snapshot, true);
+        $snapshot_ok = (bool) add_post_meta($offer_id, "_ups_offer_accepted_terms_snapshot", wp_slash($terms_snapshot), true);
+    }
+    if (!$payload_ok || !$snapshot_ok) {
+        // Fail closed: do not emit sales hooks or let the browser claim a completed acceptance.
+        update_post_meta($offer_id, "_ups_offer_accept_integrity_error", "payload_or_snapshot_write_failed");
+        return false;
     }
     update_post_meta($offer_id, "_ups_offer_stage", "decision");
     update_post_meta($offer_id, "_ups_offer_closed_at", current_time("mysql"));
     update_post_meta($offer_id, "_ups_offer_accepted_at", current_time("mysql"));
-    update_post_meta($offer_id, "_ups_offer_accepted_version", (int) get_post_meta($offer_id, "_ups_offer_current_version", true));
+    update_post_meta($offer_id, "_ups_offer_accepted_version", (int) ($terms_snapshot["version"] ?? get_post_meta($offer_id, "_ups_offer_current_version", true)));
     update_post_meta($offer_id, "_ups_offer_accept_ip", isset($_SERVER["REMOTE_ADDR"]) ? sanitize_text_field(wp_unslash($_SERVER["REMOTE_ADDR"])) : "");
     update_post_meta($offer_id, "_ups_offer_accept_user_agent", isset($_SERVER["HTTP_USER_AGENT"]) ? sanitize_text_field(wp_unslash($_SERVER["HTTP_USER_AGENT"])) : "");
     if (function_exists("upsellio_offer_add_timeline_event")) {
