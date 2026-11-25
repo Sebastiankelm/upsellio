@@ -45,6 +45,34 @@ function upsellio_crm_app_handle_post_actions()
     }
 
     $action = isset($_POST["ups_action"]) ? sanitize_key(wp_unslash($_POST["ups_action"])) : "";
+    // Nonces protect against CSRF, not unauthorized record access.
+    $record_actions = [
+        "save_lead" => ["lead_id", "crm_lead"],
+        "convert_lead" => ["lead_id", "crm_lead"],
+        "save_contact" => ["contact_id", "crm_contact"],
+        "save_service" => ["service_id", "crm_service"],
+        "save_client" => ["client_id", "crm_client"],
+        "save_offer_layout" => ["offer_layout_id", "crm_offer_layout"],
+        "save_contract_layout" => ["contract_layout_id", "crm_contract_layout"],
+        "save_offer" => ["offer_id", "crm_offer"],
+        "save_followup" => ["template_id", "ups_followup_template"],
+        "save_contract" => ["contract_id", "crm_contract"],
+        "save_prospect" => ["prospect_id", "crm_prospect"],
+        "send_prospect_email_now" => ["prospect_id", "crm_prospect"],
+        "send_offer_followup_now" => ["offer_id", "crm_offer"],
+        "save_task" => ["task_id", "lead_task"],
+    ];
+    if (isset($record_actions[$action])) {
+        [$field, $post_type] = $record_actions[$action];
+        $record_id = isset($_POST[$field]) ? (int) wp_unslash($_POST[$field]) : 0;
+        if ($record_id !== 0 && ($record_id < 0 || get_post_type($record_id) !== $post_type || !current_user_can("edit_post", $record_id))) {
+            wp_die("Brak uprawnień do rekordu CRM.", "", ["response" => 403]);
+        }
+    }
+    if (in_array($action, ["save_quick_settings", "save_contract_template", "save_offer_template"], true) && !current_user_can("manage_options")) {
+        wp_die("Brak uprawnień do ustawień CRM.", "", ["response" => 403]);
+    }
+
     if ($action === "save_lead") {
         $lead_id = isset($_POST["lead_id"]) ? (int) wp_unslash($_POST["lead_id"]) : 0;
         $title = isset($_POST["lead_title"]) ? sanitize_text_field(wp_unslash($_POST["lead_title"])) : "";
@@ -98,6 +126,11 @@ function upsellio_crm_app_handle_post_actions()
                 update_post_meta($lead_id, "_ups_lead_qualification_status", "rejected");
                 upsellio_crm_app_append_entity_log("lead", $lead_id, "lead_rejected", "Lead odrzucony.", []);
             } elseif ($decision === "create_client_deal") {
+                if ((string) get_post_meta($lead_id, "_ups_lead_qualification_status", true) === "converted" ||
+                    (int) get_post_meta($lead_id, "_ups_lead_converted_client_id", true) > 0 ||
+                    (int) get_post_meta($lead_id, "_ups_lead_converted_offer_id", true) > 0) {
+                    wp_die("Lead został już skonwertowany. Sprawdź istniejące powiązania.", "", ["response" => 409]);
+                }
                 $lead_title = (string) get_the_title($lead_id);
                 $client_id = (int) wp_insert_post([
                     "post_type" => "crm_client",
@@ -127,6 +160,10 @@ function upsellio_crm_app_handle_post_actions()
                         if ($utm_c !== "") {
                             update_post_meta($offer_id, "_ups_offer_utm_campaign", $utm_c);
                         }
+                    }
+                    if ($offer_id <= 0) {
+                        wp_trash_post($client_id);
+                        wp_die("Nie udało się utworzyć oferty. Lead nie został skonwertowany.", "", ["response" => 500]);
                     }
                     update_post_meta($lead_id, "_ups_lead_qualification_status", "converted");
                     update_post_meta($lead_id, "_ups_lead_converted_client_id", $client_id);
@@ -1446,7 +1483,7 @@ function upsellio_crm_app_ajax_export_csv()
         foreach ($posts as $post) {
             fputcsv($out, [
                 (int) $post->ID,
-                (string) $post->post_title,
+                preg_match('/^[\\s]*[=+@-]|^[\\t\\r\\n]/u', (string) $post->post_title) ? "'" . $post->post_title : (string) $post->post_title,
                 (string) $post->post_type,
                 (string) $post->post_status,
                 (string) $post->post_date_gmt,
@@ -1632,9 +1669,16 @@ function upsellio_crm_inbox_mark_read_ajax()
         wp_send_json_error([], 403);
     }
     $offer_id = isset($_POST["offer_id"]) ? (int) wp_unslash($_POST["offer_id"]) : 0;
-    if ($offer_id > 0 && function_exists("upsellio_inbox_mark_read")) {
-        upsellio_inbox_mark_read($offer_id);
+    if ($offer_id <= 0 || get_post_type($offer_id) !== "crm_offer") {
+        wp_send_json_error(["message" => "invalid_offer"], 400);
     }
+    if (!current_user_can("edit_post", $offer_id)) {
+        wp_send_json_error(["message" => "forbidden"], 403);
+    }
+    if (!function_exists("upsellio_inbox_mark_read")) {
+        wp_send_json_error(["message" => "unavailable"], 500);
+    }
+    upsellio_inbox_mark_read($offer_id);
     wp_send_json_success();
 }
 add_action("wp_ajax_upsellio_inbox_mark_read", "upsellio_crm_inbox_mark_read_ajax");
