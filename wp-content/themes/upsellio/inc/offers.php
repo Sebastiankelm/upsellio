@@ -170,7 +170,7 @@ function upsellio_offer_replace_email_placeholders($text, $offer_id)
         "{{offer_title}}" => (string) get_the_title($offer_id),
         "{{offer_url}}" => (string) upsellio_offer_get_public_url($offer_id),
         "{{offer_price}}" => (string) get_post_meta($offer_id, "_ups_offer_price", true),
-        "{{offer_timeline}}" => (string) get_post_meta($offer_id, "_ups_offer_timeline", true),
+        "{{offer_timeline}}" => upsellio_offer_get_commercial_timeline($offer_id),
     ];
     return strtr((string) $text, $replace);
 }
@@ -199,7 +199,7 @@ function upsellio_offer_replace_template_placeholders($text, $offer_id)
         "{{offer_title}}" => (string) get_the_title($offer_id),
         "{{offer_url}}" => (string) upsellio_offer_get_public_url($offer_id),
         "{{offer_price}}" => (string) get_post_meta($offer_id, "_ups_offer_price", true),
-        "{{offer_timeline}}" => (string) get_post_meta($offer_id, "_ups_offer_timeline", true),
+        "{{offer_timeline}}" => upsellio_offer_get_commercial_timeline($offer_id),
         "{{offer_cta_text}}" => (string) get_post_meta($offer_id, "_ups_offer_cta_text", true),
         "{{today}}" => current_time("Y-m-d"),
     ];
@@ -426,16 +426,27 @@ function upsellio_offer_is_expired($offer_id)
     return time() >= $expires_at;
 }
 
+function upsellio_offer_get_timeline_events(int $offer_id): array
+{
+    $events = get_post_meta($offer_id, "_ups_offer_timeline_events", true);
+    if (is_array($events)) { return $events; }
+    $legacy = get_post_meta($offer_id, "_ups_offer_timeline", true);
+    return is_array($legacy) ? $legacy : [];
+}
+
+function upsellio_offer_get_commercial_timeline(int $offer_id): string
+{
+    $value = get_post_meta($offer_id, "_ups_offer_timeline", true);
+    return is_string($value) ? $value : "";
+}
+
 function upsellio_offer_add_timeline_event($offer_id, $type, $message)
 {
     $offer_id = (int) $offer_id;
     if ($offer_id <= 0) {
         return;
     }
-    $events = get_post_meta($offer_id, "_ups_offer_timeline", true);
-    if (!is_array($events)) {
-        $events = [];
-    }
+    $events = upsellio_offer_get_timeline_events($offer_id);
     $events[] = [
         "ts" => current_time("mysql"),
         "type" => sanitize_key((string) $type),
@@ -444,7 +455,7 @@ function upsellio_offer_add_timeline_event($offer_id, $type, $message)
     if (count($events) > 100) {
         $events = array_slice($events, -100);
     }
-    update_post_meta($offer_id, "_ups_offer_timeline", $events);
+    update_post_meta($offer_id, "_ups_offer_timeline_events", $events);
 }
 
 function upsellio_offer_build_analytics_summary($offer_id)
@@ -699,7 +710,7 @@ function upsellio_offer_refresh_score($offer_id)
 function upsellio_offer_update_followup_on_visit(int $offer_id): void
 {
     $offer_id = (int) $offer_id;
-    if ($offer_id <= 0) {
+    if ($offer_id <= 0 || !in_array((string) get_post_meta($offer_id, "_ups_offer_status", true), ["open", "sent"], true) || upsellio_offer_is_expired($offer_id)) {
         return;
     }
 
@@ -726,8 +737,8 @@ function upsellio_offer_update_followup_on_visit(int $offer_id): void
         }
 
         if ($gap_h < 12) {
-            $queue[$idx]["status"] = "paused_visit_too_close";
-            $queue[$idx]["paused_at"] = current_time("mysql");
+            $queue[$idx]["send_at"] = gmdate("Y-m-d H:i:s", $now + 12 * HOUR_IN_SECONDS);
+            $queue[$idx]["visit_deferred_at"] = current_time("mysql");
             $updated = true;
             continue;
         }
@@ -880,7 +891,7 @@ function upsellio_render_offer_meta_box($post)
     $post_id = (int) $post->ID;
     $client_id = (int) get_post_meta($post_id, "_ups_offer_client_id", true);
     $price = (string) get_post_meta($post_id, "_ups_offer_price", true);
-    $timeline = (string) get_post_meta($post_id, "_ups_offer_timeline", true);
+    $timeline = upsellio_offer_get_commercial_timeline((int) $post_id);
     $cta = (string) get_post_meta($post_id, "_ups_offer_cta_text", true);
     $offer_status = (string) get_post_meta($post_id, "_ups_offer_status", true);
     $won_value = (string) get_post_meta($post_id, "_ups_offer_won_value", true);
@@ -1056,9 +1067,11 @@ function upsellio_save_offer_meta_box($post_id)
     $previous_title = (string) get_the_title((int) $post_id);
     $previous_content = (string) get_post_field("post_content", (int) $post_id);
     $previous_price = (string) get_post_meta((int) $post_id, "_ups_offer_price", true);
-    $previous_timeline = (string) get_post_meta((int) $post_id, "_ups_offer_timeline", true);
+    $previous_timeline = upsellio_offer_get_commercial_timeline((int) $post_id);
     update_post_meta((int) $post_id, "_ups_offer_client_id", isset($_POST["ups_offer_client_id"]) ? (int) wp_unslash($_POST["ups_offer_client_id"]) : 0);
     update_post_meta((int) $post_id, "_ups_offer_price", isset($_POST["ups_offer_price"]) ? sanitize_text_field(wp_unslash($_POST["ups_offer_price"])) : "");
+    $legacy_history = upsellio_offer_get_timeline_events((int) $post_id);
+    if ($legacy_history !== [] && !metadata_exists("post", (int) $post_id, "_ups_offer_timeline_events")) { update_post_meta((int) $post_id, "_ups_offer_timeline_events", $legacy_history); }
     update_post_meta((int) $post_id, "_ups_offer_timeline", isset($_POST["ups_offer_timeline"]) ? sanitize_text_field(wp_unslash($_POST["ups_offer_timeline"])) : "");
     update_post_meta((int) $post_id, "_ups_offer_cta_text", isset($_POST["ups_offer_cta_text"]) ? sanitize_text_field(wp_unslash($_POST["ups_offer_cta_text"])) : "");
     $new_status = isset($_POST["ups_offer_status"]) ? sanitize_key(wp_unslash($_POST["ups_offer_status"])) : "open";
@@ -1087,7 +1100,7 @@ function upsellio_save_offer_meta_box($post_id)
     $current_title = (string) get_the_title((int) $post_id);
     $current_content = (string) get_post_field("post_content", (int) $post_id);
     $current_price = (string) get_post_meta((int) $post_id, "_ups_offer_price", true);
-    $current_timeline = (string) get_post_meta((int) $post_id, "_ups_offer_timeline", true);
+    $current_timeline = upsellio_offer_get_commercial_timeline((int) $post_id);
     $has_version_change = ($previous_title !== $current_title) || ($previous_content !== $current_content) || ($previous_price !== $current_price) || ($previous_timeline !== $current_timeline);
     if ($has_version_change) {
         $versions = get_post_meta((int) $post_id, "_ups_offer_versions", true);
