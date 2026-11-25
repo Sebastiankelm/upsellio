@@ -396,6 +396,19 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
   @media(max-width:420px){.web-page .web-wire-grid,.web-page .web-shop-grid{grid-template-columns:minmax(0,1fr)}.web-page .web-shop-visual{max-width:180px}}
   @media(prefers-reduced-motion:reduce){.web-page *, .web-page *::before,.web-page *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
+
+/* Mockup fidelity: concise first screen, audience before detailed SEO copy. */
+.web-hero .web-h1 em{font-style:normal;color:#06745f}
+.web-hero .up-mock-benefits{padding:0;margin:0 0 24px;list-style:none;display:grid;gap:10px;color:#3a3d44;font-size:16px}
+.web-hero .up-mock-benefits li::before{content:"✓";color:#06745f;font-weight:700;margin-right:10px}
+.web-hero .up-mock-caption{margin:12px 0 0;font-size:13px;line-height:1.5;color:#5f636b}
+.up-mock-audience{background:#fff}
+.up-mock-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:24px}
+.up-mock-grid article{background:#f5f6f8;border:1px solid #e3e6ea;border-radius:20px;padding:24px;min-width:0}
+.up-mock-grid h3{font:700 20px/1.25 "Bricolage Grotesque",system-ui,sans-serif;color:#0f1115;margin:0 0 10px}
+.up-mock-grid p{font-size:16px;line-height:1.55;color:#3a3d44;margin:0}
+.up-mock-details{background:#f5f6f8}
+@media(max-width:720px){.up-mock-grid{grid-template-columns:minmax(0,1fr)}}
 </style>
 
 <main class="web-page">
@@ -422,18 +435,10 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
     <div class="web-wrap web-hero-grid">
       <div>
         <span class="web-eyebrow">Strony WWW pod konwersję</span>
-        <h1 class="web-h1">Tworzenie stron internetowych dla firm: strona, która nie tylko wygląda dobrze, ale zamienia odwiedzających w klientów.</h1>
-        <p class="web-lead">Projektuję i tworzę strony internetowe oraz landing pages dla firm B2B, usługowych i e-commerce. Każda strona jest zaprojektowana pod jeden cel: przekształcenie ruchu w zapytania, kontakty i sprzedaż.</p>
-        <div class="web-copy">
-          <p>Większość firm ma stronę internetową. Ale posiadanie strony i posiadanie strony, która sprzedaje, to dwie zupełnie różne rzeczy. Strona firmowa nie jest wizytówką do zawieszenia w internecie, tylko narzędziem sprzedażowym, które pracuje 24 godziny na dobę.</p>
-          <p>Różnica między stroną, która konwertuje, a stroną, która nie konwertuje, rzadko leży w grafice. Leży w jasności komunikatu, strukturze przekonywania i zaufaniu budowanym przez liczby, opinie, case studies oraz konkretne CTA.</p>
-        </div>
-        <div class="web-btn-row">
-          <a href="#kontakt" class="web-btn web-btn-primary" data-cta="web-hero-analysis" data-cta-section="hero" data-cta-position="primary">Chcę bezpłatną analizę strony</a>
-          <a href="#elementy" class="web-btn web-btn-secondary">Zobacz elementy skutecznej strony</a>
-          <a href="#typy" class="web-btn web-btn-ghost">Strona czy landing page?</a>
-          <a href="#cennik" class="web-btn web-btn-secondary">Zobacz cennik</a>
-        </div>
+        <h1 class="web-h1">Strona lub sklep, który zamienia <em>odwiedzających w klientów.</em></h1>
+        <p class="web-lead">Robię strony i sklepy internetowe dla małych firm — z jasną ofertą i prostą drogą do zamówienia lub telefonu. Teksty, podstawowe SEO i panel do edycji w cenie.</p>
+        <ul class="up-mock-benefits"><li>Teksty w cenie</li><li>Sam edytujesz produkty i ceny</li><li>Bez opłat za platformę</li></ul>
+        <div class="web-btn-row"><a href="#kontakt" class="web-btn web-btn-primary" data-cta="web-hero-analysis" data-cta-section="hero" data-cta-position="primary">Umów bezpłatną diagnozę</a><a href="#cennik" class="web-btn web-btn-secondary">Zobacz cennik</a></div>
       </div>
 
       <aside class="web-blueprint" aria-label="Blueprint skutecznej strony">
@@ -461,49 +466,16 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
             </div>
           </div>
         </figure>
-        <div class="web-wireframe">
-          <div class="web-wire-hero">
-            <strong>Hero, które mówi: dla kogo, co i dlaczego teraz.</strong>
-            <p>Nagłówek, jasna propozycja wartości, dowód zaufania i jedno główne CTA.</p>
-          </div>
-          <div class="web-wire-grid">
-            <div class="web-wire-card">
-              <b>Problem</b>
-              <div class="web-wire-card-mock" aria-hidden="true">
-                <span class="web-wire-mock-line"></span>
-                <span class="web-wire-mock-line short"></span>
-                <span class="web-wire-mock-line"></span>
-              </div>
-              <small>Nazywa sytuację klienta.</small>
-            </div>
-            <div class="web-wire-card">
-              <b>Dowód</b>
-              <div class="web-wire-card-mock" aria-hidden="true">
-                <span class="web-wire-mock-stars"><span></span><span></span><span></span><span></span><span></span></span>
-                <span class="web-wire-mock-line short"></span>
-                <span class="web-wire-mock-line"></span>
-              </div>
-              <small>Opinie, liczby, realizacje.</small>
-            </div>
-            <div class="web-wire-card">
-              <b>CTA</b>
-              <div class="web-wire-card-mock" aria-hidden="true">
-                <span class="web-wire-mock-line short"></span>
-                <span class="web-wire-mock-line"></span>
-                <span class="web-wire-mock-cta"></span>
-              </div>
-              <small>Prosty następny krok.</small>
-            </div>
-          </div>
-        </div>
-      </aside>
+        <ul class="up-mock-benefits"><li>Jasna oferta</li><li>Opinie klientów</li><li>Szybki koszyk</li></ul></aside>
     </div>
   </section>
+<section class="web-section up-mock-audience" id="dla-kogo"><div class="web-wrap"><span class="web-eyebrow">Dla kogo</span><h2 class="web-h2">Co jest Ci potrzebne?</h2><div class="up-mock-grid"><article><h3>Sklep internetowy</h3><p>Dla marek z własnymi produktami. Sam dodajesz produkty i zmieniasz ceny.</p></article><article><h3>Strona firmowa</h3><p>Dla lokali i usług: oferta, menu lub cennik, opinie, mapa dojazdu i szybki kontakt.</p></article><article><h3>Landing page</h3><p>Jedna strona pod jedną ofertę lub promocję. Najlepsza pod kampanie reklamowe.</p></article></div></div></section>
+
 
   <section class="web-section" id="problemy">
     <div class="web-wrap">
       <span class="web-eyebrow">Dlaczego strona nie generuje zapytań</span>
-      <h2 class="web-h2">Dlaczego Twoja strona internetowa ma ruch, ale nie ma zapytań?</h2>
+      <h2 class="web-h2">Gdzie najczęściej uciekają pieniądze</h2>
       <div class="web-copy">
         <p>Brak zapytań ze strony internetowej to jeden z najczęstszych problemów firm. Strona jest, wejścia są, budżet reklamowy jest wydawany, ale formularz milczy, a telefon nie dzwoni. Problem zwykle leży w komunikacji, zaufaniu i prowadzeniu do kontaktu.</p>
         <p>Pierwsze sekundy na stronie decydują, czy użytkownik zostanie. Jeśli nagłówek nie mówi, czym się zajmujesz, dla kogo jest oferta i dlaczego warto zostać, odwiedzający wróci do Google albo kliknie reklamę konkurencji.</p>
@@ -537,7 +509,7 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
   <section class="web-section web-service" id="zakres">
     <div class="web-wrap">
       <span class="web-eyebrow">Zakres usługi</span>
-      <h2 class="web-h2">Tworzenie stron internetowych i landing pages jako element systemu marketingowego, nie izolowany projekt graficzny.</h2>
+      <h2 class="web-h2">Co dostajesz</h2>
       <div class="web-copy">
         <p>Projektowanie stron dla firm zaczyna się długo przed wyborem szablonu czy palety kolorów. Żeby strona działała jako narzędzie sprzedażowe, musi być zaprojektowana pod konkretny cel, grupę docelową i ścieżkę konwersji.</p>
       </div>
@@ -632,23 +604,7 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
     </div>
   </section>
 
-  <section class="web-section" id="dla-kogo">
-    <div class="web-wrap">
-      <div class="web-dark-split">
-        <div>
-          <span class="web-eyebrow">Dla kogo</span>
-          <h2 class="web-h2">Dla jakich firm tworzę strony internetowe i kiedy nowa strona ma większy sens niż kolejna reklama?</h2>
-          <p class="web-lead">Tworzenie stron ma sens dla firm, które chcą traktować obecność w internecie jako inwestycję w pozyskiwanie klientów, a nie obowiązek spełniony raz na kilka lat.</p>
-        </div>
-        <div class="web-fit-grid">
-          <div class="web-fit-card"><strong>Firmy B2B i usługowe</strong><p>Strona jest często pierwszym punktem kontaktu i musi szybko budować wiarygodność.</p></div>
-          <div class="web-fit-card"><strong>Kampanie bez wyników</strong><p>Nowy landing page może poprawić CPL bez zwiększania wydatków reklamowych.</p></div>
-          <div class="web-fit-card"><strong>Nowe firmy i produkty</strong><p>Dobra strona na start oszczędza czas i pieniądze, które inaczej idą w poprawki.</p></div>
-          <div class="web-fit-card"><strong>Strony z ruchem bez leadów</strong><p>Audyt pokazuje, co blokuje zapytania i które zmiany wdrożyć najpierw.</p></div>
-        </div>
-      </div>
-    </div>
-  </section>
+  
 
   <section class="web-section" id="typy">
     <div class="web-wrap">
@@ -835,7 +791,63 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
     </div>
   </section>
 
-  <section class="web-section" id="faq">
+  
+<section class="web-section up-mock-details" id="szczegoly-uslugi"><div class="web-wrap"><span class="web-eyebrow">Więcej o usłudze</span><h2 class="web-h2">Tworzenie stron internetowych dla firm: strona, która nie tylko wygląda dobrze, ale zamienia odwiedzających w klientów.</h2><p class="web-lead">Projektuję i tworzę strony internetowe oraz landing pages dla firm B2B, usługowych i e-commerce. Każda strona jest zaprojektowana pod jeden cel: przekształcenie ruchu w zapytania, kontakty i sprzedaż.</p><div class="web-copy">
+          <p>Większość firm ma stronę internetową. Ale posiadanie strony i posiadanie strony, która sprzedaje, to dwie zupełnie różne rzeczy. Strona firmowa nie jest wizytówką do zawieszenia w internecie, tylko narzędziem sprzedażowym, które pracuje 24 godziny na dobę.</p>
+          <p>Różnica między stroną, która konwertuje, a stroną, która nie konwertuje, rzadko leży w grafice. Leży w jasności komunikatu, strukturze przekonywania i zaufaniu budowanym przez liczby, opinie, case studies oraz konkretne CTA.</p>
+        </div><div class="web-btn-row"><a href="#elementy" class="web-btn web-btn-secondary">Zobacz elementy skutecznej strony</a><a href="#typy" class="web-btn web-btn-ghost">Strona czy landing page?</a></div><div class="web-wireframe">
+          <div class="web-wire-hero">
+            <strong>Hero, które mówi: dla kogo, co i dlaczego teraz.</strong>
+            <p>Nagłówek, jasna propozycja wartości, dowód zaufania i jedno główne CTA.</p>
+          </div>
+          <div class="web-wire-grid">
+            <div class="web-wire-card">
+              <b>Problem</b>
+              <div class="web-wire-card-mock" aria-hidden="true">
+                <span class="web-wire-mock-line"></span>
+                <span class="web-wire-mock-line short"></span>
+                <span class="web-wire-mock-line"></span>
+              </div>
+              <small>Nazywa sytuację klienta.</small>
+            </div>
+            <div class="web-wire-card">
+              <b>Dowód</b>
+              <div class="web-wire-card-mock" aria-hidden="true">
+                <span class="web-wire-mock-stars"><span></span><span></span><span></span><span></span><span></span></span>
+                <span class="web-wire-mock-line short"></span>
+                <span class="web-wire-mock-line"></span>
+              </div>
+              <small>Opinie, liczby, realizacje.</small>
+            </div>
+            <div class="web-wire-card">
+              <b>CTA</b>
+              <div class="web-wire-card-mock" aria-hidden="true">
+                <span class="web-wire-mock-line short"></span>
+                <span class="web-wire-mock-line"></span>
+                <span class="web-wire-mock-cta"></span>
+              </div>
+              <small>Prosty następny krok.</small>
+            </div>
+          </div>
+        </div>
+      </div></section>
+<section class="web-section" id="dla-kogo-szczegoly">
+    <div class="web-wrap">
+      <div class="web-dark-split">
+        <div>
+          <span class="web-eyebrow">Dla kogo</span>
+          <h2 class="web-h2">Dla jakich firm tworzę strony internetowe i kiedy nowa strona ma większy sens niż kolejna reklama?</h2>
+          <p class="web-lead">Tworzenie stron ma sens dla firm, które chcą traktować obecność w internecie jako inwestycję w pozyskiwanie klientów, a nie obowiązek spełniony raz na kilka lat.</p>
+        </div>
+        <div class="web-fit-grid">
+          <div class="web-fit-card"><strong>Firmy B2B i usługowe</strong><p>Strona jest często pierwszym punktem kontaktu i musi szybko budować wiarygodność.</p></div>
+          <div class="web-fit-card"><strong>Kampanie bez wyników</strong><p>Nowy landing page może poprawić CPL bez zwiększania wydatków reklamowych.</p></div>
+          <div class="web-fit-card"><strong>Nowe firmy i produkty</strong><p>Dobra strona na start oszczędza czas i pieniądze, które inaczej idą w poprawki.</p></div>
+          <div class="web-fit-card"><strong>Strony z ruchem bez leadów</strong><p>Audyt pokazuje, co blokuje zapytania i które zmiany wdrożyć najpierw.</p></div>
+        </div>
+      </div>
+    </div>
+  </section><section class="web-section" id="faq">
     <div class="web-wrap">
       <span class="web-eyebrow">FAQ</span>
       <h2 class="web-h2">Najczęstsze pytania przed zleceniem strony internetowej.</h2>
