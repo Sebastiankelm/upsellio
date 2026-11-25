@@ -271,6 +271,112 @@ $faq_items = [
     .meta-funnel { grid-template-columns:repeat(4,minmax(0,1fr)); }
     .meta-card,.meta-detail-box,.meta-copy-box,.meta-funnel-step { padding:24px; }
   }
+  /* Redesign: Meta Ads — same typography, palette and rhythm as homepage. */
+  .meta-offer-page{
+    --meta-bg:#fff;--meta-surface:#fff;--meta-text:#0f1115;--meta-text-2:#3a3d44;
+    --meta-muted:#5f636b;--meta-border:#e3e6ea;--meta-green:#06745f;
+    --meta-green-dark:#055e4d;--meta-green-soft:#effaf7;--meta-green-line:#c7e6dd;
+    --meta-indigo:#06745f;--meta-indigo-soft:#dff5ef;--meta-indigo-line:#c7e6dd;
+    --meta-dark:#0f1115;--meta-shadow:0 24px 48px rgba(15,17,21,.08);
+    --meta-shadow-soft:0 12px 28px rgba(15,17,21,.06);
+    font-family:"DM Sans",system-ui,sans-serif;line-height:1.65
+  }
+  .meta-offer-page *,.meta-offer-page *::before,.meta-offer-page *::after{box-sizing:border-box}
+  .meta-offer-page .meta-wrap{width:min(1160px,calc(100% - 48px))}
+  .meta-offer-page .meta-section{padding:96px 0;scroll-margin-top:16px}
+  .meta-offer-page :is(.meta-h1,.meta-h2,.meta-h3){font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;letter-spacing:-.03em}
+  .meta-offer-page .meta-h1{font-size:clamp(38px,4.6vw,58px);line-height:1.08}
+  .meta-offer-page .meta-h2{font-size:clamp(30px,3.4vw,42px);line-height:1.12}
+  .meta-offer-page .meta-h3{font-size:clamp(20px,2.3vw,28px);line-height:1.25;font-weight:700}
+  .meta-offer-page .meta-lead{font-size:18px;line-height:1.65}
+  .meta-offer-page .meta-body p{font-size:16px;line-height:1.7}
+  .meta-offer-page .meta-eyebrow{letter-spacing:.09em;margin-bottom:12px}
+  .meta-offer-page .meta-eyebrow::before{display:none}
+  .meta-offer-page .meta-hero{background:#effaf7;padding:56px 0 96px}
+  .meta-offer-page .meta-hero::before,.meta-offer-page .meta-hero::after{display:none}
+  .meta-offer-page .meta-hero-grid{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:48px;align-items:start}
+  .meta-offer-page .meta-hero-card{border:1px solid var(--meta-border);border-radius:24px;padding:24px;box-shadow:var(--meta-shadow)}
+  .meta-offer-page .meta-hero-card-icon{background:#06745f;box-shadow:none}
+  .meta-offer-page .meta-hero-list li{background:#f5f6f8;border:0;border-radius:12px}
+  .meta-offer-page .meta-ad-example{margin:0 0 24px;background:#fff;border:1px solid #e3e6ea;border-radius:16px;overflow:hidden}
+  .meta-offer-page .meta-ad-example figcaption{padding:10px 16px;color:#5f636b;font-size:12px;border-bottom:1px solid #e3e6ea}
+  .meta-offer-page .meta-ad-head{display:flex;align-items:center;gap:10px;padding:16px 16px 0}
+  .meta-offer-page .meta-ad-avatar{width:40px;height:40px;display:grid;place-items:center;flex-shrink:0;background:#dff5ef;color:#06745f;border-radius:50%;font-weight:800}
+  .meta-offer-page .meta-ad-head small{display:block;color:#5f636b;font-size:12px}
+  .meta-offer-page .meta-ad-copy{padding:12px 16px;font-size:14px}
+  .meta-offer-page .meta-ad-visual{aspect-ratio:16/9;background:#dff5ef;display:grid;place-items:center}
+  .meta-offer-page .meta-ad-visual svg{width:58%;height:85%}
+  .meta-offer-page .meta-ad-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:#f5f6f8}
+  .meta-offer-page .meta-ad-bottom small{display:block;color:#5f636b;font-size:12px}
+  .meta-offer-page .meta-ad-fake-cta{padding:8px 12px;border-radius:8px;background:#e3e6ea;color:#0f1115;font-size:13px;font-weight:700;white-space:nowrap}
+  .meta-offer-page .meta-btn{min-height:48px;padding:10px 22px;line-height:1.35;text-align:center}
+  .meta-offer-page .meta-btn-primary,.meta-offer-page .meta-quick-cta{background:#06745f;color:#fff;box-shadow:none}
+  .meta-offer-page .meta-btn-primary:hover,.meta-offer-page .meta-quick-cta:hover{background:#055e4d;color:#fff}
+  .meta-offer-page .meta-btn-secondary{background:transparent;border-color:#d8dde3}
+  .meta-offer-page .meta-btn:hover{transform:none}
+  .meta-offer-page .meta-quick-nav{position:static;background:#fff;box-shadow:none;backdrop-filter:none}
+  .meta-offer-page .meta-quick-nav-inner{min-height:64px;padding:10px 0;gap:16px}
+  .meta-offer-page .meta-quick-links a,.meta-offer-page .meta-quick-cta{min-height:44px}
+  .meta-offer-page .meta-quick-links a{background:#fff}
+  .meta-offer-page .meta-quick-links a:is(:hover,.is-active){background:#effaf7;border-color:#c7e6dd}
+  .meta-offer-page #problemy,.meta-offer-page #proces{background:#f5f6f8}
+  .meta-offer-page .meta-card,.meta-offer-page .meta-detail-box,.meta-offer-page .meta-copy-box,.meta-offer-page .meta-format-card,.meta-offer-page .meta-funnel-visual{padding:24px;border-radius:20px;background:#fff;box-shadow:none;min-width:0}
+  .meta-offer-page .meta-card:hover{transform:translateY(-2px);box-shadow:var(--meta-shadow-soft);border-color:#c7e6dd}
+  .meta-offer-page .meta-card strong{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:20px;line-height:1.25}
+  .meta-offer-page #problemy .meta-card-grid{counter-reset:meta-problem;gap:16px}
+  .meta-offer-page #problemy .meta-card::before{counter-increment:meta-problem;content:counter(meta-problem,decimal-leading-zero);display:inline-block;margin-bottom:16px;padding:6px 12px;border-radius:999px;background:#fff4e5;color:#b54708;font-weight:700;font-size:13px}
+  .meta-offer-page .meta-copy-box{padding:0;border:0}
+  .meta-offer-page .meta-format-mock{background:#effaf7}
+  .meta-offer-page .meta-funnel-svg-text{fill:#0f1115}
+  .meta-offer-page .meta-funnel-list-bullet{background:#06745f;color:#fff}
+  .meta-offer-page .meta-mid-cta,.meta-offer-page .meta-final-cta{background:#effaf7;border:1px solid #c7e6dd;border-radius:24px;box-shadow:none}
+  .meta-offer-page #proces .meta-dark-box{background:transparent;color:#0f1115;box-shadow:none;padding:0;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:40px}
+  .meta-offer-page #proces .meta-h2,.meta-offer-page #proces .meta-step strong{color:#0f1115}
+  .meta-offer-page #proces .meta-lead,.meta-offer-page #proces .meta-step p{color:#3a3d44}
+  .meta-offer-page #proces .meta-eyebrow{color:#06745f}
+  .meta-offer-page #proces .meta-step{background:#fff;border:1px solid #e3e6ea;padding:24px}
+  .meta-offer-page #proces .meta-step-num,.meta-offer-page #proces .meta-step-icon{background:#dff5ef;color:#06745f}
+  .meta-offer-page #efekty{background:#0f1115;color:#fff}
+  .meta-offer-page #efekty .meta-h2,.meta-offer-page #efekty .meta-card strong{color:#fff}
+  .meta-offer-page #efekty .meta-eyebrow,.meta-offer-page #efekty .meta-effects-list li::before{color:#7fe3d2}
+  .meta-offer-page #efekty p,.meta-offer-page #efekty .meta-effects-list li{color:#c4c8ce}
+  .meta-offer-page #efekty .meta-card{background:#1d2026;border-color:#343940}
+  .meta-offer-page .meta-price-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:center}
+  .meta-offer-page .meta-price-card{padding:32px;border-radius:24px;background:#effaf7;border:1px solid #c7e6dd}
+  .meta-offer-page .meta-price-value{display:block;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(32px,4vw,48px);line-height:1.15;font-weight:800;margin-bottom:16px}
+  .meta-offer-page .meta-price-value small{font-family:"DM Sans",system-ui,sans-serif;font-size:16px;font-weight:500}
+  .meta-offer-page .meta-price-card .meta-check-list{margin:20px 0 24px}
+  .meta-offer-page #faq>.meta-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.65fr);gap:12px 56px;align-items:start}
+  .meta-offer-page #faq .meta-eyebrow{grid-column:1/-1}
+  .meta-offer-page #faq .meta-faq-grid{grid-column:2;grid-row:2/4;margin:0;max-width:none;gap:0}
+  .meta-offer-page #faq details{border:0;border-bottom:1px solid var(--meta-border);border-radius:0;box-shadow:none;padding:0}
+  .meta-offer-page #faq details:first-child{border-top:1px solid var(--meta-border)}
+  .meta-offer-page #faq summary{display:list-item;min-height:48px;padding:20px 4px;font-size:17px}
+  .meta-offer-page #faq details p{margin:0;padding:0 4px 20px}
+  .meta-offer-page .meta-faq-help{grid-column:1;grid-row:3;align-self:start;padding:22px;background:#effaf7;border-radius:20px}
+  .meta-offer-page .meta-faq-help a{display:inline-flex;min-height:44px;align-items:center;color:#06745f;font-weight:700}
+  .meta-offer-page .meta-internal-links a{min-height:44px}
+  .meta-offer-page :is(a,button,summary):focus-visible{outline:3px solid #06745f;outline-offset:3px}
+  .meta-offer-page #efekty a:focus-visible{outline-color:#7fe3d2}
+  @media(max-width:980px){
+    .meta-offer-page .meta-hero-grid,.meta-offer-page .meta-price-grid,.meta-offer-page #proces .meta-dark-box{grid-template-columns:minmax(0,1fr);gap:32px}
+    .meta-offer-page .meta-hero-card{max-width:640px}
+    .meta-offer-page #faq>.meta-wrap{display:flex;flex-direction:column;gap:18px}
+    .meta-offer-page #faq .meta-faq-grid,.meta-offer-page .meta-faq-help{width:100%}
+  }
+  @media(max-width:720px){
+    .meta-offer-page .meta-wrap{width:calc(100% - 40px)}
+    .meta-offer-page .meta-section{padding:64px 0}
+    .meta-offer-page .meta-hero{padding:48px 0 64px}
+    .meta-offer-page .meta-h1{font-size:clamp(32px,8.5vw,40px);overflow-wrap:anywhere}
+    .meta-offer-page .meta-h2{font-size:clamp(28px,7vw,34px)}
+    .meta-offer-page .meta-card-grid,.meta-offer-page .meta-steps,.meta-offer-page .meta-detail-grid{grid-template-columns:minmax(0,1fr)}
+    .meta-offer-page .meta-quick-nav-inner{width:100%;padding-inline:20px}
+    .meta-offer-page .meta-price-card,.meta-offer-page .meta-final-cta,.meta-offer-page .meta-hero-card{padding:24px}
+  }
+  @media(max-width:380px){.meta-offer-page .meta-ad-bottom{flex-wrap:wrap}.meta-offer-page .meta-hero-card{padding:16px}}
+  @media(prefers-reduced-motion:reduce){.meta-offer-page *, .meta-offer-page *::before,.meta-offer-page *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
 </style>
 
 <main class="meta-offer-page">
@@ -278,12 +384,14 @@ $faq_items = [
     <div class="meta-wrap meta-quick-nav-inner">
       <div class="meta-quick-links">
         <a href="#start">Start</a>
-        <a href="#problemy">Problemy</a>
         <a href="#b2b">B2B</a>
-        <a href="#dla-kogo">Dla kogo</a>
+        <a href="#problemy">Problemy</a>
         <a href="#co-robie">Co robię</a>
+        <a href="#dla-kogo">Dla kogo</a>
         <a href="#lejek">Lejek</a>
+        <a href="#cena">Cennik</a>
         <a href="#proces">Proces</a>
+        <a href="#efekty">Efekty</a>
         <a href="#faq">FAQ</a>
       </div>
       <a href="#kontakt" class="meta-quick-cta" data-cta="metaads-quick-cta" data-cta-section="hero" data-cta-position="topbar">Chcę sprawdzić Meta Ads</a>
@@ -304,10 +412,29 @@ $faq_items = [
           <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Chcę bezpłatną diagnozę</a>
           <a href="#co-robie" class="meta-btn meta-btn-secondary">Zobacz, co obejmuje usługa</a>
           <a href="#lejek" class="meta-btn meta-btn-ghost">Zobacz lejek Meta Ads</a>
+          <a href="#cena" class="meta-btn meta-btn-secondary">Zobacz cennik</a>
         </div>
       </div>
 
       <aside class="meta-hero-card">
+        <figure class="meta-ad-example" aria-label="Przykładowa makieta reklamy produktowej, nie jest to aktywna reklama">
+          <figcaption>Przykład reklamy produktowej · makieta</figcaption>
+          <div class="meta-ad-head"><span class="meta-ad-avatar" aria-hidden="true">TS</span><div><strong>Twój Sklep</strong><small>Sponsorowane</small></div></div>
+          <p class="meta-ad-copy">Nowe świece na jesień już są. Ręcznie robione, wysyłka w 24h.</p>
+          <div class="meta-ad-visual" aria-hidden="true">
+            <svg viewBox="0 0 220 140" fill="none" focusable="false">
+              <ellipse cx="110" cy="124" rx="86" ry="9" fill="#c7e6dd"/>
+              <rect x="40" y="55" width="55" height="66" rx="9" fill="#fff" stroke="#a8cfc4" stroke-width="2"/>
+              <ellipse cx="67.5" cy="55" rx="27.5" ry="8" fill="#effaf7" stroke="#a8cfc4" stroke-width="2"/>
+              <rect x="104" y="35" width="72" height="86" rx="11" fill="#f5f6f8" stroke="#a8cfc4" stroke-width="2"/>
+              <ellipse cx="140" cy="35" rx="36" ry="10" fill="#fff" stroke="#a8cfc4" stroke-width="2"/>
+              <path d="M67 54v-8M140 34v-9" stroke="#3a3d44" stroke-width="2" stroke-linecap="round"/>
+              <rect x="116" y="68" width="48" height="30" rx="3" fill="#dff5ef"/>
+              <path d="M127 80h26M132 87h16" stroke="#06745f" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="meta-ad-bottom"><div><small>twojsklep.pl</small><strong>Jesienna kolekcja</strong></div><span class="meta-ad-fake-cta">Kup teraz</span></div>
+        </figure>
         <span class="meta-hero-card-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06C2 17.08 5.66 21.24 10.44 22v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.89 3.78-3.89 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.45 2.91h-2.33V22C18.34 21.24 22 17.08 22 12.06z"/></svg>
         </span>
@@ -566,6 +693,28 @@ $faq_items = [
     </div>
   </section>
 
+
+  <section class="meta-section" id="cena" aria-labelledby="meta-price-heading">
+    <div class="meta-wrap meta-price-grid">
+      <div>
+        <span class="meta-eyebrow">Cennik</span>
+        <h2 class="meta-h2" id="meta-price-heading">Ile kosztuje prowadzenie Meta Ads?</h2>
+        <div class="meta-body">
+          <p>Stała opłata za prowadzenie. Budżet reklamowy płacisz bezpośrednio do Meta — bez mojej prowizji.</p>
+        </div>
+      </div>
+      <div class="meta-price-card">
+        <strong class="meta-price-value">od 1 800 zł <small>/ mies.</small></strong>
+        <ul class="meta-check-list">
+          <li>Konfiguracja Piksela i kampanii</li>
+          <li>Pomysły na reklamy i teksty</li>
+          <li>Miesięczny raport i rozmowa</li>
+        </ul>
+        <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-price-diagnosis" data-cta-section="pricing" data-cta-position="primary">Zapytaj o wycenę</a>
+      </div>
+    </div>
+  </section>
+
   <section class="meta-section" id="proces">
     <div class="meta-wrap">
       <div class="meta-dark-box">
@@ -644,6 +793,11 @@ $faq_items = [
     <div class="meta-wrap">
       <span class="meta-eyebrow">FAQ</span>
       <h2 class="meta-h2">Najczęstsze pytania przed rozpoczęciem kampanii Meta Ads.</h2>
+      <div class="meta-faq-help">
+        <strong>Nie ma tu Twojego pytania?</strong>
+        <p>Zadzwoń — odbieram osobiście, pn–pt 9–17.</p>
+        <a href="tel:<?php echo esc_attr(preg_replace('/\s+/', '', $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a>
+      </div>
       <div class="meta-faq-grid">
         <?php foreach ($faq_items as $faq_item) : ?>
           <details>
@@ -723,11 +877,13 @@ if (function_exists("upsellio_render_service_schema")) {
     function setActiveQuickLink() {
       let current = "";
       sections.forEach((section) => {
-        const sectionTop = section.offsetTop - 170;
-        if (window.scrollY >= sectionTop) current = "#" + section.id;
+        if (section.getBoundingClientRect().top <= 100) current = "#" + section.id;
       });
       quickLinks.forEach((link) => {
-        link.classList.toggle("is-active", link.getAttribute("href") === current);
+        const active = link.getAttribute("href") === current;
+        link.classList.toggle("is-active", active);
+        if (active) link.setAttribute("aria-current", "location");
+        else link.removeAttribute("aria-current");
       });
     }
 
