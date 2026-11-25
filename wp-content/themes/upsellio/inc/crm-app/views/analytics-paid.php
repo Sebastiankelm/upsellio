@@ -2,7 +2,7 @@
 if (!defined("ABSPATH")) {
     exit;
 }
-$range_days  = isset($_GET["range"]) ? (int) wp_unslash($_GET["range"]) : 30;
+$range_days = isset($range_days) && in_array($range_days, [7, 14, 30, 60, 90, 365], true) ? $range_days : 30;
 $campaigns   = (array) get_option("ups_ads_campaigns_data", []);
 $ai_review   = get_option("ups_ai_ads_review", []);
 $channel_ltv = function_exists("upsellio_analytics_channel_ltv")
@@ -12,7 +12,8 @@ $channel_ltv = function_exists("upsellio_analytics_channel_ltv")
 $ga4_last = (string) get_option("ups_automation_ga4_last_sync", "");
 ?>
 <section class="card">
-  <h3 style="margin:0 0 16px">Płatne</h3>
+  <h3 style="margin:0 0 8px">Reklamy</h3>
+  <p class="muted">Kampanie z ostatniej synchronizacji Google Ads; zakres cache może różnić się od wybranego okresu analizy CRM.</p>
 
   <?php if (!empty($ai_review) && is_array($ai_review) && !empty($ai_review["summary"])) : ?>
   <div style="padding:12px 16px;background:#fff7ed;border-left:4px solid #f97316;border-radius:0 var(--r-sm) var(--r-sm) 0;margin-bottom:14px;font-size:13px">
@@ -20,7 +21,7 @@ $ga4_last = (string) get_option("ups_automation_ga4_last_sync", "");
   </div>
   <?php endif; ?>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+  <div class="crm-report-kpis">
     <div style="background:var(--bg);border-radius:var(--r-sm);padding:10px">
       <div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--text-3);text-transform:uppercase">Kampanie z API</div>
       <div style="font-size:20px;font-weight:800;color:var(--text-main)"><?php echo count($campaigns); ?></div>
