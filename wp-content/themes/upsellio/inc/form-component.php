@@ -43,6 +43,10 @@ function upsellio_render_lead_form(array $args = [])
     $hidden_service = isset($args["hidden_service"]) ? sanitize_text_field((string) $args["hidden_service"]) : "";
     $hidden_fields = is_array($args["hidden_fields"] ?? null) ? $args["hidden_fields"] : [];
     $require_shop_url = !empty($args["require_shop_url"]);
+    $short_diagnosis = !$require_shop_url && function_exists("upsellio_crm_is_short_diagnosis_origin") && upsellio_crm_is_short_diagnosis_origin($origin);
+    if ($short_diagnosis) {
+        $submit_label = sanitize_text_field((string) ($args["submit_label"] ?? "Wyślij — oddzwonię w 24h"));
+    }
     $privacy_url = function_exists("upsellio_cookie_privacy_url")
         ? upsellio_cookie_privacy_url()
         : home_url("/polityka-prywatnosci/");
@@ -56,7 +60,7 @@ function upsellio_render_lead_form(array $args = [])
 
     $error_messages = [
         "nonce" => "Sesja wygasła. Odśwież stronę (F5) i wyślij ponownie.",
-        "fields" => "Uzupełnij wymagane pola (imię, telefon, e-mail) i zaznacz zgodę.",
+        "fields" => $short_diagnosis ? "Uzupełnij imię, poprawny telefon i zaznacz zgodę." : "Uzupełnij wymagane pola (imię, telefon, e-mail) i zaznacz zgodę.",
         "shop" => "Podaj link do butiku, Facebook albo adres sklepu.",
         "rate" => "Zbyt wiele prób. Spróbuj ponownie za godzinę lub napisz na kontakt@upsellio.pl.",
         "save" => "Błąd serwera. Napisz bezpośrednio na kontakt@upsellio.pl.",
@@ -71,6 +75,7 @@ function upsellio_render_lead_form(array $args = [])
         action="<?php echo esc_url(admin_url("admin-post.php")); ?>"
         data-upsellio-lead-form="1"
         data-upsellio-server-form="1"
+        <?php if ($short_diagnosis) : ?>data-upsellio-short-diagnosis="1"<?php endif; ?>
         <?php echo $form_id !== "" ? ' id="' . esc_attr($form_id) . '"' : ""; ?>
     >
         <input type="hidden" name="action" value="upsellio_submit_lead" />
@@ -125,7 +130,7 @@ function upsellio_render_lead_form(array $args = [])
 
         <?php if ($status === "success") : ?>
             <div class="ups-form__notice ups-form__notice--ok" role="alert">
-                Dziękuję! Oddzwonię w ciągu 24h.
+                Dziękuję! Oddzwonię w ciągu 24h roboczych.
             </div>
         <?php elseif ($status === "error") : ?>
             <div class="ups-form__notice ups-form__notice--err" role="alert">
@@ -151,6 +156,12 @@ function upsellio_render_lead_form(array $args = [])
                            type="tel" name="lead_phone" placeholder="+48 575 522 595"
                            autocomplete="tel" inputmode="tel" required />
                 </div>
+                <?php if ($short_diagnosis) : ?>
+                <div class="hr-contact-field full">
+                    <label for="ups-f-site-<?php echo esc_attr($origin); ?>">Strona lub sklep (opcjonalnie)</label>
+                    <input id="ups-f-site-<?php echo esc_attr($origin); ?>" type="text" name="lead_company" autocomplete="url" inputmode="url" placeholder="twojsklep.pl" />
+                </div>
+                <?php else : ?>
                 <div class="hr-contact-field full">
                     <label for="ups-f-email-<?php echo esc_attr($origin); ?>">
                         E-mail <span aria-hidden="true">*</span>
@@ -159,6 +170,7 @@ function upsellio_render_lead_form(array $args = [])
                            type="email" name="lead_email" placeholder="jan@firma.pl"
                            autocomplete="email" required />
                 </div>
+                <?php endif; ?>
                 <div class="hr-contact-field full">
                     <label for="ups-f-msg-<?php echo esc_attr($origin); ?>">Wiadomość (opcjonalnie)</label>
                     <textarea id="ups-f-msg-<?php echo esc_attr($origin); ?>"
@@ -191,6 +203,12 @@ function upsellio_render_lead_form(array $args = [])
                            autocomplete="tel" inputmode="tel" required />
                 </div>
             </div>
+            <?php if ($short_diagnosis) : ?>
+            <div class="ups-form__row">
+                <label class="ups-form__label" for="ups-f-site-<?php echo esc_attr($origin); ?>">Strona lub sklep (opcjonalnie)</label>
+                <input class="ups-form__input" id="ups-f-site-<?php echo esc_attr($origin); ?>" type="text" name="lead_company" autocomplete="url" inputmode="url" placeholder="twojsklep.pl" />
+            </div>
+            <?php else : ?>
             <div class="ups-form__row">
                 <label class="ups-form__label" for="ups-f-email-<?php echo esc_attr($origin); ?>">
                     E-mail <span aria-hidden="true">*</span>
@@ -199,6 +217,7 @@ function upsellio_render_lead_form(array $args = [])
                        type="email" name="lead_email" placeholder="jan@firma.pl"
                        autocomplete="email" required />
             </div>
+            <?php endif; ?>
             <?php if ($require_shop_url) : ?>
             <div class="ups-form__row">
                 <label class="ups-form__label" for="ups-f-shop-<?php echo esc_attr($origin); ?>">
