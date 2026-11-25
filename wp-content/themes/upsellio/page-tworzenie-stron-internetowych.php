@@ -409,6 +409,8 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
 .up-mock-grid p{font-size:16px;line-height:1.55;color:#3a3d44;margin:0}
 .up-mock-details{background:#f5f6f8}
 @media(max-width:720px){.up-mock-grid{grid-template-columns:minmax(0,1fr)}}
+
+.up-mock-scope{background:#fff}.up-mock-subtitle{max-width:56ch;color:#5f636b;font-size:17px;line-height:1.6}.up-mock-scope .up-mock-grid article{background:#fff}.up-mock-check{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#dff5ef;color:#06745f;font-size:22px;font-weight:700;margin-bottom:14px}
 </style>
 
 <main class="web-page">
@@ -506,175 +508,18 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
     </div>
   </section>
 
-  <section class="web-section web-service" id="zakres">
-    <div class="web-wrap">
-      <span class="web-eyebrow">Zakres usługi</span>
-      <h2 class="web-h2">Co dostajesz</h2>
-      <div class="web-copy">
-        <p>Projektowanie stron dla firm zaczyna się długo przed wyborem szablonu czy palety kolorów. Żeby strona działała jako narzędzie sprzedażowe, musi być zaprojektowana pod konkretny cel, grupę docelową i ścieżkę konwersji.</p>
-      </div>
-
-      <div class="web-service-grid">
-        <div class="web-service-card">
-          <h3 class="web-h3">Analiza i strategia konwersji</h3>
-          <ul class="web-check-list">
-            <li>profil klienta, pytania i obiekcje przed decyzją</li>
-            <li>oczekiwany następny krok: formularz, telefon, wycena lub zapis</li>
-            <li>mapa sekcji i cel każdej części strony</li>
-            <li>propozycja wartości i elementy zaufania</li>
-          </ul>
-        </div>
-        <div class="web-service-card">
-          <h3 class="web-h3">Copywriting sprzedażowy i SEO</h3>
-          <ul class="web-check-list">
-            <li>nagłówki H1-H3 i treści pisane językiem klienta</li>
-            <li>naturalna optymalizacja pod frazy i intencje wyszukiwania</li>
-            <li>odpowiedzi na pytania, obiekcje i ryzyka klienta</li>
-            <li>meta tagi, linkowanie wewnętrzne i struktura URL</li>
-          </ul>
-        </div>
-        <div class="web-service-card">
-          <h3 class="web-h3">Projektowanie i wdrożenie</h3>
-          <ul class="web-check-list">
-            <li>mobile-first, czytelność i hierarchia informacji</li>
-            <li>szybkość ładowania i Core Web Vitals</li>
-            <li>formularze, CTA i sekcje pod kampanie reklamowe</li>
-            <li>wdrożenie analityki, Tag Managera i śledzenia konwersji</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="web-section" id="elementy">
-    <div class="web-wrap">
-      <span class="web-eyebrow">Elementy skutecznej strony</span>
-      <h2 class="web-h2">Co musi zawierać strona internetowa firmy, żeby zamieniała ruch w zapytania?</h2>
-      <div class="web-copy">
-        <p>Skuteczna strona internetowa to nie kwestia samej estetyki. To kwestia struktury i komunikatu. Brak kilku elementów bezpośrednio obniża konwersję i sprawia, że ruch z SEO lub reklam nie zamienia się w kontakt.</p>
-      </div>
-      <div class="web-elements">
-        <div class="web-elements-group">
-          <h3 class="web-elements-group-title">Przekaz</h3>
-          <div class="web-element">
-            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span>
-            <strong>Jasny nagłówek</strong>
-            <p>Odpowiada, czym się zajmujesz, dla kogo jest oferta i jaka jest główna korzyść.</p>
-          </div>
-          <div class="web-element">
-            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15 8l6 .9-4.5 4.4 1.1 6.2L12 17l-5.6 2.5L7.5 13.3 3 8.9 9 8z"/></svg></span>
-            <strong>Propozycja wartości</strong>
-            <p>Pokazuje, dlaczego warto wybrać Twoją firmę, a nie konkurencję.</p>
-          </div>
-          <div class="web-element">
-            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
-            <strong>Dowody zaufania</strong>
-            <p>Liczby, opinie, case studies i logotypy klientów obniżają ryzyko kontaktu.</p>
-          </div>
-          <div class="web-element">
-            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
-            <strong>Widoczne CTA</strong>
-            <p>Jeden główny cel pojawia się w pierwszej sekcji, po usługach i po dowodach.</p>
-          </div>
-        </div>
-        <div class="web-elements-group">
-          <h3 class="web-elements-group-title">Technika i SEO</h3>
-          <div class="web-element">
-            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
-            <strong>Odpowiedzi na obiekcje</strong>
-            <p>FAQ, proces i sekcje dla kogo zatrzymują użytkownika przed powrotem do Google.</p>
-          </div>
-          <div class="web-element">
-            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 2 13 10 21 10"/><polyline points="11 22 11 14 3 14"/></svg></span>
-            <strong>Szybkość i mobile</strong>
-            <p>Core Web Vitals, responsywność i szybkie ładowanie wpływają na SEO i konwersję.</p>
-          </div>
-          <div class="web-element">
-            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
-            <strong>Struktura SEO</strong>
-            <p>Poprawne nagłówki, meta tagi, URL, alt texty i linkowanie pomagają Google zrozumieć temat.</p>
-          </div>
-          <div class="web-element">
-            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
-            <strong>Integracja z reklamami</strong>
-            <p>Spójny przekaz z Google Ads i Meta Ads oraz śledzenie konwersji zwiększają zwrot z budżetu.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+  <section class="web-section up-mock-scope" id="zakres"><div class="web-wrap"><span class="web-eyebrow">Zakres</span><h2 class="web-h2">Co dostajesz</h2><p class="up-mock-subtitle">Wszystko prowadzę osobiście — od pierwszej rozmowy do raportu.</p><div class="up-mock-grid"><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Analiza</h3><p>Kim jest Twój klient i co ma go przekonać do zakupu.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Teksty sprzedażowe</h3><p>Nagłówki, opisy oferty i produktów, przyciski, FAQ.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Projekt i wdrożenie</h3><p>WordPress lub WooCommerce, dopasowany do Twojej marki.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Wersja na telefon</h3><p>Wygodne zakupy i szybkie ładowanie na każdym ekranie.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>SEO i pomiar</h3><p>Podstawowe SEO oraz pomiar zamówień i formularzy.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Panel do edycji</h3><p>Sam zmieniasz produkty, ceny, menu i zdjęcia.</p></article></div></div></section>
 
   
 
-  <section class="web-section" id="typy">
-    <div class="web-wrap">
-      <span class="web-eyebrow">Typy stron</span>
-      <h2 class="web-h2">Strona firmowa, landing page czy sklep internetowy: które rozwiązanie ma większy sens dla Twojego celu?</h2>
-      <div class="web-types">
-        <div class="web-type-feature">
-          <svg class="web-type-feature-illo" viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect x="2" y="2" width="196" height="106" rx="10" fill="#fff" stroke="#99f6e4" />
-            <rect x="2" y="2" width="196" height="16" rx="10" fill="#ecfeff" />
-            <circle cx="12" cy="10" r="2" fill="#ef6155"/><circle cx="20" cy="10" r="2" fill="#f4c14f"/><circle cx="28" cy="10" r="2" fill="#46b37d"/>
-            <rect x="14" y="28" width="120" height="8" rx="3" fill="#0d9488"/>
-            <rect x="14" y="42" width="160" height="4" rx="2" fill="#cbd5e1"/>
-            <rect x="14" y="50" width="140" height="4" rx="2" fill="#cbd5e1"/>
-            <rect x="14" y="64" width="60" height="14" rx="6" fill="#0d9488"/>
-            <rect x="14" y="86" width="170" height="14" rx="4" fill="#f1f5f9"/>
-          </svg>
-          <h3 class="web-h3">Landing page: jeden cel, mniej rozproszeń, szybszy test komunikatu.</h3>
-          <p>Landing page jest zaprojektowany pod jeden konkretny cel: formularz, konsultację, wycenę, zapis lub zakup. Nie rozprasza nawigacją, tylko prowadzi użytkownika przez problem, rozwiązanie, dowody i CTA.</p>
-          <p>To najlepszy wybór dla kampanii <?php if ($google_ads_url !== "") : ?><a href="<?php echo esc_url($google_ads_url); ?>">Google Ads</a><?php else : ?>Google Ads<?php endif; ?> i <?php if ($meta_ads_url !== "") : ?><a href="<?php echo esc_url($meta_ads_url); ?>">Meta Ads</a><?php else : ?>Meta Ads<?php endif; ?>, promocji pojedynczej usługi oraz testowania komunikatów przed budową pełnej strony.</p>
-        </div>
-        <div class="web-type-stack">
-          <div class="web-type-card">
-            <svg class="web-type-card-illo" viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect x="1" y="1" width="58" height="48" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
-              <rect x="1" y="1" width="58" height="8" rx="6" fill="#ecfeff"/>
-              <rect x="6" y="14" width="48" height="3" rx="1" fill="#0d9488"/>
-              <rect x="6" y="20" width="14" height="14" rx="2" fill="#cbd5e1"/>
-              <rect x="22" y="20" width="14" height="14" rx="2" fill="#cbd5e1"/>
-              <rect x="38" y="20" width="14" height="14" rx="2" fill="#cbd5e1"/>
-              <rect x="6" y="38" width="48" height="3" rx="1" fill="#94a3b8"/>
-            </svg>
-            <div class="web-type-card-body">
-              <strong>Strona firmowa wielostronicowa</strong>
-              <p>Najlepsza dla SEO, wielu usług, portfolio, bloga i pełnej prezentacji firmy.</p>
-            </div>
-          </div>
-          <div class="web-type-card">
-            <svg class="web-type-card-illo" viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect x="1" y="1" width="58" height="48" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
-              <rect x="6" y="6" width="48" height="6" rx="2" fill="#0d9488"/>
-              <rect x="6" y="16" width="36" height="3" rx="1" fill="#cbd5e1"/>
-              <rect x="6" y="22" width="40" height="3" rx="1" fill="#cbd5e1"/>
-              <rect x="6" y="30" width="20" height="6" rx="2" fill="#0d9488"/>
-              <rect x="6" y="40" width="48" height="3" rx="1" fill="#cbd5e1"/>
-            </svg>
-            <div class="web-type-card-body">
-              <strong>Strona one-page</strong>
-              <p>Dobra dla jednej głównej usługi, szybkiego startu lub prostszej prezentacji online.</p>
-            </div>
-          </div>
-          <div class="web-type-card">
-            <svg class="web-type-card-illo" viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect x="1" y="1" width="58" height="48" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
-              <path d="M10 14 H50 L46 32 H14 Z" fill="#ecfeff" stroke="#0d9488"/>
-              <circle cx="18" cy="38" r="3" fill="#0d9488"/>
-              <circle cx="42" cy="38" r="3" fill="#0d9488"/>
-              <rect x="14" y="20" width="6" height="6" rx="1" fill="#0d9488"/>
-              <rect x="24" y="20" width="6" height="6" rx="1" fill="#94a3b8"/>
-              <rect x="34" y="20" width="6" height="6" rx="1" fill="#94a3b8"/>
-            </svg>
-            <div class="web-type-card-body">
-              <strong>Sklep internetowy B2B</strong>
-              <p>Katalogi, zapytania ofertowe, warianty produktów, integracje i proces zamawiania dla firm.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+  
+
+  
+
+  
+
+  
+
 
   <section class="web-section" id="realizacje">
     <div class="web-wrap">
@@ -712,21 +557,7 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
       <?php endif; ?>
     </div>
   </section>
-
-  <section class="web-section" id="technologie">
-    <div class="web-wrap">
-      <span class="web-eyebrow">WordPress, Webflow czy custom?</span>
-      <h2 class="web-h2">Technologia powinna wynikać z celu strony, a nie z mody na konkretne narzędzie.</h2>
-      <div class="web-compare-grid">
-        <div class="web-compare-card"><strong>WordPress</strong><p>Dobry wybór dla stron firmowych, bloga, SEO, portfolio i samodzielnej edycji treści przez zespół.</p></div>
-        <div class="web-compare-card"><strong>Webflow / no-code</strong><p>Sprawdza się przy szybkich landing pages, prostych stronach marketingowych i testowaniu komunikatu.</p></div>
-        <div class="web-compare-card"><strong>Custom</strong><p>Ma sens przy nietypowych funkcjach, integracjach, aplikacjach webowych albo bardzo specyficznym procesie sprzedaży.</p></div>
-      </div>
-    </div>
-  </section>
-
-
-  <section class="web-section" id="cennik" aria-labelledby="web-price-heading">
+<section class="web-section" id="cennik" aria-labelledby="web-price-heading">
     <div class="web-wrap web-price-grid">
       <div>
         <span class="web-eyebrow">Cennik</span>
@@ -847,7 +678,183 @@ $portfolio_examples = function_exists("upsellio_get_portfolio_list") ? array_sli
         </div>
       </div>
     </div>
-  </section><section class="web-section" id="faq">
+  </section><section class="web-section web-service" id="zakres-szczegoly">
+    <div class="web-wrap">
+      <span class="web-eyebrow">Zakres usługi</span>
+      <h2 class="web-h2">Szczegółowy zakres usługi</h2>
+      <div class="web-copy">
+        <p>Projektowanie stron dla firm zaczyna się długo przed wyborem szablonu czy palety kolorów. Żeby strona działała jako narzędzie sprzedażowe, musi być zaprojektowana pod konkretny cel, grupę docelową i ścieżkę konwersji.</p>
+      </div>
+
+      <div class="web-service-grid">
+        <div class="web-service-card">
+          <h3 class="web-h3">Analiza i strategia konwersji</h3>
+          <ul class="web-check-list">
+            <li>profil klienta, pytania i obiekcje przed decyzją</li>
+            <li>oczekiwany następny krok: formularz, telefon, wycena lub zapis</li>
+            <li>mapa sekcji i cel każdej części strony</li>
+            <li>propozycja wartości i elementy zaufania</li>
+          </ul>
+        </div>
+        <div class="web-service-card">
+          <h3 class="web-h3">Copywriting sprzedażowy i SEO</h3>
+          <ul class="web-check-list">
+            <li>nagłówki H1-H3 i treści pisane językiem klienta</li>
+            <li>naturalna optymalizacja pod frazy i intencje wyszukiwania</li>
+            <li>odpowiedzi na pytania, obiekcje i ryzyka klienta</li>
+            <li>meta tagi, linkowanie wewnętrzne i struktura URL</li>
+          </ul>
+        </div>
+        <div class="web-service-card">
+          <h3 class="web-h3">Projektowanie i wdrożenie</h3>
+          <ul class="web-check-list">
+            <li>mobile-first, czytelność i hierarchia informacji</li>
+            <li>szybkość ładowania i Core Web Vitals</li>
+            <li>formularze, CTA i sekcje pod kampanie reklamowe</li>
+            <li>wdrożenie analityki, Tag Managera i śledzenia konwersji</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+<section class="web-section" id="elementy">
+    <div class="web-wrap">
+      <span class="web-eyebrow">Elementy skutecznej strony</span>
+      <h2 class="web-h2">Co musi zawierać strona internetowa firmy, żeby zamieniała ruch w zapytania?</h2>
+      <div class="web-copy">
+        <p>Skuteczna strona internetowa to nie kwestia samej estetyki. To kwestia struktury i komunikatu. Brak kilku elementów bezpośrednio obniża konwersję i sprawia, że ruch z SEO lub reklam nie zamienia się w kontakt.</p>
+      </div>
+      <div class="web-elements">
+        <div class="web-elements-group">
+          <h3 class="web-elements-group-title">Przekaz</h3>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span>
+            <strong>Jasny nagłówek</strong>
+            <p>Odpowiada, czym się zajmujesz, dla kogo jest oferta i jaka jest główna korzyść.</p>
+          </div>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L15 8l6 .9-4.5 4.4 1.1 6.2L12 17l-5.6 2.5L7.5 13.3 3 8.9 9 8z"/></svg></span>
+            <strong>Propozycja wartości</strong>
+            <p>Pokazuje, dlaczego warto wybrać Twoją firmę, a nie konkurencję.</p>
+          </div>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>
+            <strong>Dowody zaufania</strong>
+            <p>Liczby, opinie, case studies i logotypy klientów obniżają ryzyko kontaktu.</p>
+          </div>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+            <strong>Widoczne CTA</strong>
+            <p>Jeden główny cel pojawia się w pierwszej sekcji, po usługach i po dowodach.</p>
+          </div>
+        </div>
+        <div class="web-elements-group">
+          <h3 class="web-elements-group-title">Technika i SEO</h3>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></span>
+            <strong>Odpowiedzi na obiekcje</strong>
+            <p>FAQ, proces i sekcje dla kogo zatrzymują użytkownika przed powrotem do Google.</p>
+          </div>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 2 13 10 21 10"/><polyline points="11 22 11 14 3 14"/></svg></span>
+            <strong>Szybkość i mobile</strong>
+            <p>Core Web Vitals, responsywność i szybkie ładowanie wpływają na SEO i konwersję.</p>
+          </div>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
+            <strong>Struktura SEO</strong>
+            <p>Poprawne nagłówki, meta tagi, URL, alt texty i linkowanie pomagają Google zrozumieć temat.</p>
+          </div>
+          <div class="web-element">
+            <span class="web-element-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
+            <strong>Integracja z reklamami</strong>
+            <p>Spójny przekaz z Google Ads i Meta Ads oraz śledzenie konwersji zwiększają zwrot z budżetu.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+<section class="web-section" id="typy">
+    <div class="web-wrap">
+      <span class="web-eyebrow">Typy stron</span>
+      <h2 class="web-h2">Strona firmowa, landing page czy sklep internetowy: które rozwiązanie ma większy sens dla Twojego celu?</h2>
+      <div class="web-types">
+        <div class="web-type-feature">
+          <svg class="web-type-feature-illo" viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="2" y="2" width="196" height="106" rx="10" fill="#fff" stroke="#99f6e4" />
+            <rect x="2" y="2" width="196" height="16" rx="10" fill="#ecfeff" />
+            <circle cx="12" cy="10" r="2" fill="#ef6155"/><circle cx="20" cy="10" r="2" fill="#f4c14f"/><circle cx="28" cy="10" r="2" fill="#46b37d"/>
+            <rect x="14" y="28" width="120" height="8" rx="3" fill="#0d9488"/>
+            <rect x="14" y="42" width="160" height="4" rx="2" fill="#cbd5e1"/>
+            <rect x="14" y="50" width="140" height="4" rx="2" fill="#cbd5e1"/>
+            <rect x="14" y="64" width="60" height="14" rx="6" fill="#0d9488"/>
+            <rect x="14" y="86" width="170" height="14" rx="4" fill="#f1f5f9"/>
+          </svg>
+          <h3 class="web-h3">Landing page: jeden cel, mniej rozproszeń, szybszy test komunikatu.</h3>
+          <p>Landing page jest zaprojektowany pod jeden konkretny cel: formularz, konsultację, wycenę, zapis lub zakup. Nie rozprasza nawigacją, tylko prowadzi użytkownika przez problem, rozwiązanie, dowody i CTA.</p>
+          <p>To najlepszy wybór dla kampanii <?php if ($google_ads_url !== "") : ?><a href="<?php echo esc_url($google_ads_url); ?>">Google Ads</a><?php else : ?>Google Ads<?php endif; ?> i <?php if ($meta_ads_url !== "") : ?><a href="<?php echo esc_url($meta_ads_url); ?>">Meta Ads</a><?php else : ?>Meta Ads<?php endif; ?>, promocji pojedynczej usługi oraz testowania komunikatów przed budową pełnej strony.</p>
+        </div>
+        <div class="web-type-stack">
+          <div class="web-type-card">
+            <svg class="web-type-card-illo" viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="1" y="1" width="58" height="48" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+              <rect x="1" y="1" width="58" height="8" rx="6" fill="#ecfeff"/>
+              <rect x="6" y="14" width="48" height="3" rx="1" fill="#0d9488"/>
+              <rect x="6" y="20" width="14" height="14" rx="2" fill="#cbd5e1"/>
+              <rect x="22" y="20" width="14" height="14" rx="2" fill="#cbd5e1"/>
+              <rect x="38" y="20" width="14" height="14" rx="2" fill="#cbd5e1"/>
+              <rect x="6" y="38" width="48" height="3" rx="1" fill="#94a3b8"/>
+            </svg>
+            <div class="web-type-card-body">
+              <strong>Strona firmowa wielostronicowa</strong>
+              <p>Najlepsza dla SEO, wielu usług, portfolio, bloga i pełnej prezentacji firmy.</p>
+            </div>
+          </div>
+          <div class="web-type-card">
+            <svg class="web-type-card-illo" viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="1" y="1" width="58" height="48" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+              <rect x="6" y="6" width="48" height="6" rx="2" fill="#0d9488"/>
+              <rect x="6" y="16" width="36" height="3" rx="1" fill="#cbd5e1"/>
+              <rect x="6" y="22" width="40" height="3" rx="1" fill="#cbd5e1"/>
+              <rect x="6" y="30" width="20" height="6" rx="2" fill="#0d9488"/>
+              <rect x="6" y="40" width="48" height="3" rx="1" fill="#cbd5e1"/>
+            </svg>
+            <div class="web-type-card-body">
+              <strong>Strona one-page</strong>
+              <p>Dobra dla jednej głównej usługi, szybkiego startu lub prostszej prezentacji online.</p>
+            </div>
+          </div>
+          <div class="web-type-card">
+            <svg class="web-type-card-illo" viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="1" y="1" width="58" height="48" rx="6" fill="#f8fafc" stroke="#e2e8f0"/>
+              <path d="M10 14 H50 L46 32 H14 Z" fill="#ecfeff" stroke="#0d9488"/>
+              <circle cx="18" cy="38" r="3" fill="#0d9488"/>
+              <circle cx="42" cy="38" r="3" fill="#0d9488"/>
+              <rect x="14" y="20" width="6" height="6" rx="1" fill="#0d9488"/>
+              <rect x="24" y="20" width="6" height="6" rx="1" fill="#94a3b8"/>
+              <rect x="34" y="20" width="6" height="6" rx="1" fill="#94a3b8"/>
+            </svg>
+            <div class="web-type-card-body">
+              <strong>Sklep internetowy B2B</strong>
+              <p>Katalogi, zapytania ofertowe, warianty produktów, integracje i proces zamawiania dla firm.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+<section class="web-section" id="technologie">
+    <div class="web-wrap">
+      <span class="web-eyebrow">WordPress, Webflow czy custom?</span>
+      <h2 class="web-h2">Technologia powinna wynikać z celu strony, a nie z mody na konkretne narzędzie.</h2>
+      <div class="web-compare-grid">
+        <div class="web-compare-card"><strong>WordPress</strong><p>Dobry wybór dla stron firmowych, bloga, SEO, portfolio i samodzielnej edycji treści przez zespół.</p></div>
+        <div class="web-compare-card"><strong>Webflow / no-code</strong><p>Sprawdza się przy szybkich landing pages, prostych stronach marketingowych i testowaniu komunikatu.</p></div>
+        <div class="web-compare-card"><strong>Custom</strong><p>Ma sens przy nietypowych funkcjach, integracjach, aplikacjach webowych albo bardzo specyficznym procesie sprzedaży.</p></div>
+      </div>
+    </div>
+  </section>
+<section class="web-section" id="faq">
     <div class="web-wrap">
       <span class="web-eyebrow">FAQ</span>
       <h2 class="web-h2">Najczęstsze pytania przed zleceniem strony internetowej.</h2>
