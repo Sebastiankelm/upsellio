@@ -596,7 +596,7 @@ function upsellio_offer_detect_stage($summary)
 function upsellio_offer_create_followup_task($offer_id, $summary)
 {
     $offer_id = (int) $offer_id;
-    if ($offer_id <= 0 || empty($summary["is_hot"])) {
+    if ($offer_id <= 0 || empty($summary["is_hot"]) || !in_array((string) get_post_meta($offer_id, "_ups_offer_status", true), ["open", "sent"], true) || upsellio_offer_is_expired($offer_id)) {
         return;
     }
     $existing_task_id = (int) get_post_meta($offer_id, "_ups_offer_hot_task_id", true);
@@ -1189,7 +1189,7 @@ function upsellio_offer_track_event()
     }
 
     $ip = isset($_SERVER["REMOTE_ADDR"]) ? sanitize_text_field(wp_unslash((string) $_SERVER["REMOTE_ADDR"])) : "0";
-    $rl_key = "ups_offer_track_rl_" . md5($ip . "|" . $offer_id);
+    $rl_key = "ups_offer_track_rl_" . md5($ip . "|" . $offer_id . "|" . floor(time() / MINUTE_IN_SECONDS));
     $rate = (int) get_transient($rl_key);
     if ($rate >= 120) {
         wp_send_json_error(["message" => "rate_limited"], 429);
@@ -1544,6 +1544,7 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
     }
 
     $sessions = [];
+    $identified_sessions = [];
     $current_session = [];
     $last_ts = 0;
 
@@ -1557,6 +1558,12 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
             continue;
         }
 
+        $session_key = (string) ($ev["session_id"] ?? "");
+        if ($session_key !== "") {
+            $identified_sessions[$session_key][] = $ev;
+            continue;
+        }
+        // Older events lack a real session identifier; keep their legacy estimate separate.
         if ($last_ts > 0 && ($ts - $last_ts) > 1800) {
             if ($current_session !== []) {
                 $sessions[] = $current_session;
@@ -1570,11 +1577,15 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
         $sessions[] = $current_session;
     }
 
+    $sessions = array_merge($sessions, array_values($identified_sessions));
+    usort($sessions, static function ($a, $b) {
+        return strcmp((string) ($a[0]["ts"] ?? ""), (string) ($b[0]["ts"] ?? ""));
+    });
     $sessions_data = [];
     foreach ($sessions as $idx => $sess) {
         $first_ts = strtotime((string) ($sess[0]["ts"] ?? "")) ?: 0;
         $last_ts_s = strtotime((string) ($sess[count($sess) - 1]["ts"] ?? "")) ?: $first_ts;
-        $duration = $last_ts_s - $first_ts;
+        $elapsed = max(0, $last_ts_s - $first_ts);
 
         $section_times = [];
         $sections_viewed = [];
@@ -1601,6 +1612,7 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
             }
         }
 
+        $duration = array_sum($section_times);
         $pricing_sec = $section_times["pricing"] ?? $section_times["cennik"] ?? 0;
 
         $sessions_data[] = [
@@ -1608,6 +1620,8 @@ function upsellio_offer_build_full_analytics(int $offer_id): array
             "ts"              => $first_ts,
             "ts_disp"         => $first_ts ? wp_date("d.m.Y H:i", $first_ts) : "—",
             "duration_sec"    => $duration,
+            "elapsed_sec"     => $elapsed,
+            "session_estimated" => empty($sess[0]["session_id"]),
             "sections_viewed" => array_keys($sections_viewed),
             "section_times"   => $section_times,
             "pricing_sec"     => $pricing_sec,
