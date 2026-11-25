@@ -27,6 +27,9 @@ docker pull "$db_image"
 docker network create --internal "$network" >/dev/null
 wpcli() {
   docker run --rm --network "$network" --volumes-from "$wp" --user 33:33 \
+    -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_NAME=fixture -e WORDPRESS_DB_USER=fixture \
+    -e WORDPRESS_DB_PASSWORD=fixture-only \
+    -e WORDPRESS_CONFIG_EXTRA='define("DISABLE_WP_CRON", true); define("WP_DEBUG", true); define("WP_DEBUG_DISPLAY", false); define("WP_HTTP_BLOCK_EXTERNAL", true); define("WP_ENVIRONMENT_TYPE", "local");' \
     --workdir /var/www/html --entrypoint wp "$cli_image" --url=https://fixture.test "$@"
 }
 capture() {
