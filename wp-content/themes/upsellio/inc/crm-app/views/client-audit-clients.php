@@ -226,7 +226,7 @@ $crm_base = function_exists("upsellio_crm_url") ? home_url("/crm-app/") : home_u
 
           <td><?php echo esc_html(number_format((float) ($prow["ads_cost"] ?? 0), 0, ",", " ")); ?></td>
 
-          <td><?php echo esc_html(number_format((float) ($prow["roas"] ?? 0), 2, ",", " ")); ?>x</td>
+          <td><?php echo isset($prow["roas"]) ? esc_html(number_format((float) $prow["roas"], 2, ",", " ") . "x") : "—"; ?></td>
 
           <?php
 
