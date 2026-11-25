@@ -562,7 +562,7 @@ function ups_audit_oauth_process_callback(): void
         );
     }
 
-    if (!current_user_can("edit_posts")) {
+    if (!upsellio_crm_app_user_can_access() || !current_user_can("edit_posts")) {
         ups_audit_oauth_exit_redirect(ups_audit_oauth_crm_error_url("Brak uprawnień do połączenia Google."));
     }
 
@@ -687,7 +687,7 @@ function ups_audit_oauth_handle_start(): void
         ups_audit_oauth_exit_redirect(wp_login_url(ups_audit_oauth_connect_url()));
     }
 
-    if (!current_user_can("edit_posts")) {
+    if (!upsellio_crm_app_user_can_access() || !current_user_can("edit_posts")) {
         ups_audit_oauth_exit_redirect(ups_audit_oauth_crm_error_url("Brak uprawnień."));
     }
 
