@@ -596,9 +596,9 @@ function upsellio_crm_app_sanitize_large_text_option($value)
 }
 
 /**
- * Zapis ustawień CRM App — zsynchronizowany z {@see upsellio_crm_app_user_can_access()} (nie wymaga wyłącznie manage_options).
+ * Global CRM settings affect all staff and automation; restrict them to administrators.
  */
 function upsellio_crm_app_user_can_save_quick_settings()
 {
-    return current_user_can("manage_options") || current_user_can("edit_posts");
+    return current_user_can("manage_options");
 }
