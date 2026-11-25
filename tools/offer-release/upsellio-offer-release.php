@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Upsellio Offer Release 2.0
  * Description: One-time, pinned release of seven CRM theme files. Administrator-only deployment and rollback; no remote write endpoint.
- * Version: 2.0.1
+ * Version: 2.0.2
  * Requires PHP: 8.1
  */
 if (!defined('ABSPATH')) { exit; }
@@ -200,7 +200,7 @@ final class Upsellio_Offer_Release_200 {
         try {
             $files = self::inspect();
             $base = 0; $release = 0;
-            echo '<div class="wrap"><h1>Upsellio Offer Release 2.0.1</h1><p>Release: <code>' . esc_html(self::RELEASE) . '</code></p><table class="widefat striped"><thead><tr><th>Plik</th><th>Stan</th><th>SHA-256 produkcji</th></tr></thead><tbody>';
+            echo '<div class="wrap"><h1>Upsellio Offer Release 2.0.2</h1><p>Release: <code>' . esc_html(self::RELEASE) . '</code></p><table class="widefat striped"><thead><tr><th>Plik</th><th>Stan</th><th>SHA-256 produkcji</th></tr></thead><tbody>';
             $labels=['release'=>'WDROŻONY','base'=>'ZGODNY Z BAZĄ','mismatch'=>'NIEZGODNY','unavailable'=>'NIEDOSTĘPNY'];
             foreach ($files as $rel => $item) {
                 $state = $item['state'];
