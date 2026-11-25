@@ -4209,11 +4209,11 @@ function upsellio_crm_app_template_redirect()
               };
               ?>
               <div class="crm-view-tabs" style="grid-column:span 12;margin-bottom:6px">
-                <button type="button" class="crm-tab-link is-active" data-view-toggle="list"><?php esc_html_e("Lista", "upsellio"); ?></button>
+                <a class="crm-tab-link<?php echo $task_tab !== "week" ? " is-active" : ""; ?>" href="<?php echo $task_tab_url("all"); ?>">Lista</a>
                 <a class="crm-tab-link<?php echo $task_tab === "week" ? " is-active" : ""; ?>" href="<?php echo $task_tab_url("week"); ?>">Tydzień</a>
                 <a class="crm-tab-link" href="<?php echo esc_url(upsellio_crm_url("calendar")); ?>">Kalendarz</a>
               </div>
-              <div id="crm-pane-list">
+              <div id="crm-pane-list" style="<?php echo $task_tab === "week" ? "display:none" : ""; ?>">
               <div class="crm-view-tabs" id="crm-list-tabs" style="grid-column:span 12">
                 <?php foreach (["today" => "Dziś", "overdue" => "Zaległe", "thisweek" => "Ten tydzień", "tomorrow" => "Jutro", "all" => "Wszystkie", "done" => "Zrobione"] as $key => $label) : ?>
                   <a class="crm-tab-link<?php echo $task_tab === $key ? " is-active" : ""; ?>" href="<?php echo $task_tab_url($key); ?>"><?php echo esc_html($label); ?><?php if (isset($task_counts[$key])) : ?> (<?php echo (int) $task_counts[$key]; ?>)<?php endif; ?></a>
@@ -4988,7 +4988,7 @@ function upsellio_crm_app_template_redirect()
                   || (defined("UPSELLIO_ANTHROPIC_API_KEY") && (string) UPSELLIO_ANTHROPIC_API_KEY !== "");
               ?>
               <section class="card crm-inbox-card" style="grid-column:span 12;padding:0;overflow:hidden">
-                <div class="crm-inbox-shell<?php echo ($inbox_offer_id > 0 && !$inbox_compose) ? " has-active-thread" : ""; ?>">
+                <div class="crm-inbox-shell<?php echo ($inbox_offer_id > 0 && !$inbox_compose) ? " has-active-thread" : ""; ?><?php echo $inbox_compose ? " is-composing" : ""; ?>">
                 <header class="crm-inbox-topbar">
                   <div class="crm-inbox-brand">
                     <span class="crm-inbox-logo" aria-hidden="true">U</span>
@@ -5567,7 +5567,7 @@ function upsellio_crm_app_template_redirect()
                           <button type="button" class="crm-inbox-conv-action-btn" onclick="inboxSnooze(<?php echo (int) $inbox_offer_id; ?>, 'tomorrow_9')" title="<?php esc_attr_e("Snooze", "upsellio"); ?>" aria-label="<?php esc_attr_e("Snooze", "upsellio"); ?>">⏱</button>
                           <button type="button" class="btn" id="crm-inb-reply-btn"><?php esc_html_e("Odpowiedz", "upsellio"); ?></button>
                         </div>
-                        <button type="button" class="crm-inbox-side-toggle btn alt" id="inbox-side-toggle"><?php esc_html_e("Kontekst ⊞", "upsellio"); ?></button>
+                        <button type="button" class="crm-inbox-side-toggle btn alt" id="inbox-side-toggle" aria-expanded="false"><?php esc_html_e("Kontekst", "upsellio"); ?></button>
                       </div>
                       <div class="crm-inbox-conv-toolbar">
                         <span class="crm-inbox-badge crm-inbox-badge--offer"><?php echo esc_html($inbox_offer_title); ?></span>
@@ -6040,7 +6040,7 @@ function upsellio_crm_app_template_redirect()
                   }
                   ?>
                   <div class="crm-analytics-shell">
-                  <?php require __DIR__ . "/partials/crm-analytics-tabs.php"; ?>
+
                   <?php
                   $crm_oauth_err = "";
                   if (isset($_GET["upsellio_managed_oauth_error"])) {
@@ -6063,7 +6063,12 @@ function upsellio_crm_app_template_redirect()
                     </section>
                   <?php endif; ?>
                   <div class="crm-analytics-toolbar">
-                    <h2><?php esc_html_e("Raporty marketingowe", "upsellio"); ?></h2>
+                    <p class="muted">Dane z GA4, Search Console, Google Ads, Meta Ads i CRM Upsellio.</p>
+                    <div class="crm-report-range" aria-label="Zakres raportu">
+                      <?php foreach ([7, 30, 90] as $days_option) : ?>
+                        <a class="btn alt <?php echo $range_days === $days_option ? "is-active" : ""; ?>" href="<?php echo esc_url(upsellio_crm_url("analytics", ["atab" => $atab, "range" => $days_option])); ?>"><?php echo (int) $days_option; ?> dni</a>
+                      <?php endforeach; ?>
+                    </div>
                     <form method="get" class="crm-analytics-range">
                       <input type="hidden" name="view" value="analytics" />
                       <input type="hidden" name="atab" value="<?php echo esc_attr($atab); ?>" />
@@ -6077,6 +6082,7 @@ function upsellio_crm_app_template_redirect()
                     </form>
                   </div>
                   <?php
+                  require __DIR__ . "/partials/crm-analytics-tabs.php";
                   $view_file = __DIR__ . "/views/analytics-" . $atab . ".php";
                   if (file_exists($view_file)) {
                       require $view_file;
@@ -8332,11 +8338,13 @@ function upsellio_crm_app_template_redirect()
         if (sideToggle && sidePanel) {
           sideToggle.addEventListener("click", function (ev) {
             ev.stopPropagation();
-            sidePanel.classList.toggle("is-open");
+            var opened = sidePanel.classList.toggle("is-open");
+            sideToggle.setAttribute("aria-expanded", String(opened));
           });
           document.addEventListener("click", function (e) {
             if (!sidePanel.contains(e.target) && !sideToggle.contains(e.target)) {
               sidePanel.classList.remove("is-open");
+              sideToggle.setAttribute("aria-expanded", "false");
             }
           });
         }
