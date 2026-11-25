@@ -422,7 +422,7 @@ $faq_items = [
         <h1 class="meta-h1">Reklamy na Facebooku i Instagramie, <em>które sprzedają.</em></h1>
         <p class="meta-lead">Pokazujesz swoje produkty lub lokal ludziom z okolicy albo z całej Polski — a potem wracasz do tych, którzy oglądali ofertę i nie kupili. Bez przypadkowego „promowania postów”.</p>
         <ul class="up-mock-benefits"><li>Reklamy z katalogu produktów</li><li>Przypomnienia o porzuconym koszyku</li><li>Testy reklam co tydzień</li></ul>
-        <div class="meta-btn-row"><a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Umów bezpłatną diagnozę</a><a href="#cena" class="meta-btn meta-btn-secondary">Zobacz cennik</a></div>
+        <div class="meta-btn-row"><a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Umów bezpłatną diagnozę</a><a href="#cena" class="meta-btn meta-btn-secondary up-hero-desktop">Zobacz cennik</a><a href="tel:<?php echo esc_attr(preg_replace('/\s+/', '', $contact_phone)); ?>" class="meta-btn meta-btn-secondary up-hero-mobile" data-contact-location="hero">Zadzwoń teraz</a></div>
       </div>
 
       <aside class="meta-hero-card">
@@ -510,6 +510,8 @@ $faq_items = [
   
 
   
+<details class="up-extra-content"><summary>Więcej o kampaniach Meta Ads</summary>
+<div class="up-extra-body">
 <section class="meta-section up-mock-details" id="szczegoly-uslugi"><div class="meta-wrap"><span class="meta-eyebrow">Więcej o usłudze</span><h2 class="meta-h2">Reklamy Meta Ads dla firm: kampanie Facebook Ads i Instagram Ads, które generują leady i sprzedaż, nie tylko kliknięcia.</h2><p class="meta-lead">Tworzenie i prowadzenie kampanii Meta Ads dla firm B2B, usługowych i e-commerce. Lejki reklamowe, remarketing i kreacje, które prowadzą klienta od pierwszego kontaktu z reklamą do decyzji zakupowej.</p><div class="meta-body">
           <p>Reklamy na Facebooku i Instagramie to jeden z najskuteczniejszych kanałów pozyskiwania klientów dla firm, pod warunkiem że są prowadzone jako system, a nie przypadkowe kampanie uruchamiane bez strategii. Samo puszczenie reklamy to za mało, żeby generować wartościowe zapytania i sprzedaż.</p>
           <p>Skuteczne kampanie Meta Ads łączą precyzyjne targetowanie grupy docelowej, spójny komunikat dopasowany do etapu decyzyjnego, kreacje zatrzymujące uwagę w pierwszych sekundach scrollowania i stronę docelową, która zamienia kliknięcia w kontakty.</p>
@@ -810,7 +812,9 @@ $faq_items = [
         </div>
       </div>
     </div>
-  </section><section class="meta-section" id="faq">
+  </section>
+</div></details>
+<section class="meta-section" id="faq">
     <div class="meta-wrap">
       <span class="meta-eyebrow">FAQ</span>
       <h2 class="meta-h2">Najczęstsze pytania przed rozpoczęciem kampanii Meta Ads.</h2>
