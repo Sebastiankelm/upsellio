@@ -96,4 +96,9 @@ check(!upsellio_crm_nav_is_active("ca-clients", "ca-command-center"), "command c
 check(upsellio_crm_nav_is_active("clients", "client-edit"), "customer edit belongs to client navigation");
 $nav_views = array_column(upsellio_crm_sidebar_items(), "view");
 check(in_array("calendar", $nav_views, true) && in_array("contact-queue", $nav_views, true) && in_array("prospecting", $nav_views, true), "reference navigation includes calendar, contact queue and prospecting");
+check(upsellio_crm_app_pipeline_bucket("won", "decision") === "won", "won deal appears only in terminal column");
+check(upsellio_crm_app_pipeline_bucket("lost", "awareness") === "lost", "lost deal appears only in terminal column");
+check(upsellio_crm_app_pipeline_bucket("sent", "consideration") === "offer_sent", "sent offer has its own column");
+check(upsellio_crm_app_pipeline_bucket("open", "decision") === "decision", "open deal follows saved stage");
+check(upsellio_crm_app_pipeline_bucket("open", "invalid") === "awareness", "unknown stage falls back to first column");
 echo "CRM smoke checks complete." . PHP_EOL;
