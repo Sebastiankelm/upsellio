@@ -1242,22 +1242,7 @@ echo wp_json_encode([
 
   /* Same-page anchors are handled by the shared theme script. */
 
-  /* === dataLayer push przy submit (osobny dla hero i contact) === */
-  ['home-hero-form','home-contact-form'].forEach(function(formId){
-    var form=document.getElementById(formId);
-    if(form){
-      form.addEventListener('submit',function(){
-        if(typeof window.dataLayer!=='undefined'){
-          window.dataLayer.push({
-            event:'lead_form_submit',
-            form_origin:formId,
-            form_type:'free_consultation',
-            page_section:'home_page'
-          });
-        }
-      });
-    }
-  });
+  /* Lead conversion events are emitted by the shared script after confirmed save. */
 })();
 </script>
 
