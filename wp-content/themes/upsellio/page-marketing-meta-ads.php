@@ -377,6 +377,21 @@ $faq_items = [
   @media(max-width:380px){.meta-offer-page .meta-ad-bottom{flex-wrap:wrap}.meta-offer-page .meta-hero-card{padding:16px}}
   @media(prefers-reduced-motion:reduce){.meta-offer-page *, .meta-offer-page *::before,.meta-offer-page *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
+
+/* Mockup fidelity: concise first screen, audience before detailed SEO copy. */
+.meta-hero .meta-h1 em{font-style:normal;color:#06745f}
+.meta-hero .up-mock-benefits{padding:0;margin:0 0 24px;list-style:none;display:grid;gap:10px;color:#3a3d44;font-size:16px}
+.meta-hero .up-mock-benefits li::before{content:"✓";color:#06745f;font-weight:700;margin-right:10px}
+.meta-hero .up-mock-caption{margin:12px 0 0;font-size:13px;line-height:1.5;color:#5f636b}
+.up-mock-audience{background:#fff}
+.up-mock-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:24px}
+.up-mock-grid article{background:#f5f6f8;border:1px solid #e3e6ea;border-radius:20px;padding:24px;min-width:0}
+.up-mock-grid h3{font:700 20px/1.25 "Bricolage Grotesque",system-ui,sans-serif;color:#0f1115;margin:0 0 10px}
+.up-mock-grid p{font-size:16px;line-height:1.55;color:#3a3d44;margin:0}
+.up-mock-details{background:#f5f6f8}
+@media(max-width:720px){.up-mock-grid{grid-template-columns:minmax(0,1fr)}}
+
+.up-mock-scope{background:#fff}.up-mock-subtitle{max-width:56ch;color:#5f636b;font-size:17px;line-height:1.6}.up-mock-scope .up-mock-grid article{background:#fff}.up-mock-check{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#dff5ef;color:#06745f;font-size:22px;font-weight:700;margin-bottom:14px}
 </style>
 
 <main class="meta-offer-page">
@@ -402,18 +417,10 @@ $faq_items = [
     <div class="meta-wrap meta-hero-grid">
       <div>
         <span class="meta-eyebrow">Marketing Meta Ads</span>
-        <h1 class="meta-h1">Reklamy Meta Ads dla firm: kampanie Facebook Ads i Instagram Ads, które generują leady i sprzedaż, nie tylko kliknięcia.</h1>
-        <p class="meta-lead">Tworzenie i prowadzenie kampanii Meta Ads dla firm B2B, usługowych i e-commerce. Lejki reklamowe, remarketing i kreacje, które prowadzą klienta od pierwszego kontaktu z reklamą do decyzji zakupowej.</p>
-        <div class="meta-body">
-          <p>Reklamy na Facebooku i Instagramie to jeden z najskuteczniejszych kanałów pozyskiwania klientów dla firm, pod warunkiem że są prowadzone jako system, a nie przypadkowe kampanie uruchamiane bez strategii. Samo puszczenie reklamy to za mało, żeby generować wartościowe zapytania i sprzedaż.</p>
-          <p>Skuteczne kampanie Meta Ads łączą precyzyjne targetowanie grupy docelowej, spójny komunikat dopasowany do etapu decyzyjnego, kreacje zatrzymujące uwagę w pierwszych sekundach scrollowania i stronę docelową, która zamienia kliknięcia w kontakty.</p>
-        </div>
-        <div class="meta-btn-row">
-          <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Chcę bezpłatną diagnozę</a>
-          <a href="#co-robie" class="meta-btn meta-btn-secondary">Zobacz, co obejmuje usługa</a>
-          <a href="#lejek" class="meta-btn meta-btn-ghost">Zobacz lejek Meta Ads</a>
-          <a href="#cena" class="meta-btn meta-btn-secondary">Zobacz cennik</a>
-        </div>
+        <h1 class="meta-h1">Reklamy na Facebooku i Instagramie, <em>które sprzedają.</em></h1>
+        <p class="meta-lead">Pokazujesz swoje produkty lub lokal ludziom z okolicy albo z całej Polski — a potem wracasz do tych, którzy oglądali ofertę i nie kupili. Bez przypadkowego „promowania postów”.</p>
+        <ul class="up-mock-benefits"><li>Reklamy z katalogu produktów</li><li>Przypomnienia o porzuconym koszyku</li><li>Testy reklam co tydzień</li></ul>
+        <div class="meta-btn-row"><a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Umów bezpłatną diagnozę</a><a href="#cena" class="meta-btn meta-btn-secondary">Zobacz cennik</a></div>
       </div>
 
       <aside class="meta-hero-card">
@@ -435,41 +442,18 @@ $faq_items = [
           </div>
           <div class="meta-ad-bottom"><div><small>twojsklep.pl</small><strong>Jesienna kolekcja</strong></div><span class="meta-ad-fake-cta">Kup teraz</span></div>
         </figure>
-        <span class="meta-hero-card-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06C2 17.08 5.66 21.24 10.44 22v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.89 3.78-3.89 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.45 2.91h-2.33V22C18.34 21.24 22 17.08 22 12.06z"/></svg>
-        </span>
-        <h2 class="meta-h3">Meta Ads działa najlepiej, gdy nie jest przypadkowym boostowaniem posta.</h2>
-        <p>Projektuję strukturę lejka reklamowego ToF, MoF, BoF i remarketing, przygotowuję komunikaty oraz kierunki kreacji, konfiguruję zdarzenia i piksel Mety, prowadzę testy A/B i na bieżąco optymalizuję koszty oraz jakość leadów.</p>
-        <ul class="meta-hero-list">
-          <li><span class="meta-hero-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>Kampanie pod konkretne etapy decyzji klienta.</span></li>
-          <li><span class="meta-hero-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>Kreacje reklamowe z jasnym komunikatem i CTA.</span></li>
-          <li><span class="meta-hero-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>Remarketing do osób, które już wykazały zainteresowanie.</span></li>
-          <li><span class="meta-hero-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>Analiza jakości leadów, nie tylko kosztu kliknięcia.</span></li>
-        </ul>
-      </aside>
+        </aside>
     </div>
   </section>
+<section class="meta-section up-mock-audience" id="dla-kogo"><div class="meta-wrap"><span class="meta-eyebrow">Dla kogo</span><h2 class="meta-h2">Meta Ads ma sens, gdy klient musi Cię najpierw zobaczyć, żeby chcieć kupić.</h2><div class="up-mock-grid"><article><h3>Sklepy internetowe</h3><p>Reklamy z katalogu produktów i przypomnienia dla osób, które zostawiły coś w koszyku.</p></article><article><h3>Lokale i usługi lokalne</h3><p>Pizzerie, kawiarnie, salony — oferta i promocje dla osób z Twojej okolicy.</p></article><article><h3>Wyroby własne i małe marki</h3><p>Świece, ceramika, kosmetyki — pokazujesz, jak powstają, i budujesz grupę stałych klientów.</p></article></div></div></section>
 
-  <section class="meta-section" id="b2b">
-    <div class="meta-wrap">
-      <span class="meta-eyebrow">Meta Ads w B2B</span>
-      <h2 class="meta-h2">Meta Ads w B2B działa inaczej niż w B2C: liczy się dłuższy lejek, remarketing i jakość kontaktu.</h2>
-      <div class="meta-body">
-        <p>W B2B użytkownik rzadko podejmuje decyzję po jednym kliknięciu. Kampania musi najpierw nazwać problem, potem zbudować zaufanie, a dopiero później poprosić o rozmowę. Dlatego zamiast jednej reklamy „kup teraz” potrzebny jest lejek z osobnymi komunikatami na etap świadomości, rozważania i kontaktu.</p>
-        <p>Najlepiej działają kampanie, które łączą listy klientów, podobne grupy odbiorców, remarketing do osób odwiedzających stronę oraz treści pokazujące konkretną wiedzę branżową. Lead Ads mogą obniżyć tarcie, ale przy droższych usługach często lepszą jakość daje landing page z jasną kwalifikacją i dowodami zaufania.</p>
-      </div>
-      <div class="meta-card-grid">
-        <div class="meta-card"><strong>Dłuższy cykl decyzji</strong><p>Komunikaty muszą prowadzić przez problem, dowód i zaproszenie do rozmowy.</p></div>
-        <div class="meta-card"><strong>Remarketing jako rdzeń</strong><p>Osoby po kontakcie z marką powinny dostawać kolejny, bardziej konkretny argument.</p></div>
-        <div class="meta-card"><strong>Lookalike od jakościowych danych</strong><p>Lepszą bazą są klienci i dobre leady, nie przypadkowe kliknięcia.</p></div>
-      </div>
-    </div>
-  </section>
+
+  
 
   <section class="meta-section" id="problemy">
     <div class="meta-wrap">
       <span class="meta-eyebrow">Typowe problemy</span>
-      <h2 class="meta-h2">Dlaczego reklamy na Facebooku i Instagramie nie przynoszą zapytań ani sprzedaży?</h2>
+      <h2 class="meta-h2">Gdzie najczęściej uciekają pieniądze</h2>
       <div class="meta-body">
         <p>Wiele firm zna ten schemat: reklama jest aktywna, budżet się wydaje, są kliknięcia i wyświetlenia, ale zapytania nie przychodzą, a sprzedaż nie rośnie. Problem zwykle nie leży w samym Facebooku czy Instagramie jako kanale. Leży w konkretnych elementach kampanii, które nie działają razem.</p>
         <p>Najczęstsze przyczyny to brak spójności między reklamą a stroną docelową, jedna reklama kierowana do wszystkich, kreacje mówiące o firmie zamiast o problemie klienta, brak remarketingu i optymalizacja pod metryki, które nie mówią nic o jakości kontaktów.</p>
@@ -494,10 +478,144 @@ $faq_items = [
     </div>
   </section>
 
-  <section class="meta-section meta-service-detail" id="co-robie">
+  <section class="meta-section up-mock-scope" id="co-robie"><div class="meta-wrap"><span class="meta-eyebrow">Zakres</span><h2 class="meta-h2">Co dostajesz</h2><p class="up-mock-subtitle">Wszystko prowadzę osobiście — od pierwszej rozmowy do raportu.</p><div class="up-mock-grid"><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Strategia</h3><p>Komu pokazujemy reklamy i z jakim komunikatem.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Piksel i Conversions API</h3><p>Pomiar sprzedaży i jakości danych.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Pomysły na reklamy</h3><p>Teksty i podpowiedzi, jakie zdjęcia i filmy nagrać telefonem.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Kampanie i remarketing</h3><p>Nowi klienci, katalog produktów i powroty do koszyka.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Testy co tydzień</h3><p>Zostaje to, co sprzedaje. Reszta jest wyłączana.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Raport i rozmowa co miesiąc</h3><p>Ile sprzedaży, za ile i co dalej — prostym językiem.</p></article></div></div></section>
+
+  
+
+  
+
+
+  <section class="meta-section" id="efekty">
+    <div class="meta-wrap">
+      <span class="meta-eyebrow">Co dostajesz</span>
+      <h2 class="meta-h2">Efektem współpracy nie jest tylko aktywna kampania, ale system, który systematycznie generuje wartościowe zapytania.</h2>
+      <div class="meta-body">
+        <p>Dobrze zaprojektowane kampanie Meta Ads nie są losowym generatorem kliknięć. Są systemem, który można skalować, optymalizować i rozumieć. Wspólnie pracujemy nad spadkiem kosztu pozyskania wartościowego leada, wyższą jakością zapytań, systematycznym remarketingiem i wiedzą o tym, które kreacje oraz komunikaty działają.</p>
+        <p>Nie obiecuję konkretnych liczb przed diagnozą, bo wyniki zależą od branży, oferty, budżetu i jakości strony docelowej. Po analizie sytuacji mogę jednak powiedzieć, czego można realnie oczekiwać i w jakim czasie.</p>
+      </div>
+      <ul class="meta-effects-list">
+        <li>Spadek kosztu pozyskania wartościowego leada przy stabilnym lub rosnącym budżecie.</li>
+        <li>Wyższa jakość zapytań od osób, które rozumieją ofertę i są bliżej decyzji.</li>
+        <li>Remarketing, który odzyskuje osoby zainteresowane, ale niezdecydowane.</li>
+        <li>Jasna wiedza o tym, które kreacje, komunikaty i grupy odbiorców działają.</li>
+        <li>Lejek reklamowy, który można rozszerzać i skalować bez przepalania budżetu.</li>
+      </ul>
+
+      <div class="meta-card-grid">
+        <div class="meta-card"><strong>Jasną strukturę kampanii</strong><p>Wiesz, które kampanie odpowiadają za zasięg, które za zainteresowanie, a które za domykanie.</p></div>
+        <div class="meta-card"><strong>Kreacje do testowania</strong><p>Nie opieramy wyniku na jednej grafice. Testujemy różne komunikaty, kąty i CTA.</p></div>
+        <div class="meta-card"><strong>Wnioski sprzedażowe</strong><p>Patrzymy nie tylko na CPM, CTR i CPL, ale też na to, czy leady są wartościowe.</p></div>
+      </div>
+    </div>
+  </section>
+<section class="meta-section" id="cena" aria-labelledby="meta-price-heading">
+    <div class="meta-wrap meta-price-grid">
+      <div>
+        <span class="meta-eyebrow">Cennik</span>
+        <h2 class="meta-h2" id="meta-price-heading">Ile kosztuje prowadzenie Meta Ads?</h2>
+        <div class="meta-body">
+          <p>Stała opłata za prowadzenie. Budżet reklamowy płacisz bezpośrednio do Meta — bez mojej prowizji.</p>
+        </div>
+      </div>
+      <div class="meta-price-card">
+        <strong class="meta-price-value">od 1 800 zł <small>/ mies.</small></strong>
+        <ul class="meta-check-list">
+          <li>Konfiguracja Piksela i kampanii</li>
+          <li>Pomysły na reklamy i teksty</li>
+          <li>Miesięczny raport i rozmowa</li>
+        </ul>
+        <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-price-diagnosis" data-cta-section="pricing" data-cta-position="primary">Zapytaj o wycenę</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="meta-section" id="proces">
+    <div class="meta-wrap">
+      <div class="meta-dark-box">
+        <div>
+          <span class="meta-eyebrow">Proces współpracy</span>
+          <h2 class="meta-h2">Jak wygląda współpraca przy prowadzeniu Meta Ads: od diagnozy do optymalizacji?</h2>
+          <p class="meta-lead">Każda współpraca zaczyna się od diagnozy, a nie od uruchomienia kampanii. Najpierw trzeba zrozumieć, co sprzedajesz, do kogo, jaki jest proces decyzyjny klienta i gdzie dziś giną potencjalni klienci.</p>
+          <div class="meta-btn-row">
+            <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-final-diagnosis" data-cta-section="contact" data-cta-position="final">Zacznijmy od diagnozy</a>
+          </div>
+        </div>
+
+        <div class="meta-steps">
+          <div class="meta-step">
+            <div class="meta-step-head">
+              <span class="meta-step-num">1</span>
+              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+            </div>
+            <strong>Diagnoza</strong>
+            <p>Oferta, grupa docelowa, strona, poprzednie kampanie i realny problem sprzedażowy.</p>
+          </div>
+          <div class="meta-step">
+            <div class="meta-step-head">
+              <span class="meta-step-num">2</span>
+              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></span>
+            </div>
+            <strong>Strategia</strong>
+            <p>Cel kampanii, struktura lejka, podział budżetu, komunikaty i sposób mierzenia sukcesu.</p>
+          </div>
+          <div class="meta-step">
+            <div class="meta-step-head">
+              <span class="meta-step-num">3</span>
+              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+            </div>
+            <strong>Wdrożenie</strong>
+            <p>Piksel, zdarzenia, konta reklamowe, kampanie, kreacje, hooki, teksty i tracking leadów.</p>
+          </div>
+          <div class="meta-step">
+            <div class="meta-step-head">
+              <span class="meta-step-num">4</span>
+              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
+            </div>
+            <strong>Optymalizacja</strong>
+            <p>Analiza wyników, jakości leadów, kosztów, kreacji i kolejnych testów.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  
+
+  
+<section class="meta-section up-mock-details" id="szczegoly-uslugi"><div class="meta-wrap"><span class="meta-eyebrow">Więcej o usłudze</span><h2 class="meta-h2">Reklamy Meta Ads dla firm: kampanie Facebook Ads i Instagram Ads, które generują leady i sprzedaż, nie tylko kliknięcia.</h2><p class="meta-lead">Tworzenie i prowadzenie kampanii Meta Ads dla firm B2B, usługowych i e-commerce. Lejki reklamowe, remarketing i kreacje, które prowadzą klienta od pierwszego kontaktu z reklamą do decyzji zakupowej.</p><div class="meta-body">
+          <p>Reklamy na Facebooku i Instagramie to jeden z najskuteczniejszych kanałów pozyskiwania klientów dla firm, pod warunkiem że są prowadzone jako system, a nie przypadkowe kampanie uruchamiane bez strategii. Samo puszczenie reklamy to za mało, żeby generować wartościowe zapytania i sprzedaż.</p>
+          <p>Skuteczne kampanie Meta Ads łączą precyzyjne targetowanie grupy docelowej, spójny komunikat dopasowany do etapu decyzyjnego, kreacje zatrzymujące uwagę w pierwszych sekundach scrollowania i stronę docelową, która zamienia kliknięcia w kontakty.</p>
+        </div><div class="meta-btn-row"><a href="#co-robie" class="meta-btn meta-btn-secondary">Zobacz, co obejmuje usługa</a><a href="#lejek" class="meta-btn meta-btn-ghost">Zobacz lejek Meta Ads</a></div><span class="meta-hero-card-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06C2 17.08 5.66 21.24 10.44 22v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.89 3.78-3.89 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.45 2.91h-2.33V22C18.34 21.24 22 17.08 22 12.06z"/></svg>
+        </span>
+        <h2 class="meta-h3">Meta Ads działa najlepiej, gdy nie jest przypadkowym boostowaniem posta.</h2>
+        <p>Projektuję strukturę lejka reklamowego ToF, MoF, BoF i remarketing, przygotowuję komunikaty oraz kierunki kreacji, konfiguruję zdarzenia i piksel Mety, prowadzę testy A/B i na bieżąco optymalizuję koszty oraz jakość leadów.</p>
+        <ul class="meta-hero-list">
+          <li><span class="meta-hero-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>Kampanie pod konkretne etapy decyzji klienta.</span></li>
+          <li><span class="meta-hero-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>Kreacje reklamowe z jasnym komunikatem i CTA.</span></li>
+          <li><span class="meta-hero-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>Remarketing do osób, które już wykazały zainteresowanie.</span></li>
+          <li><span class="meta-hero-check" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>Analiza jakości leadów, nie tylko kosztu kliknięcia.</span></li>
+        </ul>
+      </div></section>
+<section class="meta-section" id="dla-kogo-szczegoly">
+    <div class="meta-wrap">
+      <span class="meta-eyebrow">Dla kogo</span>
+      <h2 class="meta-h2">Dla jakich firm Meta Ads ma sens i kiedy jest to lepszy wybór niż Google Ads?</h2>
+      <div class="meta-body">
+        <p>Meta Ads sprawdza się tam, gdzie proces decyzyjny klienta nie zaczyna się od wyszukiwania w Google albo tam, gdzie chcesz dotrzeć do klientów zanim trafią do wyszukiwarki. To kanał, który pozwala budować popyt, edukację i zainteresowanie, a następnie domykać decyzję przez remarketing.</p>
+        <p>Dla firm usługowych Meta Ads pozwala dotrzeć do osób z konkretnym profilem zawodowym lub problemem i przeprowadzić je przez proces edukacji. Dla firm B2B umożliwia targetowanie według stanowisk, branż, wielkości firmy lub podobieństwa do obecnych klientów. Dla e-commerce to kanał kampanii produktowych, remarketingu dynamicznego i testowania kreacji sprzedażowych z pomiarem ROAS.</p>
+      </div>
+
+      <div class="meta-card-grid">
+        <div class="meta-card"><strong>Firmy usługowe</strong><p>Dla usług, które wymagają zaufania, edukacji klienta i kilku punktów styku przed decyzją.</p></div>
+        <div class="meta-card"><strong>B2B i lokalne firmy</strong><p>Dla firm, które chcą dotrzeć do właścicieli, managerów lub lokalnych klientów z konkretnym problemem.</p></div>
+        <div class="meta-card"><strong>E-commerce</strong><p>Dla sklepów, które potrzebują kampanii produktowych, remarketingu i testowania kreacji sprzedażowych.</p></div>
+      </div>
+    </div>
+  </section><section class="meta-section meta-service-detail" id="co-robie-szczegoly">
     <div class="meta-wrap">
       <span class="meta-eyebrow">Co obejmuje usługa</span>
-      <h2 class="meta-h2">Pełna usługa Meta Ads: od strategii i konfiguracji, przez kreacje i kampanie, do remarketingu i optymalizacji jakości leadów.</h2>
+      <h2 class="meta-h2">Szczegółowy zakres usługi</h2>
       <div class="meta-copy-box">
         <p>Prowadzenie kampanii Meta Ads to znacznie więcej niż uruchomienie zestawu reklam w Menedżerze Reklam. Skuteczna kampania to system złożony z kilku warstw, które muszą ze sobą współpracować.</p>
         <p>Dlatego usługa obejmuje wszystkie etapy: analizę i strategię, tworzenie komunikatów, konfigurację techniczną, uruchomienie kampanii, remarketing, testy i bieżącą ocenę jakości kontaktów.</p>
@@ -550,25 +668,22 @@ $faq_items = [
       </div>
     </div>
   </section>
-
-  <section class="meta-section" id="dla-kogo">
+<section class="meta-section" id="b2b">
     <div class="meta-wrap">
-      <span class="meta-eyebrow">Dla kogo</span>
-      <h2 class="meta-h2">Dla jakich firm Meta Ads ma sens i kiedy jest to lepszy wybór niż Google Ads?</h2>
+      <span class="meta-eyebrow">Meta Ads w B2B</span>
+      <h2 class="meta-h2">Meta Ads w B2B działa inaczej niż w B2C: liczy się dłuższy lejek, remarketing i jakość kontaktu.</h2>
       <div class="meta-body">
-        <p>Meta Ads sprawdza się tam, gdzie proces decyzyjny klienta nie zaczyna się od wyszukiwania w Google albo tam, gdzie chcesz dotrzeć do klientów zanim trafią do wyszukiwarki. To kanał, który pozwala budować popyt, edukację i zainteresowanie, a następnie domykać decyzję przez remarketing.</p>
-        <p>Dla firm usługowych Meta Ads pozwala dotrzeć do osób z konkretnym profilem zawodowym lub problemem i przeprowadzić je przez proces edukacji. Dla firm B2B umożliwia targetowanie według stanowisk, branż, wielkości firmy lub podobieństwa do obecnych klientów. Dla e-commerce to kanał kampanii produktowych, remarketingu dynamicznego i testowania kreacji sprzedażowych z pomiarem ROAS.</p>
+        <p>W B2B użytkownik rzadko podejmuje decyzję po jednym kliknięciu. Kampania musi najpierw nazwać problem, potem zbudować zaufanie, a dopiero później poprosić o rozmowę. Dlatego zamiast jednej reklamy „kup teraz” potrzebny jest lejek z osobnymi komunikatami na etap świadomości, rozważania i kontaktu.</p>
+        <p>Najlepiej działają kampanie, które łączą listy klientów, podobne grupy odbiorców, remarketing do osób odwiedzających stronę oraz treści pokazujące konkretną wiedzę branżową. Lead Ads mogą obniżyć tarcie, ale przy droższych usługach często lepszą jakość daje landing page z jasną kwalifikacją i dowodami zaufania.</p>
       </div>
-
       <div class="meta-card-grid">
-        <div class="meta-card"><strong>Firmy usługowe</strong><p>Dla usług, które wymagają zaufania, edukacji klienta i kilku punktów styku przed decyzją.</p></div>
-        <div class="meta-card"><strong>B2B i lokalne firmy</strong><p>Dla firm, które chcą dotrzeć do właścicieli, managerów lub lokalnych klientów z konkretnym problemem.</p></div>
-        <div class="meta-card"><strong>E-commerce</strong><p>Dla sklepów, które potrzebują kampanii produktowych, remarketingu i testowania kreacji sprzedażowych.</p></div>
+        <div class="meta-card"><strong>Dłuższy cykl decyzji</strong><p>Komunikaty muszą prowadzić przez problem, dowód i zaproszenie do rozmowy.</p></div>
+        <div class="meta-card"><strong>Remarketing jako rdzeń</strong><p>Osoby po kontakcie z marką powinny dostawać kolejny, bardziej konkretny argument.</p></div>
+        <div class="meta-card"><strong>Lookalike od jakościowych danych</strong><p>Lepszą bazą są klienci i dobre leady, nie przypadkowe kliknięcia.</p></div>
       </div>
     </div>
   </section>
-
-  <section class="meta-section" id="lejek">
+<section class="meta-section" id="lejek">
     <div class="meta-wrap">
       <span class="meta-eyebrow">Lejek Meta Ads</span>
       <h2 class="meta-h2">Jak działa lejek Meta Ads i dlaczego jedna reklama do wszystkich to najczęstszy błąd?</h2>
@@ -692,104 +807,7 @@ $faq_items = [
       </div>
     </div>
   </section>
-
-
-  <section class="meta-section" id="cena" aria-labelledby="meta-price-heading">
-    <div class="meta-wrap meta-price-grid">
-      <div>
-        <span class="meta-eyebrow">Cennik</span>
-        <h2 class="meta-h2" id="meta-price-heading">Ile kosztuje prowadzenie Meta Ads?</h2>
-        <div class="meta-body">
-          <p>Stała opłata za prowadzenie. Budżet reklamowy płacisz bezpośrednio do Meta — bez mojej prowizji.</p>
-        </div>
-      </div>
-      <div class="meta-price-card">
-        <strong class="meta-price-value">od 1 800 zł <small>/ mies.</small></strong>
-        <ul class="meta-check-list">
-          <li>Konfiguracja Piksela i kampanii</li>
-          <li>Pomysły na reklamy i teksty</li>
-          <li>Miesięczny raport i rozmowa</li>
-        </ul>
-        <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-price-diagnosis" data-cta-section="pricing" data-cta-position="primary">Zapytaj o wycenę</a>
-      </div>
-    </div>
-  </section>
-
-  <section class="meta-section" id="proces">
-    <div class="meta-wrap">
-      <div class="meta-dark-box">
-        <div>
-          <span class="meta-eyebrow">Proces współpracy</span>
-          <h2 class="meta-h2">Jak wygląda współpraca przy prowadzeniu Meta Ads: od diagnozy do optymalizacji?</h2>
-          <p class="meta-lead">Każda współpraca zaczyna się od diagnozy, a nie od uruchomienia kampanii. Najpierw trzeba zrozumieć, co sprzedajesz, do kogo, jaki jest proces decyzyjny klienta i gdzie dziś giną potencjalni klienci.</p>
-          <div class="meta-btn-row">
-            <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-final-diagnosis" data-cta-section="contact" data-cta-position="final">Zacznijmy od diagnozy</a>
-          </div>
-        </div>
-
-        <div class="meta-steps">
-          <div class="meta-step">
-            <div class="meta-step-head">
-              <span class="meta-step-num">1</span>
-              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-            </div>
-            <strong>Diagnoza</strong>
-            <p>Oferta, grupa docelowa, strona, poprzednie kampanie i realny problem sprzedażowy.</p>
-          </div>
-          <div class="meta-step">
-            <div class="meta-step-head">
-              <span class="meta-step-num">2</span>
-              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></span>
-            </div>
-            <strong>Strategia</strong>
-            <p>Cel kampanii, struktura lejka, podział budżetu, komunikaty i sposób mierzenia sukcesu.</p>
-          </div>
-          <div class="meta-step">
-            <div class="meta-step-head">
-              <span class="meta-step-num">3</span>
-              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
-            </div>
-            <strong>Wdrożenie</strong>
-            <p>Piksel, zdarzenia, konta reklamowe, kampanie, kreacje, hooki, teksty i tracking leadów.</p>
-          </div>
-          <div class="meta-step">
-            <div class="meta-step-head">
-              <span class="meta-step-num">4</span>
-              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
-            </div>
-            <strong>Optymalizacja</strong>
-            <p>Analiza wyników, jakości leadów, kosztów, kreacji i kolejnych testów.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="meta-section" id="efekty">
-    <div class="meta-wrap">
-      <span class="meta-eyebrow">Co dostajesz</span>
-      <h2 class="meta-h2">Efektem współpracy nie jest tylko aktywna kampania, ale system, który systematycznie generuje wartościowe zapytania.</h2>
-      <div class="meta-body">
-        <p>Dobrze zaprojektowane kampanie Meta Ads nie są losowym generatorem kliknięć. Są systemem, który można skalować, optymalizować i rozumieć. Wspólnie pracujemy nad spadkiem kosztu pozyskania wartościowego leada, wyższą jakością zapytań, systematycznym remarketingiem i wiedzą o tym, które kreacje oraz komunikaty działają.</p>
-        <p>Nie obiecuję konkretnych liczb przed diagnozą, bo wyniki zależą od branży, oferty, budżetu i jakości strony docelowej. Po analizie sytuacji mogę jednak powiedzieć, czego można realnie oczekiwać i w jakim czasie.</p>
-      </div>
-      <ul class="meta-effects-list">
-        <li>Spadek kosztu pozyskania wartościowego leada przy stabilnym lub rosnącym budżecie.</li>
-        <li>Wyższa jakość zapytań od osób, które rozumieją ofertę i są bliżej decyzji.</li>
-        <li>Remarketing, który odzyskuje osoby zainteresowane, ale niezdecydowane.</li>
-        <li>Jasna wiedza o tym, które kreacje, komunikaty i grupy odbiorców działają.</li>
-        <li>Lejek reklamowy, który można rozszerzać i skalować bez przepalania budżetu.</li>
-      </ul>
-
-      <div class="meta-card-grid">
-        <div class="meta-card"><strong>Jasną strukturę kampanii</strong><p>Wiesz, które kampanie odpowiadają za zasięg, które za zainteresowanie, a które za domykanie.</p></div>
-        <div class="meta-card"><strong>Kreacje do testowania</strong><p>Nie opieramy wyniku na jednej grafice. Testujemy różne komunikaty, kąty i CTA.</p></div>
-        <div class="meta-card"><strong>Wnioski sprzedażowe</strong><p>Patrzymy nie tylko na CPM, CTR i CPL, ale też na to, czy leady są wartościowe.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="meta-section" id="faq">
+<section class="meta-section" id="faq">
     <div class="meta-wrap">
       <span class="meta-eyebrow">FAQ</span>
       <h2 class="meta-h2">Najczęstsze pytania przed rozpoczęciem kampanii Meta Ads.</h2>

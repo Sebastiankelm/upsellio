@@ -384,6 +384,21 @@ $faq_items = [
   @media(max-width:380px){.gads-page .gads-intent-row{grid-template-columns:minmax(0,1fr)}}
   @media(prefers-reduced-motion:reduce){.gads-page *, .gads-page *::before,.gads-page *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
+
+/* Mockup fidelity: concise first screen, audience before detailed SEO copy. */
+.gads-hero .gads-h1 em{font-style:normal;color:#06745f}
+.gads-hero .up-mock-benefits{padding:0;margin:0 0 24px;list-style:none;display:grid;gap:10px;color:#3a3d44;font-size:16px}
+.gads-hero .up-mock-benefits li::before{content:"✓";color:#06745f;font-weight:700;margin-right:10px}
+.gads-hero .up-mock-caption{margin:12px 0 0;font-size:13px;line-height:1.5;color:#5f636b}
+.up-mock-audience{background:#fff}
+.up-mock-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:24px}
+.up-mock-grid article{background:#f5f6f8;border:1px solid #e3e6ea;border-radius:20px;padding:24px;min-width:0}
+.up-mock-grid h3{font:700 20px/1.25 "Bricolage Grotesque",system-ui,sans-serif;color:#0f1115;margin:0 0 10px}
+.up-mock-grid p{font-size:16px;line-height:1.55;color:#3a3d44;margin:0}
+.up-mock-details{background:#f5f6f8}
+@media(max-width:720px){.up-mock-grid{grid-template-columns:minmax(0,1fr)}}
+
+.up-mock-scope{background:#fff}.up-mock-subtitle{max-width:56ch;color:#5f636b;font-size:17px;line-height:1.6}.up-mock-scope .up-mock-grid article{background:#fff}.up-mock-check{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#dff5ef;color:#06745f;font-size:22px;font-weight:700;margin-bottom:14px}
 </style>
 
 <main class="gads-page">
@@ -409,57 +424,32 @@ $faq_items = [
     <div class="gads-wrap gads-hero-grid">
       <div>
         <span class="gads-eyebrow">Google Ads i intencja zakupowa</span>
-        <h1 class="gads-h1">Google Ads dla firm: kampanie Search i Performance Max, które docierają do klientów z wysoką intencją zakupową.</h1>
-        <p class="gads-lead">Tworzenie i prowadzenie kampanii Google Ads dla firm B2B, usługowych i e-commerce. Słowa kluczowe z intencją zakupową, landing pages pod konwersję i systematyczna optymalizacja kosztu pozyskania leada.</p>
-        <div class="gads-copy">
-          <p>Google Ads pozwala dotrzeć do klientów dokładnie wtedy, gdy szukają rozwiązania. Ktoś wpisuje „dostawca opakowań przemysłowych”, „agencja rekrutacyjna Warszawa” albo „serwis maszyn CNC Śląsk” i jest bliżej decyzji niż osoba przypadkowo scrollująca social media.</p>
-          <p>Skuteczna kampania Google Ads to precyzyjny dobór słów kluczowych z wysoką intencją zakupową, wykluczenie fraz generujących drogi ruch, spójność reklamy ze stroną docelową, poprawne śledzenie konwersji i ciągła optymalizacja.</p>
-        </div>
-        <div class="gads-btn-row">
-          <a href="#kontakt" class="gads-btn gads-btn-primary" data-cta="googleads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Chcę bezpłatną diagnozę</a>
-          <a href="#zakres" class="gads-btn gads-btn-secondary">Zobacz zakres usługi</a>
-          <a href="#typy" class="gads-btn gads-btn-ghost">Search czy PMax?</a>
-          <a href="#cennik" class="gads-btn gads-btn-secondary">Zobacz cennik</a>
-        </div>
+        <h1 class="gads-h1">Google Ads, które przynoszą <em>zamówienia i telefony.</em></h1>
+        <p class="gads-lead">Twoja reklama pojawia się wtedy, gdy ktoś sam szuka tego, co sprzedajesz. Pilnuję, żeby budżet szedł na właściwe frazy i produkty, a kliknięcie kończyło się zakupem lub telefonem.</p>
+        <ul class="up-mock-benefits"><li>Reklamy produktowe ze zdjęciem i ceną</li><li>Płacisz za kliknięcia</li><li>Pomiar sprzedaży i telefonów</li></ul>
+        <div class="gads-btn-row"><a href="#kontakt" class="gads-btn gads-btn-primary" data-cta="googleads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Umów bezpłatną diagnozę</a><a href="#cennik" class="gads-btn gads-btn-secondary">Zobacz cennik</a></div>
       </div>
 
       <aside class="gads-search-card" aria-label="Przykład intencji w Google Ads">
-          <div class="gads-search-bar"><span class="gads-search-dots" aria-hidden="true"><span class="gads-search-dot gads-search-dot--red"></span><span class="gads-search-dot gads-search-dot--yellow"></span><span class="gads-search-dot gads-search-dot--green"></span></span>serwis maszyn cnc śląsk</div>
+          <div class="gads-search-bar"><span class="gads-search-dots" aria-hidden="true"><span class="gads-search-dot gads-search-dot--red"></span><span class="gads-search-dot gads-search-dot--yellow"></span><span class="gads-search-dot gads-search-dot--green"></span></span>świece sojowe zapachowe</div>
         <div class="gads-serp">
           <div class="gads-ad">
-            <small>Reklama</small>
-            <strong>Serwis maszyn CNC dla firm produkcyjnych</strong>
-            <p>Krótki formularz, szybka diagnoza, konkretny kontakt. To kliknięcie ma intencję, dlatego nie można go zmarnować słabą stroną.</p>
+            <small>Sponsorowane · twojsklep.pl</small>
+            <strong>Ręcznie robione świece sojowe — wysyłka w 24h</strong>
+            <p>Naturalne zapachy, pakowane na prezent. Sprawdź jesienną kolekcję.</p>
           </div>
-          <div class="gads-intent-row">
-            <div class="gads-intent"><b>Search</b><span>istniejący popyt</span></div>
-            <div class="gads-intent"><b>CPL</b><span>koszt leada</span></div>
-            <div class="gads-intent"><b>Quality</b><span>jakość ruchu</span></div>
-          </div>
-        </div>
-      </aside>
+          <p class="up-mock-caption">Przykładowa reklama — pokazuje się, gdy klient szuka tego, co sprzedajesz.</p></div></aside>
     </div>
   </section>
+<section class="gads-section up-mock-audience" id="dla-kogo"><div class="gads-wrap"><span class="gads-eyebrow">Dla kogo</span><h2 class="gads-h2">Google Ads ma sens, gdy klienci już szukają tego, co oferujesz.</h2><div class="up-mock-grid"><article><h3>Sklepy internetowe</h3><p>Reklamy produktowe — Twoje produkty ze zdjęciem i ceną nad wynikami wyszukiwania.</p></article><article><h3>Lokalne biznesy</h3><p>Lokal, salon, warsztat — pokazujesz się osobom z okolicy, które szukają właśnie teraz.</p></article><article><h3>Wyroby własne i nisze</h3><p>Świece, kosmetyki naturalne, rzeczy do ogrodu — konkretne frazy zamiast przepalania budżetu.</p></article></div></div></section>
 
-  <section class="gads-section" id="lokalnie">
-    <div class="gads-wrap">
-      <span class="gads-eyebrow">Google Ads lokalnie i ogólnopolsko</span>
-      <h2 class="gads-h2">Obsługuję kampanie Google Ads dla firm z całej Polski, z naciskiem na lokalną intencję wyszukiwania.</h2>
-      <div class="gads-copy">
-        <p>W wielu branżach usługowych i B2B zapytania typu „Google Ads Poznań”, „agencja Google Ads Trójmiasto” albo „kampanie Google Ads Warszawa” mają niższą konkurencję niż ogólne frazy. Dlatego przy kampaniach i treściach sprawdzam nie tylko kanał reklamowy, ale też potencjał lokalnych podstron, wyników organicznych i dopasowania landing page do miasta lub regionu.</p>
-        <p>Jeśli działasz lokalnie, kampania powinna uwzględniać promień działania, frazy z miastami, wykluczenia lokalizacji i osobne komunikaty dla klientów z konkretnego regionu. Jeśli sprzedajesz ogólnopolsko, lokalne frazy nadal mogą wspierać SEO i obniżać koszt pozyskania ruchu z wysoką intencją.</p>
-      </div>
-      <div class="gads-btn-row">
-        <?php if ($cities_url !== "") : ?><a href="<?php echo esc_url($cities_url); ?>" class="gads-btn gads-btn-ghost">Zobacz podstrony miast</a><?php endif; ?>
-        <?php if ($offer_url !== "") : ?><a href="<?php echo esc_url($offer_url); ?>" class="gads-btn gads-btn-secondary">Zobacz pełną ofertę</a><?php endif; ?>
-      </div>
-    </div>
-  </section>
+
+  
 
   <section class="gads-section" id="problemy">
     <div class="gads-wrap">
       <span class="gads-eyebrow">Gdzie ucieka budżet</span>
-      <h2 class="gads-h2">Dlaczego kampanie Google Ads nie generują wartościowych zapytań?</h2>
+      <h2 class="gads-h2">Gdzie najczęściej uciekają pieniądze</h2>
       <div class="gads-copy">
         <p>Google Ads ma opinię drogiego kanału. Bywa drogi nie dlatego, że platforma jest zła, ale dlatego, że wiele kampanii generuje kliknięcia bez konwersji. Koszt kliknięcia jest wysoki, a koszt wartościowego leada jeszcze wyższy, gdy duża część ruchu nie składa się z potencjalnych klientów.</p>
         <p>Najczęściej problemem są zbyt ogólne słowa kluczowe, brak wykluczeń, niespójność między reklamą a stroną docelową, słaby Quality Score i brak poprawnego śledzenia konwersji.</p>
@@ -511,10 +501,162 @@ $faq_items = [
     </div>
   </section>
 
-  <section class="gads-section gads-service" id="zakres">
+  <section class="gads-section up-mock-scope" id="zakres"><div class="gads-wrap"><span class="gads-eyebrow">Zakres</span><h2 class="gads-h2">Co dostajesz</h2><p class="up-mock-subtitle">Wszystko prowadzę osobiście — od pierwszej rozmowy do raportu.</p><div class="up-mock-grid"><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Analiza rynku</h3><p>Czego szukają Twoi klienci i ile kosztuje ich kliknięcie.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Frazy i wykluczenia</h3><p>Nie płacisz za przypadkowe kliknięcia.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Kampanie, które sprzedają</h3><p>Wyszukiwarka, reklamy produktowe, Performance Max i remarketing.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Pomiar sprzedaży</h3><p>Wiesz, ile kosztuje zamówienie lub telefon.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Wskazówki do strony</h3><p>Karty produktów i strona, na której kliknięcie może kończyć się zakupem.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Raport i rozmowa co miesiąc</h3><p>Ile sprzedaży, za ile i co dalej — prostym językiem.</p></article></div></div></section>
+
+  
+
+  
+
+
+  <!-- Pricing from the approved redesign; advertising spend remains separate. -->
+  <section class="gads-section" id="efekty">
+    <div class="gads-wrap gads-effects">
+      <div>
+        <span class="gads-eyebrow">Efekty</span>
+        <h2 class="gads-h2">Nie aktywna kampania, tylko przewidywalny system pozyskiwania klientów z wyszukiwarki.</h2>
+        <div class="gads-copy">
+          <p>Dobrze prowadzone kampanie Google Ads przestają być źródłem niekontrolowanych wydatków, a stają się kanałem, który można skalować, optymalizować i rozumieć.</p>
+          <p>Nie obiecuję konkretnych liczb przed audytem, bo wyniki zależą od branży, oferty, budżetu, jakości strony i poziomu konkurencji. Po analizie mogę podać realistyczne oczekiwania i ramy czasowe.</p>
+        </div>
+      </div>
+      <div class="gads-kpi-box">
+        <h3 class="gads-h3">Co sprawdzamy w raportach</h3>
+        <div class="gads-kpi-row">
+          <div class="gads-kpi">
+            <span class="gads-kpi-label">CPL</span>
+            <span class="gads-kpi-value">CPL</span>
+            <span class="gads-kpi-context">Koszt pozyskania wartościowego zapytania lub telefonu.</span>
+          </div>
+          <div class="gads-kpi">
+            <span class="gads-kpi-label">Quality Score</span>
+            <span class="gads-kpi-value">Jakość</span>
+            <span class="gads-kpi-context">Trafność słów kluczowych, reklam i stron docelowych.</span>
+          </div>
+          <div class="gads-kpi">
+            <span class="gads-kpi-label">ROAS (e-com)</span>
+            <span class="gads-kpi-value">ROAS</span>
+            <span class="gads-kpi-context">Przychód z reklam w stosunku do wydatków; oceniany wraz z marżą.</span>
+          </div>
+        </div>
+        <ul class="gads-effects-list" style="margin-top:22px;">
+          <li>Niższy koszt pozyskania wartościowego leada względem obecnych wyników lub benchmarków.</li>
+          <li>Pełna widoczność, które słowa kluczowe, reklamy i grupy generują konwersje.</li>
+          <li>Remarketing do osób, które odwiedziły stronę, ale nie zostawiły kontaktu.</li>
+          <li>Czytelne raportowanie z konkretnymi wnioskami, a nie tylko tabelkami.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+<section class="gads-section" id="cennik" aria-labelledby="gads-price-heading">
+    <div class="gads-wrap gads-price-grid">
+      <div>
+        <span class="gads-eyebrow">Cennik</span>
+        <h2 class="gads-h2" id="gads-price-heading">Ile kosztuje prowadzenie kampanii Google Ads?</h2>
+        <div class="gads-copy">
+          <p>Stała opłata za prowadzenie. Budżet reklamowy płacisz bezpośrednio do Google — bez mojej prowizji.</p>
+          <p>Na bezpłatnej rozmowie ustalimy zakres współpracy i budżet dopasowany do Twojej firmy.</p>
+        </div>
+      </div>
+      <div class="gads-price-card">
+        <strong class="gads-price-value">od 1 800 zł <small>/ mies.</small></strong>
+        <ul class="gads-check-list">
+          <li>Konfiguracja i prowadzenie kampanii</li>
+          <li>Pomiar sprzedaży i telefonów</li>
+          <li>Miesięczny raport i rozmowa</li>
+        </ul>
+        <a href="#kontakt" class="gads-btn gads-btn-primary" data-cta="googleads-price-diagnosis" data-cta-section="pricing" data-cta-position="primary">Zapytaj o wycenę</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="gads-section gads-process" id="proces">
+    <div class="gads-wrap">
+      <span class="gads-eyebrow">Proces współpracy</span>
+      <h2 class="gads-h2">Od pierwszej rozmowy do mierzalnych wyników sprzedażowych.</h2>
+      <div class="gads-copy">
+        <p>Każda współpraca przy Google Ads zaczyna się od diagnozy, a nie od uruchomienia kampanii. Muszę zrozumieć, co sprzedajesz, kto jest Twoim klientem, jaki jest średni zysk na kliencie, czy masz aktywne kampanie i jaka jest jakość strony docelowej.</p>
+      </div>
+      <div class="gads-process-grid">
+        <div class="gads-step">
+          <div class="gads-step-head">
+            <span class="gads-step-num">1</span>
+            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          </div>
+          <strong>Audyt i diagnoza</strong>
+          <p>Konto, słowa kluczowe, wykluczenia, reklamy, Quality Score, landing pages i konwersje.</p>
+        </div>
+        <div class="gads-step">
+          <div class="gads-step-head">
+            <span class="gads-step-num">2</span>
+            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></span>
+          </div>
+          <strong>Strategia</strong>
+          <p>Typ kampanii, budżet, struktura konta, KPI, słowa kluczowe i wykluczenia.</p>
+        </div>
+        <div class="gads-step">
+          <div class="gads-step-head">
+            <span class="gads-step-num">3</span>
+            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+          </div>
+          <strong>Wdrożenie</strong>
+          <p>Kampanie, grupy reklam, rozszerzenia, stawki, budżety i śledzenie konwersji.</p>
+        </div>
+        <div class="gads-step">
+          <div class="gads-step-head">
+            <span class="gads-step-num">4</span>
+            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
+          </div>
+          <strong>Optymalizacja</strong>
+          <p>Search terms, nowe wykluczenia, testy komunikatów, stawki, raporty i landing pages.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  
+
+  
+<section class="gads-section up-mock-details" id="szczegoly-uslugi"><div class="gads-wrap"><span class="gads-eyebrow">Więcej o usłudze</span><h2 class="gads-h2">Google Ads dla firm: kampanie Search i Performance Max, które docierają do klientów z wysoką intencją zakupową.</h2><p class="gads-lead">Tworzenie i prowadzenie kampanii Google Ads dla firm B2B, usługowych i e-commerce. Słowa kluczowe z intencją zakupową, landing pages pod konwersję i systematyczna optymalizacja kosztu pozyskania leada.</p><div class="gads-copy">
+          <p>Google Ads pozwala dotrzeć do klientów dokładnie wtedy, gdy szukają rozwiązania. Ktoś wpisuje „dostawca opakowań przemysłowych”, „agencja rekrutacyjna Warszawa” albo „serwis maszyn CNC Śląsk” i jest bliżej decyzji niż osoba przypadkowo scrollująca social media.</p>
+          <p>Skuteczna kampania Google Ads to precyzyjny dobór słów kluczowych z wysoką intencją zakupową, wykluczenie fraz generujących drogi ruch, spójność reklamy ze stroną docelową, poprawne śledzenie konwersji i ciągła optymalizacja.</p>
+        </div><div class="gads-btn-row"><a href="#zakres" class="gads-btn gads-btn-secondary">Zobacz zakres usługi</a><a href="#typy" class="gads-btn gads-btn-ghost">Search czy PMax?</a></div></div></section>
+<section class="gads-section" id="dla-kogo-szczegoly">
+    <div class="gads-wrap">
+      <span class="gads-eyebrow">Dla kogo</span>
+      <h2 class="gads-h2">Google Ads ma sens, gdy klienci już szukają Twojej usługi lub produktu w wyszukiwarce.</h2>
+      <div class="gads-copy">
+        <p>Jeżeli ktoś wpisuje w Google „outsourcing IT Kraków”, „producent mebli na wymiar Gdańsk” czy „prawnik od umów handlowych Wrocław”, to jest klient z intencją zakupową. Google Ads pozwala być widocznym dokładnie w tym momencie.</p>
+        <p>Ten kanał działa szczególnie dobrze dla firm B2B, usług lokalnych i e-commerce, gdy istnieje aktywny popyt. Jeśli rynek trzeba najpierw edukować, lepszym pierwszym krokiem może być <?php if ($meta_ads_url !== "") : ?><a href="<?php echo esc_url($meta_ads_url); ?>">Meta Ads dla firm</a><?php else : ?>Meta Ads dla firm<?php endif; ?>.</p>
+      </div>
+
+      <div class="gads-fit-grid">
+        <div class="gads-fit">
+          <div class="gads-fit-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V7l9-4 9 4v14"/><path d="M9 21V12h6v9"/><path d="M3 21h18"/></svg>
+          </div>
+          <strong>Firmy B2B</strong>
+          <p>Produkcja, IT, logistyka, finanse, doradztwo i prawo, gdzie pojedynczy klient ma wysoką wartość.</p>
+        </div>
+        <div class="gads-fit">
+          <div class="gads-fit-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <strong>Lokalne usługi</strong>
+          <p>Precyzyjne dotarcie do osób z miasta, regionu lub dzielnicy, które aktywnie szukają usługi.</p>
+        </div>
+        <div class="gads-fit">
+          <div class="gads-fit-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          </div>
+          <strong>E-commerce</strong>
+          <p>Shopping, Performance Max i optymalizacja pod ROAS przy kontrolowanym koszcie sprzedaży.</p>
+        </div>
+      </div>
+    </div>
+  </section><section class="gads-section gads-service" id="zakres-szczegoly">
     <div class="gads-wrap">
       <span class="gads-eyebrow">Pełny zakres usługi</span>
-      <h2 class="gads-h2">Google Ads od audytu i strategii, przez strukturę kampanii i landing pages, do optymalizacji oraz raportowania sprzedażowego.</h2>
+      <h2 class="gads-h2">Szczegółowy zakres usługi</h2>
       <div class="gads-copy">
         <p>Prowadzenie kampanii Google Ads zaczyna się długo przed kliknięciem w panel reklamowy. Kampania musi być zaplanowana pod konkretny cel sprzedażowy, zbudowana z odpowiednią strukturą i stale optymalizowana na podstawie danych.</p>
       </div>
@@ -610,43 +752,21 @@ $faq_items = [
       </div>
     </div>
   </section>
-
-  <section class="gads-section" id="dla-kogo">
+<section class="gads-section" id="lokalnie">
     <div class="gads-wrap">
-      <span class="gads-eyebrow">Dla kogo</span>
-      <h2 class="gads-h2">Google Ads ma sens, gdy klienci już szukają Twojej usługi lub produktu w wyszukiwarce.</h2>
+      <span class="gads-eyebrow">Google Ads lokalnie i ogólnopolsko</span>
+      <h2 class="gads-h2">Obsługuję kampanie Google Ads dla firm z całej Polski, z naciskiem na lokalną intencję wyszukiwania.</h2>
       <div class="gads-copy">
-        <p>Jeżeli ktoś wpisuje w Google „outsourcing IT Kraków”, „producent mebli na wymiar Gdańsk” czy „prawnik od umów handlowych Wrocław”, to jest klient z intencją zakupową. Google Ads pozwala być widocznym dokładnie w tym momencie.</p>
-        <p>Ten kanał działa szczególnie dobrze dla firm B2B, usług lokalnych i e-commerce, gdy istnieje aktywny popyt. Jeśli rynek trzeba najpierw edukować, lepszym pierwszym krokiem może być <?php if ($meta_ads_url !== "") : ?><a href="<?php echo esc_url($meta_ads_url); ?>">Meta Ads dla firm</a><?php else : ?>Meta Ads dla firm<?php endif; ?>.</p>
+        <p>W wielu branżach usługowych i B2B zapytania typu „Google Ads Poznań”, „agencja Google Ads Trójmiasto” albo „kampanie Google Ads Warszawa” mają niższą konkurencję niż ogólne frazy. Dlatego przy kampaniach i treściach sprawdzam nie tylko kanał reklamowy, ale też potencjał lokalnych podstron, wyników organicznych i dopasowania landing page do miasta lub regionu.</p>
+        <p>Jeśli działasz lokalnie, kampania powinna uwzględniać promień działania, frazy z miastami, wykluczenia lokalizacji i osobne komunikaty dla klientów z konkretnego regionu. Jeśli sprzedajesz ogólnopolsko, lokalne frazy nadal mogą wspierać SEO i obniżać koszt pozyskania ruchu z wysoką intencją.</p>
       </div>
-
-      <div class="gads-fit-grid">
-        <div class="gads-fit">
-          <div class="gads-fit-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V7l9-4 9 4v14"/><path d="M9 21V12h6v9"/><path d="M3 21h18"/></svg>
-          </div>
-          <strong>Firmy B2B</strong>
-          <p>Produkcja, IT, logistyka, finanse, doradztwo i prawo, gdzie pojedynczy klient ma wysoką wartość.</p>
-        </div>
-        <div class="gads-fit">
-          <div class="gads-fit-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          </div>
-          <strong>Lokalne usługi</strong>
-          <p>Precyzyjne dotarcie do osób z miasta, regionu lub dzielnicy, które aktywnie szukają usługi.</p>
-        </div>
-        <div class="gads-fit">
-          <div class="gads-fit-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-          </div>
-          <strong>E-commerce</strong>
-          <p>Shopping, Performance Max i optymalizacja pod ROAS przy kontrolowanym koszcie sprzedaży.</p>
-        </div>
+      <div class="gads-btn-row">
+        <?php if ($cities_url !== "") : ?><a href="<?php echo esc_url($cities_url); ?>" class="gads-btn gads-btn-ghost">Zobacz podstrony miast</a><?php endif; ?>
+        <?php if ($offer_url !== "") : ?><a href="<?php echo esc_url($offer_url); ?>" class="gads-btn gads-btn-secondary">Zobacz pełną ofertę</a><?php endif; ?>
       </div>
     </div>
   </section>
-
-  <section class="gads-section" id="typy">
+<section class="gads-section" id="typy">
     <div class="gads-wrap">
       <span class="gads-eyebrow">Typy kampanii</span>
       <h2 class="gads-h2">Search, Performance Max czy Display: który typ Google Ads przyniesie najlepsze wyniki?</h2>
@@ -664,115 +784,7 @@ $faq_items = [
       </div>
     </div>
   </section>
-
-
-  <!-- Pricing from the approved redesign; advertising spend remains separate. -->
-  <section class="gads-section" id="cennik" aria-labelledby="gads-price-heading">
-    <div class="gads-wrap gads-price-grid">
-      <div>
-        <span class="gads-eyebrow">Cennik</span>
-        <h2 class="gads-h2" id="gads-price-heading">Ile kosztuje prowadzenie kampanii Google Ads?</h2>
-        <div class="gads-copy">
-          <p>Stała opłata za prowadzenie. Budżet reklamowy płacisz bezpośrednio do Google — bez mojej prowizji.</p>
-          <p>Na bezpłatnej rozmowie ustalimy zakres współpracy i budżet dopasowany do Twojej firmy.</p>
-        </div>
-      </div>
-      <div class="gads-price-card">
-        <strong class="gads-price-value">od 1 800 zł <small>/ mies.</small></strong>
-        <ul class="gads-check-list">
-          <li>Konfiguracja i prowadzenie kampanii</li>
-          <li>Pomiar sprzedaży i telefonów</li>
-          <li>Miesięczny raport i rozmowa</li>
-        </ul>
-        <a href="#kontakt" class="gads-btn gads-btn-primary" data-cta="googleads-price-diagnosis" data-cta-section="pricing" data-cta-position="primary">Zapytaj o wycenę</a>
-      </div>
-    </div>
-  </section>
-
-  <section class="gads-section gads-process" id="proces">
-    <div class="gads-wrap">
-      <span class="gads-eyebrow">Proces współpracy</span>
-      <h2 class="gads-h2">Od pierwszej rozmowy do mierzalnych wyników sprzedażowych.</h2>
-      <div class="gads-copy">
-        <p>Każda współpraca przy Google Ads zaczyna się od diagnozy, a nie od uruchomienia kampanii. Muszę zrozumieć, co sprzedajesz, kto jest Twoim klientem, jaki jest średni zysk na kliencie, czy masz aktywne kampanie i jaka jest jakość strony docelowej.</p>
-      </div>
-      <div class="gads-process-grid">
-        <div class="gads-step">
-          <div class="gads-step-head">
-            <span class="gads-step-num">1</span>
-            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          </div>
-          <strong>Audyt i diagnoza</strong>
-          <p>Konto, słowa kluczowe, wykluczenia, reklamy, Quality Score, landing pages i konwersje.</p>
-        </div>
-        <div class="gads-step">
-          <div class="gads-step-head">
-            <span class="gads-step-num">2</span>
-            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></span>
-          </div>
-          <strong>Strategia</strong>
-          <p>Typ kampanii, budżet, struktura konta, KPI, słowa kluczowe i wykluczenia.</p>
-        </div>
-        <div class="gads-step">
-          <div class="gads-step-head">
-            <span class="gads-step-num">3</span>
-            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
-          </div>
-          <strong>Wdrożenie</strong>
-          <p>Kampanie, grupy reklam, rozszerzenia, stawki, budżety i śledzenie konwersji.</p>
-        </div>
-        <div class="gads-step">
-          <div class="gads-step-head">
-            <span class="gads-step-num">4</span>
-            <span class="gads-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
-          </div>
-          <strong>Optymalizacja</strong>
-          <p>Search terms, nowe wykluczenia, testy komunikatów, stawki, raporty i landing pages.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="gads-section" id="efekty">
-    <div class="gads-wrap gads-effects">
-      <div>
-        <span class="gads-eyebrow">Efekty</span>
-        <h2 class="gads-h2">Nie aktywna kampania, tylko przewidywalny system pozyskiwania klientów z wyszukiwarki.</h2>
-        <div class="gads-copy">
-          <p>Dobrze prowadzone kampanie Google Ads przestają być źródłem niekontrolowanych wydatków, a stają się kanałem, który można skalować, optymalizować i rozumieć.</p>
-          <p>Nie obiecuję konkretnych liczb przed audytem, bo wyniki zależą od branży, oferty, budżetu, jakości strony i poziomu konkurencji. Po analizie mogę podać realistyczne oczekiwania i ramy czasowe.</p>
-        </div>
-      </div>
-      <div class="gads-kpi-box">
-        <h3 class="gads-h3">Realne benchmarki, na których pracujemy</h3>
-        <div class="gads-kpi-row">
-          <div class="gads-kpi">
-            <span class="gads-kpi-label">CPL</span>
-            <span class="gads-kpi-value">37–89 zł</span>
-            <span class="gads-kpi-context">Średni koszt wartościowego leada w kampaniach B2B (usługi i IT, 2024).</span>
-          </div>
-          <div class="gads-kpi">
-            <span class="gads-kpi-label">Quality Score</span>
-            <span class="gads-kpi-value">+2 / +3 pkt</span>
-            <span class="gads-kpi-context">Typowa poprawa jakości fraz po pierwszym cyklu optymalizacji i nowych landingach.</span>
-          </div>
-          <div class="gads-kpi">
-            <span class="gads-kpi-label">ROAS (e-com)</span>
-            <span class="gads-kpi-value">300–600%</span>
-            <span class="gads-kpi-context">Realistyczny zakres dla sklepów z marżą i poprawnym śledzeniem zakupów.</span>
-          </div>
-        </div>
-        <ul class="gads-effects-list" style="margin-top:22px;">
-          <li>Niższy koszt pozyskania wartościowego leada względem obecnych wyników lub benchmarków.</li>
-          <li>Pełna widoczność, które słowa kluczowe, reklamy i grupy generują konwersje.</li>
-          <li>Remarketing do osób, które odwiedziły stronę, ale nie zostawiły kontaktu.</li>
-          <li>Czytelne raportowanie z konkretnymi wnioskami, a nie tylko tabelkami.</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <section class="gads-section" id="faq">
+<section class="gads-section" id="faq">
     <div class="gads-wrap">
       <span class="gads-eyebrow">FAQ</span>
       <h2 class="gads-h2">Najczęstsze pytania przed rozpoczęciem kampanii Google Ads.</h2>

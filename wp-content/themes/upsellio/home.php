@@ -899,23 +899,16 @@ get_header();
 <main class="ups-blog js-ups-blog-root" data-current-category="<?php echo esc_attr($selected_category); ?>" data-current-tags="<?php echo esc_attr(implode(",", $selected_tags)); ?>" data-current-page="<?php echo esc_attr((string) $paged); ?>">
   <section class="ups-blog-hero">
     <div class="ups-blog-hero-topline"></div>
-    <div class="wrap" style="padding: 64px 0 92px;">
+    <div class="wrap" style="padding: 56px 0 64px;">
       <div style="max-width: 920px;">
         <div class="ups-blog-badge">
           <span class="ups-blog-dot"></span>
-          Artykuły o reklamach i stronach pisane przez praktyka — nie teoria z podręcznika
+          Blog Upsellio
         </div>
         <h1 class="ups-blog-title">
-          Blog Upsellio — marketing B2B bez owijania w bawełnę.<br />
-          <span style="color: var(--teal);">Meta Ads, Google Ads, konwersja i sprzedaż.</span>
+          Praktyczne porady <span style="color:#06745f;">dla małych firm.</span>
         </h1>
-        <p class="ups-blog-lead">
-          Ten blog powstał z jednego powodu: zbyt wiele firm wydaje pieniądze na marketing, nie rozumiejąc, dlaczego wyniki są takie, jakie są. Znajdziesz tu konkretne artykuły o Meta Ads, Google Ads, stronach, landing pages, pozyskiwaniu klientów i mierzeniu jakości zapytań.
-        </p>
-        <div class="ups-blog-seo-copy">
-          <p>Większość artykułów o marketingu internetowym jest pisana albo zbyt ogólnie, bez liczb i decyzji, albo zbyt technicznie, bez kontekstu biznesowego. Tutaj chodzi o treści, które pomagają właścicielom firm i managerom podejmować lepsze decyzje.</p>
-          <p>Jeśli zastanawiasz się, kiedy inwestować w Google Ads zamiast Meta Ads, co blokuje konwersję strony, jak działa remarketing albo jak mierzyć jakość leadów, a nie tylko ich liczbę, jesteś w dobrym miejscu.</p>
-        </div>
+        <p class="ups-blog-lead">Reklamy, sklepy i sprzedaż bez żargonu. Krótko, konkretnie i tak, żebyś mógł to wdrożyć sam.</p>
       </div>
 
       <form class="ups-blog-search js-ups-blog-search-form" method="get" action="<?php echo esc_url($blog_index_url); ?>">
@@ -1071,6 +1064,13 @@ get_header();
     </div>
   </div>
 
+  <section class="ups-blog-topics" aria-label="O blogu"><div class="wrap"><p class="ups-blog-lead">
+          Ten blog powstał z jednego powodu: zbyt wiele firm wydaje pieniądze na marketing, nie rozumiejąc, dlaczego wyniki są takie, jakie są. Znajdziesz tu konkretne artykuły o Meta Ads, Google Ads, stronach, landing pages, pozyskiwaniu klientów i mierzeniu jakości zapytań.
+        </p>
+        <div class="ups-blog-seo-copy">
+          <p>Większość artykułów o marketingu internetowym jest pisana albo zbyt ogólnie, bez liczb i decyzji, albo zbyt technicznie, bez kontekstu biznesowego. Tutaj chodzi o treści, które pomagają właścicielom firm i managerom podejmować lepsze decyzje.</p>
+          <p>Jeśli zastanawiasz się, kiedy inwestować w Google Ads zamiast Meta Ads, co blokuje konwersję strony, jak działa remarketing albo jak mierzyć jakość leadów, a nie tylko ich liczbę, jesteś w dobrym miejscu.</p>
+        </div></div></section>
   <section class="ups-blog-topics">
     <div class="wrap">
       <div class="ups-blog-topics-head">
