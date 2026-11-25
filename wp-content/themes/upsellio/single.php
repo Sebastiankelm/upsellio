@@ -272,7 +272,7 @@ if (have_posts()) :
                 <div class="sp-avatar">SK</div>
                 <div>
                   <strong><?php echo esc_html($author_name); ?></strong>
-                  <span class="sp-meta-line"><?php echo esc_html(get_the_date("j F Y", $post_id)); ?> · Upsellio</span>
+                  <span class="sp-meta-line"><?php echo esc_html(get_the_date("j F Y", $post_id)); ?> · <?php echo esc_html($read_time); ?></span>
                 </div>
                 <div class="sp-share" aria-label="Udostępnij artykuł">
                   <a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo rawurlencode(get_permalink($post_id)); ?>" target="_blank" rel="noopener noreferrer" aria-label="Udostępnij na Facebooku">f</a>
@@ -309,7 +309,7 @@ if (have_posts()) :
           <section class="sp-body">
             <div class="sp-wrap-narrow sp-grid">
               <aside class="sp-toc" aria-label="Spis treści i kontakt" data-animate="fade-up" data-delay="1">
-                <div class="sp-toc-head">Spis treści</div>
+                <div class="sp-toc-head">W tym wpisie</div>
                 <?php if (!empty($toc_items)) : ?>
                   <ol>
                     <?php foreach ($toc_items as $toc_index => $toc_item) : ?>
@@ -321,7 +321,7 @@ if (have_posts()) :
                 <?php endif; ?>
                 <div class="sp-toc-cta">
                   <strong>Bezpłatna diagnoza</strong>
-                  <p>15 min rozmowy + konkretny kierunek.</p>
+                  <p>30 minut, bez zobowiązań. Powiem, od czego zacząć w Twojej firmie.</p>
                   <?php if ($offer_form_url !== "") : ?><a href="<?php echo esc_url($offer_form_url); ?>">Umów rozmowę →</a><?php endif; ?>
                 </div>
               </aside>
@@ -363,7 +363,7 @@ if (have_posts()) :
                   <div class="sp-avatar lg">SK</div>
                   <div>
                     <strong><?php echo esc_html($author_name); ?></strong>
-                    <p>Marketing i sprzedaż B2B. W Upsellio łączę procesy sprzedaży z reklamą i stronami WWW.</p>
+                    <p>Pomagam małym firmom i sklepom zdobywać klientów z Google, Facebooka i Instagrama. Prowadzę każdy projekt osobiście.</p>
                     <a href="<?php echo esc_url($blog_index_url); ?>">Zobacz inne wpisy →</a>
                   </div>
                 </div>
@@ -391,7 +391,7 @@ if (have_posts()) :
               <div class="sp-wrap-narrow">
                 <header class="sp-sec-head">
                   <div class="sp-eyebrow">Czytaj też</div>
-                  <h2 class="sp-h2">Powiązane artykuły.</h2>
+                  <h2 class="sp-h2">Przeczytaj też</h2>
                   <a href="<?php echo esc_url($blog_index_url); ?>" class="sp-btn">Wszystkie wpisy</a>
                 </header>
                 <div class="sp-divider"></div>
