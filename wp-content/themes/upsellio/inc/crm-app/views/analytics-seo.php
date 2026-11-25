@@ -2,7 +2,7 @@
 if (!defined("ABSPATH")) {
     exit;
 }
-$range_days = isset($_GET["range"]) ? (int) wp_unslash($_GET["range"]) : 30;
+$range_days = isset($range_days) && in_array($range_days, [7, 14, 30, 60, 90, 365], true) ? $range_days : 30;
 $query_lead = function_exists("upsellio_analytics_query_lead_value")
     ? upsellio_analytics_query_lead_value($range_days, 50)
     : ["rows" => [], "total_value" => 0];
