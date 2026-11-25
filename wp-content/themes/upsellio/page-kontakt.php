@@ -723,17 +723,6 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
                     <a href="tel:<?php echo esc_attr($contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
                 </div>
 
-                <div class="ct-channels">
-                    <a href="tel:<?php echo esc_attr($contact_phone_href); ?>" class="ct-channel-link">
-                        <?php echo esc_html($contact_phone); ?>
-                    </a>
-                    <a href="mailto:<?php echo esc_attr($contact_email); ?>" class="ct-channel-link">
-                        <?php echo esc_html($contact_email); ?>
-                    </a>
-                    <a href="<?php echo esc_url($linkedin_url); ?>" target="_blank" rel="noopener noreferrer" class="ct-channel-link">
-                        LinkedIn
-                    </a>
-                </div>
             </div>
 
             <aside class="ct-form-card" aria-labelledby="form-heading" data-animate="fade-left" data-delay="1">
@@ -764,6 +753,22 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
 </section>
 
 
+
+<section class="ct-channels-section" aria-label="Kanały kontaktu">
+    <div class="ct-wrap">
+        <div class="ct-channels">
+                    <a href="tel:<?php echo esc_attr($contact_phone_href); ?>" class="ct-channel-link">
+                        <span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-2 2a10 10 0 0 0 4 4l2-2 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span><span><strong>Telefon · pn–pt 9–17</strong><?php echo esc_html($contact_phone); ?></span>
+                    </a>
+                    <a href="mailto:<?php echo esc_attr($contact_email); ?>" class="ct-channel-link">
+                        <span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span><span><strong>E-mail</strong><?php echo esc_html($contact_email); ?></span>
+                    </a>
+                    <a href="<?php echo esc_url($linkedin_url); ?>" target="_blank" rel="noopener noreferrer" class="ct-channel-link">
+                        <span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10v6M8 7v1M12 16v-6m0 2c0-3 4-3 4 0v4"/></svg></span><span><strong>LinkedIn</strong>Sebastian Kelm</span>
+                    </a>
+                </div>
+    </div>
+</section>
 
 <section class="ct-agenda" id="co-omowimy" aria-labelledby="ct-agenda-heading">
     <div class="ct-wrap">
@@ -1039,7 +1044,7 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
             <aside class="ct-final-side">
                 <div>
                     <strong>Albo bezpośrednio</strong>
-                    <a href="tel:<?php echo esc_attr(str_replace([' ','-','+'], '', $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a>
+                    <a href="tel:<?php echo esc_attr($contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
                 </div>
                 <div>
                     <strong>E-mailem</strong>
@@ -1144,18 +1149,7 @@ echo wp_json_encode([
         }
     }
 
-    /* --- Smooth scroll dla kotwic --- */
-    document.querySelectorAll('a[href^="#"]').forEach(function(link) {
-        link.addEventListener('click', function(e) {
-            var href = link.getAttribute('href');
-            if (href.length < 2) return;
-            var target = document.querySelector(href);
-            if (target) {
-                e.preventDefault();
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        });
-    });
+    // Anchor scrolling is handled by the shared theme script; avoid duplicate listeners.
 
 })();
 </script>
