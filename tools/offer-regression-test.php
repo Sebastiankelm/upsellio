@@ -17,6 +17,7 @@ function update_post_meta($id, $key, $value, $prev = null) {
     return true;
 }
 function add_post_meta($id, $key, $value, $unique = false) {
+    if (!empty($GLOBALS["fail_snapshot"]) && $key === "_ups_offer_accepted_terms_snapshot") { return false; }
     if ($unique && array_key_exists($key, $GLOBALS["meta"])) { return false; }
     $GLOBALS["meta"][$key] = $value;
     return true;
@@ -25,6 +26,7 @@ function get_option($name, $default = false) { return $default; }
 function sanitize_key($value) { return preg_replace("/[^a-z0-9_-]/", "", strtolower((string) $value)); }
 function sanitize_text_field($value) { return trim(strip_tags((string) $value)); }
 function wp_unslash($value) { return $value; }
+function wp_slash($value) { return $value; }
 function current_time($type) { return "2026-11-25 12:00:00"; }
 function wp_date($format, $time) { return gmdate($format, $time); }
 require get_template_directory() . "/inc/offers.php";
@@ -82,4 +84,8 @@ expect(!upsellio_offer_event_section_valid("offer_commit_selected", "fake", ["re
 expect(upsellio_offer_event_section_valid("offer_commit_selected", "real", ["real"]), "defined variant accepted");
 expect(upsellio_offer_event_section_valid("offer_cta_click", "mobile_accept_ajax"), "mobile CTA recognized");
 expect(!upsellio_offer_event_section_valid("offer_view", "pricing"), "view event cannot carry arbitrary section");
+ $GLOBALS["meta"] = ["_ups_offer_status" => "sent"];
+$GLOBALS["fail_snapshot"] = true;
+expect(!upsellio_offer_apply_public_accept(42, ["contact_email" => "test@example.invalid"], ["version" => 1]), "snapshot write failure cannot report acceptance success");
+expect($GLOBALS["status_hooks"] === 1 && get_post_meta(42, "_ups_offer_accept_integrity_error", true) === "payload_or_snapshot_write_failed", "failed snapshot does not emit sales status hooks");
 echo "All isolated regression checks passed." . PHP_EOL;
