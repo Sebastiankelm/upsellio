@@ -370,3 +370,35 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded",init,{once:true});
   else init();
 })();
+
+
+// Open native extended-content disclosure before following its deep links.
+// Independent of the mobile contact initializer, so it also works on desktop.
+(function () {
+  function reveal(hash) {
+    if (!hash || hash.length < 2) return null;
+    let id;
+    try { id = decodeURIComponent(hash.slice(1)); } catch (_) { return null; }
+    const target = document.getElementById(id);
+    if (!target) return null;
+    const parent = target.closest("details.up-extra-content");
+    if (!parent || parent.open) return null;
+    parent.open = true;
+    return target;
+  }
+  function init() {
+    function fromLocation() {
+      const target = reveal(location.hash);
+      if (target) requestAnimationFrame(() => target.scrollIntoView({block:"start",behavior:"instant"}));
+    }
+    fromLocation();
+    window.addEventListener("hashchange",fromLocation);
+    document.addEventListener("click", e => {
+      const anchor = e.target.closest?.('a[href^="#"]');
+      if (!anchor || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      reveal(anchor.hash);
+    },true);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded",init,{once:true});
+  else init();
+})();
