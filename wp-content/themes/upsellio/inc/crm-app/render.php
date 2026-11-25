@@ -2173,7 +2173,7 @@ function upsellio_crm_app_template_redirect()
                 <h2>Karta klienta 360°</h2>
                 <?php
                 $selected_360_client_id = isset($_GET["account_client_id"]) ? (int) wp_unslash($_GET["account_client_id"]) : 0;
-                if ($selected_360_client_id > 0 && (get_post_type($selected_360_client_id) !== "crm_client" || !current_user_can("edit_post", $selected_360_client_id))) {
+                if ($selected_360_client_id > 0 && (get_post_type($selected_360_client_id) !== "crm_client" || !current_user_can("read_post", $selected_360_client_id) || !current_user_can("edit_post", $selected_360_client_id))) {
                     $selected_360_client_id = 0;
                     echo '<p role="alert" class="muted">Brak dostępu do wybranego klienta.</p>';
                 }
@@ -2189,12 +2189,12 @@ function upsellio_crm_app_template_redirect()
                 <?php if ($selected_360_client_id > 0) : ?>
                   <?php
                   $client_post_360 = get_post($selected_360_client_id);
-                  $client_deals_360 = get_posts(["post_type" => "crm_offer", "post_status" => ["publish", "draft", "pending", "private"], "posts_per_page" => 100, "no_found_rows" => true, "meta_query" => [["key" => "_ups_offer_client_id", "value" => $selected_360_client_id]]]);
-                  $client_contracts_360 = get_posts(["post_type" => "crm_contract", "post_status" => ["publish", "draft", "pending", "private"], "posts_per_page" => 100, "no_found_rows" => true, "meta_query" => [["key" => "_ups_contract_client_id", "value" => $selected_360_client_id]]]);
-                  $client_contacts_360 = get_posts(["post_type" => "crm_contact", "post_status" => ["publish", "draft", "pending", "private"], "posts_per_page" => 100, "no_found_rows" => true, "meta_query" => [["key" => "_ups_contact_client_id", "value" => $selected_360_client_id]]]);
+                  $client_deals_360 = upsellio_crm_app_collect_metric_posts("crm_offer", ["meta_query" => [["key" => "_ups_offer_client_id", "value" => $selected_360_client_id]]]);
+                  $client_contracts_360 = upsellio_crm_app_collect_metric_posts("crm_contract", ["meta_query" => [["key" => "_ups_contract_client_id", "value" => $selected_360_client_id]]]);
+                  $client_contacts_360 = upsellio_crm_app_collect_metric_posts("crm_contact", ["meta_query" => [["key" => "_ups_contact_client_id", "value" => $selected_360_client_id]]]);
                   foreach (["client_deals_360", "client_contracts_360", "client_contacts_360"] as $collection_name) {
                       $$collection_name = array_values(array_filter($$collection_name, static function ($record) {
-                          return current_user_can("edit_post", $record->ID);
+                          return current_user_can("read_post", $record->ID) && current_user_can("edit_post", $record->ID);
                       }));
                   }
                   ?>
@@ -2204,19 +2204,17 @@ function upsellio_crm_app_template_redirect()
                   <div class="timeline-item"><span class="muted">Notatki</span><span><?php echo esc_html((string) get_post_meta($selected_360_client_id, "_ups_client_notes", true)); ?></span></div>
                   <?php
                   $a360_client_id = $selected_360_client_id;
-                  $a360_offers = get_posts([
-                      "post_type"   => "crm_offer",
-                      "post_status" => ["publish", "private"],
-                      "posts_per_page" => 20,
-                      "no_found_rows" => true,
-                      "meta_query"  => [["key" => "_ups_offer_client_id", "value" => $a360_client_id]],
-                      "orderby"     => "modified",
-                      "order"       => "DESC",
-                  ]);
+                  $a360_offers = array_values(array_filter($client_deals_360, static function ($record) {
+                      return in_array($record->post_status, ["publish", "private"], true);
+                  }));
+                  usort($a360_offers, static function ($a, $b) {
+                      return strcmp($b->post_modified_gmt, $a->post_modified_gmt) ?: ($b->ID <=> $a->ID);
+                  });
+                  $a360_offers = array_slice($a360_offers, 0, 20);
                   ?>
                   <div style="margin-top:20px">
                     <div style="font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">
-                      <?php esc_html_e("Aktywność na ofertach", "upsellio"); ?>
+                      <?php esc_html_e("Aktywność na ofertach (maks. 20 ostatnio aktualizowanych)", "upsellio"); ?>
                     </div>
                     <?php if (empty($a360_offers)) : ?>
                       <p class="muted" style="font-size:12px"><?php esc_html_e("Brak ofert dla tego klienta.", "upsellio"); ?></p>
@@ -2241,6 +2239,9 @@ function upsellio_crm_app_template_redirect()
                                 "meta_query" => [["key" => "_ups_lead_converted_offer_id", "value" => $a360_oid]],
                             ]);
                             $a360_lead_id = !empty($a360_leads_found) ? (int) $a360_leads_found[0] : 0;
+                            if ($a360_lead_id > 0 && (!current_user_can("read_post", $a360_lead_id) || !current_user_can("edit_post", $a360_lead_id))) {
+                                $a360_lead_id = 0;
+                            }
                         }
                         $a360_brief = $a360_lead_id > 0 ? (string) get_post_meta($a360_lead_id, "_upsellio_pre_call_brief", true) : "";
                         $a360_playbook = $a360_lead_id > 0 ? get_post_meta($a360_lead_id, "_upsellio_sales_playbook", true) : [];
@@ -2325,7 +2326,7 @@ function upsellio_crm_app_template_redirect()
                 </form>
                 <table><thead><tr><th>Kontakt</th><th>Firma</th><th>Rola</th><th>Email</th><th>Telefon</th></tr></thead><tbody>
                 <?php foreach ($contacts as $contact) : $cid = (int) $contact->ID; ?>
-                  <tr><td><?php echo esc_html((string) $contact->post_title); ?></td><td><?php echo esc_html((string) get_the_title((int) get_post_meta($cid, "_ups_contact_client_id", true))); ?></td><td><?php echo esc_html((string) get_post_meta($cid, "_ups_contact_role", true)); ?></td><td><?php echo esc_html((string) get_post_meta($cid, "_ups_contact_email", true)); ?></td><td><?php echo esc_html((string) get_post_meta($cid, "_ups_contact_phone", true)); ?></td></tr>
+                  <tr><td><?php echo esc_html((string) $contact->post_title); ?></td><td><?php $contact_client = (int) get_post_meta($cid, "_ups_contact_client_id", true); echo $contact_client > 0 && get_post_type($contact_client) === "crm_client" && current_user_can("read_post", $contact_client) ? esc_html((string) get_the_title($contact_client)) : "—"; ?></td><td><?php echo esc_html((string) get_post_meta($cid, "_ups_contact_role", true)); ?></td><td><?php echo esc_html((string) get_post_meta($cid, "_ups_contact_email", true)); ?></td><td><?php echo esc_html((string) get_post_meta($cid, "_ups_contact_phone", true)); ?></td></tr>
                 <?php endforeach; ?>
                 </tbody></table>
               <?php $crm_render_list_pagination(); ?>
@@ -2360,7 +2361,7 @@ function upsellio_crm_app_template_redirect()
                   $sub_status = (string) get_post_meta($metric_client->ID, "_ups_client_subscription_status", true);
                   if ($sub_status === "active") {
                       $active_clients++;
-                      $active_mrr += (float) get_post_meta($metric_client->ID, "_ups_client_monthly_value", true);
+                      $active_mrr += upsellio_crm_app_client_mrr((string) get_post_meta($metric_client->ID, "_ups_client_is_recurring", true) === "1", $sub_status, get_post_meta($metric_client->ID, "_ups_client_monthly_value", true));
                   } elseif ($sub_status === "paused") {
                       $paused_clients++;
                   }
@@ -2378,14 +2379,13 @@ function upsellio_crm_app_template_redirect()
                     <?php
                     $ce_mrr = (float) get_post_meta($cid, "_ups_client_monthly_value", true);
                     $ce_start = (string) get_post_meta($cid, "_ups_client_billing_start", true);
-                    $ltv = 0.0;
-                    if ($ce_start !== "" && $ce_mrr > 0) {
-                        $months = max(1, (int) round((time() - strtotime($ce_start)) / (DAY_IN_SECONDS * 30)));
-                        $ltv = $ce_mrr * $months;
-                    }
+                    $ce_recurring = (string) get_post_meta($cid, "_ups_client_is_recurring", true) === "1";
+                    $ce_status = (string) get_post_meta($cid, "_ups_client_subscription_status", true);
+                    $ltv = upsellio_crm_app_client_ltv_estimate($ce_recurring, $ce_status, get_post_meta($cid, "_ups_client_monthly_value", true), $ce_start, (string) get_post_meta($cid, "_ups_client_cancellation_date", true), wp_date("Y-m-d"));
+                    $ce_mrr = upsellio_crm_app_client_mrr($ce_recurring, $ce_status, $ce_mrr);
                     $next = (string) get_post_meta($cid, "_ups_client_next_contact_date", true);
                     $today_ymd = wp_date("Y-m-d");
-                    $next_overdue = $next !== "" && $next < $today_ymd;
+                    $next_overdue = upsellio_crm_app_client_date($next) !== null && $next < $today_ymd;
                     $sub = (string) get_post_meta($cid, "_ups_client_subscription_status", true);
                     $sub_cls = $sub === "active" ? "a" : ($sub === "paused" ? "p" : "c");
                     ?>
@@ -2401,7 +2401,7 @@ function upsellio_crm_app_template_redirect()
                       <div class="crm-cc-stats">
                         <div><div class="crm-lsub">MRR</div><div class="crm-cc-name"><?php echo esc_html(number_format($ce_mrr, 0, ",", " ")); ?> PLN</div></div>
                         <div><div class="crm-lsub">Start</div><div class="crm-cc-name"><?php echo esc_html($ce_start !== "" ? $ce_start : "—"); ?></div></div>
-                        <div><div class="crm-lsub">LTV</div><div class="crm-cc-name"><?php echo esc_html(number_format($ltv, 0, ",", " ")); ?> PLN</div></div>
+                        <div><div class="crm-lsub" title="Szacunek według obecnej stawki i pełnych miesięcy, nie suma faktur">LTV (szac.)</div><div class="crm-cc-name"><?php echo esc_html($ltv === null ? "—" : number_format($ltv, 0, ",", " ") . " PLN"); ?></div></div>
                       </div>
                       <div class="crm-cc-next <?php echo $next_overdue ? "ov" : ""; ?>">
                         <i class="ti <?php echo $next_overdue ? "ti-alert-triangle" : "ti-calendar"; ?>" aria-hidden="true"></i>
