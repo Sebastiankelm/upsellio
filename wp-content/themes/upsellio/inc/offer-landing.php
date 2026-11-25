@@ -1351,10 +1351,11 @@ function drainEvents(){
   if(eventBusy||!eventQueue.length)return;
   eventBusy=true;
   var item=eventQueue[0];
-  fetch(ajaxUrl,{method:'POST',body:item.body,credentials:'same-origin',keepalive:true})
+  // Ordinary queued events use a standard form POST; pagehide has its own beacon path.
+  fetch(ajaxUrl,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'},body:item.body.toString(),credentials:'same-origin',cache:'no-store'})
     .then(function(r){
       if(r.status===429||r.status>=500)throw new Error('retry');
-      if(r.ok)return r.json().then(function(data){if(!data||!data.success)throw new Error('retry');});
+      if(r.ok)return r.text().then(function(raw){if(!raw)throw new Error('empty_response');var data=JSON.parse(raw);if(!data||!data.success||!data.data||!data.data.ok)throw new Error('retry');});
     }).then(function(){if(eventQueue[0]===item)eventQueue.shift();})
     .catch(function(){item.attempts++;if(item.attempts>=4&&eventQueue[0]===item)eventQueue.shift();})
     .finally(function(){eventBusy=false;clearTimeout(retryTimer);retryTimer=setTimeout(drainEvents,item.attempts?Math.min(15000,1000*Math.pow(2,item.attempts)):0);});
@@ -1364,7 +1365,7 @@ window.addEventListener('pagehide',function(){
   eventQueue.slice(0,20).forEach(function(item){navigator.sendBeacon(ajaxUrl,item.body);});
 });
 window.addEventListener('online',drainEvents);
-window.addEventListener('CookiebotOnDecline',function(){eventQueue=[];});
+window.addEventListener('CookiebotOnDecline',function(){eventQueue=[];clearTimeout(retryTimer);sessionState=null;viewSession='';try{sessionStorage.removeItem('ups_offer_session_'+offerId);}catch(e){}});
 function trackEvent(eventName,extra){
   if(!canTrack())return;
   extra=extra||{};
