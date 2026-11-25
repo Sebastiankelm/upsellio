@@ -1332,13 +1332,16 @@ function ups_audit_build_monthly_report_prompt($cur, $prev, $client, $ctx)
     $crm_leads = (int) ($crm_funnel["leads"] ?? 0);
     $crm_won = (int) ($crm_funnel["won"] ?? 0);
     $ads_cost = round((float) ($cur["ads_cost"] ?? 0), 2);
-    $crm_roas = $ads_cost > 0 && $crm_rev > 0 ? round($crm_rev / $ads_cost, 2) : 0;
 
-    $roas_line = $ga4_trusted
-        ? "- ROAS GA4 (purchase): " . round((float) ($cur["roas"] ?? 0), 2) . "x\n"
-        : "- UWAGA: Przychód GA4 NIEJEST WIARYGODNY — NIE cytuj ROAS GA4 ani przychodu e-commerce.\n"
-            . "- ROAS CRM (wygrane / koszt Ads): " . $crm_roas . "x\n"
-            . "- Leady CRM: " . $crm_leads . " · Wygrane: " . $crm_won . " · Przychód CRM: " . round($crm_rev, 0) . " PLN\n";
+    $roas_line = "- ROAS Google i Meta: niedostępny (brak zweryfikowanej atrybucji przychodu do kanału).\n";
+    if ($ga4_trusted && isset($cur["mer"])) {
+        $roas_line .= "- MER GA4 (całkowity przychód z zakupów / koszt Google + Meta, NIE ROAS kanałowy): " . round((float) $cur["mer"], 2) . "x\n";
+    }
+    if (!$ga4_trusted) {
+        $roas_line .= "- UWAGA: Przychód GA4 niewiarygodny. Nie używaj do wniosków biznesowych.\n";
+    }
+    $roas_line .= "- Leady CRM: " . $crm_leads . " · Wygrane: " . $crm_won . " · Wartość CRM: " . round($crm_rev, 0) . " PLN (nie przychód przypisany do reklam).\n";
+    $roas_line .= "- Nie rekomenduj skalowania ani zatrzymywania kampanii na podstawie MER lub łącznej wartości CRM.\n";
 
     $attr_conf = (int) (($cur["attribution_confidence"]["score"] ?? 0));
     $attr_line = $attr_conf > 0 ? "- Attribution Confidence: {$attr_conf}%\n" : "";
