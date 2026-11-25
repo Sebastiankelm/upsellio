@@ -77,7 +77,8 @@ function upsellio_crm_app_template_redirect()
 
     $view = isset($_GET["view"]) ? sanitize_key((string) wp_unslash($_GET["view"])) : "dashboard";
 
-    if ($view === "offer_analytics") {
+    // Keep the aggregate funnel link; allow the existing record-specific analytics screen.
+    if ($view === "offer_analytics" && (int) wp_unslash($_GET["offer_id"] ?? 0) <= 0) {
         wp_safe_redirect(upsellio_crm_url("analytics", ["atab" => "sales"]));
         exit;
     }
