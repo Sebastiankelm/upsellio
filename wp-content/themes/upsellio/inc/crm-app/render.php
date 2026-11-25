@@ -5499,7 +5499,7 @@ function upsellio_crm_app_template_redirect()
                         <button type="button"
                                 class="crm-inbox-flag-btn<?php echo $fon ? " active" : ""; ?>"
                                 data-flag="<?php echo esc_attr($fk); ?>"
-                                onclick="inboxSetFlag(<?php echo (int) $inbox_offer_id; ?>, <?php echo wp_json_encode($fk); ?>)"
+                                onclick="inboxSetFlag(<?php echo (int) $inbox_offer_id; ?>, <?php echo esc_attr(wp_json_encode($fk)); ?>)"
                                 title="<?php echo esc_attr((string) ($fmeta["label"] ?? $fk)); ?>"
                                 style="background:<?php echo esc_attr($fhx); ?>"></button>
                         <?php endforeach; ?>
@@ -5615,7 +5615,7 @@ function upsellio_crm_app_template_redirect()
                                   <?php foreach ($inbox_cls_labels_short as $k => $label) : ?>
                                     <button type="button" class="crm-inbox-cls-btn"
                                       data-msg-id="<?php echo $msg_id_esc; ?>"
-                                      onclick="inboxClassify(<?php echo (int) $inbox_offer_id; ?>, <?php echo wp_json_encode($k); ?>, this)">
+                                      onclick="inboxClassify(<?php echo (int) $inbox_offer_id; ?>, <?php echo esc_attr(wp_json_encode($k)); ?>, this)">
                                       <?php echo esc_html($label); ?>
                                     </button>
                                   <?php endforeach; ?>
@@ -5810,7 +5810,7 @@ function upsellio_crm_app_template_redirect()
                               <?php foreach (["awareness" => "Swiadomosc", "consideration" => "Rozwazanie", "decision" => "Decyzja"] as $sk => $sl) : ?>
                                 <button type="button"
                                         class="crm-inbox-stage-btn<?php echo $inbox_stage_raw === $sk ? " active" : ""; ?>"
-                                        onclick="inboxMoveStage(<?php echo (int) $inbox_offer_id; ?>, <?php echo wp_json_encode($sk); ?>)">
+                                        onclick="inboxMoveStage(<?php echo (int) $inbox_offer_id; ?>, <?php echo esc_attr(wp_json_encode($sk)); ?>)">
                                   <?php echo esc_html($sl); ?>
                                 </button>
                               <?php endforeach; ?>
@@ -6293,10 +6293,10 @@ function upsellio_crm_app_template_redirect()
                   function initSalesCharts() {
                     if (!window.upsCrmChart) return;
                     var specs = [
-                      ["ups-chart-status", <?php echo wp_json_encode(array_keys($status_counts)); ?>, <?php echo wp_json_encode(array_values($status_counts)); ?>, "Status ofert", "#0d9488"],
-                      ["ups-chart-stage", <?php echo wp_json_encode(array_keys($stage_counts)); ?>, <?php echo wp_json_encode(array_values($stage_counts)); ?>, "Etapy lejka", "#2563eb"],
-                      ["ups-chart-revenue", <?php echo wp_json_encode(array_keys($monthly_revenue)); ?>, <?php echo wp_json_encode(array_values($monthly_revenue)); ?>, "Przychód (mies.)", "#15803d"],
-                      ["ups-chart-inbound", <?php echo wp_json_encode(array_keys($inbound_class_counts)); ?>, <?php echo wp_json_encode(array_values($inbound_class_counts)); ?>, "Inbound", "#0a7a70"],
+                      ["ups-chart-status", <?php echo wp_json_encode(array_keys($status_counts), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, <?php echo wp_json_encode(array_values($status_counts)); ?>, "Status ofert", "#0d9488"],
+                      ["ups-chart-stage", <?php echo wp_json_encode(array_keys($stage_counts), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, <?php echo wp_json_encode(array_values($stage_counts)); ?>, "Etapy lejka", "#2563eb"],
+                      ["ups-chart-revenue", <?php echo wp_json_encode(array_keys($monthly_revenue), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, <?php echo wp_json_encode(array_values($monthly_revenue)); ?>, "Przychód (mies.)", "#15803d"],
+                      ["ups-chart-inbound", <?php echo wp_json_encode(array_keys($inbound_class_counts), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>, <?php echo wp_json_encode(array_values($inbound_class_counts)); ?>, "Inbound", "#0a7a70"],
                     ];
                     specs.forEach(function (s) {
                       window.upsCrmChart.bar(s[0], s[1], s[2], s[3], s[4]);
@@ -7008,7 +7008,7 @@ function upsellio_crm_app_template_redirect()
                   document.addEventListener("DOMContentLoaded", function(){
                     var ta = document.getElementById("ups-blog-bot-keywords-queue");
                     <?php if ($ups_blog_seed_prefill !== "") : ?>
-                    var pre = <?php echo wp_json_encode($ups_blog_seed_prefill); ?>;
+                    var pre = <?php echo wp_json_encode($ups_blog_seed_prefill, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
                     if (ta && pre) {
                       ta.value = pre + (ta.value.trim() !== "" ? "\n" + ta.value : "");
                       ta.focus();
@@ -7282,10 +7282,10 @@ function upsellio_crm_app_template_redirect()
       <script>
       var upsCrmAjax = <?php echo wp_json_encode(admin_url("admin-ajax.php")); ?>;
       var upsCrmNonce = <?php echo wp_json_encode(wp_create_nonce("ups_crm_app_action")); ?>;
-      var inboxReplyPrefill = <?php echo wp_json_encode($inbox_reply_prefill ?? ["to" => "", "cc" => ""]); ?>;
-      var inboxReplyAllPrefill = <?php echo wp_json_encode($inbox_reply_all_prefill ?? ["to" => "", "cc" => ""]); ?>;
-      var inboxFlagPalette = <?php echo wp_json_encode($inbox_flag_palette ?? []); ?>;
-      var inboxQuickTemplates = <?php echo wp_json_encode($inbox_quick_templates ?? []); ?>;
+      var inboxReplyPrefill = <?php echo wp_json_encode($inbox_reply_prefill ?? ["to" => "", "cc" => ""], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+      var inboxReplyAllPrefill = <?php echo wp_json_encode($inbox_reply_all_prefill ?? ["to" => "", "cc" => ""], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+      var inboxFlagPalette = <?php echo wp_json_encode($inbox_flag_palette ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+      var inboxQuickTemplates = <?php echo wp_json_encode($inbox_quick_templates ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
       var inboxSelectedOfferId = <?php echo (int) $inbox_offer_id; ?>;
       function inboxToast(message, type) {
         type = type || "info";
