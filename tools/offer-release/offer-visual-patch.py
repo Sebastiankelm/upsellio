@@ -22,7 +22,7 @@ if(window.ResizeObserver){var hdr=document.getElementById('offer-sticky-header')
 syncHeaderOffset();""")
     s=replace(s,"snavLinks.forEach(function(l){l.classList.toggle('active',active&&l.dataset.target===active.id);});","snavLinks.forEach(function(l){var on=!!(active&&l.dataset.target===active.id);l.classList.toggle('active',on);if(on)l.setAttribute('aria-current','location');else l.removeAttribute('aria-current');});")
     s=replace(s,"window.scrollTo({top:target,behavior:'smooth'});","window.scrollTo({top:Math.max(0,target),behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});")
-    s,n=re.subn(r'<div class="(snav-link(?: active)?)" data-target="(sec-[a-z]+)" onclick="jumpTo\(\'\2\'\)"><div class="snav-num">(.*?)</div>(.*?)</div>',r'<a class="\1" href="#\2" data-target="\2" onclick="jumpTo(\'\2\');return false;"><span class="snav-num">\3</span>\4</a>',s)
+    s,n=re.subn(r'<div class="(snav-link(?: active)?)" data-target="(sec-[a-z]+)" onclick="jumpTo\(\'\2\'\)"><div class="snav-num">(.*?)</div>(.*?)</div>',lambda m: f'<a class="{m[1]}" href="#{m[2]}" data-target="{m[2]}" onclick="jumpTo(\'{m[2]}\');return false;"><span class="snav-num">{m[3]}</span>{m[4]}</a>',s)
     assert n==6,n
     s=replace(s,'<p class="sub">Pełna lista elementów dopasowana do Twojej sytuacji — wybrane pozycje ustaliliśmy podczas rozmowy diagnostycznej.</p>','<p class="sub">Zakres usług i elementy współpracy przedstawione w tej propozycji.</p>')
     s=replace(s,'  <?php $any_scope = !empty($payload["has_google"]) || !empty($payload["has_meta"]) || !empty($payload["has_web"]); ?>','  <?php $any_scope = count(array_filter($scope_grouped)) > 0; $scope_explicit = !empty($scope_items_meta) && is_array($scope_items_meta); ?>')
@@ -39,7 +39,7 @@ syncHeaderOffset();""")
             <div><strong><?php echo esc_html((string) ($item["title"] ?? "")); ?></strong>
               <p><?php echo esc_html((string) ($item["desc"] ?? "")); ?></p>
               <div class="offer-scope-meta"><?php echo esc_html((string) ($item["when"] ?? "")); ?>
-                <?php if (!empty($item["optional"])) : ?><span>Opcjonalnie</span><?php endif; ?></div>
+                <?php if (!empty($item["optional"])) : ?><span>Opcjonalnie</span><?php elseif ($scope_explicit) : ?><span>W cenie</span><?php endif; ?></div>
             </div>
           </li>
           <?php endforeach; ?>
@@ -151,9 +151,18 @@ def renderer(s):
     @media(max-width:700px){.offer-analytics-kpis{padding:12px;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.offer-analytics-kpi{padding:12px}.offer-analytics-tabs{overflow-x:auto}.offer-analytics-report{overflow-wrap:anywhere}}
     </style>
     <body class="<?php echo is_readable($redesign_css) ? "ups-crm-redesign" : ""; ?>" data-crm-view="<?php echo esc_attr($view); ?>">''')
+    # Desktop sidebar is already rendered and permission-aware; restore layout if global CSS hides it.
+    s=replace(s,'    .offer-analytics-actions{display:flex;flex-wrap:wrap;gap:8px}', '''    .offer-analytics-actions{display:flex;flex-wrap:wrap;gap:8px}
+    @media(min-width:1101px){body[data-crm-view="offer_analytics"] .layout.crm-app-shell{display:flex;flex-direction:row}body[data-crm-view="offer_analytics"] .layout.crm-app-shell>#ups-crm-sidebar{display:flex;flex:0 0 248px;width:248px;min-width:248px;position:relative;transform:none;visibility:visible}body[data-crm-view="offer_analytics"] .layout.crm-app-shell>.crm-main{flex:1;min-width:0}}''')
+    # Open the existing task form with the authorized offer preselected, without saving anything.
+    s=replace(s,'    </style>\n    <body class=', '''    </style>
+    <?php if ($view === "tasks" && isset($_GET["offer_task_id"]) && is_scalar($_GET["offer_task_id"]) && get_post_type((int) $_GET["offer_task_id"]) === "crm_offer" && current_user_can("edit_post", (int) $_GET["offer_task_id"])) : ?>
+    <script>window.addEventListener("load",function(){var btn=document.getElementById("ups-open-add-task");if(btn)btn.click();});</script>
+    <?php endif; ?>
+    <body class=''')
     # Move styles inside the head instead of after it.
     s=replace(s,'    </head>\n    <style>','    <style>')
-    s=replace(s,'    </style>\n    <body class=','    </style>\n    </head>\n    <body class=')
+    s=replace(s,'    <?php endif; ?>\n    <body class=','    <?php endif; ?>\n    </head>\n    <body class=')
     return s
 
 def apply(rel,data):
