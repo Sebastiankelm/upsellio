@@ -12,6 +12,17 @@ jobs:
   render:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: core
+            rank_math_version: ""
+          - mode: rank-math
+            rank_math_version: "1.0.282"
+    name: Render (${{ matrix.mode }})
+    env:
+      FIXTURE_RANK_MATH_VERSION: ${{ matrix.rank_math_version }}
     steps:
       - name: Fetch baseline and candidate without submodules
         env:
