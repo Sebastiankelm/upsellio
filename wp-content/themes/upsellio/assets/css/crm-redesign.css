@@ -170,3 +170,63 @@ body.ups-crm-redesign {
   .ups-crm-redesign .crm-main .card.kpi { grid-column:span 12; }
   .ups-crm-redesign .crm-heading-actions { width:100%; }
 }
+
+/* Operational boards: restore the reference three-pane inbox without losing IMAP tools. */
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-shell {
+  grid-template-columns:minmax(240px,300px) minmax(0,1fr) minmax(220px,280px);
+  grid-template-rows:auto minmax(0,1fr);
+  height:auto; max-height:none; min-height:0; border:0; border-radius:0; box-shadow:none;
+}
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-topbar {
+  display:flex; grid-row:1; grid-column:1/-1; height:auto; min-height:72px; flex-wrap:wrap;
+}
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-brand { flex:1 1 230px; }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-actions { flex:1 1 280px; flex-wrap:wrap; }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-thread-column { grid-column:1; grid-row:2; min-width:0; min-height:0; }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-detail { grid-column:2; grid-row:2; background:#fff; min-width:0; min-height:0; grid-template-rows:auto auto minmax(0,1fr) auto; }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-side { display:flex !important; grid-column:3; grid-row:2; position:static; width:auto; height:auto; background:var(--bg); border-left:1px solid var(--border); min-width:0; min-height:0; }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-folder-section { display:block !important; }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-group-toggle { display:flex !important; }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-column-head { padding:16px; }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-thread-card { padding:12px; }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-thread-card.is-active { background:var(--teal-soft); box-shadow:inset 3px 0 0 var(--teal); }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-side-section { border-radius:10px; background:white; border:1px solid var(--border); }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-side-section > summary { font-size:13px; font-weight:700; }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-side-toggle { display:none; }
+.ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-compose { border-top:1px solid var(--border); }
+.ups-crm-redesign :is(.ups-cal-wrap,.ups-cal-wrap-tasks) { display:grid; grid-template-columns:minmax(0,1fr) 220px; gap:16px; }
+.ups-crm-redesign :is(.ups-cal-grid,.ups-cal-grid-tasks) { grid-column:1; grid-row:1; min-width:0; overflow:auto; }
+.ups-crm-redesign :is(.ups-cal-backlog,.ups-cal-backlog-tasks) { grid-column:2; grid-row:1; padding:14px; }
+.ups-crm-redesign :is(.ups-cal-table,.ups-cal-table-tasks) { min-width:760px; }
+.ups-crm-redesign :is(.ups-cal-table,.ups-cal-table-tasks) th { background:#f5f6f8; }
+.ups-crm-redesign :is(.ups-cal-task,.ups-cal-task-tasks) { background:#dff5ef; border-color:#b6e4d7; color:#075b4b; padding:8px; font-size:12px; }
+.ups-crm-redesign[data-crm-view="analytics"] .crm-analytics-shell { gap:16px; }
+.ups-crm-redesign[data-crm-view="analytics"] .crm-page-tabs { background:white; border:1px solid var(--border); padding:6px; border-radius:12px; margin:0; gap:4px; flex-wrap:wrap; }
+.ups-crm-redesign[data-crm-view="analytics"] .crm-page-tabs a { border-color:transparent; padding:9px 12px; font-size:13px; }
+.ups-crm-redesign[data-crm-view="analytics"] .crm-page-tabs a.is-active { border-color:var(--teal-line); }
+.ups-crm-redesign .crm-report-range { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.ups-crm-redesign .crm-report-range .is-active { background:var(--teal-soft); color:var(--teal); border-color:var(--teal-line); }
+.ups-crm-redesign[data-crm-view="analytics"] .crm-stat-grid { gap:14px; }
+.ups-crm-redesign[data-crm-view="analytics"] .crm-stat-card { border-radius:16px; min-width:0; }
+.ups-crm-redesign[data-crm-view="analytics"] .ups-crm-chart-box { min-height:240px; }
+@media(min-width:1101px) and (max-width:1450px) {
+  .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-shell { grid-template-columns:260px minmax(0,1fr); }
+  .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-side { display:none !important; }
+  .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-side.is-open { display:flex !important; position:fixed; right:0; top:0; bottom:0; width:min(340px,90vw); z-index:100; box-shadow:-8px 0 30px #0002; }
+  .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-side-toggle { display:inline-flex; }
+}
+@media(max-width:1100px) {
+  .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-shell { grid-template-columns:250px minmax(0,1fr); min-height:600px; }
+  .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-side { display:none !important; }
+  .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-side.is-open { display:flex !important; position:fixed; right:0; top:0; bottom:0; width:min(340px,90vw); z-index:100; box-shadow:-8px 0 30px #0002; }
+  .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-side-toggle { display:inline-flex; }
+  .ups-crm-redesign :is(.ups-cal-wrap,.ups-cal-wrap-tasks) { grid-template-columns:minmax(0,1fr); }
+  .ups-crm-redesign :is(.ups-cal-backlog,.ups-cal-backlog-tasks) { grid-column:1; grid-row:2; }
+}
+@media(max-width:760px) {
+  .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-shell { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); }
+  .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-detail { grid-column:1; }
+  .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-shell.has-active-thread .crm-inbox-thread-column { display:none; }
+  .ups-crm-redesign[data-crm-view="inbox"] .crm-inbox-shell:not(.has-active-thread) .crm-inbox-detail:not(:has(#inbox-compose-panel)) { display:none; }
+  .ups-crm-redesign[data-crm-view="analytics"] .crm-page-tabs { flex-wrap:nowrap; overflow-x:auto; }
+}
