@@ -1074,6 +1074,78 @@ function upsellio_crm_refresh_lead_form_nonce_ajax()
 add_action("wp_ajax_upsellio_refresh_lead_form_nonce", "upsellio_crm_refresh_lead_form_nonce_ajax");
 add_action("wp_ajax_nopriv_upsellio_refresh_lead_form_nonce", "upsellio_crm_refresh_lead_form_nonce_ajax");
 
+/**
+ * Phone-only callback from the mobile contact sheet. Keep the existing
+ * lead form contract unchanged. No email or advertising identifier is invented.
+ */
+function upsellio_crm_handle_mobile_callback()
+{
+    if (($_SERVER["REQUEST_METHOD"] ?? "") !== "POST") {
+        wp_send_json_error(["message" => "Niedozwolona metoda."], 405);
+    }
+    if (upsellio_crm_is_endpoint_rate_limited()) {
+        wp_send_json_error(["message" => "Za dużo prób. Spróbuj później lub zadzwoń."], 429);
+    }
+
+    $field = static function ($key) {
+        return isset($_POST[$key]) && is_string($_POST[$key])
+            ? sanitize_text_field(wp_unslash($_POST[$key]))
+            : "";
+    };
+    if (!wp_verify_nonce($field("nonce"), "upsellio_unified_lead_form")) {
+        wp_send_json_error(["message" => "Sesja wygasła. Spróbuj ponownie."], 403);
+    }
+    if ($field("lead_website") !== "" || $field("lead_consent") !== "1") {
+        wp_send_json_error(["message" => "Sprawdź dane i zgodę na kontakt."], 400);
+    }
+    $rawPhone = $field("lead_phone");
+    $digits = preg_replace("/\D+/", "", $rawPhone);
+    if (!preg_match("/^\+?[0-9 ()-]+$/D", $rawPhone) || strlen($digits) < 9 || strlen($digits) > 15) {
+        wp_send_json_error(["message" => "Podaj poprawny numer telefonu."], 400);
+    }
+    $phone = strlen($digits) === 9 ? "+48" . $digits : (substr($rawPhone, 0, 1) === "+" ? "+" : "") . $digits;
+    if (strlen($digits) === 11 && substr($digits, 0, 2) === "48") {
+        $phone = "+" . $digits;
+    }
+    $phoneKey = "ups_cb_rl_" . substr(hash_hmac("sha256", $phone, wp_salt("auth")), 0, 40);
+    if ((int) get_transient($phoneKey) >= 3 || upsellio_crm_is_rate_limited("")) {
+        wp_send_json_error(["message" => "Za dużo prób. Spróbuj później lub zadzwoń."], 429);
+    }
+    set_transient($phoneKey, (int) get_transient($phoneKey) + 1, HOUR_IN_SECONDS);
+
+    $name = "Prośba o oddzwonienie";
+    $message = "Prośba o oddzwonienie z mobilnego arkusza kontaktu. Telefon: " . $phone;
+    $leadId = upsellio_crm_create_lead([
+        "name" => $name,
+        "email" => "",
+        "phone" => $phone,
+        "message" => $message,
+        "form_origin" => "mobile-callback",
+        "source" => "mobile-callback",
+        "consent_timestamp" => current_time("mysql"),
+        "consent_ip" => isset($_SERVER["REMOTE_ADDR"]) ? sanitize_text_field(wp_unslash($_SERVER["REMOTE_ADDR"])) : "",
+        "consent_ua" => isset($_SERVER["HTTP_USER_AGENT"]) ? sanitize_text_field(wp_unslash($_SERVER["HTTP_USER_AGENT"])) : "",
+        "consent_form" => "mobile-callback",
+        "consent_version" => sanitize_text_field((string) get_option("ups_consent_policy_version", "v1.0")),
+    ]);
+    if ($leadId <= 0) {
+        wp_send_json_error(["message" => "Nie udało się zapisać zgłoszenia. Spróbuj później lub zadzwoń."], 500);
+    }
+    if (function_exists("upsellio_is_internal_tracking_user") && upsellio_is_internal_tracking_user()) {
+        update_post_meta((int) $leadId, "_upsellio_lead_internal_tester", "1");
+        $crmId = (int) get_post_meta((int) $leadId, "_upsellio_synced_crm_lead_id", true);
+        if ($crmId > 0) {
+            update_post_meta($crmId, "_upsellio_lead_internal_tester", "1");
+        }
+    }
+    upsellio_crm_send_emails($leadId, $name, "", $message);
+    upsellio_crm_schedule_followup($leadId);
+    wp_send_json_success(["message" => "Dzięki! Oddzwonię w ciągu 24h roboczych."]);
+}
+add_action("wp_ajax_upsellio_mobile_callback", "upsellio_crm_handle_mobile_callback");
+add_action("wp_ajax_nopriv_upsellio_mobile_callback", "upsellio_crm_handle_mobile_callback");
+
+
 function upsellio_crm_followup_reminder($lead_id)
 {
     $lead_id = (int) $lead_id;
