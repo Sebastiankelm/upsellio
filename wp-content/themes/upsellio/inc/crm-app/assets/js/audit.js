@@ -517,7 +517,7 @@
   }
 
   window.upsAuditSyncAllResources = async function (clientId, googleAccountId) {
-    var msg = "Synchronizować wszystkie zasoby z połączonych kont Google? Może potrwać kilka minut.";
+    var msg = "Zaplanować synchronizację wszystkich zasobów?";
     if (googleAccountId) {
       msg = "Synchronizować zasoby tego konta Google?";
     } else if (clientId) {
@@ -532,13 +532,16 @@
     } else if (clientId) {
       params.client_id = String(clientId);
     }
-    var json = await auditAjax("ups_audit_sync_all", params);
-    if (json && json.success) {
-      var d = json.data || {};
-      alert("Sync zakończony: OK " + (d.ok || 0) + ", błędy " + (d.fail || 0));
-      window.location.reload();
-    } else {
-      alert("Sync nie powiódł się.");
+    try {
+      var json = await auditAjax("ups_audit_sync_all", params);
+      if (json && json.success) {
+        var d = json.data || {};
+        alert("Synchronizacja zaplanowana: " + (d.queued || 0) + ", już w kolejce: " + (d.already || 0) + ", błędy planowania: " + (d.fail || 0) + ". Dane zaktualizują się po wykonaniu zadań WP-Cron.");
+      } else {
+        alert("Nie udało się zaplanować synchronizacji.");
+      }
+    } catch (error) {
+      alert("Błąd połączenia podczas planowania synchronizacji.");
     }
   };
 
