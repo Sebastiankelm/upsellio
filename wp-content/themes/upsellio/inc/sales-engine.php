@@ -786,8 +786,12 @@ function upsellio_sales_engine_pause_followups_after_inbound($offer_id, $subject
     if ($offer_id <= 0) {
         return;
     }
+    update_post_meta($offer_id, "_ups_offer_followup_pending_pause", time());
+    if (!function_exists("upsellio_followup_queue_lock") || !upsellio_followup_queue_lock($offer_id)) { return; }
+    try {
     $queue = get_post_meta($offer_id, "_ups_offer_followup_queue", true);
     if (!is_array($queue) || empty($queue)) {
+        delete_post_meta($offer_id, "_ups_offer_followup_pending_pause");
         return;
     }
     $updated = false;
@@ -799,11 +803,13 @@ function upsellio_sales_engine_pause_followups_after_inbound($offer_id, $subject
         }
     }
     if ($updated) {
-        update_post_meta($offer_id, "_ups_offer_followup_queue", $queue);
+        if (!update_post_meta($offer_id, "_ups_offer_followup_queue", $queue)) { return; }
         if (function_exists("upsellio_offer_add_timeline_event")) {
             upsellio_offer_add_timeline_event($offer_id, "followup_paused", "Pauza follow-up: klient odpowiedzial na maila.");
         }
     }
+    delete_post_meta($offer_id, "_ups_offer_followup_pending_pause");
+    } finally { upsellio_followup_queue_unlock($offer_id); }
 }
 add_action("upsellio_followup_inbound_received", "upsellio_sales_engine_pause_followups_after_inbound", 20, 4);
 
@@ -1348,6 +1354,8 @@ function upsellio_sales_engine_handle_client_cancellation($client_id)
     foreach ($offers as $offer_id) {
         $offer_id = (int) $offer_id;
         update_post_meta($offer_id, "_ups_offer_status", "lost");
+        if (!function_exists("upsellio_followup_queue_lock") || !upsellio_followup_queue_lock($offer_id)) { continue; }
+        try {
         $queue = get_post_meta($offer_id, "_ups_offer_followup_queue", true);
         if (is_array($queue) && !empty($queue)) {
             $updated = false;
@@ -1365,6 +1373,7 @@ function upsellio_sales_engine_handle_client_cancellation($client_id)
         if (function_exists("upsellio_offer_add_timeline_event")) {
             upsellio_offer_add_timeline_event($offer_id, "client_churn", "Klient zrezygnowal z uslugi odnawialnej.");
         }
+        } finally { upsellio_followup_queue_unlock($offer_id); }
     }
 }
 add_action("upsellio_client_subscription_cancelled", "upsellio_sales_engine_handle_client_cancellation", 10, 1);
