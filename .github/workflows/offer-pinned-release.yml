@@ -81,11 +81,20 @@ jobs:
           try{Upsellio_Offer_Release_200::apply();}catch(RuntimeException $e){$refused=str_contains($e->getMessage(),'Niezgodność pliku');}
           check($refused && file_get_contents($p)==='mismatch','Refuses production drift without overwriting');
           check(!file_exists(ABSPATH.'.maintenance'),'No maintenance left after refusal');
+          Upsellio_Offer_Release_200::activate();
+          check(file_get_contents($p)==='mismatch','Activation does not modify production drift');
+          $inspect=new ReflectionMethod(Upsellio_Offer_Release_200::class,'inspect');
+          $summary=$inspect->invoke(null,false);
+          $report=$inspect->invoke(null,true);
+          check(count($summary)===7 && $summary[$first]['state']==='mismatch','All seven allowlisted paths inspected');
+          check(!isset($summary[$first]['source_base64']),'Status summary does not include source');
+          check(base64_decode($report[$first]['source_base64'],true)==='mismatch','Authenticated diagnostic export contains exact changed bytes');
+          foreach($report as $rel=>$item)if($rel!==$first)check(!isset($item['source_base64']),'Unchanged source omitted: '.$rel);
           PHP
           php /tmp/test-offer-release.php
       - uses: actions/upload-artifact@v4
         with:
-          name: upsellio-offer-release-2.0.0
+          name: upsellio-offer-release-2.0.1
           path: release-package/
           retention-days: 7
           if-no-files-found: error
