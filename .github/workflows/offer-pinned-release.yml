@@ -18,19 +18,20 @@ jobs:
         run: |
           python3 - <<'PY'
           import base64, hashlib, json, pathlib, shutil, subprocess
-          base = "cfe6ef80746a0f8a51277b45cdebebf49045430f"
-          release = "d9c0f75234c3051ddf73d68b127b533c688ab370"
-          prior = "5e7e74de0a671c73d84825f9aca976740902c3ef"
+          base = "production-20261125T104704Z"
+          release = "crm-route-fix-20261125-205"
+          prior = "918107d7ccca174f748499f573e57ddfc0b929ec"
+          offer_release = "d9c0f75234c3051ddf73d68b127b533c688ab370"
           files = ["inc/anthropic-offer-ai.php", "inc/crm-app/actions.php", "inc/crm-app/render.php", "inc/followups.php", "inc/offer-landing.php", "inc/offers.php", "inc/sales-engine.php"]
           prefix = "wp-content/themes/upsellio/"
           production_hashes = {
-              "inc/anthropic-offer-ai.php": "28f142b8ade90e77ee96b2229cee043040976d60bb783603b2e666049f4a617c",
-              "inc/crm-app/actions.php": "a72c1db065dac9f2ae4f6e8947eba082dde267c3725121cb6bcb23c4cf0d9bc7",
-              "inc/crm-app/render.php": "33fa81377d6ac93391cce1727b48962b1a7b70ae44eb62630a3dbce8b89fbe5c",
-              "inc/followups.php": "a34c5ab4d0bfd77f6781029710d194b8dd0178510e7a1368788bd864f03751d5",
-              "inc/offer-landing.php": "a9b3503b0e7790f50b3fa6e9edc3a0dafc2b23ab9bc5935c82c0023bf875635a",
-              "inc/offers.php": "3be559bfcf96b7d345625d88fe4454bbee371ddb0f8c36b220c18351a3eb3cd0",
-              "inc/sales-engine.php": "0aaa1d58e63462c8ca4a98cedb029c75dc795a1c328814fbc868fb1a6236ff8c",
+              "inc/anthropic-offer-ai.php": "f3f32355e1ada03b68adf6b654a4854d8c5456e19fafab6ddaba91edf4eb34aa",
+              "inc/crm-app/actions.php": "adf5cfdb75a5b743a326c2b8b068bc33646c51f095a81d0b5b8c2a05bd677d72",
+              "inc/crm-app/render.php": "29cdcfc07db2eb2e22791e8b1d047e6c46b72baa1be4c5b802249585e4ab1474",
+              "inc/followups.php": "3d2dec886fb93bfe7feb441940e99702a8b1cf96a8607d58b71309372ba37e99",
+              "inc/offer-landing.php": "0e058aea47538268bca586a51f280b289b3964d53a464a57d3feb9123d426293",
+              "inc/offers.php": "25c35060004de1fac6b4fbcceaf5a9481bc574943122eb38b66d5b49e5de96f3",
+              "inc/sales-engine.php": "0b047f884138786e7acb6ce0f7dd481f2050ec27de5e88b300c61a8d17eb8f2b",
           }
           package = pathlib.Path("release-package/upsellio-offer-release")
           package.mkdir(parents=True, exist_ok=False)
@@ -39,14 +40,20 @@ jobs:
           manifest = {"base":base,"release":release,"prior":prior,"files":{}}
           for i, rel in enumerate(files):
               manifest["files"][rel] = {}
-              for label, revision in (("old",base),("prior",prior),("new",release)):
-                  data = subprocess.check_output(["git","show",f"{revision}:{prefix}{rel}"])
-                  if label == "old":
-                      data = data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
-                      if hashlib.sha256(data).hexdigest() != production_hashes[rel]:
-                          raise RuntimeError("Production baseline differs: " + rel)
-                      print("Verified exact production baseline:", rel)
-                  # Preserve release bytes unchanged (the integration-tested Git blob).
+              revision = prior if rel.startswith("inc/crm-app/") else offer_release
+              original = subprocess.check_output(["git","show",f"{revision}:{prefix}{rel}"])
+              if hashlib.sha256(original).hexdigest() != production_hashes[rel]:
+                  raise RuntimeError("Production snapshot differs: " + rel)
+              print("Verified exact production baseline:", rel)
+              for label in ("old","prior","new"):
+                  data = original
+                  if label == "new" and rel == "inc/crm-app/render.php":
+                      before = b'if ($view === "offer_analytics") {'
+                      after = b'if ($view === "offer_analytics" && (int) wp_unslash($_GET["offer_id"] ?? 0) <= 0) {'
+                      assert data.count(before) == 1, "Unexpected analytics routing"
+                      data = data.replace(before, after, 1)
+                      assert b'!current_user_can("edit_post", $oa_offer_id)' in data
+                      assert b'upsellio_crm_app_user_can_view($view)' in data
                   tmp = pathlib.Path("/tmp/offer-release-lint.php")
                   tmp.write_bytes(data)
                   subprocess.run(["php","-l",str(tmp)],check=True)
@@ -89,8 +96,9 @@ jobs:
               if(!is_dir(dirname($p)))mkdir(dirname($p),0755,true);
               file_put_contents($p,bytes($row['old']));
           }
+          update_option('upsellio_offer_legacy_payload_ids_v2',[42=>true],false);
           check(Upsellio_Offer_Release_200::apply()==='deployed','Pinned update completed');
-          check(get_option('upsellio_offer_legacy_payload_ids_v2')===[42=>true,43=>true,81=>true],'Existing IDs recorded without modifying offer metadata');
+          check(get_option('upsellio_offer_legacy_payload_ids_v2')===[42=>true],'Compatibility list unchanged');
           foreach($m['files'] as $rel=>$row)check(hash_file('sha256',get_template_directory().'/'.$rel)===$row['new']['sha256'],'New hash: '.$rel);
           check(!file_exists(ABSPATH.'.maintenance'),'Maintenance removed');
           check(Upsellio_Offer_Release_200::apply()==='already_deployed','Repeated activation is idempotent');
@@ -103,7 +111,9 @@ jobs:
           foreach($m['files'] as $rel=>$row)check(hash_file('sha256',get_template_directory().'/'.$rel)===$row['new']['sha256'],'Incremental release hash: '.$rel);
           check(Upsellio_Offer_Release_200::apply(true)==='rolled_back','Original baseline rollback after incremental patch');
           $renderer=bytes($m['files']['inc/crm-app/render.php']['new']);
-          check(str_contains($renderer,'if ($view !== "offer_analytics") {'),'Offer analytics exempt from legacy redirect and allowed-view fallback');
+          check(str_contains($renderer,'if ($view === "offer_analytics" && (int) wp_unslash($_GET["offer_id"] ?? 0) <= 0) {'),'Aggregate funnel redirect only without offer ID');
+          check(str_contains($renderer,'upsellio_crm_app_user_can_view($view)'),'CRM view authorization remains');
+          foreach($m['files'] as $rel=>$row)check(($row['old']['sha256']!==$row['new']['sha256'])===($rel==='inc/crm-app/render.php'),'Only routing file changes: '.$rel);
           check(str_contains($renderer,'!current_user_can("edit_post", $oa_offer_id)'),'Offer analytics record authorization remains');
           $first=array_key_first($m['files']);$p=get_template_directory().'/'.$first;file_put_contents($p,'mismatch');
           $refused=false;
@@ -123,7 +133,7 @@ jobs:
           php /tmp/test-offer-release.php
       - uses: actions/upload-artifact@v4
         with:
-          name: upsellio-offer-release-2.0.4
+          name: upsellio-offer-release-2.0.5
           path: release-package/
           retention-days: 7
           if-no-files-found: error
