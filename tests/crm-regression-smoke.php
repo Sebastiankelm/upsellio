@@ -107,4 +107,22 @@ check(upsellio_crm_app_parse_local_datetime("2026-02-30T11:00") === false, "inva
 check(upsellio_crm_app_parse_local_datetime("2026-03-29T02:30") === false, "nonexistent DST hour is rejected");
 check(upsellio_crm_app_parse_local_datetime("tomorrow") === false, "relative dates are rejected");
 check(upsellio_crm_app_calendar_week(0)->format("N H:i") === "1 00:00", "calendar begins on Monday at local midnight");
+$work_hours = upsellio_crm_app_calendar_work_hours();
+check($work_hours === ["start" => 8, "end" => 16], "calendar uses shared business hours");
+check(count(range($work_hours["start"], $work_hours["end"] - 1)) === 8, "calendar has eight hourly slots");
+$week = new DateTimeImmutable("2026-11-23 00:00:00", wp_timezone());
+$outside = upsellio_crm_app_calendar_outside_hours([
+    "2026-11-22" => [["id" => 1, "hour" => 7, "time" => "07:00"]],
+    "2026-11-23" => [
+        ["id" => 2, "hour" => 7, "time" => "07:59"],
+        ["id" => 3, "hour" => 8, "time" => "08:00"],
+        ["id" => 4, "hour" => 15, "time" => "15:59"],
+        ["id" => 5, "hour" => 16, "time" => "16:00"],
+    ],
+    "2026-11-29" => [["id" => 6, "hour" => 18, "time" => "18:00"]],
+    "2026-11-30" => [["id" => 7, "hour" => 18, "time" => "18:00"]],
+], $week);
+check(array_column($outside, "id") === [2, 5, 6], "outside hours keep before 08 and from 16 in selected week only");
+check($outside[0]["date"] === "2026-11-23", "outside hours preserve original date");
+check(upsellio_crm_app_calendar_outside_hours([], $week) === [], "empty calendar has no outside-hours appointments");
 echo "CRM smoke checks complete." . PHP_EOL;
