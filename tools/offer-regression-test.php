@@ -75,4 +75,11 @@ expect(upsellio_offer_apply_public_accept(42, ["contact_email" => "test@example.
 expect(!upsellio_offer_apply_public_accept(42), "second acceptance rejected");
 expect($GLOBALS["status_hooks"] === 1 && get_post_meta(42, "_ups_offer_status", true) === "won", "status hook fired once");
 expect(!upsellio_offer_build_analytics_summary(42)["is_hot"], "closed offer is never HOT");
+expect(upsellio_offer_event_section_valid("offer_engagement_tick", "pricing"), "valid pricing measurement");
+expect(!upsellio_offer_event_section_valid("offer_engagement_tick", "fake_section"), "unknown section rejected");
+expect(!upsellio_offer_event_section_valid("offer_accept_step", "step_9"), "unknown acceptance step rejected");
+expect(!upsellio_offer_event_section_valid("offer_commit_selected", "fake", ["real"]), "unknown variant rejected");
+expect(upsellio_offer_event_section_valid("offer_commit_selected", "real", ["real"]), "defined variant accepted");
+expect(upsellio_offer_event_section_valid("offer_cta_click", "mobile_accept_ajax"), "mobile CTA recognized");
+expect(!upsellio_offer_event_section_valid("offer_view", "pricing"), "view event cannot carry arbitrary section");
 echo "All isolated regression checks passed." . PHP_EOL;
