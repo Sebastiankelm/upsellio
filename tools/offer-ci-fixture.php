@@ -14,6 +14,6 @@ $meta = [
 '_ups_offer_lead'=>'Syntetyczna oferta do testów interfejsu i analityki.',
 '_ups_offer_include_lines'=>'Audyt i strategia','_ups_offer_option_lines'=>'Rozszerzenie zakresu'
 ];
-foreach ($meta as $k=>$v) update_post_meta($offer,$k,$v);
+foreach ($meta as $k=>$v) update_post_meta($offer,$k,is_string($v) ? wp_slash($v) : $v);
 update_post_meta($client,'_ups_client_email','fixture@example.invalid');
 WP_CLI::line((string)$offer);
