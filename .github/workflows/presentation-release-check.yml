@@ -50,5 +50,18 @@ jobs:
               assert links(b)<=links(d),(n,"lost anchors")
               origins=lambda s:re.findall(r'"origin"\s*=>\s*"[^"]+"',s)
               assert origins(old)==origins(new),(n,"form origins changed")
+              if n in ("front-page.php","page-marketing-google-ads.php","page-marketing-meta-ads.php","page-tworzenie-stron-internetowych.php") and 'class="up-extra-content"' in d:
+                  assert d.count('class="up-extra-content"')==1,(n,"one additional content disclosure")
+                  start=d.index('<details class="up-extra-content">')
+                  stop=d.index('</div></details>',start)
+                  assert stop<d.index('id="faq"',stop),(n,"FAQ stays outside disclosure")
+                  assert 'up-hero-mobile' in d and 'up-hero-desktop' in d,(n,"responsive hero CTA")
+                  ext=d[start:stop]
+                  assert len(re.findall(r'<section\b',ext))==len(re.findall(r'</section>',ext)),(n,"balanced extended sections")
+                  print(n,"PASS: optional sections, FAQ and responsive CTA")
               print(n,"PASS: lint, head, H1, IDs, anchors, origins")
           PY
+      - name: Shared JavaScript syntax
+        run: |
+          node --check wp-content/themes/upsellio/assets/js/upsellio-ui.js
+          node --check wp-content/themes/upsellio/assets/js/upsellio.js

@@ -250,6 +250,7 @@ if (have_posts()) :
           if ($author_name === "") {
               $author_name = "Upsellio";
           }
+          $author_initials = function_exists("upsellio_get_initials_from_text") ? upsellio_get_initials_from_text($author_name) : mb_substr($author_name, 0, 1);
           ?>
           <nav class="sp-crumbs" aria-label="Ścieżka nawigacji artykułu">
             <div class="sp-wrap-narrow">
@@ -269,7 +270,7 @@ if (have_posts()) :
                 <p class="sp-lead" data-animate="fade-up" data-delay="2"><?php echo esc_html(get_the_excerpt($post_id)); ?></p>
               <?php endif; ?>
               <div class="sp-author" data-animate="fade-up" data-delay="2">
-                <div class="sp-avatar">SK</div>
+                <div class="sp-avatar" aria-hidden="true"><?php echo esc_html($author_initials); ?></div>
                 <div>
                   <strong><?php echo esc_html($author_name); ?></strong>
                   <span class="sp-meta-line"><?php echo esc_html(get_the_date("j F Y", $post_id)); ?> · <?php echo esc_html($read_time); ?></span>
@@ -309,8 +310,8 @@ if (have_posts()) :
           <section class="sp-body">
             <div class="sp-wrap-narrow sp-grid">
               <aside class="sp-toc" aria-label="Spis treści i kontakt" data-animate="fade-up" data-delay="1">
-                <div class="sp-toc-head">W tym wpisie</div>
                 <?php if (!empty($toc_items)) : ?>
+                  <div class="sp-toc-head">W tym wpisie</div>
                   <ol>
                     <?php foreach ($toc_items as $toc_index => $toc_item) : ?>
                       <li class="<?php echo $toc_index === 0 ? "is-active" : ""; ?>">
@@ -332,7 +333,7 @@ if (have_posts()) :
                 <div class="sp-end-cta">
                   <div>
                     <div class="sp-eyebrow">Bezpłatna diagnoza</div>
-                    <strong>Sprawdźmy, który element lejka blokuje sprzedaż u Ciebie.</strong>
+                    <strong>Sprawdźmy, co blokuje zamówienia lub telefony od Twoich klientów.</strong>
                   </div>
                   <?php if ($offer_form_url !== "") : ?><a class="sp-btn post-cta" href="<?php echo esc_url($offer_form_url); ?>">Umów rozmowę →</a><?php endif; ?>
                 </div>
@@ -360,7 +361,7 @@ if (have_posts()) :
                 <?php endif; ?>
 
                 <div class="sp-author-box">
-                  <div class="sp-avatar lg">SK</div>
+                  <div class="sp-avatar lg" aria-hidden="true"><?php echo esc_html($author_initials); ?></div>
                   <div>
                     <strong><?php echo esc_html($author_name); ?></strong>
                     <p>Pomagam małym firmom i sklepom zdobywać klientów z Google, Facebooka i Instagrama. Prowadzę każdy projekt osobiście.</p>

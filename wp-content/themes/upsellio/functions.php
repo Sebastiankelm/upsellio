@@ -1214,7 +1214,7 @@ function upsellio_render_unified_footer($args = [])
 
         <?php
         $sections_for_column_one = array_slice($normalized_sections, 0, 2);
-        $sections_for_column_two = array_slice($normalized_sections, 2, 2);
+        $sections_for_column_two = array_slice($normalized_sections, 2);
         ?>
         <div class="nf-foot-col">
           <?php foreach ($sections_for_column_one as $footer_section) : ?>
@@ -1240,13 +1240,14 @@ function upsellio_render_unified_footer($args = [])
 
         <?php if ($show_cities) : ?>
         <div class="nf-foot-col nf-foot-cities">
-          <div class="nf-foot-h"><?php echo esc_html($city_title); ?></div>
+          <details class="up-footer-cities"><summary class="nf-foot-h"><?php echo esc_html($city_title); ?></summary>
           <ul class="nf-cities-grid">
             <?php foreach ($normalized_city_links as $city_link_item) : ?>
               <li><a href="<?php echo esc_url((string) $city_link_item["url"]); ?>"><?php echo esc_html((string) $city_link_item["label"]); ?></a></li>
             <?php endforeach; ?>
           </ul>
           <?php if ($city_all_url !== "") : ?><a class="nf-cities-all" href="<?php echo esc_url($city_all_url); ?>"><?php echo esc_html($city_all_label); ?></a><?php endif; ?>
+          </details>
         </div>
         <?php endif; ?>
       </div>
@@ -1255,6 +1256,7 @@ function upsellio_render_unified_footer($args = [])
         <div class="nf-wrap nf-foot-bar-row">
           <span>© <?php echo esc_html(gmdate("Y")); ?> Upsellio · Sebastian Kelm · NIP 7773388263</span>
           <div class="nf-foot-social">
+            <a href="<?php echo esc_url(function_exists("upsellio_cookie_privacy_url") ? upsellio_cookie_privacy_url() : home_url("/polityka-prywatnosci/")); ?>">Polityka prywatności</a>
             <a href="<?php echo esc_url(upsellio_get_social_profile_url("linkedin")); ?>">LinkedIn</a>
             <a href="<?php echo esc_url(upsellio_get_social_profile_url("facebook")); ?>">Facebook</a>
           </div>
@@ -2775,7 +2777,7 @@ function upsellio_render_blog_dynamic_content($selected_category = "", $selected
             <div class="eyebrow" style="margin-bottom: 0;">Popularne tematy</div>
             <div class="ups-blog-tags">
               <?php foreach (array_slice($tags, 0, 8) as $topic_tag) : ?>
-                <span class="ups-blog-tag"><?php echo esc_html($topic_tag->name); ?></span>
+                <a class="ups-blog-tag" href="<?php echo esc_url(add_query_arg(["category" => $selected_category, "tags" => $topic_tag->slug, "s" => $search_term], $blog_index_url)); ?>"><?php echo esc_html($topic_tag->name); ?></a>
               <?php endforeach; ?>
             </div>
           </div>
@@ -2788,8 +2790,8 @@ function upsellio_render_blog_dynamic_content($selected_category = "", $selected
         <div class="ups-blog-list-head">
           <div>
             <div class="eyebrow" style="margin-bottom: 0;">Najnowsze wpisy</div>
-            <h2 class="ups-blog-list-title">Najnowsze artykuły — konkretne teksty o Meta Ads, Google Ads i stronach, które sprzedają.</h2>
-            <p class="ups-blog-panel-text" style="max-width: 760px;">Artykuły na tym blogu są pisane pod jeden cel: żebyś po ich przeczytaniu wiedział więcej niż przed. Znajdziesz tu analizy kampanii, checklisty, studia przypadków i odpowiedzi na pytania, które najczęściej pojawiają się w rozmowach z firmami przed współpracą.</p>
+            <h2 class="ups-blog-list-title">Najnowsze artykuły</h2>
+            <p class="ups-blog-panel-text" style="max-width: 760px;">Praktyczne wskazówki o reklamach, stronach i sprzedaży — do wykorzystania we własnej firmie.</p>
           </div>
           <div class="ups-blog-list-meta">
             <?php echo esc_html((string) $blog_query->found_posts); ?> wpisów · sortowanie: najnowsze
@@ -2812,7 +2814,7 @@ function upsellio_render_blog_dynamic_content($selected_category = "", $selected
                   <div class="ups-blog-card-category"><?php echo esc_html($post_category_name); ?></div>
                   <div class="ups-blog-card-time"><?php echo esc_html(upsellio_estimated_read_time($post_item->ID)); ?></div>
                 </div>
-                <h3 class="ups-blog-card-title"><?php echo esc_html(get_the_title($post_item)); ?></h3>
+                <h3 class="ups-blog-card-title"><a href="<?php echo esc_url(get_permalink($post_item)); ?>"><?php echo esc_html(get_the_title($post_item)); ?></a></h3>
                 <p class="ups-blog-card-excerpt"><?php echo esc_html(get_the_excerpt($post_item)); ?></p>
                 <div class="ups-blog-card-footer">
                   <div class="ups-blog-card-meta">

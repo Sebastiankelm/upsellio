@@ -392,6 +392,8 @@ $faq_items = [
 @media(max-width:720px){.up-mock-grid{grid-template-columns:minmax(0,1fr)}}
 
 .up-mock-scope{background:#fff}.up-mock-subtitle{max-width:56ch;color:#5f636b;font-size:17px;line-height:1.6}.up-mock-scope .up-mock-grid article{background:#fff}.up-mock-check{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#dff5ef;color:#06745f;font-size:22px;font-weight:700;margin-bottom:14px}
+
+.up-design-problemy{background:#f5f6f8}.up-design-proces{background:#fff}.up-design-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:24px}.up-design-grid.up-design-three{grid-template-columns:repeat(3,minmax(0,1fr))}.up-design-grid article{background:white;border:1px solid #e3e6ea;border-radius:20px;padding:24px;min-width:0}.up-design-grid h3{font:700 20px/1.25 "Bricolage Grotesque",sans-serif;color:#0f1115;margin:14px 0 8px}.up-design-grid p{font:400 16px/1.6 "DM Sans",sans-serif;color:#3a3d44;margin:0}.up-design-number{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:12px;color:#06745f;background:#dff5ef;font-weight:800}@media(max-width:979px){.up-design-grid,.up-design-grid.up-design-three{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:640px){.up-design-grid,.up-design-grid.up-design-three{grid-template-columns:minmax(0,1fr)}}
 </style>
 
 <main class="meta-offer-page">
@@ -420,7 +422,7 @@ $faq_items = [
         <h1 class="meta-h1">Reklamy na Facebooku i Instagramie, <em>które sprzedają.</em></h1>
         <p class="meta-lead">Pokazujesz swoje produkty lub lokal ludziom z okolicy albo z całej Polski — a potem wracasz do tych, którzy oglądali ofertę i nie kupili. Bez przypadkowego „promowania postów”.</p>
         <ul class="up-mock-benefits"><li>Reklamy z katalogu produktów</li><li>Przypomnienia o porzuconym koszyku</li><li>Testy reklam co tydzień</li></ul>
-        <div class="meta-btn-row"><a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Umów bezpłatną diagnozę</a><a href="#cena" class="meta-btn meta-btn-secondary">Zobacz cennik</a></div>
+        <div class="meta-btn-row"><a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Umów bezpłatną diagnozę</a><a href="#cena" class="meta-btn meta-btn-secondary up-hero-desktop">Zobacz cennik</a><a href="tel:<?php echo esc_attr(preg_replace('/\s+/', '', $contact_phone)); ?>" class="meta-btn meta-btn-secondary up-hero-mobile" data-contact-location="hero">Zadzwoń teraz</a></div>
       </div>
 
       <aside class="meta-hero-card">
@@ -450,33 +452,7 @@ $faq_items = [
 
   
 
-  <section class="meta-section" id="problemy">
-    <div class="meta-wrap">
-      <span class="meta-eyebrow">Typowe problemy</span>
-      <h2 class="meta-h2">Gdzie najczęściej uciekają pieniądze</h2>
-      <div class="meta-body">
-        <p>Wiele firm zna ten schemat: reklama jest aktywna, budżet się wydaje, są kliknięcia i wyświetlenia, ale zapytania nie przychodzą, a sprzedaż nie rośnie. Problem zwykle nie leży w samym Facebooku czy Instagramie jako kanale. Leży w konkretnych elementach kampanii, które nie działają razem.</p>
-        <p>Najczęstsze przyczyny to brak spójności między reklamą a stroną docelową, jedna reklama kierowana do wszystkich, kreacje mówiące o firmie zamiast o problemie klienta, brak remarketingu i optymalizacja pod metryki, które nie mówią nic o jakości kontaktów.</p>
-      </div>
-
-      <div class="meta-card-grid">
-        <div class="meta-card"><strong>Reklamy mają kliknięcia, ale nie ma zapytań</strong><p>Odbiorcy reagują, ale nie przechodzą do rozmowy, formularza lub zakupu.</p></div>
-        <div class="meta-card"><strong>Leady są tanie, ale słabe</strong><p>Koszt kontaktu wygląda dobrze, ale rozmowy nie kończą się sprzedażą.</p></div>
-        <div class="meta-card"><strong>Kreacje szybko się wypalają</strong><p>Po kilku dniach wyniki spadają, bo reklamy nie są testowane według lejka.</p></div>
-        <div class="meta-card"><strong>Brakuje remarketingu</strong><p>Osoby, które były na stronie lub kliknęły reklamę, nie dostają kolejnego komunikatu.</p></div>
-        <div class="meta-card"><strong>Reklamy mówią o firmie, nie o problemie klienta</strong><p>Komunikat jest poprawny, ale nie zatrzymuje scrolla i nie buduje powodu do kontaktu.</p></div>
-        <div class="meta-card"><strong>Strona nie domyka reklamy</strong><p>Nawet dobra kampania nie pomoże, jeśli landing page nie tłumaczy oferty i nie prowadzi do CTA.</p></div>
-      </div>
-
-      <div class="meta-mid-cta">
-        <div>
-          <strong>Nie chodzi o to, żeby puścić reklamę. Chodzi o to, żeby zbudować ścieżkę decyzji.</strong>
-          <p>Zanim zaproponuję zmiany, sprawdzam kampanie, kreacje, grupy odbiorców, stronę docelową i ofertę.</p>
-        </div>
-        <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-audit" data-cta-section="services" data-cta-position="inline">Sprawdźmy Twoje kampanie</a>
-      </div>
-    </div>
-  </section>
+  <section class="meta-section up-design-problemy" id="problemy"><div class="meta-wrap"><h2 class="meta-h2">Gdzie najczęściej uciekają pieniądze</h2><p class="up-mock-subtitle">To naprawiam w pierwszej kolejności — zwykle bez zwiększania budżetu.</p><div class="up-design-grid "><article><span class="up-design-number" aria-hidden="true">01</span><h3>Promowanie postów</h3><p>Przypadkowy zasięg zamiast kampanii nastawionej na sprzedaż.</p></article><article><span class="up-design-number" aria-hidden="true">02</span><h3>Jedna reklama dla wszystkich</h3><p>Nowy klient i stały klient potrzebują innego komunikatu.</p></article><article><span class="up-design-number" aria-hidden="true">03</span><h3>Brak remarketingu</h3><p>Osoby, które oglądały produkt, znikają i już nie wracają.</p></article><article><span class="up-design-number" aria-hidden="true">04</span><h3>Źle ustawiony Piksel</h3><p>Meta nie wie, kto kupił, więc nie umie znaleźć podobnych osób.</p></article></div></div></section>
 
   <section class="meta-section up-mock-scope" id="co-robie"><div class="meta-wrap"><span class="meta-eyebrow">Zakres</span><h2 class="meta-h2">Co dostajesz</h2><p class="up-mock-subtitle">Wszystko prowadzę osobiście — od pierwszej rozmowy do raportu.</p><div class="up-mock-grid"><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Strategia</h3><p>Komu pokazujemy reklamy i z jakim komunikatem.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Piksel i Conversions API</h3><p>Pomiar sprzedaży i jakości danych.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Pomysły na reklamy</h3><p>Teksty i podpowiedzi, jakie zdjęcia i filmy nagrać telefonem.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Kampanie i remarketing</h3><p>Nowi klienci, katalog produktów i powroty do koszyka.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Testy co tydzień</h3><p>Zostaje to, co sprzedaje. Reszta jest wyłączana.</p></article><article><span class="up-mock-check" aria-hidden="true">✓</span><h3>Raport i rozmowa co miesiąc</h3><p>Ile sprzedaży, za ile i co dalej — prostym językiem.</p></article></div></div></section>
 
@@ -529,59 +505,13 @@ $faq_items = [
     </div>
   </section>
 
-  <section class="meta-section" id="proces">
-    <div class="meta-wrap">
-      <div class="meta-dark-box">
-        <div>
-          <span class="meta-eyebrow">Proces współpracy</span>
-          <h2 class="meta-h2">Jak wygląda współpraca przy prowadzeniu Meta Ads: od diagnozy do optymalizacji?</h2>
-          <p class="meta-lead">Każda współpraca zaczyna się od diagnozy, a nie od uruchomienia kampanii. Najpierw trzeba zrozumieć, co sprzedajesz, do kogo, jaki jest proces decyzyjny klienta i gdzie dziś giną potencjalni klienci.</p>
-          <div class="meta-btn-row">
-            <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-final-diagnosis" data-cta-section="contact" data-cta-position="final">Zacznijmy od diagnozy</a>
-          </div>
-        </div>
-
-        <div class="meta-steps">
-          <div class="meta-step">
-            <div class="meta-step-head">
-              <span class="meta-step-num">1</span>
-              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-            </div>
-            <strong>Diagnoza</strong>
-            <p>Oferta, grupa docelowa, strona, poprzednie kampanie i realny problem sprzedażowy.</p>
-          </div>
-          <div class="meta-step">
-            <div class="meta-step-head">
-              <span class="meta-step-num">2</span>
-              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></span>
-            </div>
-            <strong>Strategia</strong>
-            <p>Cel kampanii, struktura lejka, podział budżetu, komunikaty i sposób mierzenia sukcesu.</p>
-          </div>
-          <div class="meta-step">
-            <div class="meta-step-head">
-              <span class="meta-step-num">3</span>
-              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
-            </div>
-            <strong>Wdrożenie</strong>
-            <p>Piksel, zdarzenia, konta reklamowe, kampanie, kreacje, hooki, teksty i tracking leadów.</p>
-          </div>
-          <div class="meta-step">
-            <div class="meta-step-head">
-              <span class="meta-step-num">4</span>
-              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
-            </div>
-            <strong>Optymalizacja</strong>
-            <p>Analiza wyników, jakości leadów, kosztów, kreacji i kolejnych testów.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+  <section class="meta-section up-design-proces" id="proces"><div class="meta-wrap"><h2 class="meta-h2">Jak zaczynamy</h2><div class="up-design-grid up-design-three"><article><span class="up-design-number" aria-hidden="true">1</span><h3>Bezpłatna rozmowa</h3><p>30 minut. Sprawdzam, jak najlepiej dotrzeć do Twoich klientów na Facebooku i Instagramie.</p></article><article><span class="up-design-number" aria-hidden="true">2</span><h3>Konfiguracja i start</h3><p>Tygodnie 1–4: pomiar, katalog produktów, pierwsze reklamy i kampanie.</p></article><article><span class="up-design-number" aria-hidden="true">3</span><h3>Testy i poprawki</h3><p>Co tydzień nowe warianty reklam. Budżet przesuwamy na te, które sprzedają.</p></article></div></div></section>
 
   
 
   
+<details class="up-extra-content"><summary>Więcej o kampaniach Meta Ads</summary>
+<div class="up-extra-body">
 <section class="meta-section up-mock-details" id="szczegoly-uslugi"><div class="meta-wrap"><span class="meta-eyebrow">Więcej o usłudze</span><h2 class="meta-h2">Reklamy Meta Ads dla firm: kampanie Facebook Ads i Instagram Ads, które generują leady i sprzedaż, nie tylko kliknięcia.</h2><p class="meta-lead">Tworzenie i prowadzenie kampanii Meta Ads dla firm B2B, usługowych i e-commerce. Lejki reklamowe, remarketing i kreacje, które prowadzą klienta od pierwszego kontaktu z reklamą do decyzji zakupowej.</p><div class="meta-body">
           <p>Reklamy na Facebooku i Instagramie to jeden z najskuteczniejszych kanałów pozyskiwania klientów dla firm, pod warunkiem że są prowadzone jako system, a nie przypadkowe kampanie uruchamiane bez strategii. Samo puszczenie reklamy to za mało, żeby generować wartościowe zapytania i sprzedaż.</p>
           <p>Skuteczne kampanie Meta Ads łączą precyzyjne targetowanie grupy docelowej, spójny komunikat dopasowany do etapu decyzyjnego, kreacje zatrzymujące uwagę w pierwszych sekundach scrollowania i stronę docelową, która zamienia kliknięcia w kontakty.</p>
@@ -807,6 +737,83 @@ $faq_items = [
       </div>
     </div>
   </section>
+<section class="meta-section" id="problemy-szczegoly">
+    <div class="meta-wrap">
+      <span class="meta-eyebrow">Typowe problemy</span>
+      <h2 class="meta-h2">Szczegółowa analiza problemów</h2>
+      <div class="meta-body">
+        <p>Wiele firm zna ten schemat: reklama jest aktywna, budżet się wydaje, są kliknięcia i wyświetlenia, ale zapytania nie przychodzą, a sprzedaż nie rośnie. Problem zwykle nie leży w samym Facebooku czy Instagramie jako kanale. Leży w konkretnych elementach kampanii, które nie działają razem.</p>
+        <p>Najczęstsze przyczyny to brak spójności między reklamą a stroną docelową, jedna reklama kierowana do wszystkich, kreacje mówiące o firmie zamiast o problemie klienta, brak remarketingu i optymalizacja pod metryki, które nie mówią nic o jakości kontaktów.</p>
+      </div>
+
+      <div class="meta-card-grid">
+        <div class="meta-card"><strong>Reklamy mają kliknięcia, ale nie ma zapytań</strong><p>Odbiorcy reagują, ale nie przechodzą do rozmowy, formularza lub zakupu.</p></div>
+        <div class="meta-card"><strong>Leady są tanie, ale słabe</strong><p>Koszt kontaktu wygląda dobrze, ale rozmowy nie kończą się sprzedażą.</p></div>
+        <div class="meta-card"><strong>Kreacje szybko się wypalają</strong><p>Po kilku dniach wyniki spadają, bo reklamy nie są testowane według lejka.</p></div>
+        <div class="meta-card"><strong>Brakuje remarketingu</strong><p>Osoby, które były na stronie lub kliknęły reklamę, nie dostają kolejnego komunikatu.</p></div>
+        <div class="meta-card"><strong>Reklamy mówią o firmie, nie o problemie klienta</strong><p>Komunikat jest poprawny, ale nie zatrzymuje scrolla i nie buduje powodu do kontaktu.</p></div>
+        <div class="meta-card"><strong>Strona nie domyka reklamy</strong><p>Nawet dobra kampania nie pomoże, jeśli landing page nie tłumaczy oferty i nie prowadzi do CTA.</p></div>
+      </div>
+
+      <div class="meta-mid-cta">
+        <div>
+          <strong>Nie chodzi o to, żeby puścić reklamę. Chodzi o to, żeby zbudować ścieżkę decyzji.</strong>
+          <p>Zanim zaproponuję zmiany, sprawdzam kampanie, kreacje, grupy odbiorców, stronę docelową i ofertę.</p>
+        </div>
+        <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-audit" data-cta-section="services" data-cta-position="inline">Sprawdźmy Twoje kampanie</a>
+      </div>
+    </div>
+  </section>
+<section class="meta-section" id="proces-szczegoly">
+    <div class="meta-wrap">
+      <div class="meta-dark-box">
+        <div>
+          <span class="meta-eyebrow">Proces współpracy</span>
+          <h2 class="meta-h2">Szczegółowy przebieg współpracy</h2>
+          <p class="meta-lead">Każda współpraca zaczyna się od diagnozy, a nie od uruchomienia kampanii. Najpierw trzeba zrozumieć, co sprzedajesz, do kogo, jaki jest proces decyzyjny klienta i gdzie dziś giną potencjalni klienci.</p>
+          <div class="meta-btn-row">
+            <a href="#kontakt" class="meta-btn meta-btn-primary" data-cta="metaads-final-diagnosis" data-cta-section="contact" data-cta-position="final">Zacznijmy od diagnozy</a>
+          </div>
+        </div>
+
+        <div class="meta-steps">
+          <div class="meta-step">
+            <div class="meta-step-head">
+              <span class="meta-step-num">1</span>
+              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+            </div>
+            <strong>Diagnoza</strong>
+            <p>Oferta, grupa docelowa, strona, poprzednie kampanie i realny problem sprzedażowy.</p>
+          </div>
+          <div class="meta-step">
+            <div class="meta-step-head">
+              <span class="meta-step-num">2</span>
+              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></span>
+            </div>
+            <strong>Strategia</strong>
+            <p>Cel kampanii, struktura lejka, podział budżetu, komunikaty i sposób mierzenia sukcesu.</p>
+          </div>
+          <div class="meta-step">
+            <div class="meta-step-head">
+              <span class="meta-step-num">3</span>
+              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>
+            </div>
+            <strong>Wdrożenie</strong>
+            <p>Piksel, zdarzenia, konta reklamowe, kampanie, kreacje, hooki, teksty i tracking leadów.</p>
+          </div>
+          <div class="meta-step">
+            <div class="meta-step-head">
+              <span class="meta-step-num">4</span>
+              <span class="meta-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg></span>
+            </div>
+            <strong>Optymalizacja</strong>
+            <p>Analiza wyników, jakości leadów, kosztów, kreacji i kolejnych testów.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div></details>
 <section class="meta-section" id="faq">
     <div class="meta-wrap">
       <span class="meta-eyebrow">FAQ</span>

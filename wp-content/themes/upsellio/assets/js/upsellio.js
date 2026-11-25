@@ -118,6 +118,7 @@
     const setMobileMenuState = (isOpen) => {
       ham.classList.toggle("open", isOpen);
       mob.classList.toggle("open", isOpen);
+      mob.inert = !isOpen;
       ham.setAttribute("aria-expanded", isOpen ? "true" : "false");
       ham.setAttribute("aria-label", isOpen ? "Zamknij menu" : "Otwórz menu");
       document.body.classList.toggle("is-mobile-menu-open", isOpen);
@@ -147,7 +148,7 @@
     });
 
     window.addEventListener("resize", () => {
-      if (window.innerWidth >= 761) {
+      if (window.innerWidth >= 980) {
         setMobileMenuState(false);
       }
     });
@@ -158,7 +159,7 @@
         return;
       }
       if (event.key !== "Tab" || !ham.classList.contains("open")) return;
-      const focusable = getMenuFocusable();
+      const focusable = [ham, ...getMenuFocusable()];
       if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -199,6 +200,11 @@
       });
     });
 
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      const active = dropdownRoots.find(root => root.classList.contains("open") && root.contains(document.activeElement));
+      if (active) { closeDropdown(active); active.querySelector(".nav-dropdown-toggle")?.focus(); }
+    });
     document.addEventListener("click", (event) => {
       const clickedInside = dropdownRoots.some((root) => root.contains(event.target));
       if (!clickedInside) closeAllDropdowns();
@@ -1256,10 +1262,19 @@
         const defaultText = serverSubmit.textContent || serverSubmit.value || "Wyślij";
         let feedback = serverForm.querySelector("[data-form-feedback]");
         const nameVal = ((serverForm.querySelector("[name='lead_name']") || {}).value || "").trim();
+        const shortDiagnosis = serverForm.dataset.upsellioShortDiagnosis === "1";
+        if (serverSubmit.disabled) return;
         const emailVal = ((serverForm.querySelector("[name='lead_email']") || {}).value || "").trim();
-        const phoneVal = ((serverForm.querySelector("[name='lead_phone']") || {}).value || "").replace(/\D+/g, "");
+        const rawPhone = ((serverForm.querySelector("[name='lead_phone']") || {}).value || "").trim();
+        const phoneVal = rawPhone.replace(/\D+/g, "");
+        let normalized = "";
+        if (rawPhone.startsWith("+")) normalized = "+" + phoneVal;
+        else if (phoneVal.startsWith("00")) normalized = "+" + phoneVal.slice(2);
+        else if (phoneVal.length === 9) normalized = "+48" + phoneVal;
+        else if (phoneVal.length === 11 && phoneVal.startsWith("48")) normalized = "+" + phoneVal;
+        const validPhone = shortDiagnosis ? rawPhone.length <= 24 && /^\+?[0-9 ()-]+$/.test(rawPhone) && /^\+[1-9][0-9]{8,14}$/.test(normalized) && (!normalized.startsWith("+48") || /^\+48[1-9][0-9]{8}$/.test(normalized)) : phoneVal.length >= 9;
         const consentEl = serverForm.querySelector("[name='lead_consent']");
-        if (!nameVal || !emailVal || phoneVal.length < 9 || !(consentEl && consentEl.checked)) {
+        if (!nameVal || (!shortDiagnosis && !emailVal) || !validPhone || !(consentEl && consentEl.checked)) {
           if (!feedback) {
             feedback = document.createElement("div");
             feedback.setAttribute("data-form-feedback", "1");
@@ -1267,7 +1282,7 @@
             feedback.className = "form-feedback";
             serverForm.insertBefore(feedback, serverForm.firstChild);
           }
-          feedback.textContent = "Uzupełnij wymagane pola (imię, telefon, e-mail) i zaznacz zgodę na kontakt.";
+          feedback.textContent = shortDiagnosis ? "Uzupełnij imię, poprawny telefon i zaznacz zgodę na kontakt." : "Uzupełnij wymagane pola (imię, telefon, e-mail) i zaznacz zgodę na kontakt.";
           feedback.classList.remove("is-success");
           feedback.classList.add("is-error");
           return;
@@ -1310,18 +1325,27 @@
             var msg = upsellioMessageForLeadFormResponse(response.url, response.ok);
             var statusMsg = upsellioMessageForHttpStatus(response.status);
             if (statusMsg) msg = statusMsg;
+            if (shortDiagnosis && reason === "fields") msg = "Uzupełnij imię, poprawny telefon i zaznacz zgodę na kontakt.";
             throw new Error(msg || "Nie udało się wysłać formularza. Odśwież stronę i spróbuj ponownie.");
           }
 
-          feedback.textContent = "Dziękuję! Oddzwonię w ciągu 24h.";
+          if (shortDiagnosis && new URL(response.url, window.location.origin).searchParams.get("ups_lead_status") !== "success") {
+            throw new Error("Nie udało się potwierdzić zgłoszenia. Skontaktuj się telefonicznie.");
+          }
+          feedback.textContent = "Dziękuję! Oddzwonię w ciągu 24h roboczych.";
           feedback.classList.add("is-success");
-          if (!skipAnalytics && typeof window.gtag === "function") {
+          if (!shortDiagnosis && !skipAnalytics && typeof window.gtag === "function") {
             window.gtag("event", "lead_form_submitted", {
               form_id: serverForm.id || serverForm.dataset.upsellioLeadForm || "lead-form",
             });
           }
           try {
-            pushLeadConversionStack(serverForm);
+            if (shortDiagnosis) {
+              if (!skipAnalytics && window.upsellioCookie?.statistics) {
+                const origin = serverForm.querySelector('[name="lead_form_origin"]')?.value || "";
+                pushDataLayerEvent("lead_form_submit", {form_id:serverForm.id, form_origin:origin, form_variant:"short-diagnosis"});
+              }
+            } else pushLeadConversionStack(serverForm);
           } catch (analyticsError) {
             // Sukces zapisu leada nie może zależeć od GTM/dataLayer
           }
@@ -1333,7 +1357,7 @@
             typeof error.message === "string" &&
             (error.message.indexOf("Failed to fetch") !== -1 ||
               error.message.indexOf("NetworkError") !== -1);
-          if (blockedByClient && serverForm.dataset.upsellioNativeRetry !== "1") {
+          if (!shortDiagnosis && blockedByClient && serverForm.dataset.upsellioNativeRetry !== "1") {
             // Fallback: if browser extension blocks fetch/XHR, try native form submit.
             serverForm.dataset.upsellioNativeRetry = "1";
             serverForm.submit();

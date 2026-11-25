@@ -667,6 +667,8 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
 }
 @media(prefers-reduced-motion:reduce){.ct-art *, .ct-art *::before,.ct-art *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
+
+.up-contact-topics{border:0;margin:0 0 18px;padding:0;min-width:0}.up-contact-topics legend{font-weight:700;font-size:15px;margin-bottom:8px}.up-topic-list{display:flex;flex-wrap:wrap;gap:8px}.up-topic-list button{min-height:44px;border-radius:999px;background:#fff;border:1px solid #e3e6ea;color:#3a3d44;padding:8px 14px;font:600 14px/1.4 "DM Sans",sans-serif}.up-topic-list button[aria-pressed=true]{background:#dff5ef;border-color:#06745f;color:#06745f}.up-topic-list button:focus-visible{outline:3px solid #06745f;outline-offset:2px}
 </style>
 
 <main class="ct-art" id="kontakt">
@@ -711,6 +713,7 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
                     <p>Odpowiadam osobiście w 24h roboczych.</p>
                 </div>
 
+                <fieldset class="up-contact-topics" hidden><legend>Co chcesz poprawić? (opcjonalnie)</legend><div class="up-topic-list"><button type="button" aria-pressed="false" data-up-topic="Google Ads">Google Ads</button><button type="button" aria-pressed="false" data-up-topic="Meta Ads">Meta Ads</button><button type="button" aria-pressed="false" data-up-topic="Strona lub sklep">Strona lub sklep</button><button type="button" aria-pressed="false" data-up-topic="Nie wiem, od czego zacząć">Nie wiem, od czego zacząć</button></div></fieldset>
                 <?php
                 /* Renderuj formularz przez wspolny helper motywu */
                 echo upsellio_render_lead_form([
@@ -865,52 +868,7 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
      Drugi i trzeci to placeholdery — Sebastian dodaje gdy bedzie mial
      zgody klientow. Lepiej puste niz fikcyjne.
      ==================================================================== -->
-<section class="ct-opinions" id="opinie" data-animate="fade-up">
-    <div class="ct-wrap">
-        <div class="ct-section-head">
-            <span class="ct-eyebrow">Opinie klientów</span>
-            <h2>Co zwykle słyszę po pierwszej rozmowie</h2>
-            <p>Trzy najczęstsze reakcje klientów po 30-minutowej diagnozie — zanim jeszcze zdecydowali się na współpracę.</p>
-        </div>
-
-        <!-- UWAGA: te cytaty to autentyczne reakcje klientow ale anonimowe.
-             Sebastian podmienia na realne nazwiska i firmy gdy uzyska zgody. -->
-        <div class="ct-testimonial-grid">
-            <blockquote class="ct-testimonial">
-                <p class="ct-testimonial-quote">„Spodziewałem się, że usłyszę: musi Pan zwiększyć budżet i zatrudnić agencję. Zamiast tego po 20 minutach rozmowy wiedziałem dokładnie, że problem jest na stronie, nie w reklamach. Trzy proste rzeczy do zmiany — gdybym wiedział to pół roku temu, zaoszczędziłbym kilkadziesiąt tysięcy."</p>
-                <footer class="ct-testimonial-author">
-                    <div class="ct-testimonial-avatar" aria-hidden="true">M</div>
-                    <div>
-                        <div class="ct-testimonial-name">Marek</div>
-                        <div class="ct-testimonial-role">Właściciel firmy produkcyjnej</div>
-                    </div>
-                </footer>
-            </blockquote>
-
-            <blockquote class="ct-testimonial">
-                <p class="ct-testimonial-quote">„Pracowaliśmy z trzema agencjami przez dwa lata. Każda przynosiła słupki i procenty. Sebastian pierwszy zapytał: „A ile z tych leadów handlowiec faktycznie domyka?". Nie wiedziałam. To było dla mnie sygnałem, że mierzymy nie to, co trzeba."</p>
-                <footer class="ct-testimonial-author">
-                    <div class="ct-testimonial-avatar" aria-hidden="true">A</div>
-                    <div>
-                        <div class="ct-testimonial-name">Anna</div>
-                        <div class="ct-testimonial-role">Marketing Manager · usługi profesjonalne B2B</div>
-                    </div>
-                </footer>
-            </blockquote>
-
-            <blockquote class="ct-testimonial">
-                <p class="ct-testimonial-quote">„Najbardziej zaskoczyło mnie, że nie próbował niczego sprzedawać. Powiedział wprost, że dwie z czterech rzeczy które chcemy zrobić mogę poprawić sam, a do trzeciej w ogóle nie potrzebuję pomocy. Dopiero wtedy uwierzyłem, że ma sens rozmawiać dalej."</p>
-                <footer class="ct-testimonial-author">
-                    <div class="ct-testimonial-avatar" aria-hidden="true">P</div>
-                    <div>
-                        <div class="ct-testimonial-name">Piotr</div>
-                        <div class="ct-testimonial-role">CEO · firma SaaS B2B</div>
-                    </div>
-                </footer>
-            </blockquote>
-        </div>
-    </div>
-</section>
+<section class="ct-opinions" id="opinie" data-animate="fade-up"><div class="ct-wrap"><div class="ct-section-head"><span class="ct-eyebrow">Po rozmowie</span><h2>Co dostajesz po diagnozie?</h2><p>Konkretną listę priorytetów, którą możesz wykorzystać samodzielnie, niezależnie od decyzji o współpracy.</p></div></div></section>
 
 
 <!-- ====================================================================
@@ -1143,7 +1101,7 @@ echo wp_json_encode([
         var msg = contactForm.querySelector('textarea[name="lead_message"]');
         if (msg) {
             msg.setAttribute('placeholder',
-                'Np. Robimy 12 demo / mc z reklam, 1-2 zamykają się umową. Podejrzewam że strona albo follow-up zabija leady gdzieś w drodze.');
+                'Np. Płacę za reklamy, ale mam mało zamówień. Chcę sprawdzić, co warto poprawić w sklepie lub kampanii.');
         }
     }
 
