@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Upsellio Offer Release 2.0
  * Description: One-time, pinned release of seven CRM theme files. Administrator-only deployment and rollback; no remote write endpoint.
- * Version: 2.0.2
+ * Version: 2.0.3
  * Requires PHP: 8.1
  */
 if (!defined('ABSPATH')) { exit; }
@@ -12,7 +12,7 @@ final class Upsellio_Offer_Release_200 {
         'inc/anthropic-offer-ai.php', 'inc/crm-app/actions.php', 'inc/crm-app/render.php',
         'inc/followups.php', 'inc/offer-landing.php', 'inc/offers.php', 'inc/sales-engine.php',
     ];
-    private const RELEASE = '10ad9e5daf5fb0a338b758f5776f8ccb474fa9db';
+    private const RELEASE = '5e7e74de0a671c73d84825f9aca976740902c3ef';
     private const BASE = 'cfe6ef80746a0f8a51277b45cdebebf49045430f';
 
     public static function authorize(): void {
@@ -49,24 +49,25 @@ final class Upsellio_Offer_Release_200 {
         return $bytes;
     }
 
-    private static function review_existing_offers(): void {
-        // Do not silently remove legacy terms that were shown via template defaults.
-        $ids = get_posts([
-            'post_type' => 'crm_offer', 'post_status' => 'publish', 'fields' => 'ids',
-            'numberposts' => -1, 'suppress_filters' => false,
-            'meta_query' => [[ 'key'=>'_ups_offer_status', 'value'=>['open','sent'], 'compare'=>'IN' ]],
-        ]);
-        $required = ['duration','billing','price_note','proof_lines','questions_raw','include_lines','option_lines','has_google','has_meta','has_web'];
-        $missing = 0;
-        foreach ($ids as $id) {
-            $expiry = (int)get_post_meta($id, '_ups_offer_expires_at', true);
-            if ($expiry > 0 && $expiry <= time()) { continue; }
-            foreach ($required as $field) {
-                if (!metadata_exists('post', $id, '_ups_offer_' . $field)) { $missing++; break; }
-            }
+    private static function preserve_existing_offers(): void {
+        // Store only identifiers, never invent or write commercial terms to offer metadata.
+        global $wpdb;
+        $ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND post_status IN (%s,%s) ORDER BY ID",
+            'crm_offer', 'publish', 'private'
+        ));
+        if (!is_array($ids) || !empty($wpdb->last_error)) {
+            throw new RuntimeException('Nie można odczytać listy dotychczasowych ofert.');
         }
-        if ($missing) {
-            throw new RuntimeException('Wdrożenie wstrzymane: ' . $missing . ' aktywnych ofert może korzystać z niezapisanych warunków szablonu. Zweryfikuj je w CRM; nie uzupełniaj automatycznie.');
+        $legacy = [];
+        foreach ($ids as $id) {
+            if ((int)$id <= 0) { throw new RuntimeException('Nieprawidłowy identyfikator oferty.'); }
+            $legacy[(int)$id] = true;
+        }
+        $key = 'upsellio_offer_legacy_payload_ids_v2';
+        update_option($key, $legacy, false);
+        if (get_option($key, null) !== $legacy) {
+            throw new RuntimeException('Nie zapisano listy zgodności starszych ofert. Nie zmieniono motywu.');
         }
     }
 
@@ -116,7 +117,6 @@ final class Upsellio_Offer_Release_200 {
             }
             if ($current_count === count(self::PATHS)) { return $rollback ? 'already_rolled_back' : 'already_deployed'; }
             if ($current_count !== 0) { throw new RuntimeException('Mieszane wersje plików. Wymagana ręczna kontrola; nic nie zmieniono.'); }
-            if (!$rollback) { self::review_existing_offers(); }
             if (file_exists($maintenance)) { throw new RuntimeException('Inna aktualizacja jest w toku.'); }
             $h = @fopen($maintenance, 'x');
             if (!$h) { throw new RuntimeException('Nie można uruchomić krótkiego trybu konserwacji.'); }
@@ -129,6 +129,7 @@ final class Upsellio_Offer_Release_200 {
             $staged = [];
             try {
                 foreach ($pending as $path => $bytes) { $staged[$path] = self::stage($path, $bytes); }
+                if (!$rollback) { self::preserve_existing_offers(); }
                 foreach ($staged as $path => $temp) {
                     if (!hash_equals(hash('sha256', $restore[$path]), (string)hash_file('sha256', $path))) { throw new RuntimeException('Plik zmienił się w trakcie wdrożenia.'); }
                     if (!rename($temp, $path)) { throw new RuntimeException('Nie można podmienić pliku: ' . basename($path)); }
@@ -200,7 +201,7 @@ final class Upsellio_Offer_Release_200 {
         try {
             $files = self::inspect();
             $base = 0; $release = 0;
-            echo '<div class="wrap"><h1>Upsellio Offer Release 2.0.2</h1><p>Release: <code>' . esc_html(self::RELEASE) . '</code></p><table class="widefat striped"><thead><tr><th>Plik</th><th>Stan</th><th>SHA-256 produkcji</th></tr></thead><tbody>';
+            echo '<div class="wrap"><h1>Upsellio Offer Release 2.0.3</h1><p>Release: <code>' . esc_html(self::RELEASE) . '</code></p><table class="widefat striped"><thead><tr><th>Plik</th><th>Stan</th><th>SHA-256 produkcji</th></tr></thead><tbody>';
             $labels=['release'=>'WDROŻONY','base'=>'ZGODNY Z BAZĄ','mismatch'=>'NIEZGODNY','unavailable'=>'NIEDOSTĘPNY'];
             foreach ($files as $rel => $item) {
                 $state = $item['state'];
@@ -210,7 +211,7 @@ final class Upsellio_Offer_Release_200 {
             }
             echo '</tbody></table><p>Raport obejmuje wyłącznie siedem plików motywu, nie zawiera bazy CRM, konfiguracji WordPressa ani danych ofert. Kod niezgodnych plików jest pobierany tylko przez uprawnionego administratora. Traktuj raport jako poufny.</p>';
             self::form('diagnostics','Pobierz raport zgodności (JSON)',false);
-            if ($base === count(self::PATHS)) { self::form('deploy','Wdróż sprawdzone wydanie',true); }
+            if ($base === count(self::PATHS)) { echo '<p>Dotychczasowe opublikowane i prywatne oferty zachowają poprzedni sposób wyświetlania warunków. Nie uzupełniamy żadnych pól CRM. Nowe oferty nie dziedziczą nieuzgodnionych warunków.</p>'; self::form('deploy','Wdróż sprawdzone wydanie',true); }
             elseif ($release === count(self::PATHS)) { self::form('rollback','Przywróć poprzednią wersję',false); }
             else { echo '<p><strong>Wdrożenie zablokowane:</strong> pobierz raport i porównaj niezgodne pliki. Nie nadpisano motywu.</p>'; }
             echo '</div>';
