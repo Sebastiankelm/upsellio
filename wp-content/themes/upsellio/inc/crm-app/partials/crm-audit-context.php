@@ -29,9 +29,9 @@ $plan_url = upsellio_crm_url("ca-plan", ["cid" => $cid]);
 <div class="crm-context-strip" style="align-items:center;">
   <strong><?php echo esc_html($client_name !== "" ? $client_name : __("Profil", "upsellio")); ?></strong>
   <span aria-hidden="true">·</span>
-  <a href="<?php echo esc_url($dash_url); ?>"<?php echo $view === "ca-dashboard" ? ' style="font-weight:800"' : ""; ?>><?php esc_html_e("Dashboard", "upsellio"); ?></a>
-  <a href="<?php echo esc_url($reports_url); ?>"<?php echo $view === "ca-reports" ? ' style="font-weight:800"' : ""; ?>><?php esc_html_e("Raporty", "upsellio"); ?></a>
-  <a href="<?php echo esc_url($plan_url); ?>"<?php echo $view === "ca-plan" ? ' style="font-weight:800"' : ""; ?>><?php esc_html_e("Plan AI", "upsellio"); ?></a>
+  <a href="<?php echo esc_url($dash_url); ?>"<?php echo $view === "ca-dashboard" ? ' aria-current="page"' : ""; ?>><?php esc_html_e("Dashboard", "upsellio"); ?></a>
+  <a href="<?php echo esc_url($reports_url); ?>"<?php echo $view === "ca-reports" ? ' aria-current="page"' : ""; ?>><?php esc_html_e("Raporty", "upsellio"); ?></a>
+  <a href="<?php echo esc_url($plan_url); ?>"<?php echo $view === "ca-plan" ? ' aria-current="page"' : ""; ?>><?php esc_html_e("Plan AI", "upsellio"); ?></a>
   <a href="<?php echo esc_url(upsellio_crm_url("ca-clients")); ?>"><?php esc_html_e("← Profile", "upsellio"); ?></a>
   <?php require __DIR__ . "/crm-audit-profile-switcher.php"; ?>
 </div>
