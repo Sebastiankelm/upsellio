@@ -1,42 +1,17 @@
 {
   "schema": 1,
-  "request_id": "redesign-presentation-20261125-5f547eb3-v2",
-  "commit": "5f547eb311dea5933a34a1794f8db293a27d9b14",
+  "request_id": "redesign-fidelity-20261125-3a899f0b",
+  "commit": "3a899f0b79fb1e69a5ec3735b5701b5c3f11096f",
   "files": [
     {
       "path": "front-page.php",
-      "before": "38d52fe11147e417b68a4e5f9b94d635b37a2eeb8063cdada2cd1ec1d7d4b286",
-      "after": "ddce01195ab538386b97f6ed7b43b873dad665675a6757250fe49b103f420910"
+      "before": "ddce01195ab538386b97f6ed7b43b873dad665675a6757250fe49b103f420910",
+      "after": "a09d9dd940c40c48eec694c73efcde2338a8937bce4df1d529d7ecd1b2b820bf"
     },
     {
-      "path": "home.php",
-      "before": "f5970d225fa95598c7d355c1c49d481e27330ce75268bfc4a7a3f5928cb1574f",
-      "after": "3b3ccfbf87dc0edc0f9bfadfce722209ad6e7c8be5ddf99db3405bd21f4cb0f5"
-    },
-    {
-      "path": "page-kontakt.php",
-      "before": "2935c683a6b587d7e6cec60ce9497a4e3fbf05f0d038d355bdbe6a90e82339dc",
-      "after": "5967078bd5fddd35d2194e3360db0b4f2c3755c2e59530bfa7c219d7002ea8eb"
-    },
-    {
-      "path": "page-marketing-google-ads.php",
-      "before": "d191c32d2e37f67ae4b3c9810e53c3cecdfe1150245fecb4c64d1047b2530ca3",
-      "after": "eeda29f4d99b3df99374ee739ce28908bd328d5b8e67983996a04806ca3d6f9c"
-    },
-    {
-      "path": "page-marketing-meta-ads.php",
-      "before": "9f554373724b9b0dcfa635a8ab22ff8da1ce1fa0c769adacddacec47dcde95a1",
-      "after": "929108b773626dcd213765a92fdd40e6e3b9712fe4834a9d59cb8e97f6cdf53d"
-    },
-    {
-      "path": "page-tworzenie-stron-internetowych.php",
-      "before": "04434c14953e54f4d382f1a93e0b88b85de95ef48f32b34f7c6bfbe4cf45943b",
-      "after": "0a099b3c9df568073a2464dc07e7d5683203e0878c5f4184165b94d36ed6f42f"
-    },
-    {
-      "path": "single.php",
-      "before": "b91eacec2c0b8f51278bd7b1f10b9157d207a8ff0abd1dbd2b7044d0f0e5ae78",
-      "after": "f050d5f43dedd69d66d5ca18a5e5e56292a84f1c30c3a224047819f4ac2a021d"
+      "path": "assets/css/upsellio.css",
+      "before": "af3813dc5bf2413d4bfa5e02d2a68b180de6171bd9b6de23ff8fbdc0efa781ae",
+      "after": "d94e0b185c3d32f63bd51039a1dbd3843d20abb761a1ad7a4ba8fcd9ad759747"
     }
   ]
 }
