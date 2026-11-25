@@ -118,3 +118,9 @@ body.ups-crm-redesign {
 @media(max-width:600px) {
   .ups-crm-redesign .crm-main .crm-mid-row, .ups-crm-redesign .crm-main .crm-bot-row { grid-template-columns:1fr; }
 }
+
+.ups-crm-redesign .crm-sidebar-account { display:flex; gap:10px; align-items:center; border-top:1px solid var(--border); padding:12px 8px 0; margin-top:10px; }
+.ups-crm-redesign .crm-sidebar-avatar { width:32px; height:32px; flex:0 0 32px; border-radius:50%; background:var(--teal-soft); color:var(--teal); display:grid; place-items:center; }
+.ups-crm-redesign .crm-sidebar-account-name { min-width:0; font-size:12px; color:var(--text-3); }
+.ups-crm-redesign .crm-sidebar-account-name strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font-size:13px; }
+.ups-crm-redesign .crm-sidebar-account-name a:hover { text-decoration:underline; color:var(--teal); }
