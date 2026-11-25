@@ -2508,7 +2508,7 @@ function upsellio_crm_app_template_redirect()
               $oa_offer_id = isset($_GET["offer_id"]) ? (int) wp_unslash($_GET["offer_id"]) : 0;
               $oa_offer = $oa_offer_id > 0 ? get_post($oa_offer_id) : null;
               ?>
-              <?php if (!($oa_offer instanceof WP_Post) || $oa_offer->post_type !== "crm_offer") : ?>
+              <?php if (!($oa_offer instanceof WP_Post) || $oa_offer->post_type !== "crm_offer" || !current_user_can("edit_post", $oa_offer_id)) : ?>
                 <section class="card"><p class="muted"><?php esc_html_e("Brak oferty.", "upsellio"); ?></p></section>
               <?php else : ?>
                 <?php
@@ -2565,19 +2565,23 @@ function upsellio_crm_app_template_redirect()
                       </div>
                     </div>
                     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+                      <?php if (function_exists("upsellio_offer_get_public_url") && $oa_offer->post_status === "publish") : ?>
+                        <a class="btn alt" target="_blank" rel="noopener noreferrer" href="<?php echo esc_url(add_query_arg("preview_mode", "1", upsellio_offer_get_public_url($oa_offer_id))); ?>">Podgląd strony</a>
+                      <?php endif; ?>
                       <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => $oa_an_editing_view, "offer_editor_id" => $oa_offer_id], home_url("/crm-app/"))); ?>"><?php esc_html_e("Edytuj ofertę", "upsellio"); ?></a>
                       <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "inbox", "inbox_offer" => $oa_offer_id], home_url("/crm-app/"))); ?>"><?php esc_html_e("Inbox wątku", "upsellio"); ?></a>
                     </div>
                   </div>
-                  <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--border)">
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));border-bottom:1px solid var(--border)">
                     <?php
                     $oa_pricing_sec_total = (int) ($oa["all_section_times"]["pricing"] ?? 0);
                     $oa_last_commit_disp = (string) ($oa["last_commit"] ?? "");
                     $oa_kpis = [
-                        ["val" => (string) (int) ($oa["session_count"] ?? 0), "lbl" => __("Sesji", "upsellio"), "color" => ""],
+                        ["val" => (string) (int) ($oa["identified_views"] ?? 0), "lbl" => __("Zidentyfikowane sesje", "upsellio"), "color" => ""],
+                        ["val" => sprintf("%d:%02d", intdiv((int) ($oa["active_seconds"] ?? 0), 60), (int) ($oa["active_seconds"] ?? 0) % 60), "lbl" => __("Aktywny czas (min:s)", "upsellio"), "color" => ""],
                         ["val" => (string) (int) ($oa["score"] ?? 0) . "/100", "lbl" => __("Score intencji", "upsellio"), "color" => ($oa["score"] ?? 0) >= 70 ? "#0f766e" : (($oa["score"] ?? 0) >= 40 ? "#d97706" : "")],
                         ["val" => (string) (int) ($oa["total_cta"] ?? 0), "lbl" => __("Kliknięcia CTA", "upsellio"), "color" => ($oa["total_cta"] ?? 0) > 0 ? "#0f766e" : ""],
-                        ["val" => $oa_pricing_sec_total > 0 ? (string) (int) ($oa_pricing_sec_total / 60) . " min" : "—", "lbl" => __("Czas na cenniku", "upsellio"), "color" => ""],
+                        ["val" => sprintf("%d:%02d", intdiv($oa_pricing_sec_total, 60), $oa_pricing_sec_total % 60), "lbl" => __("Czas na cenniku", "upsellio"), "color" => ""],
                         ["val" => $oa_last_commit_disp !== "" ? $oa_last_commit_disp : "—", "lbl" => __("Wybrany pakiet", "upsellio"), "color" => $oa_last_commit_disp !== "" ? "#0a7a70" : ""],
                     ];
                     foreach ($oa_kpis as $kpi) :
@@ -2592,7 +2596,8 @@ function upsellio_crm_app_template_redirect()
                     </div>
                     <?php endforeach; ?>
                   </div>
-                  <div style="display:grid;grid-template-columns:1fr 320px;gap:0">
+                  <?php if (function_exists("upsellio_offer_render_intent_dashboard")) { upsellio_offer_render_intent_dashboard($oa_offer_id, $oa); } ?>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:0">
                     <div style="padding:20px 24px;border-right:1px solid var(--border)">
                       <div style="margin-bottom:24px">
                         <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px"><?php esc_html_e("Mapa uwagi — czas per sekcja", "upsellio"); ?></div>
@@ -2959,7 +2964,7 @@ function upsellio_crm_app_template_redirect()
                         </div>
                         <div>
                           <label><strong>Start / timeline</strong> <?php echo upsellio_help_tooltip("To pole wpływa na priorytet w pipeline i automatyzacje follow-up."); ?></label>
-                          <input type="text" name="offer_timeline" id="fld_offer_timeline" value="<?php echo esc_attr($oe_id > 0 ? (string) get_post_meta($oe_id, "_ups_offer_timeline", true) : ""); ?>" />
+                          <input type="text" name="offer_timeline" id="fld_offer_timeline" value="<?php echo esc_attr($oe_id > 0 ? upsellio_offer_get_commercial_timeline($oe_id) : ""); ?>" />
                         </div>
                         <div>
                           <label><strong>Planowana data decyzji klienta</strong> <?php echo upsellio_help_tooltip("Przybliżona data decyzji klienta. Używana do priorytetyzacji follow-upów i scoringu timing."); ?></label>
