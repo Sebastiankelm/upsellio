@@ -92,11 +92,20 @@ function upsellio_crm_app_template_redirect()
         $view = "dashboard";
     }
 
+    if (!upsellio_crm_app_user_can_view($view)) {
+        wp_die("Brak uprawnień do tego widoku CRM.", "", ["response" => 403]);
+    }
+    if (in_array($view, ["ca-dashboard", "ca-reports", "ca-plan", "ca-library"], true)) {
+        $requested_cid = (int) wp_unslash($_GET["cid"] ?? 0);
+        if ($requested_cid !== 0 && !upsellio_crm_app_can_access_audit_client($requested_cid)) {
+            wp_die("Brak dostępu do profilu audytowego.", "", ["response" => 403]);
+        }
+    }
     if ($view === "ca-dashboard") {
         $ca_redirect_cid = isset($_GET["cid"]) ? (int) wp_unslash($_GET["cid"]) : 0;
         if ($ca_redirect_cid <= 0 && function_exists("ups_audit_default_profile_client_id")) {
             $ca_default_cid = ups_audit_default_profile_client_id();
-            if ($ca_default_cid > 0) {
+            if (upsellio_crm_app_can_access_audit_client($ca_default_cid)) {
                 wp_safe_redirect(upsellio_crm_url("ca-dashboard", ["cid" => $ca_default_cid]));
                 exit;
             }
@@ -6706,17 +6715,22 @@ function upsellio_crm_app_template_redirect()
                       "compare" => "=",
                   ]] : [],
               ]);
+              $ca_reports = array_values(array_filter($ca_reports, static function ($report) {
+                  return current_user_can("edit_post", $report->ID) && upsellio_crm_app_can_access_audit_client((int) get_post_meta($report->ID, "_ups_report_client_id", true));
+              }));
               ?>
-              <section class="card">
-                <h2>Raporty AI</h2>
-                <p class="muted">Typy: monthly, audit, plan, comparison, brief.</p>
-                <p style="display:flex;gap:8px;flex-wrap:wrap">
+              <section class="card crm-audit-report-panel">
+                <h2>Historia raportów AI</h2>
+                <p class="muted">Twórz raporty na podstawie danych zmapowanych zasobów klienta. Wybierz typ dokumentu.</p>
+                <?php if ($ca_client_id > 0) : ?>
+                <div class="crm-audit-report-actions">
                   <button type="button" class="btn" onclick="upsAuditGenReport(window.UPS_AUDIT_CLIENT_ID||0,'monthly')">Miesięczny</button>
                   <button type="button" class="btn alt" onclick="upsAuditGenReport(window.UPS_AUDIT_CLIENT_ID||0,'audit')">Audyt</button>
                   <button type="button" class="btn alt" onclick="upsAuditGenReport(window.UPS_AUDIT_CLIENT_ID||0,'plan')">Plan 30d</button>
                   <button type="button" class="btn alt" onclick="upsAuditGenReport(window.UPS_AUDIT_CLIENT_ID||0,'comparison')">Porównanie</button>
                   <button type="button" class="btn alt" onclick="upsAuditGenReport(window.UPS_AUDIT_CLIENT_ID||0,'brief')">Brief</button>
-                </p>
+                </div>
+                <?php else : ?><p class="muted">Wybierz profil klienta, aby wygenerować raport.</p><?php endif; ?>
                 <table>
                   <thead><tr><th>Tytuł</th><th>Typ</th><th>Data</th><th>Akcje</th></tr></thead>
                   <tbody>
@@ -6725,8 +6739,8 @@ function upsellio_crm_app_template_redirect()
                     <?php $rtype = (string) get_post_meta((int) $rp->ID, "_ups_report_type", true); ?>
                     <tr>
                       <td><?php echo esc_html((string) $rp->post_title); ?></td>
-                      <td><?php echo esc_html($rtype); ?></td>
-                      <td><?php echo esc_html(wp_date("Y-m-d H:i", strtotime((string) $rp->post_date_gmt ?: (string) $rp->post_date))); ?></td>
+                      <td><span class="badge"><?php echo esc_html(["monthly" => "Miesięczny", "audit" => "Audyt", "plan" => "Plan 30 dni", "comparison" => "Porównanie", "brief" => "Brief"][$rtype] ?? $rtype); ?></span></td>
+                      <td><?php echo esc_html(wp_date("Y-m-d H:i", upsellio_crm_app_dashboard_gmt_timestamp($rp->post_date_gmt) ?: (int) get_post_timestamp($rp))); ?></td>
                       <td style="display:flex;gap:6px;flex-wrap:wrap">
                         <button type="button" class="btn alt" onclick="upsAuditExportReportPdf(<?php echo (int) $rp->ID; ?>)">PDF</button>
                         <button type="button" class="btn alt" onclick="upsAuditSendReport(<?php echo (int) $rp->ID; ?>)">Wyślij email</button>
@@ -6754,16 +6768,16 @@ function upsellio_crm_app_template_redirect()
                           ["key" => "_ups_report_type", "value" => "plan"],
                       ],
                   ]);
-                  $ca_latest_plan = !empty($tmp) && $tmp[0] instanceof WP_Post ? $tmp[0] : null;
+                  $ca_latest_plan = !empty($tmp) && $tmp[0] instanceof WP_Post && current_user_can("edit_post", $tmp[0]->ID) ? $tmp[0] : null;
               }
               ?>
               <section class="card">
                 <h2>Plan AI</h2>
                 <p class="muted">Szybkie uruchomienie planu 30 dni i audytu punktowego dla klienta.</p>
-                <p style="display:flex;gap:8px;flex-wrap:wrap">
+                <?php if ($ca_client_id > 0) : ?><p class="crm-audit-report-actions">
                   <button type="button" class="btn" onclick="upsAuditGenReport(<?php echo (int) $ca_client_id; ?>,'plan')">Generuj plan</button>
                   <button type="button" class="btn alt" onclick="upsAuditGenReport(<?php echo (int) $ca_client_id; ?>,'audit')">Audyt punktowy</button>
-                </p>
+                </p><?php else : ?><p class="muted">Wybierz profil klienta, aby wygenerować plan.</p><?php endif; ?>
                 <?php if ($ca_latest_plan instanceof WP_Post) : ?>
                   <?php $plan_text = wp_strip_all_tags((string) $ca_latest_plan->post_content); ?>
                   <?php $plan_lines = preg_split("/\r\n|\n|\r/", $plan_text); ?>
@@ -6806,17 +6820,16 @@ function upsellio_crm_app_template_redirect()
               </section>
             <?php endif; ?>
             <?php if ($view === "settings") : ?>
-              <section class="card">
-                <h2>Zakładki ustawień</h2>
-                <p style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-                  <a class="btn <?php echo $settings_tab === "general" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "general"], home_url("/crm-app/"))); ?>">Główne</a>
-                  <a class="btn <?php echo $settings_tab === "email" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "email"], home_url("/crm-app/"))); ?>">Poczta</a>
-                  <a class="btn <?php echo $settings_tab === "ai" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "ai"], home_url("/crm-app/"))); ?>">AI</a>
-                  <a class="btn <?php echo $settings_tab === "pipeline" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "pipeline"], home_url("/crm-app/"))); ?>">Pipeline</a>
-                  <a class="btn <?php echo $settings_tab === "templates" ? "" : "alt"; ?>" href="<?php echo esc_url(add_query_arg(["view" => "settings", "settings_tab" => "templates"], home_url("/crm-app/"))); ?>">Szablony</a>
-                  <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "engine"], home_url("/crm-app/"))); ?>">Silnik sprzedaży</a>
-                  <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "template-studio"], home_url("/crm-app/"))); ?>">Szablony ofert/umów</a>
-                </p>
+              <section class="card crm-settings-navigation">
+                <p class="muted">Konfiguracja CRM, automatyzacji i integracji. Dostęp administratora.</p>
+                <nav class="crm-page-tabs" aria-label="Ustawienia CRM">
+                  <?php $settings_icons = ["general" => "ti-settings", "email" => "ti-mail", "ai" => "ti-sparkles", "pipeline" => "ti-git-merge", "templates" => "ti-template"]; ?>
+                  <?php foreach ($settings_tabs as $key => $label) : ?>
+                    <a class="<?php echo $settings_tab === $key ? "is-active" : ""; ?>" href="<?php echo esc_url(upsellio_crm_url("settings", ["settings_tab" => $key])); ?>"<?php echo $settings_tab === $key ? ' aria-current="page"' : ""; ?>><i class="ti <?php echo esc_attr($settings_icons[$key]); ?>" aria-hidden="true"></i> <?php echo esc_html($label); ?></a>
+                  <?php endforeach; ?>
+                  <a href="<?php echo esc_url(upsellio_crm_url("engine")); ?>">Silnik sprzedaży</a>
+                  <a href="<?php echo esc_url(upsellio_crm_url("template-studio")); ?>">Szablony ofert/umów</a>
+                </nav>
               </section>
 
               <?php if ($settings_tab === "general") : ?>
