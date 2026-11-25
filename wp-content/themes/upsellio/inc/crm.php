@@ -1100,12 +1100,21 @@ function upsellio_crm_handle_mobile_callback()
     }
     $rawPhone = $field("lead_phone");
     $digits = preg_replace("/\D+/", "", $rawPhone);
-    if (!preg_match("/^\+?[0-9 ()-]+$/D", $rawPhone) || strlen($digits) < 9 || strlen($digits) > 15) {
-        wp_send_json_error(["message" => "Podaj poprawny numer telefonu."], 400);
+    $phone = "";
+    if (strlen($rawPhone) <= 24 && preg_match("/^\+?[0-9 ()-]+$/D", $rawPhone)) {
+        if (substr($rawPhone, 0, 1) === "+") {
+            $phone = "+" . $digits;
+        } elseif (substr($digits, 0, 2) === "00") {
+            $phone = "+" . substr($digits, 2);
+        } elseif (strlen($digits) === 9) {
+            $phone = "+48" . $digits;
+        } elseif (strlen($digits) === 11 && substr($digits, 0, 2) === "48") {
+            $phone = "+" . $digits;
+        }
     }
-    $phone = strlen($digits) === 9 ? "+48" . $digits : (substr($rawPhone, 0, 1) === "+" ? "+" : "") . $digits;
-    if (strlen($digits) === 11 && substr($digits, 0, 2) === "48") {
-        $phone = "+" . $digits;
+    if (!preg_match("/^\+[1-9][0-9]{8,14}$/D", $phone)
+        || (substr($phone, 0, 3) === "+48" && !preg_match("/^\+48[1-9][0-9]{8}$/D", $phone))) {
+        wp_send_json_error(["message" => "Podaj poprawny numer telefonu. Dla numeru zagranicznego użyj prefiksu kraju."], 400);
     }
     $phoneKey = "ups_cb_rl_" . substr(hash_hmac("sha256", $phone, wp_salt("auth")), 0, 40);
     if ((int) get_transient($phoneKey) >= 3 || upsellio_crm_is_rate_limited("")) {
