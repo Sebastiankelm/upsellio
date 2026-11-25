@@ -748,6 +748,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 .summary-question{background:none;border:0;display:block;margin:12px auto 0;color:var(--ink);font:600 14px var(--font-b);cursor:pointer;min-height:44px}
 @media(max-width:768px){.hero-grid{grid-template-columns:minmax(0,1fr)}.hero .h1{font-size:36px}.hero-lead{font-size:16px}.sc{padding:22px}.acts--hero .btn{min-height:48px;padding:0 18px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}.r{opacity:1!important;transform:none!important}}
+.offer-state-notice{margin:20px 0 0;padding:16px 20px;border:1px solid #b8d8cf;background:#edf8f4;color:#12483e;border-radius:14px;line-height:1.5}
+.offer-state-notice[hidden]{display:none}.offer-state-notice strong,.offer-state-notice span{display:block}
+.offer-state-notice span{font-size:14px;margin-top:3px}
 </style>
 </head>
 <body>
@@ -802,6 +805,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
 </nav>
 
 <div class="w">
+<div id="offer-state-notice" class="offer-state-notice" role="status" <?php echo $offer_can_accept ? "hidden" : ""; ?>>
+  <strong id="offer-state-title"><?php echo $offer_status === "won" ? "Oferta zaakceptowana" : "Oferta zamknięta"; ?></strong>
+  <span id="offer-state-message"><?php echo $offer_status === "won" ? "Potwierdzenie zostało zapisane. W sprawie dalszych kroków skontaktuj się z opiekunem." : "Ta oferta nie przyjmuje nowych akceptacji. Skontaktuj się z opiekunem w sprawie aktualnych warunków."; ?></span>
+</div>
 <div class="hero r">
   <div class="hero-lbl">Oferta indywidualna · <?php echo esc_html($offer_date_label); ?></div>
   <div class="hero-grid">
@@ -1035,7 +1042,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
         <input type="email" name="qa_email" placeholder="Twój email (do wysyłki)" required style="flex:1;padding:10px;border:1px solid #e2e8f0;border-radius:6px;" />
         <button type="button" class="btn btn-p" onclick="submitQA()">Wyślij odpowiedzi →</button>
       </div>
-      <div id="qaStatus" style="margin-top:8px;font-size:13px;"></div>
+      <div id="qaStatus" role="status" aria-live="polite" style="margin-top:8px;font-size:13px;"></div>
     </form>
   </div>
 </div>
@@ -1158,12 +1165,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
       <div class="step" data-step="3">3. Decyzja</div>
       <div class="step" data-step="4">4. Rozmowa</div>
     </div>
-    <div class="ups-modal__err" id="ups-modal-contact-err"></div>
+    <div class="ups-modal__err" id="ups-modal-contact-err" role="alert" aria-live="assertive"></div>
     <div class="ups-modal-step active" data-step="1">
       <h4>Dane kontaktowe</h4>
       <label class="ups-modal__field"><span>Imię i nazwisko</span><input id="accept_name" autocomplete="name" maxlength="160" /></label>
       <label class="ups-modal__field"><span>Email</span><input type="email" id="accept_email" autocomplete="email" placeholder="jan@firma.pl" required /></label>
-      <label class="ups-modal__field"><span>Telefon (opcjonalnie)</span><input type="tel" id="accept_phone" placeholder="+48..." /></label>
+      <label class="ups-modal__field"><span>Telefon (opcjonalnie)</span><input type="tel" id="accept_phone" autocomplete="tel" maxlength="80" placeholder="+48..." /></label>
       <p>Wybrany pakiet: <strong id="confirmCommitLabel">—</strong></p>
       <div class="ups-modal__actions">
         <button type="button" class="btn btn-g" data-ups-close>Anuluj</button>
@@ -1197,7 +1204,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
         <label><input type="radio" name="accept_decision" value="me_team" /> Ja + zespół</label>
         <label><input type="radio" name="accept_decision" value="board" /> Zarząd / wspólnicy</label>
       </div>
-      <label class="ups-modal__field"><span>Obawy / pytania</span><textarea id="accept_concerns" placeholder="Np. cena, timing, poprzednie doświadczenia"></textarea></label>
+      <label class="ups-modal__field"><span>Obawy / pytania</span><textarea id="accept_concerns" maxlength="5000" placeholder="Np. cena, timing, poprzednie doświadczenia"></textarea></label>
       <div class="ups-modal__actions">
         <button type="button" class="btn btn-g" onclick="goStep(2)">← Wróć</button>
         <button type="button" class="btn btn-p" onclick="goStep(4)">Dalej →</button>
@@ -1238,7 +1245,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   <div class="ups-modal__box" role="dialog" aria-modal="true" aria-labelledby="ups-modal-q-title">
     <h3 id="ups-modal-q-title">Twoje pytanie</h3>
     <p>Opisz krótko, o co chodzi — dostaniesz <strong>kopię wiadomości</strong> na podany e-mail, a opiekun odpowie bezpośrednio.</p>
-    <div class="ups-modal__err" id="ups-modal-q-err"></div>
+    <div class="ups-modal__err" id="ups-modal-q-err" role="alert" aria-live="assertive"></div>
     <label class="ups-modal__field"><span>Pytanie</span><textarea id="ups-modal-q-text" placeholder="Np. czy możemy zacząć od jednego kanału?"></textarea></label>
     <label class="ups-modal__field" id="ups-modal-q-email-wrap"><span>Twój e-mail (kontakt)</span><input type="email" id="ups-modal-q-email" autocomplete="email" placeholder="jan@firma.pl" required /></label>
     <div class="ups-modal__actions">
@@ -1564,7 +1571,7 @@ var elAccP=document.getElementById('btn-offer-accept-pricing');
 var elAccF=document.getElementById('btn-offer-accept-footer');
 var elAccM=document.getElementById('btn-offer-accept-mobile');
 if(elAccM)elAccM.addEventListener('click',function(){onAcceptClick('mobile');});
-if(!offerCanAccept){[elAccP,elAccF,elAccM].forEach(function(btn){if(btn){btn.disabled=true;btn.textContent='Oferta zamknięta';}});}
+if(!offerCanAccept){var stateLabel=document.getElementById('offer-state-title').textContent;[elAccP,elAccF,elAccM].forEach(function(btn){if(btn){btn.disabled=true;btn.textContent=stateLabel;}});}
 if(elAccP)elAccP.addEventListener('click',function(){onAcceptClick('pricing');});
 if(elAccF)elAccF.addEventListener('click',function(){onAcceptClick('footer');});
 var elQp=document.getElementById('btn-offer-question-pricing');
@@ -1616,12 +1623,18 @@ if(elCs)elCs.addEventListener('click',function(){
     .then(function(res){
       if(res&&res.success){
         offerCanAccept=false;
+        var notice=document.getElementById('offer-state-notice');
+        document.getElementById('offer-state-title').textContent='Oferta zaakceptowana';
+        document.getElementById('offer-state-message').textContent=(res.data&&res.data.message)||'Potwierdzenie zostało zapisane.';
+        notice.hidden=false;
         [elAccP,elAccF,elAccM].forEach(function(btn){if(btn){btn.disabled=true;btn.textContent='Oferta zaakceptowana';}});
         closeModals();
         showToast((res.data&&res.data.message)||'Dzięki! Potwierdzenie wysłane, wracamy z kontaktem.');
         pushDl('offer_public_accept',{cta_label:((document.getElementById('acceptCtaSource')||{}).value||'pricing')});
       }else{
-        showToast((res&&res.data&&res.data.message)||'Nie udało się wysłać. Spróbuj ponownie.',true);
+        var msg=(res&&res.data&&res.data.message)||'Nie udało się wysłać. Spróbuj ponownie.';
+        if(err){err.textContent=msg;err.classList.add('is-visible');}
+        showToast(msg,true);
       }
     })
     .catch(function(){showToast('Błąd sieci. Spróbuj ponownie.',true);})
@@ -1666,7 +1679,7 @@ window.submitQA=function(){
   var fd=new FormData(form);
   var answers=[];
   fd.forEach(function(v,k){
-    if(String(k).indexOf('answer_')===0&&String(v).trim().length>3){answers.push(String(v));}
+    if(String(k).indexOf('answer_')===0&&String(v).trim().length>0){answers.push(String(v));}
   });
   if(answers.length===0){
     status.textContent='⚠️ Odpowiedz na minimum 1 pytanie albo użyj przycisku „Mam pytanie”.';
@@ -1889,6 +1902,13 @@ function upsellio_offer_accept_full_ajax()
     $call_window = isset($_POST["call_window"]) ? sanitize_key(wp_unslash($_POST["call_window"])) : "";
     if (!in_array($contact_pref, ["phone", "email", "meeting"], true) || !in_array($call_window, ["", "9_12", "12_15", "15_18"], true)) {
         wp_send_json_error(["message" => "Wybierz poprawny kanał i porę kontaktu."], 400);
+    }
+    foreach (["contact_name" => 160, "contact_phone" => 80, "concerns" => 5000] as $field => $limit) {
+        if (!isset($_POST[$field])) { continue; }
+        if (!is_string($_POST[$field]) || strlen(wp_unslash($_POST[$field])) > $limit * 4) { wp_send_json_error(["message" => "Nieprawidłowe lub zbyt długie dane kontaktowe."], 400); }
+        $value = wp_unslash($_POST[$field]);
+        $length = function_exists("mb_strlen") ? mb_strlen($value, "UTF-8") : strlen($value);
+        if ($length > $limit) { wp_send_json_error(["message" => "Pole jest za długie."], 400); }
     }
     $decision_payload = [
         "contact_email" => $contact_email,
