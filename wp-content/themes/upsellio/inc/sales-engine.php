@@ -246,20 +246,20 @@ function upsellio_sales_engine_refresh_hot_index($offer_id, $summary, $stage)
         if ($objection === "price") {
             $action = "Priorytet A: zadzwon i omow ROI — sprawdz, czy cena jest bariera.";
         } elseif ($objection === "trust") {
-            $action = "Priorytet A: wyslij case study lub referencje — sprawdz, czy potrzebne jest dodatkowe potwierdzenie.";
+            $action = "Priorytet A: wyjasnij watpliwosci i potwierdz zakres oraz dalsze kroki.";
         } elseif ($objection === "scope") {
             $action = "Priorytet A: doprecyzuj zakres w mailu — zweryfikuj, czy zakres jest jasny.";
         } else {
             $action = "Priorytet A: natychmiastowy follow-up domykajacy.";
         }
     } elseif ($fit_score >= 75 && $intent_score < 35) {
-        $action = "Wysoki fit / niski intent: wyslij krotki email z case study i 1 CTA.";
+        $action = "Wysoki fit / niski intent: wyslij krotki email z dopasowanym zakresem i 1 CTA.";
     } elseif ($fit_score < 45 && $intent_score >= 70) {
         $action = "Wysoki intent / niski fit: zweryfikuj budget i zakres przed dalszym domykaniem.";
     } elseif ($objection === "price" && $intent_score >= 40) {
         $action = "Wyslij wersje ROI lub doprecyzowanie zakresu — mozliwa bariera cenowa.";
     } elseif ($objection === "trust" && $intent_score >= 40) {
-        $action = "Wyslij referencje lub case study — klient szuka potwierdzenia.";
+        $action = "Wyjasnij sposob wspolpracy i zapytaj, jakie watpliwosci wymagaja potwierdzenia.";
     } elseif ($objection === "scope") {
         $action = "Napisz krotkie podsumowanie co konkretnie dostaje klient.";
     }
