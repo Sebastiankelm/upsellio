@@ -276,6 +276,114 @@ $faq_items = [
     .gads-process-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
     .gads-loss-panel,.gads-layer,.gads-fit,.gads-type-large,.gads-kpi-box { padding:26px; }
   }
+  /* SEO-safe service redesign: retain original content, anchors and tracking. */
+  .gads-page{
+    --gads-bg:#fff;--gads-cream:#f5f6f8;--gads-surface:#fff;
+    --gads-text:#0f1115;--gads-text-2:#3a3d44;--gads-muted:#5f636b;
+    --gads-border:#e3e6ea;--gads-blue:#06745f;--gads-blue-dark:#055e4d;
+    --gads-blue-soft:#effaf7;--gads-green:#0bb39c;--gads-green-soft:#dff5ef;
+    --gads-dark:#0f1115;--gads-shadow:0 24px 48px rgba(15,17,21,.08);
+    --gads-shadow-soft:0 12px 28px rgba(15,17,21,.06);
+    font-family:"DM Sans",system-ui,sans-serif;line-height:1.65
+  }
+  .gads-page *,.gads-page *::before,.gads-page *::after{box-sizing:border-box}
+  .gads-page .gads-wrap{width:min(1160px,calc(100% - 48px))}
+  .gads-page .gads-section{padding:96px 0;scroll-margin-top:16px}
+  .gads-page .gads-h1,.gads-page .gads-h2,.gads-page .gads-h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;letter-spacing:-.03em}
+  .gads-page .gads-h1{font-size:clamp(38px,4.6vw,58px);line-height:1.08}
+  .gads-page .gads-h2{font-size:clamp(30px,3.4vw,42px);line-height:1.12}
+  .gads-page .gads-h3{font-size:clamp(20px,2.3vw,28px);line-height:1.25;font-weight:700}
+  .gads-page .gads-lead{font-size:18px;line-height:1.65}
+  .gads-page .gads-copy p{font-size:16px;line-height:1.7}
+  .gads-page .gads-eyebrow{letter-spacing:.09em;margin-bottom:12px}
+  .gads-page .gads-eyebrow::before{display:none}
+  .gads-page .gads-hero{background:#effaf7;padding:56px 0 96px}
+  .gads-page .gads-hero::before,.gads-page .gads-hero::after{display:none}
+  .gads-page .gads-hero-grid{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:48px}
+  .gads-page .gads-search-card{border-radius:24px;box-shadow:var(--gads-shadow);background:#fff}
+  .gads-page .gads-search-bar{margin:20px 20px 0;padding:12px 16px;border:1px solid #d8dde3;border-radius:999px;background:#fff}
+  .gads-page .gads-search-dots{flex-shrink:0}
+  .gads-page .gads-serp{padding:24px 20px}
+  .gads-page .gads-ad{padding:16px;border-radius:14px}
+  .gads-page .gads-ad strong{color:#06745f}
+  .gads-page .gads-intent-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .gads-page .gads-intent{padding:10px;border-radius:12px;background:#f5f6f8;overflow-wrap:anywhere}
+  .gads-page .gads-btn{min-height:48px;padding:10px 22px;line-height:1.35;text-align:center}
+  .gads-page .gads-btn-primary,.gads-page .gads-quick-cta{background:#06745f;color:#fff;box-shadow:none}
+  .gads-page .gads-btn-primary:hover,.gads-page .gads-quick-cta:hover{background:#055e4d;color:#fff}
+  .gads-page .gads-btn-secondary{background:transparent;border-color:#d8dde3}
+  .gads-page .gads-btn-ghost{background:#effaf7;border-color:#c7e6dd;color:#055e4d}
+  .gads-page .gads-btn:hover{transform:none}
+  .gads-page .gads-quick-nav{position:static;background:#fff;box-shadow:none;backdrop-filter:none}
+  .gads-page .gads-quick-inner{gap:16px;padding:10px 0;min-height:64px}
+  .gads-page .gads-quick-links a,.gads-page .gads-quick-cta{min-height:44px}
+  .gads-page .gads-quick-links a{background:#fff}
+  .gads-page .gads-quick-links a:is(:hover,.is-active){background:#effaf7;border-color:#c7e6dd}
+  .gads-page #problemy,.gads-page #proces{background:#f5f6f8}
+  .gads-page .gads-loss-grid{grid-template-columns:minmax(0,1fr);gap:24px}
+  .gads-page .gads-loss-panel{background:#fff;color:var(--gads-text);border:1px solid var(--gads-border);box-shadow:none;padding:28px;border-radius:20px}
+  .gads-page .gads-loss-panel .gads-h3{color:var(--gads-text)}
+  .gads-page .gads-loss-panel p,.gads-page .gads-waste-list li{color:var(--gads-text-2)}
+  .gads-page .gads-waste-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gads-page .gads-waste-list li{background:#f5f6f8;border:1px solid var(--gads-border)}
+  .gads-page .gads-card-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+  .gads-page .gads-card-icon{background:#fff4e5;color:#b54708}
+  .gads-page .gads-card,.gads-page .gads-fit,.gads-page .gads-layer,.gads-page .gads-step,.gads-page .gads-type-card,.gads-page .gads-kpi-box{padding:24px;background:#fff;border-radius:20px;box-shadow:none;min-width:0}
+  .gads-page .gads-card:hover{box-shadow:var(--gads-shadow-soft);border-color:#c7e6dd;transform:translateY(-2px)}
+  .gads-page .gads-card strong,.gads-page .gads-fit strong{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:20px;line-height:1.25}
+  .gads-page .gads-layer.is-start{border-top:1px solid var(--gads-border)}
+  .gads-page .gads-layer.is-start::before{background:#06745f;box-shadow:none}
+  .gads-page .gads-fit-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .gads-page .gads-type-large{border-radius:24px;background:#0f1115;box-shadow:none}
+  .gads-page .gads-type-large p{color:#c4c8ce}
+  .gads-page .gads-screenshot-slot{border:1px solid var(--gads-border);border-radius:24px}
+  .gads-page .gads-screenshot-row{grid-template-columns:auto repeat(4,minmax(0,1fr));overflow-wrap:anywhere}
+  .gads-page #efekty{background:#0f1115;color:#fff}
+  .gads-page #efekty .gads-h2,.gads-page #efekty .gads-h3{color:#fff}
+  .gads-page #efekty .gads-eyebrow,.gads-page #efekty .gads-kpi-value{color:#7fe3d2}
+  .gads-page #efekty .gads-copy p,.gads-page #efekty .gads-kpi-label,.gads-page #efekty .gads-kpi-context,.gads-page #efekty .gads-effects-list li{color:#c4c8ce}
+  .gads-page #efekty .gads-kpi-box,.gads-page #efekty .gads-kpi{background:#1d2026;border-color:#343940;box-shadow:none}
+  .gads-page #efekty .gads-effects-list li::before{color:#7fe3d2}
+  .gads-page .gads-price-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:center}
+  .gads-page .gads-price-card{padding:32px;border-radius:24px;background:#effaf7;border:1px solid #c7e6dd}
+  .gads-page .gads-price-value{display:block;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(32px,4vw,48px);line-height:1.15;font-weight:800;color:#0f1115;margin-bottom:16px}
+  .gads-page .gads-price-value small{font-family:"DM Sans",system-ui,sans-serif;font-size:16px;font-weight:500}
+  .gads-page .gads-price-card .gads-check-list{margin:20px 0 24px}
+  .gads-page #faq>.gads-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.65fr);gap:12px 56px;align-items:start}
+  .gads-page #faq .gads-eyebrow{grid-column:1/-1}
+  .gads-page #faq .gads-faq-grid{grid-column:2;grid-row:2/4;margin:0;max-width:none;gap:0}
+  .gads-page #faq details{border:0;border-bottom:1px solid var(--gads-border);border-radius:0;box-shadow:none;padding:0}
+  .gads-page #faq details:first-child{border-top:1px solid var(--gads-border)}
+  .gads-page #faq summary{display:list-item;min-height:48px;padding:20px 4px;font-size:17px}
+  .gads-page #faq details p{margin:0;padding:0 4px 20px}
+  .gads-page .gads-faq-help{grid-column:1;grid-row:3;align-self:start;padding:22px;border-radius:20px;background:#effaf7}
+  .gads-page .gads-faq-help a{display:inline-flex;min-height:44px;align-items:center;color:#06745f;font-weight:700}
+  .gads-page .gads-final{background:#effaf7;border:1px solid #c7e6dd;border-radius:24px;box-shadow:none}
+  .gads-page .gads-internal-links a{min-height:44px}
+  .gads-page :is(a,button,summary):focus-visible{outline:3px solid #06745f;outline-offset:3px}
+  .gads-page #efekty a:focus-visible{outline-color:#7fe3d2}
+  @media(max-width:980px){
+    .gads-page .gads-hero-grid,.gads-page .gads-price-grid,.gads-page .gads-effects{grid-template-columns:minmax(0,1fr);gap:32px}
+    .gads-page .gads-search-card{max-width:640px}
+    .gads-page .gads-card-grid,.gads-page .gads-fit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .gads-page #faq>.gads-wrap{display:flex;flex-direction:column;gap:18px}
+    .gads-page #faq .gads-faq-grid,.gads-page .gads-faq-help{width:100%}
+  }
+  @media(max-width:720px){
+    .gads-page .gads-wrap{width:calc(100% - 40px)}
+    .gads-page .gads-section{padding:64px 0}
+    .gads-page .gads-hero{padding:48px 0 64px}
+    .gads-page .gads-card-grid,.gads-page .gads-fit-grid,.gads-page .gads-waste-list,.gads-page .gads-process-grid{grid-template-columns:minmax(0,1fr)}
+    .gads-page .gads-h1{font-size:clamp(32px,8.5vw,40px);overflow-wrap:anywhere}
+    .gads-page .gads-h2{font-size:clamp(28px,7vw,34px)}
+    .gads-page .gads-price-card,.gads-page .gads-final,.gads-page .gads-loss-panel{padding:24px}
+    .gads-page .gads-quick-inner{width:100%;padding-inline:20px}
+    .gads-page .gads-screenshot-body{padding:16px}
+    .gads-page .gads-screenshot-row{font-size:9px;gap:4px;padding:8px 5px;letter-spacing:0}
+  }
+  @media(max-width:380px){.gads-page .gads-intent-row{grid-template-columns:minmax(0,1fr)}}
+  @media(prefers-reduced-motion:reduce){.gads-page *, .gads-page *::before,.gads-page *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
 </style>
 
 <main class="gads-page">
@@ -283,12 +391,14 @@ $faq_items = [
     <div class="gads-wrap gads-quick-inner">
       <div class="gads-quick-links">
         <a href="#start">Start</a>
+        <a href="#lokalnie">Lokalnie</a>
         <a href="#problemy">Budżet</a>
         <a href="#zakres">Zakres</a>
-        <a href="#lokalnie">Lokalnie</a>
         <a href="#dla-kogo">Dla kogo</a>
         <a href="#typy">Typy kampanii</a>
+        <a href="#cennik">Cennik</a>
         <a href="#proces">Proces</a>
+        <a href="#efekty">Efekty</a>
         <a href="#faq">FAQ</a>
       </div>
       <a href="#kontakt" class="gads-quick-cta" data-cta="googleads-quick-cta" data-cta-section="hero" data-cta-position="topbar">Sprawdź koszt leada</a>
@@ -309,6 +419,7 @@ $faq_items = [
           <a href="#kontakt" class="gads-btn gads-btn-primary" data-cta="googleads-hero-diagnosis" data-cta-section="hero" data-cta-position="primary">Chcę bezpłatną diagnozę</a>
           <a href="#zakres" class="gads-btn gads-btn-secondary">Zobacz zakres usługi</a>
           <a href="#typy" class="gads-btn gads-btn-ghost">Search czy PMax?</a>
+          <a href="#cennik" class="gads-btn gads-btn-secondary">Zobacz cennik</a>
         </div>
       </div>
 
@@ -554,6 +665,30 @@ $faq_items = [
     </div>
   </section>
 
+
+  <!-- Pricing from the approved redesign; advertising spend remains separate. -->
+  <section class="gads-section" id="cennik" aria-labelledby="gads-price-heading">
+    <div class="gads-wrap gads-price-grid">
+      <div>
+        <span class="gads-eyebrow">Cennik</span>
+        <h2 class="gads-h2" id="gads-price-heading">Ile kosztuje prowadzenie kampanii Google Ads?</h2>
+        <div class="gads-copy">
+          <p>Stała opłata za prowadzenie. Budżet reklamowy płacisz bezpośrednio do Google — bez mojej prowizji.</p>
+          <p>Na bezpłatnej rozmowie ustalimy zakres współpracy i budżet dopasowany do Twojej firmy.</p>
+        </div>
+      </div>
+      <div class="gads-price-card">
+        <strong class="gads-price-value">od 1 800 zł <small>/ mies.</small></strong>
+        <ul class="gads-check-list">
+          <li>Konfiguracja i prowadzenie kampanii</li>
+          <li>Pomiar sprzedaży i telefonów</li>
+          <li>Miesięczny raport i rozmowa</li>
+        </ul>
+        <a href="#kontakt" class="gads-btn gads-btn-primary" data-cta="googleads-price-diagnosis" data-cta-section="pricing" data-cta-position="primary">Zapytaj o wycenę</a>
+      </div>
+    </div>
+  </section>
+
   <section class="gads-section gads-process" id="proces">
     <div class="gads-wrap">
       <span class="gads-eyebrow">Proces współpracy</span>
@@ -641,6 +776,11 @@ $faq_items = [
     <div class="gads-wrap">
       <span class="gads-eyebrow">FAQ</span>
       <h2 class="gads-h2">Najczęstsze pytania przed rozpoczęciem kampanii Google Ads.</h2>
+      <div class="gads-faq-help">
+        <strong>Nie ma tu Twojego pytania?</strong>
+        <p>Zadzwoń — odpowiadam osobiście, pn–pt 9–17.</p>
+        <a href="tel:<?php echo esc_attr(preg_replace('/\s+/', '', $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a>
+      </div>
       <div class="gads-faq-grid">
         <?php foreach ($faq_items as $faq_item) : ?>
           <details>
@@ -725,10 +865,13 @@ if (function_exists("upsellio_render_service_schema")) {
     function setActiveQuickLink() {
       let current = "";
       sections.forEach((section) => {
-        if (window.scrollY >= section.offsetTop - 170) current = "#" + section.id;
+        if (section.getBoundingClientRect().top <= 100) current = "#" + section.id;
       });
       quickLinks.forEach((link) => {
-        link.classList.toggle("is-active", link.getAttribute("href") === current);
+        const active = link.getAttribute("href") === current;
+        link.classList.toggle("is-active", active);
+        if (active) link.setAttribute("aria-current", "location");
+        else link.removeAttribute("aria-current");
       });
     }
 
