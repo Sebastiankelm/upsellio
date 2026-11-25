@@ -6,6 +6,11 @@ if (!defined("ABSPATH")) {
 
 function upsellio_get_site_gtm_container_id()
 {
+    return (string) apply_filters("upsellio_site_gtm_container_id", "GTM-KM9J5XC2");
+}
+
+function upsellio_get_private_offer_gtm_container_id()
+{
     // Private offer links must not load the shared website container by default.
     $container = (string) apply_filters("upsellio_private_offer_gtm_container_id", "");
     return preg_match("/^GTM-[A-Z0-9]+$/", $container) ? $container : "";
@@ -351,7 +356,7 @@ function upsellio_offer_render_public_landing($offer)
     $proof_lines_arr = array_values(array_filter(array_map("trim", preg_split("/\r\n|\r|\n/", (string) ($payload["proof_lines"] ?? "")))));
     $show_proof = isset($payload["show_proof"]) ? !empty($payload["show_proof"]) : count($proof_lines_arr) >= 2;
     $ajax_url = admin_url("admin-ajax.php");
-    $gtm = upsellio_get_site_gtm_container_id();
+    $gtm = upsellio_get_private_offer_gtm_container_id();
     $upsellio_offer_track_public = !$is_preview_mode && (!function_exists("upsellio_should_load_public_tracking_tags") || upsellio_should_load_public_tracking_tags());
     $offer_title = (string) $offer->post_title;
     $content_html = (string) apply_filters("the_content", (string) $offer->post_content);
