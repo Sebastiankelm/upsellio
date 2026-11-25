@@ -88,7 +88,7 @@ add_action("template_redirect", "upsellio_seo_indexing_apply_legacy_redirects", 
 
 function upsellio_seo_indexing_blog_filter_params()
 {
-    return ["s", "category", "tags"];
+    return ["s", "category", "tags", "tag", "blog_search"];
 }
 
 function upsellio_seo_indexing_request_has_blog_filter_params()
@@ -101,25 +101,47 @@ function upsellio_seo_indexing_request_has_blog_filter_params()
     return false;
 }
 
+function upsellio_seo_indexing_is_filtered_blog()
+{
+    return (is_home() ||
+        is_page_template("ups-blog-core.php") ||
+        is_page_template("template-blog-v4.php") ||
+        is_page_template("template-blog-v4-alt.php")) &&
+        upsellio_seo_indexing_request_has_blog_filter_params();
+}
+
+// WordPress core expects boolean directives, not Rank Math's string values.
 function upsellio_seo_indexing_override_robots_meta_for_blog_filters($robots)
 {
-    if (!(is_home() || is_page_template("ups-blog-core.php"))) {
+    if (!upsellio_seo_indexing_is_filtered_blog()) {
         return $robots;
     }
-    if (!upsellio_seo_indexing_request_has_blog_filter_params()) {
-        return $robots;
+    $robots = is_array($robots) ? $robots : [];
+    unset($robots["index"]);
+    $robots["noindex"] = true;
+    if (empty($robots["nofollow"])) {
+        $robots["follow"] = true;
+    } else {
+        unset($robots["follow"]);
     }
-
-    if (!is_array($robots)) {
-        $robots = [];
-    }
-    $robots["index"] = "noindex";
-    $robots["follow"] = "follow";
-
     return $robots;
 }
 add_filter("wp_robots", "upsellio_seo_indexing_override_robots_meta_for_blog_filters", 20);
-add_filter("rank_math/frontend/robots", "upsellio_seo_indexing_override_robots_meta_for_blog_filters", 20);
+
+function upsellio_seo_indexing_rank_math_robots_for_blog_filters($robots)
+{
+    if (!upsellio_seo_indexing_is_filtered_blog()) {
+        return $robots;
+    }
+    $robots = is_array($robots) ? $robots : [];
+    // Keep a site-wide nofollow policy if one is configured.
+    $robots["index"] = "noindex";
+    if (($robots["follow"] ?? "") !== "nofollow") {
+        $robots["follow"] = "follow";
+    }
+    return $robots;
+}
+add_filter("rank_math/frontend/robots", "upsellio_seo_indexing_rank_math_robots_for_blog_filters", 20);
 
 function upsellio_seo_indexing_noindex_feeds()
 {
