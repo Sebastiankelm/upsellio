@@ -245,3 +245,35 @@ body.ups-crm-redesign {
 .ups-crm-redesign .crm-cal-outside-item a { color:inherit; text-decoration:underline; overflow-wrap:anywhere; }
 .ups-crm-redesign .crm-cal-outside-item[draggable="false"] { cursor:default; opacity:.8; }
 .ups-crm-redesign :is(.ups-cal-slot,.ups-cal-slot-tasks)[data-saving="1"] { opacity:.55; cursor:wait; }
+
+/* Agency audit and AI: shared portfolio health, report controls, and configuration panels. */
+.ups-crm-redesign .crm-audit-summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(135px,1fr)); gap:12px; margin-top:18px; }
+.ups-crm-redesign .crm-audit-summary-card { display:flex; flex-direction:column; align-items:flex-start; gap:12px; border:1px solid var(--border); border-radius:12px; padding:16px; background:white; text-decoration:none; }
+.ups-crm-redesign .crm-audit-summary-card:hover, .ups-crm-redesign .crm-audit-summary-card.is-active { border-color:var(--teal); background:#f3fbf8; }
+.ups-crm-redesign .crm-audit-summary-card strong { font:700 28px var(--font-display); color:var(--text); }
+.ups-crm-redesign .crm-audit-status { display:inline-flex; align-items:center; padding:3px 8px; font-size:12px; font-weight:600; border-radius:999px; background:#eef0f3; color:#475569; white-space:nowrap; }
+.ups-crm-redesign .crm-audit-status--green { background:#dff5ef; color:#06745f; }
+.ups-crm-redesign .crm-audit-status--yellow { background:#fff2de; color:#92400e; }
+.ups-crm-redesign .crm-audit-status--red { background:#fee2e2; color:#b42318; }
+.ups-crm-redesign .crm-audit-status--unknown { background:#eef0f3; color:#475569; }
+.ups-crm-redesign .crm-audit-alert-row { display:flex; flex-wrap:wrap; align-items:center; gap:10px; border:1px solid var(--border); border-radius:10px; padding:12px; font-size:13px; }
+.ups-crm-redesign .crm-audit-alert-row a { white-space:nowrap; color:var(--teal); }
+.ups-crm-redesign .crm-context-strip { display:flex; align-items:center; flex-wrap:wrap; gap:12px; background:white; border:1px solid var(--border); border-radius:12px; padding:12px 16px; color:var(--text-2); }
+.ups-crm-redesign .crm-context-strip a { border-radius:7px; padding:6px 8px; text-decoration:none; }
+.ups-crm-redesign .crm-context-strip a[aria-current="page"] { background:var(--teal-soft); color:var(--teal); font-weight:700; }
+.ups-crm-redesign #ups-audit-dash-root .kpi { background:white; min-width:0; }
+.ups-crm-redesign #ups-audit-dash-root .kpi b { font-family:var(--font-display); font-weight:700; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+.ups-crm-redesign #ups-audit-dash-root .ups-audit-dash-charts-main { gap:16px; }
+.ups-crm-redesign .crm-audit-report-actions { display:flex; flex-wrap:wrap; gap:8px; padding:12px 0; margin-bottom:8px; }
+.ups-crm-redesign .crm-insight-panel h3 { font-size:15px; margin:0 0 12px; }
+.ups-crm-redesign .crm-insight-scroll { max-height:360px; overflow:auto; }
+.ups-crm-redesign .crm-insight-panel pre { white-space:pre-wrap; overflow-wrap:anywhere; background:var(--bg); padding:12px; border-radius:8px; }
+.ups-crm-redesign .crm-settings-navigation .crm-page-tabs { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0 0; }
+.ups-crm-redesign .crm-settings-navigation .crm-page-tabs a { padding:9px 12px; border:1px solid var(--border); border-radius:8px; text-decoration:none; }
+.ups-crm-redesign .crm-settings-navigation .crm-page-tabs a.is-active { background:var(--teal-soft); color:var(--teal); border-color:var(--teal-line); }
+@media(max-width:760px) {
+  .ups-crm-redesign .crm-audit-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .ups-crm-redesign .crm-audit-summary-card { padding:12px; }
+  .ups-crm-redesign .crm-audit-profile-switch { margin-left:0 !important; max-width:100%; }
+  .ups-crm-redesign .crm-settings-navigation .crm-page-tabs { flex-wrap:nowrap; overflow-x:auto; }
+}
