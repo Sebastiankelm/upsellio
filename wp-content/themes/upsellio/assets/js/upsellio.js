@@ -118,6 +118,7 @@
     const setMobileMenuState = (isOpen) => {
       ham.classList.toggle("open", isOpen);
       mob.classList.toggle("open", isOpen);
+      mob.inert = !isOpen;
       ham.setAttribute("aria-expanded", isOpen ? "true" : "false");
       ham.setAttribute("aria-label", isOpen ? "Zamknij menu" : "Otwórz menu");
       document.body.classList.toggle("is-mobile-menu-open", isOpen);
@@ -147,7 +148,7 @@
     });
 
     window.addEventListener("resize", () => {
-      if (window.innerWidth >= 761) {
+      if (window.innerWidth >= 980) {
         setMobileMenuState(false);
       }
     });
@@ -158,7 +159,7 @@
         return;
       }
       if (event.key !== "Tab" || !ham.classList.contains("open")) return;
-      const focusable = getMenuFocusable();
+      const focusable = [ham, ...getMenuFocusable()];
       if (!focusable.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -199,6 +200,11 @@
       });
     });
 
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      const active = dropdownRoots.find(root => root.classList.contains("open") && root.contains(document.activeElement));
+      if (active) { closeDropdown(active); active.querySelector(".nav-dropdown-toggle")?.focus(); }
+    });
     document.addEventListener("click", (event) => {
       const clickedInside = dropdownRoots.some((root) => root.contains(event.target));
       if (!clickedInside) closeAllDropdowns();
