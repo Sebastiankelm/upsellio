@@ -166,17 +166,18 @@ $sync_nonce = wp_create_nonce("ups_crm_app_action");
           btn.disabled = false;
           if (msg) {
             msg.style.display = "block";
-            if (d && d.success) {
-              msg.style.background = "#e8f5e9";
-              msg.style.color = "var(--success)";
-              var g = d.data && d.data.log && d.data.log.gsc ? d.data.log.gsc : {};
-              var a = d.data && d.data.log && d.data.log.ga4 ? d.data.log.ga4 : {};
-              msg.textContent = "OK — GSC: " + (g.count || 0) + " wierszy (" + (g.source || "") + "), GA4: " + (a.count || 0) + " (" + (a.source || "") + ")";
-              setTimeout(function () { window.location.reload(); }, 2000);
+            var log = d && d.data && d.data.log;
+            var g = log && log.gsc ? log.gsc : {};
+            var a = log && log.ga4 ? log.ga4 : {};
+            var both = !!(d && d.success && g.ok === true && a.ok === true);
+            msg.style.background = both ? "#e8f5e9" : "#fff7ed";
+            msg.style.color = both ? "var(--success)" : "var(--warn)";
+            if (log) {
+              var label = function(v) { return v.ok === true ? "OK (" + (v.count || 0) + " wierszy, " + (v.source || "—") + ")" : "niepowodzenie"; };
+              msg.textContent = "GSC: " + label(g) + " · GA4: " + label(a) + ". Ads i audyt klientów wymagają odrębnej weryfikacji.";
+              if (both) setTimeout(function () { window.location.reload(); }, 2500);
             } else {
-              msg.style.background = "#fef2f2";
-              msg.style.color = "var(--danger)";
-              msg.textContent = "Błąd sync.";
+              msg.textContent = "Synchronizacja niepotwierdzona. Sprawdź uprawnienia i połączenia Google.";
             }
           }
         })
