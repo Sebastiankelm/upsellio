@@ -98,8 +98,9 @@ while (have_posts()) :
         }
         // Rank Math (or another configured SEO plugin) owns frontend schema.
         if (!$seo_plugin) {
-            $areas = [["@type" => "City", "name" => $cityName]];
+            $areas = [];
             if ($voivodeship !== "") {
+                $areas[] = ["@type" => "City", "name" => $cityName];
                 $areas[] = ["@type" => "AdministrativeArea", "name" => $voivodeship];
             }
             $flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
@@ -109,8 +110,7 @@ while (have_posts()) :
                 "name" => "Marketing internetowy i strony WWW – " . $cityName,
                 "url" => $canonical,
                 "provider" => ["@type" => "Organization", "name" => "Upsellio", "url" => home_url("/")],
-                "areaServed" => $areas,
-            ], $flags) . "</script>\n";
+            ] + ($areas ? ["areaServed" => $areas] : []), $flags) . "</script>\n";
             echo '<script type="application/ld+json">' . wp_json_encode([
                 "@context" => "https://schema.org",
                 "@type" => "BreadcrumbList",
@@ -162,6 +162,10 @@ while (have_posts()) :
             "order" => "ASC",
             "fields" => "ids",
         ]);
+        // Prime metadata cache before iterating over city IDs.
+        if (!empty($cityPosts)) {
+            update_meta_cache("post", $cityPosts);
+        }
         foreach ($cityPosts as $cityPostId) {
             if ((int) $cityPostId === (int) $postId) {
                 continue;
@@ -186,6 +190,7 @@ while (have_posts()) :
         }
     }
     $related = array_slice($cityInternalLinks, 0, 6);
+    $cityInternalLinks = array_slice($cityInternalLinks, 6);
     $definitionInternalLinks = array_slice($definitionLinks, 0, 8);
     ?>
     <style>
