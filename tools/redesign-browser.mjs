@@ -65,6 +65,37 @@ try {
         issues.push(width + " " + path + ": " + error.message);
       }
     }
+    if (width === 390) {
+      try {
+        await page.goto(origin + "/kontakt/?utm_source=fixture-browser", { waitUntil: "load" });
+        const form = page.locator("#contact-page-form");
+        await page.waitForFunction(() => document.querySelector("#contact-page-form")?.dataset.upsellioAjaxReady === "1");
+        let postedEventId = "";
+        let posts = 0;
+        page.on("request", request => {
+          if (request.method() !== "POST" || !request.url().includes("/wp-admin/admin-post.php")) return;
+          posts++;
+          const raw = request.postData() || "";
+          const match = raw.match(/name="lead_event_id"\r?\n\r?\n([^\r\n]+)/);
+          if (match) postedEventId = match[1];
+        });
+        const before = await page.evaluate(() => (window.dataLayer || []).filter(e => e.event === "generate_lead").length);
+        await form.locator('[name="lead_name"]').fill("Fixture browser");
+        await form.locator('[name="lead_phone"]').fill("000000000");
+        await form.locator('[name="lead_email"]').fill("browser-contact@example.invalid");
+        await form.locator('[name="lead_consent"]').check();
+        await form.locator('button[type="submit"], input[type="submit"]').first().click();
+        await form.locator('[data-form-feedback].is-success').waitFor({ state: "visible", timeout: 15000 });
+        const events = await page.evaluate(() => (window.dataLayer || []).filter(e => e.event === "generate_lead"));
+        assert.equal(posts, 1, "Exactly one browser POST");
+        assert.ok(postedEventId, "Event ID allocated before POST");
+        assert.equal(events.length, before + 1, "Exactly one confirmed generate_lead");
+        assert.equal(events.at(-1).event_id, postedEventId, "Browser and POST event ID");
+        assert.equal(events.at(-1).form_origin, "contact-page-form");
+        assert.equal(new URL(page.url()).pathname, "/kontakt/", "AJAX stays on contact page");
+        console.log("Browser contact AJAX conversion: PASS");
+      } catch (error) { issues.push("Browser contact AJAX: " + error.message); }
+    }
     await context.close();
   }
 } finally {
