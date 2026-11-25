@@ -8547,9 +8547,15 @@ function upsellio_crm_app_template_redirect()
             credentials: "same-origin",
             headers: {"Content-Type": "application/x-www-form-urlencoded"},
             body: new URLSearchParams({action: "upsellio_ai_today_brief", nonce: window.CRM_CAL_NONCE}).toString()
-          }).then(function (r) { return r.json(); }).then(function (d) {
-            if (d && d.success && d.data && d.data.brief && el) el.textContent = d.data.brief;
-          }).catch(function () {});
+          }).then(function (r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+          }).then(function (d) {
+            if (!d || !d.success || !d.data || typeof d.data.brief !== "string" || !d.data.brief.trim()) throw new Error("Invalid brief");
+            if (el) el.textContent = d.data.brief.replace(/^\s{0,3}#{1,6}\s+/gm, "");
+          }).catch(function () {
+            if (el) el.textContent = "Nie udało się odświeżyć briefu. Sprawdź integrację AI i spróbuj ponownie.";
+          });
         };
         window.crmRefreshWeeklyBrief = function () {
           return fetch(window.CRM_AJAX_URL, {
