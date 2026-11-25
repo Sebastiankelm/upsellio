@@ -56,3 +56,80 @@ jobs:
 
       - name: Research UI regression checks
         run: node tests/crm-research-regression.cjs
+
+      # Package only reviewed CRM theme files. This step never contacts production.
+      - name: Prepare CRM release package
+        if: github.event_name == 'pull_request' && github.event.pull_request.number == 1
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          RELEASE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$RELEASE_SHA"
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, re, subprocess
+
+          def git(*args):
+              return subprocess.check_output(["git", *args])
+
+          base, head = os.environ["BASE_SHA"], os.environ["RELEASE_SHA"]
+          assert all(re.fullmatch(r"[a-f0-9]{40}", s) for s in (base, head))
+          prefix = "wp-content/themes/upsellio/"
+          exact = {
+              "assets/css/crm-redesign.css",
+              "inc/ai-cost-tracker.php",
+              "inc/automation-suite.php",
+              "inc/client-audit-intelligence.php",
+              "inc/client-audit-oauth.php",
+              "inc/client-audit-sync.php",
+          }
+          out = pathlib.Path(os.environ["RUNNER_TEMP"]) / "upsellio-crm-release"
+          out.mkdir(exist_ok=False)
+          records = []
+          changed = git("diff", "--no-renames", "--name-status", "-z", base, head, "--", prefix).decode("utf-8").split("\0")
+          assert changed.pop() == ""
+          assert len(changed) % 2 == 0
+          for status, full in zip(changed[::2], changed[1::2]):
+              assert full.startswith(prefix)
+              rel = full[len(prefix):]
+              assert re.fullmatch(r"[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*\.(php|css|js)", rel), rel
+              assert rel in exact or rel.startswith("inc/crm-app/"), rel
+              assert status in ("A", "M"), (status, rel)
+              assert status != "A" or rel == "assets/css/crm-redesign.css", rel
+              assert git("ls-tree", head, "--", full).split()[0] == b"100644", rel
+              after = git("show", f"{head}:{full}")
+              before = git("show", f"{base}:{full}") if status == "M" else None
+              if before is not None:
+                  assert git("ls-tree", base, "--", full).split()[0] == b"100644", rel
+              target = out / "payload" / rel
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(after)
+              records.append({"path": rel, "operation": "replace" if before is not None else "add",
+                              "base_git_sha256": hashlib.sha256(before).hexdigest() if before is not None else None,
+                              "release_sha256": hashlib.sha256(after).hexdigest(), "bytes": len(after)})
+          assert records, "No CRM files"
+          assert len(records) == 29, "Unexpected release scope; review before changing this guard"
+          manifest = {"format": "upsellio-crm-release-preflight-v1", "base_git_commit": base,
+                      "release_git_commit": head, "production_verified": False,
+                      "files": records}
+          (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+          (out / "README.txt").write_text(
+              "CRM release package; not a DevOps Bridge request.\n"
+              "No production changes have been made by this workflow.\n"
+              "Base hashes are from Git, not from the live server.\n"
+              "Before deploying: compare all live files, confirm a current database and file backup,\n"
+              "verify permissions and PHP version, test on staging, and deploy as one coherent release.\n"
+              "Stop on any hash mismatch. Rollback must restore actual live backups and remove newly added files.\n"
+              "Do not overwrite the complete theme or deploy tests to production.\n"
+          )
+          print(f"Prepared {len(records)} files for {head}; production untouched.")
+          PY
+      - name: Upload CRM release package
+        if: github.event_name == 'pull_request' && github.event.pull_request.number == 1
+        uses: actions/upload-artifact@v4
+        with:
+          name: upsellio-crm-release
+          path: ${{ runner.temp }}/upsellio-crm-release/
+          if-no-files-found: error
+          retention-days: 14
