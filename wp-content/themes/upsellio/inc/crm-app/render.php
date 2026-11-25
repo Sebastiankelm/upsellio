@@ -254,6 +254,27 @@ function upsellio_crm_app_template_redirect()
 
     $crm_collections = upsellio_crm_app_load_render_collections($view, $template_studio_tab, $crm_inbox_ctx);
     $clients = $crm_collections["clients"];
+    $crm_list_page = $crm_collections["list_page"] ?? null;
+    $crm_render_list_pagination = static function () use ($crm_list_page, $view, $lead_tab): void {
+        if (!is_array($crm_list_page)) {
+            return;
+        }
+        $page = (int) $crm_list_page["page"];
+        $pages = (int) $crm_list_page["pages"];
+        $base = ["view" => $view];
+        if ($view === "leads") {
+            $base["lead_tab"] = $lead_tab;
+        }
+        echo '<nav class="crm-view-tabs" aria-label="Paginacja" style="margin-top:16px;align-items:center">';
+        echo '<span class="muted">' . esc_html(sprintf("Strona %d z %d · rekordy: %d", $page, max(1, $pages), (int) $crm_list_page["total"])) . '</span>';
+        if ($page > 1) {
+            echo '<a class="btn alt" href="' . esc_url(add_query_arg(array_merge($base, ["crm_page" => $page - 1]), home_url("/crm-app/"))) . '">Poprzednia</a>';
+        }
+        if ($page < $pages) {
+            echo '<a class="btn alt" href="' . esc_url(add_query_arg(array_merge($base, ["crm_page" => $page + 1]), home_url("/crm-app/"))) . '">Następna</a>';
+        }
+        echo '</nav>';
+    };
     $offers = $crm_collections["offers"];
     $followups = $crm_collections["followups"];
     $prospects = $crm_collections["prospects"];
@@ -1401,11 +1422,7 @@ function upsellio_crm_app_template_redirect()
               <?php $ups_new_dashboard_layout = true; ?>
               <?php if ($ups_new_dashboard_layout) : ?>
                 <?php $dashboard_hot_offers = function_exists("upsellio_offers_active_today") ? upsellio_offers_active_today(3) : []; ?>
-                <?php if (count($leads) >= 500 || count($offers) >= 500 || count($tasks) >= 150) : ?>
-                  <div class="crm-alert-bar" role="alert" style="grid-column:1/-1">
-                    <?php esc_html_e("Osiągnięto limit danych pulpitu. Statystyki mogą nie obejmować wszystkich rekordów.", "upsellio"); ?>
-                  </div>
-                <?php endif; ?>
+
                 <div class="crm-content" style="grid-column:1/-1;width:100%;min-width:0">
                 <div class="crm-card-hd" style="margin-bottom:0">
                   <span><?php esc_html_e("Podsumowanie dnia", "upsellio"); ?></span>
@@ -1864,7 +1881,8 @@ function upsellio_crm_app_template_redirect()
               $overdue_leads = 0;
               $qualified_leads = 0;
               $active_budget_total = 0.0;
-              foreach ($leads as $lead_stat) {
+              $lead_metric_posts = $crm_collections["lead_metric_posts"] ?? $leads;
+              foreach ($lead_metric_posts as $lead_stat) {
                   $lead_id_stat = (int) $lead_stat->ID;
                   $st = (string) get_post_meta($lead_id_stat, "_ups_lead_qualification_status", true);
                   if ($st === "qualified") {
@@ -1883,7 +1901,7 @@ function upsellio_crm_app_template_redirect()
                   }
               }
               ?>
-              <section class="card kpi"><span class="muted">Nowe leady</span><b><?php echo esc_html((string) count($leads)); ?></b></section>
+              <section class="card kpi"><span class="muted">Wszystkie leady</span><b><?php echo esc_html((string) count($lead_metric_posts)); ?></b></section>
               <section class="card kpi"><span class="muted">Zaległe (&gt;48h)</span><b><?php echo esc_html((string) $overdue_leads); ?></b></section>
               <section class="card kpi"><span class="muted">Zakwalifikowane</span><b><?php echo esc_html((string) $qualified_leads); ?></b></section>
               <section class="card kpi"><span class="muted">Wartość potencjalna</span><b><?php echo esc_html(number_format($active_budget_total, 0, ",", " ")); ?> PLN</b></section>
@@ -2060,6 +2078,7 @@ function upsellio_crm_app_template_redirect()
                     <div class="crm-lrow"><div></div><div><?php esc_html_e("Brak leadów.", "upsellio"); ?></div></div>
                   <?php endif; ?>
                 </div>
+              <?php $crm_render_list_pagination(); ?>
               </section>
             <?php endif; ?>
             <?php if ($view === "account-360") : ?>
@@ -2211,6 +2230,7 @@ function upsellio_crm_app_template_redirect()
                   <tr><td><?php echo esc_html((string) $contact->post_title); ?></td><td><?php echo esc_html((string) get_the_title((int) get_post_meta($cid, "_ups_contact_client_id", true))); ?></td><td><?php echo esc_html((string) get_post_meta($cid, "_ups_contact_role", true)); ?></td><td><?php echo esc_html((string) get_post_meta($cid, "_ups_contact_email", true)); ?></td><td><?php echo esc_html((string) get_post_meta($cid, "_ups_contact_phone", true)); ?></td></tr>
                 <?php endforeach; ?>
                 </tbody></table>
+              <?php $crm_render_list_pagination(); ?>
               </section>
             <?php endif; ?>
             <?php if ($view === "services") : ?>
@@ -2281,6 +2301,7 @@ function upsellio_crm_app_template_redirect()
                     </article>
                   <?php endforeach; ?>
                 </div>
+              <?php $crm_render_list_pagination(); ?>
               </section>
             <?php endif; ?>
             <?php if ($view === "client-edit") : ?>
@@ -3911,6 +3932,7 @@ function upsellio_crm_app_template_redirect()
                   <?php endforeach; ?>
                   </tbody>
                 </table>
+              <?php $crm_render_list_pagination(); ?>
               </section>
             <?php endif; ?>
             <?php if ($view === "contract-detail") : ?>
