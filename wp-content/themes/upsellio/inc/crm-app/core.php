@@ -416,6 +416,18 @@ function upsellio_crm_app_calendar_work_hours(): array
     return ["start" => 8, "end" => 16];
 }
 
+/** Validate a drag-and-drop workday slot in the WordPress timezone. Manual edits may retain outside-hours appointments. */
+function upsellio_crm_app_calendar_slot_fits(int $timestamp, int $duration): bool
+{
+    if ($timestamp <= 0 || $duration < 15 || $duration > 480) {
+        return false;
+    }
+    $start = (new DateTimeImmutable("@" . $timestamp))->setTimezone(wp_timezone());
+    $hours = upsellio_crm_app_calendar_work_hours();
+    $min = (int) $start->format("G") * 60 + (int) $start->format("i");
+    return $min >= $hours["start"] * 60 && $min + $duration <= $hours["end"] * 60;
+}
+
 /** Retain appointments outside the grid, limited to the selected local week. */
 function upsellio_crm_app_calendar_outside_hours(array $by_day, DateTimeImmutable $week_start): array
 {
