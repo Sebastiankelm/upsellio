@@ -26,7 +26,6 @@ add_action("wp_head", static function () {
         echo '<meta name="twitter:image" content="' . esc_url($og_image) . '">' . "\n";
     }
     echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
-    echo '<link rel="canonical" href="' . esc_url($url) . '">' . "\n";
 }, 1);
 
 get_header();
