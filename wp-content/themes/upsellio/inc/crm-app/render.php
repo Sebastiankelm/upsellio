@@ -4448,10 +4448,12 @@ function upsellio_crm_app_template_redirect()
                   ];
               }
               ksort($tasks_week_calendar);
+              $calendar_hours_w = upsellio_crm_app_calendar_work_hours();
+              $calendar_outside_w = upsellio_crm_app_calendar_outside_hours($tasks_week_calendar, $week_start_w);
               ?>
               <section class="card">
                 <h2><?php esc_html_e("Kalendarz tygodniowy (podział na godziny)", "upsellio"); ?></h2>
-                <p class="muted" style="margin:0 0 10px;font-size:13px"><?php esc_html_e("Ten sam widok co w adresie /crm-app/?view=calendar — zadania z terminem w siatce 7:00–21:00. Przeciągnij kartę z backlogu na slot lub między slotami.", "upsellio"); ?></p>
+                <p class="muted" style="margin:0 0 10px;font-size:13px"><?php esc_html_e("Godziny pracy 8:00–16:00. Przeciągnij zadanie z backlogu na wybraną godzinę. Zadania poza godzinami pracy pozostają w osobnej sekcji.", "upsellio"); ?></p>
                 <p>
                   <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "tasks", "task_tab" => "week", "week_offset" => $task_cal_week_offset - 1], home_url("/crm-app/"))); ?>">&larr; <?php esc_html_e("Poprzedni tydzień", "upsellio"); ?></a>
                   <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "tasks", "task_tab" => "week", "week_offset" => 0], home_url("/crm-app/"))); ?>"><?php esc_html_e("Bieżący tydzień", "upsellio"); ?></a>
@@ -4488,6 +4490,19 @@ function upsellio_crm_app_template_redirect()
                         <small><?php echo esc_html((string) $duration_b); ?> min</small>
                       </article>
                     <?php endforeach; ?>
+                    <div class="crm-cal-outside-hours">
+                    <h3><?php esc_html_e("Poza godzinami pracy", "upsellio"); ?> (<?php echo count($calendar_outside_w); ?>)</h3>
+                    <?php foreach ($calendar_outside_w as $outside_item) :
+                        $closed = in_array($outside_item["status"] ?? "", ["done", "cancelled"], true);
+                        ?>
+                      <article class="ups-cal-task-tasks crm-cal-outside-item" draggable="<?php echo $closed ? "false" : "true"; ?>" data-task-id="<?php echo (int) $outside_item["id"]; ?>" data-duration="<?php echo (int) $outside_item["duration"]; ?>">
+                        <a href="<?php echo esc_url(upsellio_crm_url("tasks", ["task_id" => (int) $outside_item["id"], "task_tab" => "all"])); ?>"><?php echo esc_html($outside_item["title"]); ?></a>
+                        <small><?php echo esc_html($outside_item["date"] . " · " . $outside_item["time"]); ?> · <?php echo (int) $outside_item["duration"]; ?> min</small>
+                        <?php if ($closed) : ?><small><?php echo esc_html(($outside_item["status"] ?? "") === "done" ? "Zakończone" : "Anulowane"); ?></small><?php endif; ?>
+                      </article>
+                    <?php endforeach; ?>
+                    <?php if (!$calendar_outside_w) : ?><p class="muted">Brak zadań poza godzinami pracy w tym tygodniu.</p><?php endif; ?>
+                  </div>
                   </aside>
                   <div class="ups-cal-grid-tasks">
                     <table class="ups-cal-table-tasks">
@@ -4500,9 +4515,9 @@ function upsellio_crm_app_template_redirect()
                         </tr>
                       </thead>
                       <tbody>
-                        <?php for ($hour_w = 7; $hour_w <= 21; $hour_w++) : ?>
+                        <?php for ($hour_w = $calendar_hours_w["start"]; $hour_w < $calendar_hours_w["end"]; $hour_w++) : ?>
                           <tr>
-                            <td class="ups-cal-hour-tasks"><?php echo esc_html(sprintf("%02d:00", $hour_w)); ?></td>
+                            <td class="ups-cal-hour-tasks"><?php echo esc_html(sprintf("%02d:00–%02d:00", $hour_w, $hour_w + 1)); ?></td>
                             <?php foreach ($week_days_w as $day_w) : ?>
                               <?php
                               $slot_iso_w = $day_w["key"] . " " . sprintf("%02d:00:00", $hour_w);
@@ -4540,6 +4555,7 @@ function upsellio_crm_app_template_redirect()
                       });
                       card.addEventListener("dragend", () => {
                         card.classList.remove("dragging");
+                        dragged = null;
                       });
                     });
                     slots.forEach((slot) => {
@@ -4562,14 +4578,23 @@ function upsellio_crm_app_template_redirect()
                         payload.append("task_id", String(taskId));
                         payload.append("start_at", startAt);
                         payload.append("duration_minutes", String(durationMinutes));
-                        const res = await fetch("<?php echo esc_url(admin_url("admin-ajax.php")); ?>", {
-                          method: "POST",
-                          credentials: "same-origin",
-                          headers: {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"},
-                          body: payload.toString()
-                        });
-                        if (!res.ok) return;
-                        slot.appendChild(dragged);
+                        if (slot.dataset.saving === "1") return;
+                        slot.dataset.saving = "1";
+                        try {
+                          const res = await fetch("<?php echo esc_url(admin_url("admin-ajax.php")); ?>", {
+                            method: "POST",
+                            credentials: "same-origin",
+                            headers: {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"},
+                            body: payload.toString()
+                          });
+                          const result = await res.json();
+                          if (!res.ok || !result || !result.success) throw new Error("schedule_failed");
+                          window.location.reload();
+                        } catch (error) {
+                          alert("Nie udało się zapisać terminu zadania. Dotychczasowy termin pozostaje widoczny.");
+                        } finally {
+                          delete slot.dataset.saving;
+                        }
                       });
                     });
                   })();
@@ -4635,9 +4660,11 @@ function upsellio_crm_app_template_redirect()
                   ];
               }
               ksort($calendar_tasks);
+              $calendar_hours = upsellio_crm_app_calendar_work_hours();
+              $calendar_outside = upsellio_crm_app_calendar_outside_hours($calendar_tasks, $week_start);
               ?>
               <section class="card">
-                <h2>Tydzień: <?php echo esc_html(wp_date("d.m", $week_start->getTimestamp()) . " – " . wp_date("d.m.Y", $week_start->modify("+6 days")->getTimestamp())); ?></h2><p class="muted">Przeciągnij zadanie z backlogu na wybraną godzinę.</p>
+                <h2>Tydzień: <?php echo esc_html(wp_date("d.m", $week_start->getTimestamp()) . " – " . wp_date("d.m.Y", $week_start->modify("+6 days")->getTimestamp())); ?></h2><p class="muted">Godziny pracy 8:00–16:00. Przeciągnij zadanie z backlogu na wybraną godzinę.</p>
                 <p>
                   <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "calendar", "week_offset" => $week_offset - 1], home_url("/crm-app/"))); ?>">&larr; Poprzedni tydzień</a>
                   <a class="btn alt" href="<?php echo esc_url(add_query_arg(["view" => "calendar", "week_offset" => 0], home_url("/crm-app/"))); ?>">Dziś</a>
@@ -4673,6 +4700,19 @@ function upsellio_crm_app_template_redirect()
                         <small><?php echo esc_html((string) $duration); ?> min</small>
                       </article>
                     <?php endforeach; ?>
+                    <div class="crm-cal-outside-hours">
+                    <h3><?php esc_html_e("Poza godzinami pracy", "upsellio"); ?> (<?php echo count($calendar_outside); ?>)</h3>
+                    <?php foreach ($calendar_outside as $outside_item) :
+                        $closed = in_array($outside_item["status"] ?? "", ["done", "cancelled"], true);
+                        ?>
+                      <article class="ups-cal-task crm-cal-outside-item" draggable="<?php echo $closed ? "false" : "true"; ?>" data-task-id="<?php echo (int) $outside_item["id"]; ?>" data-duration="<?php echo (int) $outside_item["duration"]; ?>">
+                        <a href="<?php echo esc_url(upsellio_crm_url("tasks", ["task_id" => (int) $outside_item["id"], "task_tab" => "all"])); ?>"><?php echo esc_html($outside_item["title"]); ?></a>
+                        <small><?php echo esc_html($outside_item["date"] . " · " . $outside_item["time"]); ?> · <?php echo (int) $outside_item["duration"]; ?> min</small>
+                        <?php if ($closed) : ?><small><?php echo esc_html(($outside_item["status"] ?? "") === "done" ? "Zakończone" : "Anulowane"); ?></small><?php endif; ?>
+                      </article>
+                    <?php endforeach; ?>
+                    <?php if (!$calendar_outside) : ?><p class="muted">Brak zadań poza godzinami pracy w tym tygodniu.</p><?php endif; ?>
+                  </div>
                   </aside>
                   <div class="ups-cal-grid">
                     <table class="ups-cal-table">
@@ -4685,9 +4725,9 @@ function upsellio_crm_app_template_redirect()
                         </tr>
                       </thead>
                       <tbody>
-                        <?php for ($hour = 7; $hour <= 21; $hour++) : ?>
+                        <?php for ($hour = $calendar_hours["start"]; $hour < $calendar_hours["end"]; $hour++) : ?>
                           <tr>
-                            <td class="ups-cal-hour"><?php echo esc_html(sprintf("%02d:00", $hour)); ?></td>
+                            <td class="ups-cal-hour"><?php echo esc_html(sprintf("%02d:00–%02d:00", $hour, $hour + 1)); ?></td>
                             <?php foreach ($week_days as $day) : ?>
                               <?php
                               $slot_iso = $day["key"] . " " . sprintf("%02d:00:00", $hour);
@@ -4725,6 +4765,7 @@ function upsellio_crm_app_template_redirect()
                       });
                       card.addEventListener("dragend", () => {
                         card.classList.remove("dragging");
+                        dragged = null;
                       });
                     });
                     slots.forEach((slot) => {
@@ -4747,14 +4788,23 @@ function upsellio_crm_app_template_redirect()
                         payload.append("task_id", String(taskId));
                         payload.append("start_at", startAt);
                         payload.append("duration_minutes", String(durationMinutes));
-                        const res = await fetch("<?php echo esc_url(admin_url("admin-ajax.php")); ?>", {
-                          method: "POST",
-                          credentials: "same-origin",
-                          headers: {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"},
-                          body: payload.toString()
-                        });
-                        if (!res.ok) return;
-                        slot.appendChild(dragged);
+                        if (slot.dataset.saving === "1") return;
+                        slot.dataset.saving = "1";
+                        try {
+                          const res = await fetch("<?php echo esc_url(admin_url("admin-ajax.php")); ?>", {
+                            method: "POST",
+                            credentials: "same-origin",
+                            headers: {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"},
+                            body: payload.toString()
+                          });
+                          const result = await res.json();
+                          if (!res.ok || !result || !result.success) throw new Error("schedule_failed");
+                          window.location.reload();
+                        } catch (error) {
+                          alert("Nie udało się zapisać terminu zadania. Dotychczasowy termin pozostaje widoczny.");
+                        } finally {
+                          delete slot.dataset.saving;
+                        }
                       });
                     });
                   })();
