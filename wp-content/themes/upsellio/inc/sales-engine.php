@@ -223,6 +223,7 @@ function upsellio_sales_engine_get_offer_timing_context($offer_id)
 function upsellio_sales_engine_refresh_hot_index($offer_id, $summary, $stage)
 {
     $offer_id = (int) $offer_id;
+    if (!upsellio_sales_engine_offer_is_actionable($offer_id)) { return; }
     $intent_score = (int) ($summary["score"] ?? 0);
     $fit_score = upsellio_sales_engine_compute_fit_score($offer_id);
     $intent_weight = max(1, (int) get_option("ups_sales_intent_weight", 60));
@@ -230,12 +231,12 @@ function upsellio_sales_engine_refresh_hot_index($offer_id, $summary, $stage)
     $total_weight = $intent_weight + $fit_weight;
     $hot_index = (int) round((($intent_score * $intent_weight) + ($fit_score * $fit_weight)) / $total_weight);
     $threshold = (int) get_option("ups_sales_hot_index_threshold", 72);
-    $is_hot = $hot_index >= $threshold;
+    $is_hot = !empty($summary["is_hot"]) || ($hot_index >= $threshold && (!empty($summary["commit_selected"]) || !empty($summary["accept_started_sessions"])));
 
     update_post_meta($offer_id, "_ups_offer_intent_score", $intent_score);
     update_post_meta($offer_id, "_ups_offer_fit_score", $fit_score);
     update_post_meta($offer_id, "_ups_offer_hot_index", $hot_index);
-    update_post_meta($offer_id, "_ups_offer_hot_offer", $is_hot ? "1" : "0");
+    update_post_meta($offer_id, "_ups_offer_hybrid_hot", $is_hot ? "1" : "0");
     update_post_meta($offer_id, "_ups_offer_stage", sanitize_key((string) $stage));
     $objection = (string) get_post_meta($offer_id, "_ups_offer_behavior_objection", true);
 
@@ -243,11 +244,11 @@ function upsellio_sales_engine_refresh_hot_index($offer_id, $summary, $stage)
 
     if ($fit_score >= 70 && $intent_score >= 70) {
         if ($objection === "price") {
-            $action = "Priorytet A: zadzwon i omow ROI — klient blokuje sie na cenie.";
+            $action = "Priorytet A: zadzwon i omow ROI — sprawdz, czy cena jest bariera.";
         } elseif ($objection === "trust") {
-            $action = "Priorytet A: wyslij case study lub referencje — klient szuka potwierdzenia.";
+            $action = "Priorytet A: wyslij case study lub referencje — sprawdz, czy potrzebne jest dodatkowe potwierdzenie.";
         } elseif ($objection === "scope") {
-            $action = "Priorytet A: doprecyzuj zakres w mailu — klient analizuje co dostaje.";
+            $action = "Priorytet A: doprecyzuj zakres w mailu — zweryfikuj, czy zakres jest jasny.";
         } else {
             $action = "Priorytet A: natychmiastowy follow-up domykajacy.";
         }
@@ -256,13 +257,11 @@ function upsellio_sales_engine_refresh_hot_index($offer_id, $summary, $stage)
     } elseif ($fit_score < 45 && $intent_score >= 70) {
         $action = "Wysoki intent / niski fit: zweryfikuj budget i zakres przed dalszym domykaniem.";
     } elseif ($objection === "price" && $intent_score >= 40) {
-        $action = "Wyslij wersje ROI lub doprecyzowanie zakresu — objekcja cenowa.";
+        $action = "Wyslij wersje ROI lub doprecyzowanie zakresu — mozliwa bariera cenowa.";
     } elseif ($objection === "trust" && $intent_score >= 40) {
         $action = "Wyslij referencje lub case study — klient szuka potwierdzenia.";
     } elseif ($objection === "scope") {
         $action = "Napisz krotkie podsumowanie co konkretnie dostaje klient.";
-    } elseif ($objection === "no_fit") {
-        $action = "Nie priorytetyzuj — krotka sesja bez zaangazowania.";
     }
 
     update_post_meta($offer_id, "_ups_offer_action_recommendation", $action);
@@ -274,7 +273,7 @@ function upsellio_sales_engine_refresh_hot_index($offer_id, $summary, $stage)
 
     upsellio_sales_engine_refresh_hybrid_deal_scores($offer_id, $intent_score, $fit_score, (string) $stage);
 
-    if ($is_hot) {
+    if ($is_hot && (int) get_post_meta($offer_id, "_ups_offer_hot_task_id", true) <= 0) {
         upsellio_sales_engine_enqueue_playbook_tasks($offer_id, (string) $stage);
     }
 }
@@ -727,11 +726,18 @@ function upsellio_sales_engine_build_decision_layer_analytics()
     ];
 }
 
+function upsellio_sales_engine_offer_is_actionable(int $offer_id): bool
+{
+    return $offer_id > 0 && get_post_type($offer_id) === "crm_offer" && get_post_status($offer_id) === "publish"
+        && in_array((string) get_post_meta($offer_id, "_ups_offer_status", true), ["open", "sent"], true)
+        && (!function_exists("upsellio_offer_is_expired") || !upsellio_offer_is_expired($offer_id));
+}
+
 function upsellio_sales_engine_enqueue_playbook_tasks($offer_id, $stage)
 {
     $offer_id = (int) $offer_id;
     $stage = sanitize_key((string) $stage);
-    if ($offer_id <= 0) {
+    if (!upsellio_sales_engine_offer_is_actionable($offer_id)) {
         return;
     }
     $existing = (string) get_post_meta($offer_id, "_ups_offer_playbook_stage", true);
@@ -852,7 +858,7 @@ function upsellio_sales_engine_apply_inbound_actions($offer_id, $classification,
 {
     $offer_id = (int) $offer_id;
     $classification = sanitize_key((string) $classification);
-    if ($offer_id <= 0 || $classification === "" || $classification === "other") {
+    if (!upsellio_sales_engine_offer_is_actionable($offer_id) || $classification === "" || $classification === "other") {
         return;
     }
     if ($classification === "positive") {
