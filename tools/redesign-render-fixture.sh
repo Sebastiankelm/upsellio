@@ -158,13 +158,24 @@ render() {
     -e WORDPRESS_DB_PASSWORD=fixture-only \
     -e WORDPRESS_CONFIG_EXTRA='define("DISABLE_WP_CRON", true); if (!defined("WP_DEBUG")) { define("WP_DEBUG", true); } define("WP_DEBUG_DISPLAY", false); define("WP_HTTP_BLOCK_EXTERNAL", true); define("WP_ENVIRONMENT_TYPE", "local");' \
     "$wp_image" >/dev/null
-  for i in $(seq 1 60); do
-    if docker exec "$db" mariadb-admin ping -uroot -pfixture-root-only --silent >/dev/null 2>&1 &&
-       docker exec "$wp" test -f /var/www/html/wp-config.php &&
-       docker exec "$wp" curl -s --max-time 2 http://127.0.0.1/ >/dev/null; then break; fi
+  # Socket ping can succeed during MariaDB's temporary initialization daemon.
+  # Require a successful TCP query using the real fixture account from WordPress.
+  local ready=0
+  for i in $(seq 1 90); do
+    if docker exec "$wp" test -f /var/www/html/wp-config.php &&
+       docker exec "$wp" php -r 'mysqli_report(MYSQLI_REPORT_OFF); $db = @new mysqli("db","fixture","fixture-only","fixture"); exit($db->connect_errno || !$db->query("SELECT 1") ? 1 : 0);' >/dev/null 2>&1 &&
+       docker exec "$wp" curl -s --max-time 2 http://127.0.0.1/ >/dev/null; then
+      ready=1
+      break
+    fi
     sleep 2
   done
-  docker exec "$db" mariadb-admin ping -uroot -pfixture-root-only --silent >/dev/null
+  if [[ "$ready" != 1 ]]; then
+    echo "Fixture database or HTTP service did not become ready" >&2
+    docker logs --tail 30 "$db" >&2
+    docker logs --tail 30 "$wp" >&2
+    return 1
+  fi
   docker exec "$wp" mkdir -p /var/www/html/wp-content/mu-plugins
   # Belt and suspenders: WordPress API and mail disabled, even on the isolated network.
   docker exec -i "$wp" sh -c 'cat > /var/www/html/wp-content/mu-plugins/fixture-isolation.php' <<'PHP'
