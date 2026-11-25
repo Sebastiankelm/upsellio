@@ -277,3 +277,12 @@ body.ups-crm-redesign {
   .ups-crm-redesign .crm-audit-profile-switch { margin-left:0 !important; max-width:100%; }
   .ups-crm-redesign .crm-settings-navigation .crm-page-tabs { flex-wrap:nowrap; overflow-x:auto; }
 }
+
+.ups-crm-redesign .crm-audit-kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:18px; }
+.ups-crm-redesign .crm-audit-kpi { display:flex; flex-direction:column; gap:4px; }
+.ups-crm-redesign .crm-audit-kpi b { font-size:24px !important; }
+@media(max-width:600px) {
+  .ups-crm-redesign .crm-audit-kpi-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .ups-crm-redesign .crm-audit-kpi { padding:12px !important; }
+  .ups-crm-redesign .crm-audit-kpi b { font-size:20px !important; }
+}
