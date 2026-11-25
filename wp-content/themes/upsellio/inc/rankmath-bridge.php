@@ -754,11 +754,30 @@ add_action("upsellio_google_bridge_sync", static function (): void {
 
 add_action("wp_ajax_upsellio_google_sync_now", static function (): void {
     check_ajax_referer("ups_crm_app_action", "nonce");
-    if (!current_user_can("edit_posts")) {
+    // This operation refreshes global account data and mapped client resources.
+    if (!current_user_can("manage_options")) {
         wp_send_json_error(["message" => "forbidden"], 403);
     }
-    $days = isset($_POST["days"]) ? (int) $_POST["days"] : 0;
-    $log = upsellio_google_unified_sync($days);
-    upsellio_rankmath_clear_widget_cache();
-    wp_send_json_success(["log" => $log]);
+    $raw_days = $_POST["days"] ?? "30";
+    if (!is_scalar($raw_days) || !in_array((string) $raw_days, ["7", "14", "30", "60", "90"], true)) {
+        wp_send_json_error(["message" => "unsupported_period"], 400);
+    }
+    try {
+        $log = upsellio_google_unified_sync((int) $raw_days);
+        upsellio_rankmath_clear_widget_cache();
+        // Expose only bounded source statuses, not raw provider error messages.
+        $statuses = [];
+        foreach (["gsc", "ga4"] as $key) {
+            $row = is_array($log[$key] ?? null) ? $log[$key] : [];
+            $statuses[$key] = ["ok" => ($row["ok"] ?? false) === true,
+                "count" => max(0, (int) ($row["count"] ?? 0)),
+                "source" => sanitize_key((string) ($row["source"] ?? ""))];
+        }
+        if (!$statuses["gsc"]["ok"] || !$statuses["ga4"]["ok"]) {
+            wp_send_json_error(["message" => "incomplete_sync", "log" => $statuses], 502);
+        }
+        wp_send_json_success(["log" => $statuses]);
+    } catch (Throwable $e) {
+        wp_send_json_error(["message" => "sync_failed"], 500);
+    }
 });

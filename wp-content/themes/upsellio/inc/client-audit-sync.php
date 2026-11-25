@@ -12,8 +12,13 @@ function ups_audit_save_resource_cache(int $resource_id, array $payload): void
         update_post_meta($resource_id, "_ups_resource_data_cache_previous", $prev);
     }
     $payload["synced_at"] = current_time("mysql");
-    update_post_meta($resource_id, "_ups_resource_data_cache", $payload);
-    update_post_meta($resource_id, "_ups_resource_last_data_sync", current_time("mysql"));
+    // Unique marker proves a new cache write even when two attempts share a timestamp.
+    $payload["sync_revision"] = wp_generate_uuid4();
+    $saved = update_post_meta($resource_id, "_ups_resource_data_cache", $payload);
+    if ($saved && empty($payload["error"])) {
+        update_post_meta($resource_id, "_ups_resource_last_data_sync", $payload["synced_at"]);
+    }
+    update_post_meta($resource_id, "_ups_resource_last_sync_attempt", $payload["synced_at"]);
 }
 
 function ups_audit_sync_gsc_resource(int $resource_id, int $days = 30, bool $full_history = false): void
@@ -548,7 +553,8 @@ function ups_audit_sync_ads_resource(int $resource_id, int $days = 30, bool $ful
         return;
     }
     if (is_wp_error($daily)) {
-        $daily = [];
+        ups_audit_save_resource_cache($resource_id, ["period_days" => $days, "error" => $daily->get_error_message(), "summary" => [], "previous_summary" => [], "timeseries" => []]);
+        return;
     }
     if (is_wp_error($search_terms)) {
         $search_terms = [];
@@ -611,14 +617,7 @@ function ups_audit_sync_ads_resource(int $resource_id, int $days = 30, bool $ful
         }
     }
 
-    if ($summary_cur["cost"] <= 0 && !empty($camp_agg)) {
-        foreach ($camp_agg as $camp) {
-            $summary_cur["cost"] += (float) ($camp["cost"] ?? 0);
-            $summary_cur["clicks"] += (int) ($camp["clicks"] ?? 0);
-            $summary_cur["impressions"] += (int) ($camp["impressions"] ?? 0);
-            $summary_cur["conversions"] += (float) ($camp["conversions"] ?? 0);
-        }
-    }
+    // Campaign totals cover the fetch horizon, not necessarily the selected window.
 
     uasort($camp_agg, static function ($a, $b) {
         return ((float) ($b["cost"] ?? 0)) <=> ((float) ($a["cost"] ?? 0));
@@ -773,14 +772,7 @@ function ups_audit_sync_meta_resource(int $resource_id, int $days = 30, bool $fu
         ];
     }
 
-    if ($summary_cur["cost"] <= 0 && !empty($camp_agg)) {
-        foreach ($camp_agg as $camp) {
-            $summary_cur["cost"] += (float) ($camp["cost"] ?? 0);
-            $summary_cur["clicks"] += (int) ($camp["clicks"] ?? 0);
-            $summary_cur["impressions"] += (int) ($camp["impressions"] ?? 0);
-            $summary_cur["conversions"] += (float) ($camp["conversions"] ?? 0);
-        }
-    }
+    // Campaign totals cover the fetch horizon, not necessarily the selected window.
 
     uasort($camp_agg, static function ($a, $b) {
         return ((float) ($b["cost"] ?? 0)) <=> ((float) ($a["cost"] ?? 0));
@@ -922,26 +914,125 @@ function ups_audit_sync_clarity_resource(int $resource_id, int $days = 30, bool 
     ]);
 }
 
-function ups_audit_sync_resource_action(int $resource_id, int $days = 0, bool $full_history = false): void
+/**
+ * Serialize resource syncs across workers; report a failed or busy sync to callers.
+ */
+function ups_audit_sync_resource_action(int $resource_id, int $days = 0, bool $full_history = false): bool
 {
-    $resource_id = (int) $resource_id;
-    if ($days <= 0) {
-        $days = (int) get_option("ups_audit_default_compare_window", 30);
+    global $wpdb;
+    if ($resource_id <= 0 || get_post_type($resource_id) !== "crm_audit_resource") {
+        return false;
     }
-    $days = in_array($days, [7, 14, 30, 60, 90], true) ? $days : 30;
     $type = (string) get_post_meta($resource_id, "_ups_resource_type", true);
-    if ($type === "ga4") {
-        ups_audit_sync_ga4_resource($resource_id, $days, $full_history);
-    } elseif ($type === "gsc") {
-        ups_audit_sync_gsc_resource($resource_id, $days, $full_history);
-    } elseif ($type === "ads") {
-        ups_audit_sync_ads_resource($resource_id, $days, $full_history);
-    } elseif ($type === "meta") {
-        ups_audit_sync_meta_resource($resource_id, $days, $full_history);
-    } elseif ($type === "clarity") {
-        ups_audit_sync_clarity_resource($resource_id, $days, $full_history);
+    $handlers = [
+        "ga4" => "ups_audit_sync_ga4_resource",
+        "gsc" => "ups_audit_sync_gsc_resource",
+        "ads" => "ups_audit_sync_ads_resource",
+        "meta" => "ups_audit_sync_meta_resource",
+        "clarity" => "ups_audit_sync_clarity_resource",
+    ];
+    if (!isset($handlers[$type])) {
+        return false;
+    }
+    $lock = "ups_audit_sync_" . md5($wpdb->prefix . ":" . $resource_id);
+    if ((string) $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 0)", $lock)) !== "1") {
+        return false;
+    }
+    try {
+        if ($days <= 0) {
+            $days = (int) get_option("ups_audit_default_compare_window", 30);
+        }
+        $days = in_array($days, [7, 14, 30, 60, 90], true) ? $days : 30;
+        $before = get_post_meta($resource_id, "_ups_resource_data_cache", true);
+        $previous_revision = is_array($before) ? (string) ($before["sync_revision"] ?? "") : "";
+        $handlers[$type]($resource_id, $days, $full_history);
+        $cache = get_post_meta($resource_id, "_ups_resource_data_cache", true);
+        return is_array($cache) && !empty($cache["sync_revision"]) &&
+            $cache["sync_revision"] !== $previous_revision && !empty($cache["synced_at"]) && empty($cache["error"]);
+    } finally {
+        $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock));
     }
 }
+
+/** Schedule one resource at a time, regardless of selected comparison window. */
+function ups_audit_enqueue_resource_sync(int $rid, int $days, int $delay = 5): string
+{
+    global $wpdb;
+    if ($rid <= 0 || get_post_type($rid) !== "crm_audit_resource") {
+        return "failed";
+    }
+    $lock = "ups_audit_queue_" . md5($wpdb->prefix . ":" . $rid);
+    if ((string) $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 0)", $lock)) !== "1") {
+        return "already";
+    }
+    try {
+        $state = (string) get_post_meta($rid, "_ups_resource_manual_sync_state", true);
+        $started = (int) get_post_meta($rid, "_ups_resource_manual_sync_started", true);
+        if ($state === "running" && $started > time() - 30 * MINUTE_IN_SECONDS) {
+            return "already";
+        }
+        foreach ([7, 14, 30, 60, 90] as $window) {
+            if (wp_next_scheduled("ups_audit_queued_resource_sync", [$rid, $window])) {
+                return "already";
+            }
+        }
+        $scheduled = wp_schedule_single_event(time() + max(5, $delay), "ups_audit_queued_resource_sync", [$rid, $days], true);
+        if (is_wp_error($scheduled) || !$scheduled) {
+            return "failed";
+        }
+        update_post_meta($rid, "_ups_resource_manual_sync_days", $days);
+        update_post_meta($rid, "_ups_resource_manual_sync_attempt", 0);
+        update_post_meta($rid, "_ups_resource_manual_sync_requested", time());
+        update_post_meta($rid, "_ups_resource_manual_sync_state", "queued");
+        delete_post_meta($rid, "_ups_resource_manual_sync_finished_at");
+        return "queued";
+    } finally {
+        $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock));
+    }
+}
+
+/** Background worker with bounded retry; do not repeatedly consume Clarity quota. */
+function ups_audit_run_queued_resource_sync(int $resource_id, int $days): void
+{
+    global $wpdb;
+    if (get_post_type($resource_id) !== "crm_audit_resource") {
+        return;
+    }
+    $lock = "ups_audit_queue_" . md5($wpdb->prefix . ":" . $resource_id);
+    if ((string) $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 0)", $lock)) !== "1") {
+        // WordPress has already consumed the cron event. Requeue on contention.
+        wp_schedule_single_event(time() + 60, "ups_audit_queued_resource_sync", [$resource_id, $days], true);
+        return;
+    }
+    try {
+        $attempt = (int) get_post_meta($resource_id, "_ups_resource_manual_sync_attempt", true) + 1;
+        update_post_meta($resource_id, "_ups_resource_manual_sync_attempt", $attempt);
+        update_post_meta($resource_id, "_ups_resource_manual_sync_started", time());
+        update_post_meta($resource_id, "_ups_resource_manual_sync_state", "running");
+        $success = false;
+        try {
+            $success = ups_audit_sync_resource_action($resource_id, $days);
+        } catch (Throwable $e) {
+            if (function_exists("upsellio_gsc_log")) {
+                upsellio_gsc_log("audit.sync.queued.error", ["resource_id" => $resource_id, "msg" => $e->getMessage()]);
+            }
+        }
+        $type = (string) get_post_meta($resource_id, "_ups_resource_type", true);
+        if (!$success && $attempt < 3 && $type !== "clarity") {
+            $delay = $attempt === 1 ? 120 : 600;
+            $scheduled = wp_schedule_single_event(time() + $delay, "ups_audit_queued_resource_sync", [$resource_id, $days], true);
+            if (!is_wp_error($scheduled) && $scheduled) {
+                update_post_meta($resource_id, "_ups_resource_manual_sync_state", "retrying");
+                return;
+            }
+        }
+        update_post_meta($resource_id, "_ups_resource_manual_sync_state", $success ? "completed" : "failed");
+        update_post_meta($resource_id, "_ups_resource_manual_sync_finished_at", current_time("mysql"));
+    } finally {
+        $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock));
+    }
+}
+add_action("ups_audit_queued_resource_sync", "ups_audit_run_queued_resource_sync", 10, 2);
 
 function ups_audit_sync_resources_list(array $resources, int $days = 0, bool $full_history = false): array
 {
@@ -952,13 +1043,10 @@ function ups_audit_sync_resources_list(array $resources, int $days = 0, bool $fu
             continue;
         }
         try {
-            ups_audit_sync_resource_action((int) $r->ID, $days, $full_history);
-            $cache = get_post_meta((int) $r->ID, "_ups_resource_data_cache", true);
-            $err = is_array($cache) ? trim((string) ($cache["error"] ?? "")) : "";
-            if ($err !== "") {
-                $fail++;
-            } else {
+            if (ups_audit_sync_resource_action((int) $r->ID, $days, $full_history)) {
                 $ok++;
+            } else {
+                $fail++;
             }
         } catch (Throwable $e) {
             $fail++;
@@ -1037,6 +1125,16 @@ function ups_audit_sync_all_mapped_resources(int $days = 0, bool $full_history =
  * @param array<string, mixed> $setup
  * @return array<string, mixed>
  */
+function ups_audit_sitewide_mer(array $agg): ?float
+{
+    $revenue = $agg["ga4_revenue"] ?? null;
+    $cost = $agg["paid_cost"] ?? null;
+    if (($agg["ga4_revenue_source"] ?? "") !== "purchaseRevenue" || empty($agg["ga4_purchase_window_verified"]) || (int) ($agg["ga4_purchase_source_count"] ?? 0) !== 1 || (int) ($agg["unavailable_resource_count"] ?? 0) > 0 || !is_numeric($revenue) || !is_numeric($cost) || !is_finite((float) $revenue) || !is_finite((float) $cost) || (float) $revenue < 0 || (float) $cost <= 0) {
+        return null;
+    }
+    return round((float) $revenue / (float) $cost, 2);
+}
+
 function ups_audit_aggregate_resources_data(array $resources, int $days = 30, int $offset = 0, bool $with_extras = true, array $setup = [], int $extras_client_id = 0): array
 {
     $agg = [
@@ -1075,12 +1173,16 @@ function ups_audit_aggregate_resources_data(array $resources, int $days = 30, in
         "meta_clicks_prev" => 0,
         "meta_conversions" => 0.0,
         "meta_conversions_prev" => 0.0,
-        "meta_roas" => 0.0,
-        "meta_roas_prev" => 0.0,
+        "meta_roas" => null,
+        "meta_roas_prev" => null,
         "paid_cost" => 0.0,
         "paid_cost_prev" => 0.0,
-        "roas" => 0.0,
-        "roas_prev" => 0.0,
+        "roas" => null,
+        "roas_prev" => null,
+        "mer" => null,
+        "mer_prev" => null,
+        "ga4_purchase_window_verified" => true,
+        "ga4_purchase_source_count" => 0,
         "resources" => [],
         "top_keywords" => [],
         "previous_top_keywords" => [],
@@ -1113,6 +1215,8 @@ function ups_audit_aggregate_resources_data(array $resources, int $days = 30, in
         "clarity_resources" => [],
         "deltas" => [],
         "window_slice_notes" => [],
+        "usable_resource_count" => 0,
+        "unavailable_resource_count" => 0,
     ];
     $gsc_pos_weight = 0;
     $kw_merge = [];
@@ -1127,15 +1231,20 @@ function ups_audit_aggregate_resources_data(array $resources, int $days = 30, in
     $ts_ads_clicks = [];
     $ts_meta = [];
     $chart_windows = ups_audit_period_windows($days);
+    $seen_resources = [];
 
     foreach ($resources as $r) {
         if (!($r instanceof WP_Post)) {
             continue;
         }
         $rid = (int) $r->ID;
+        if ($rid <= 0 || isset($seen_resources[$rid])) { continue; }
+        $seen_resources[$rid] = true;
         $type = (string) get_post_meta($rid, "_ups_resource_type", true);
         $cache = get_post_meta($rid, "_ups_resource_data_cache", true);
-        if (!is_array($cache)) {
+        if (!is_array($cache) || $cache === []) {
+            $agg["unavailable_resource_count"]++;
+            $agg["window_slice_notes"][] = (string) $r->post_title . ": brak zapisanych danych — wykonaj synchronizację.";
             continue;
         }
         $summary = ups_audit_cache_summary($cache);
@@ -1165,7 +1274,24 @@ function ups_audit_aggregate_resources_data(array $resources, int $days = 30, in
             "last_sync" => (string) get_post_meta($rid, "_ups_resource_last_data_sync", true),
         ];
 
+        // Failed imports and summaries for another period cannot be treated as observed zeroes.
+        // Clarity has its own API window and error reporting below.
+        if ($type !== "clarity" && (!empty($cache["error"]) || ($cache_period_days !== $days && (!$slice_ok || !$use_ts_totals)))) {
+            $agg["unavailable_resource_count"]++;
+            if (!empty($cache["error"])) {
+                $agg["window_slice_notes"][] = (string) $r->post_title . ": ostatnia synchronizacja nie powiodła się; pominięto w KPI.";
+            }
+            continue;
+        }
+        if (empty($cache["error"])) { $agg["usable_resource_count"]++; }
+        else { $agg["unavailable_resource_count"]++; }
+
         if ($type === "ga4") {
+            if ($cache_period_days !== $days || ($summary["revenue_source"] ?? "") !== "purchaseRevenue") {
+                $agg["ga4_purchase_window_verified"] = false;
+            } else {
+                $agg["ga4_purchase_source_count"]++;
+            }
             $purchase_rev_base = (float) ($summary["revenue"] ?? 0);
             $session_rev_base = (float) ($summary["revenue_session_total"] ?? $purchase_rev_base);
             $rev_source = (string) ($summary["revenue_source"] ?? "");
@@ -1183,7 +1309,7 @@ function ups_audit_aggregate_resources_data(array $resources, int $days = 30, in
                 $agg["ga4_conversions_all"] += $conv_cur;
                 $ts_rev_cur = (float) ($cur_ts["revenue"] ?? 0);
                 $ts_rev_prev = (float) ($prev_ts["revenue"] ?? 0);
-                if ($cache_period_days === $days && (int) ($summary["conversions"] ?? 0) > 0) {
+                if ($cache_period_days === $days && array_key_exists("conversions", $summary)) {
                     $agg["ga4_conversions"] += (int) ($summary["conversions"] ?? 0);
                     $agg["ga4_conversions_prev"] += (int) ($prev_summary["conversions"] ?? 0);
                     $agg["ga4_revenue"] += $purchase_rev_base;
@@ -1567,10 +1693,10 @@ function ups_audit_aggregate_resources_data(array $resources, int $days = 30, in
         : 0.0;
     $agg["paid_cost"] = (float) $agg["ads_cost"] + (float) $agg["meta_cost"];
     $agg["paid_cost_prev"] = (float) $agg["ads_cost_prev"] + (float) $agg["meta_cost_prev"];
-    $agg["roas"] = $agg["ads_cost"] > 0 ? round($agg["ga4_revenue"] / $agg["ads_cost"], 2) : 0.0;
-    $agg["roas_prev"] = $agg["ads_cost_prev"] > 0 ? round($agg["ga4_revenue_prev"] / $agg["ads_cost_prev"], 2) : 0.0;
-    $agg["meta_roas"] = $agg["meta_cost"] > 0 ? round($agg["ga4_revenue"] / $agg["meta_cost"], 2) : 0.0;
-    $agg["meta_roas_prev"] = $agg["meta_cost_prev"] > 0 ? round($agg["ga4_revenue_prev"] / $agg["meta_cost_prev"], 2) : 0.0;
+    // Sitewide revenue is not attributable to a single advertising channel.
+    // Until verified channel-level purchase values exist, channel ROAS stays unknown.
+    $agg["data_quality_notes"][] = "ROAS Google/Meta niedostępny bez zweryfikowanej atrybucji zakupów. MER obejmuje łączny przychód GA4 i koszt Google + Meta.";
+    $agg["mer"] = ups_audit_sitewide_mer($agg);
 
     uasort($kw_merge, static function ($a, $b) {
         return ((int) ($b["clicks"] ?? 0)) <=> ((int) ($a["clicks"] ?? 0));
@@ -1641,9 +1767,9 @@ function ups_audit_aggregate_resources_data(array $resources, int $days = 30, in
         "ads_conversions" => ups_audit_delta_pct((float) $agg["ads_conversions"], (float) $agg["ads_conversions_prev"]),
         "meta_cost" => ups_audit_delta_pct((float) $agg["meta_cost"], (float) $agg["meta_cost_prev"]),
         "meta_clicks" => ups_audit_delta_pct((float) $agg["meta_clicks"], (float) $agg["meta_clicks_prev"]),
-        "meta_roas" => ups_audit_delta_pct((float) $agg["meta_roas"], (float) $agg["meta_roas_prev"]),
+        "meta_roas" => null,
         "paid_cost" => ups_audit_delta_pct((float) $agg["paid_cost"], (float) $agg["paid_cost_prev"]),
-        "roas" => ups_audit_delta_pct((float) $agg["roas"], (float) $agg["roas_prev"]),
+        "roas" => null,
     ];
 
     $agg["derived"] = function_exists("ups_audit_compute_derived_metrics")
@@ -1662,7 +1788,7 @@ function ups_audit_aggregate_resources_data(array $resources, int $days = 30, in
     if (function_exists("ups_audit_health_trend")) {
         $agg["health_trend"] = ups_audit_health_trend($agg, $setup, (int) $extras_client_id);
     }
-    if ($extras_client_id > 0 && function_exists("ups_audit_record_health_snapshot")) {
+    if ($with_extras && $extras_client_id > 0 && $agg["usable_resource_count"] > 0 && $agg["unavailable_resource_count"] === 0 && function_exists("ups_audit_record_health_snapshot")) {
         ups_audit_record_health_snapshot((int) $extras_client_id, (int) ($agg["health_score"] ?? 0), $days);
     }
     if (function_exists("ups_audit_revenue_quality")) {
@@ -1831,7 +1957,7 @@ function ups_audit_get_portfolio_rows(): array
             "ga4_sessions" => (int) ($data["ga4_sessions"] ?? 0),
             "gsc_clicks" => (int) ($data["gsc_clicks"] ?? 0),
             "ads_cost" => (float) ($data["ads_cost"] ?? 0),
-            "roas" => (float) ($data["roas"] ?? 0),
+            "roas" => $data["roas"] ?? null,
             "deltas" => (array) ($data["deltas"] ?? []),
         ];
     }
@@ -1922,8 +2048,8 @@ function ups_audit_get_client_profile_rows(int $window = 0): array
             "ads_cost" => (float) ($data["ads_cost"] ?? 0),
             "meta_cost" => (float) ($data["meta_cost"] ?? 0),
             "paid_cost" => (float) ($data["paid_cost"] ?? 0),
-            "roas" => (float) ($data["roas"] ?? 0),
-            "meta_roas" => (float) ($data["meta_roas"] ?? 0),
+            "roas" => $data["roas"] ?? null,
+            "meta_roas" => $data["meta_roas"] ?? null,
             "clarity_sessions" => (int) ($data["clarity_sessions"] ?? 0),
             "clarity_dead_clicks" => (int) ($data["clarity_dead_clicks"] ?? 0),
             "deltas" => (array) ($data["deltas"] ?? []),

@@ -222,7 +222,7 @@ if ($has_gsc_data || $has_ga4_data) {
       health <?php echo (int) ($benchmark["health_score"] ?? 0); ?>/100
     </p>
     <?php endif; ?>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px;">
+    <div class="crm-audit-kpi-grid">
       <?php
       $kpis = [
           ["label" => "Sesje GA4", "key" => "ga4_sessions", "cur" => (int) ($current["ga4_sessions"] ?? 0), "delta" => "ga4_sessions", "fmt" => "int"],
@@ -236,12 +236,13 @@ if ($has_gsc_data || $has_ga4_data) {
           ["label" => "Konw. Ads", "key" => "ads_conv", "cur" => (float) ($current["ads_conversions"] ?? 0), "delta" => "ads_conversions", "fmt" => "float"],
           ["label" => "CPC Ads", "key" => "cpc", "cur" => (float) ($derived["ads_cpc"] ?? 0), "delta" => "", "fmt" => "money_small"],
           ["label" => "CPA Ads", "key" => "cpa", "cur" => (float) ($derived["ads_cpa"] ?? 0), "delta" => "", "fmt" => "money_small"],
-          ["label" => "ROAS (purchaseRevenue)", "key" => "roas", "cur" => (float) ($current["roas"] ?? 0), "delta" => "roas", "fmt" => "roas"],
+          ["label" => "ROAS Google", "key" => "roas", "cur" => $current["roas"] ?? null, "delta" => "", "fmt" => "roas"],
+          ["label" => "MER GA4 (Google + Meta)", "key" => "mer", "cur" => $current["mer"] ?? null, "delta" => "", "fmt" => "roas"],
       ];
       if ($meta_mapped > 0 || (float) ($current["meta_cost"] ?? 0) > 0) {
           $kpis[] = ["label" => "Wydatek Meta", "key" => "meta_cost", "cur" => (float) ($current["meta_cost"] ?? 0), "delta" => "meta_cost", "fmt" => "money"];
           $kpis[] = ["label" => "CPC Meta", "key" => "meta_cpc", "cur" => (float) ($derived["meta_cpc"] ?? 0), "delta" => "", "fmt" => "money_small"];
-          $kpis[] = ["label" => "ROAS Meta", "key" => "meta_roas", "cur" => (float) ($current["meta_roas"] ?? 0), "delta" => "meta_roas", "fmt" => "roas"];
+          $kpis[] = ["label" => "ROAS Meta", "key" => "meta_roas", "cur" => $current["meta_roas"] ?? null, "delta" => "", "fmt" => "roas"];
       }
       if ((float) ($current["paid_cost"] ?? 0) > 0) {
           $kpis[] = ["label" => "Łączny paid", "key" => "paid_cost", "cur" => (float) ($current["paid_cost"] ?? 0), "delta" => "paid_cost", "fmt" => "money"];
@@ -268,7 +269,7 @@ if ($has_gsc_data || $has_ga4_data) {
               : ($kpi["fmt"] === "float"
               ? number_format((float) $kpi["cur"], 1, ",", " ")
               : number_format((int) $kpi["cur"], 0, ",", " "))))));
-          if ($kpi["delta"] === "") {
+          if ($kpi["delta"] === "" || !isset($deltas[$kpi["delta"]]) || !is_numeric($deltas[$kpi["delta"]])) {
               $d_cls = "color:var(--text-3)";
               $d = null;
           }
@@ -294,15 +295,15 @@ if ($has_gsc_data || $has_ga4_data) {
               : null;
           ?>
         <?php
-          $kpi_untrusted = ($kpi["key"] === "roas" && !empty($revenue_quality["warning"]));
+          $kpi_untrusted = $kpi["cur"] === null || (in_array($kpi["key"], ["roas", "meta_roas", "mer"], true) && !empty($revenue_quality["warning"]));
           ?>
-        <div class="kpi" style="padding:12px;border:1px solid var(--border);border-radius:10px;<?php echo $kpi_untrusted ? "opacity:0.55;border-color:#fca5a5;" : ""; ?>">
+        <div class="kpi crm-audit-kpi" style="padding:16px;border:1px solid var(--border);border-radius:12px;<?php echo $kpi_untrusted ? "opacity:0.55;border-color:#fca5a5;" : ""; ?>">
           <span class="muted" style="font-size:12px;"><?php echo esc_html($kpi["label"]); ?><?php if ($kpi_untrusted) : ?> <span style="color:#b91c1c;">⚠</span><?php endif; ?></span>
           <b style="display:block;font-size:20px;margin:4px 0;"><?php echo $kpi_untrusted ? "—" : esc_html($val); ?></b>
           <?php if ($d !== null) : ?>
           <span style="font-size:12px;<?php echo esc_attr($d_cls); ?>"><?php echo esc_html(function_exists("ups_audit_format_delta") ? ups_audit_format_delta($d) : ""); ?></span>
           <?php endif; ?>
-          <?php if ($vs_bench !== null && $bench_val !== null) : ?>
+          <?php if (!$kpi_untrusted && $vs_bench !== null && $bench_val !== null) : ?>
           <div class="muted" style="font-size:10px;margin-top:4px;">vs portfel: <?php echo esc_html(number_format($bench_val, $kpi["fmt"] === "roas" ? 2 : 0, ",", " ")); ?> <?php echo esc_html($bench_lbl); ?> (<?php echo esc_html(($vs_bench > 0 ? "+" : "") . (string) $vs_bench); ?>%)</div>
           <?php endif; ?>
         </div>
@@ -320,8 +321,8 @@ if ($has_gsc_data || $has_ga4_data) {
   $ga4_rev_session = (float) ($current["ga4_revenue_session_total"] ?? 0);
   $ga4_purchase_cnt = (int) ($current["ga4_purchase_count"] ?? 0);
   $ga4_rev_source = (string) ($current["ga4_revenue_source"] ?? "");
-  $roas_val = (float) ($current["roas"] ?? 0);
-  $ads_cost_val = (float) ($current["ads_cost"] ?? 0);
+  $roas_val = $current["mer"] ?? null;
+  $ads_cost_val = (float) ($current["paid_cost"] ?? 0);
   $revenue_suspect = !empty($revenue_quality["warning"])
       || ($roas_val > 15 || ($ga4_purchase_cnt > 0 && (int) ($current["ga4_sessions"] ?? 0) > 0
       && ($ga4_purchase_cnt / (int) $current["ga4_sessions"]) > 0.08)
@@ -341,8 +342,8 @@ if ($has_gsc_data || $has_ga4_data) {
       <?php if ($ga4_rev_session > 0) : ?>
         · sesje totalRevenue: <strong><?php echo esc_html(number_format($ga4_rev_session, 0, ",", " ")); ?> PLN</strong>
       <?php endif; ?>
-      <?php if ($ads_cost_val > 0) : ?>
-        · ROAS: <strong><?php echo esc_html(number_format($roas_val, 2, ",", " ")); ?>x</strong> (koszt Ads <?php echo esc_html(number_format($ads_cost_val, 0, ",", " ")); ?> PLN)
+      <?php if ($ads_cost_val > 0 && $roas_val !== null && empty($revenue_quality["warning"])) : ?>
+        · MER (nie ROAS kanałowy): <strong><?php echo esc_html(number_format($roas_val, 2, ",", " ")); ?>x</strong> (koszt Google + Meta <?php echo esc_html(number_format($ads_cost_val, 0, ",", " ")); ?> PLN)
       <?php endif; ?>
     </p>
     <?php if ($revenue_suspect) : ?>
@@ -518,7 +519,7 @@ if ($has_gsc_data || $has_ga4_data) {
 
   <?php if (!empty($current["resources"])) : ?>
   <section class="card">
-    <h3 style="margin:0 0 10px;font-size:14px;"><?php esc_html_e("Źródła danych (sync cache)", "upsellio"); ?></h3>
+    <h3>Źródła danych i stan synchronizacji</h3><p class="muted">Sprawdź aktualność źródeł przed interpretacją wskaźników.</p>
     <table style="width:100%;font-size:12px;">
       <thead><tr><th style="text-align:left;"><?php esc_html_e("Zasób", "upsellio"); ?></th><th><?php esc_html_e("Typ", "upsellio"); ?></th><th><?php esc_html_e("Status", "upsellio"); ?></th><th><?php esc_html_e("Ostatni sync", "upsellio"); ?></th></tr></thead>
       <tbody>
@@ -532,7 +533,7 @@ if ($has_gsc_data || $has_ga4_data) {
         <tr>
           <td><?php echo esc_html((string) ($res_row["title"] ?? "")); ?></td>
           <td><code><?php echo esc_html((string) ($res_row["type"] ?? "")); ?></code></td>
-          <td style="color:<?php echo esc_attr($rh_color); ?>;"><?php echo esc_html((string) ($rh["label"] ?? "—")); ?></td>
+          <td><span class="crm-audit-status crm-audit-status--<?php echo $rh_status === "ok" ? "green" : ($rh_status === "warn" ? "yellow" : ($rh_status === "" ? "unknown" : "red")); ?>"><?php echo esc_html((string) ($rh["label"] ?? "Brak danych")); ?></span></td>
           <td class="muted"><?php echo esc_html((string) ($res_row["last_sync"] ?? "—")); ?></td>
         </tr>
       <?php endforeach; ?>
@@ -943,16 +944,16 @@ if ($has_gsc_data || $has_ga4_data) {
     </table>
   </section>
 </div>
-<script type="application/json" id="ups-audit-dash-ts-gsc"><?php echo wp_json_encode($ts_gsc); ?></script>
-<script type="application/json" id="ups-audit-dash-ts-ga4"><?php echo wp_json_encode($ts_ga4); ?></script>
-<script type="application/json" id="ups-audit-dash-ts-ads"><?php echo wp_json_encode($ts_ads); ?></script>
-<script type="application/json" id="ups-audit-dash-ts-ads-clicks"><?php echo wp_json_encode($ts_ads_clicks); ?></script>
-<script type="application/json" id="ups-audit-dash-ts-meta"><?php echo wp_json_encode($ts_meta); ?></script>
+<script type="application/json" id="ups-audit-dash-ts-gsc"><?php echo wp_json_encode($ts_gsc, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+<script type="application/json" id="ups-audit-dash-ts-ga4"><?php echo wp_json_encode($ts_ga4, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+<script type="application/json" id="ups-audit-dash-ts-ads"><?php echo wp_json_encode($ts_ads, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+<script type="application/json" id="ups-audit-dash-ts-ads-clicks"><?php echo wp_json_encode($ts_ads_clicks, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+<script type="application/json" id="ups-audit-dash-ts-meta"><?php echo wp_json_encode($ts_meta, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
 <script type="application/json" id="ups-audit-dash-chart-mode"><?php echo wp_json_encode([
     "has_gsc" => $has_gsc_data,
     "has_ga4" => $has_ga4_data,
     "has_ads" => $has_ads_data,
-]); ?></script>
+], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
 <script type="application/json" id="ups-audit-dash-funnel"><?php echo wp_json_encode(
     ($has_gsc_data || $has_ga4_data)
         ? [
@@ -966,9 +967,9 @@ if ($has_gsc_data || $has_ga4_data) {
             "ads_cost" => (float) ($current["ads_cost"] ?? 0),
             "clarity_sessions" => (int) ($current["clarity_sessions"] ?? 0),
         ]
-); ?></script>
-<script type="application/json" id="ups-audit-dash-campaigns"><?php echo wp_json_encode(array_slice((array) ($current["campaigns"] ?? []), 0, 8)); ?></script>
-<script type="application/json" id="ups-audit-dash-channels"><?php echo wp_json_encode($dash_channels_chart); ?></script>
-<script type="application/json" id="ups-audit-dash-keywords"><?php echo wp_json_encode($dash_keywords_chart); ?></script>
-<script type="application/json" id="ups-audit-dash-campaigns-cpa"><?php echo wp_json_encode($dash_campaigns_cpa); ?></script>
-<script type="application/json" id="ups-audit-dash-ltv"><?php echo wp_json_encode($dash_ltv_chart); ?></script>
+, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+<script type="application/json" id="ups-audit-dash-campaigns"><?php echo wp_json_encode(array_slice((array) ($current["campaigns"] ?? []), 0, 8), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+<script type="application/json" id="ups-audit-dash-channels"><?php echo wp_json_encode($dash_channels_chart, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+<script type="application/json" id="ups-audit-dash-keywords"><?php echo wp_json_encode($dash_keywords_chart, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+<script type="application/json" id="ups-audit-dash-campaigns-cpa"><?php echo wp_json_encode($dash_campaigns_cpa, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+<script type="application/json" id="ups-audit-dash-ltv"><?php echo wp_json_encode($dash_ltv_chart, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>

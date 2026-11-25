@@ -11,6 +11,7 @@ $cid = isset($cid) ? (int) $cid : 0;
 $profiles = function_exists("ups_audit_get_client_profile_rows")
     ? ups_audit_get_client_profile_rows()
     : [];
+ $profiles = array_values(array_filter($profiles, static function ($profile) { return is_array($profile) && upsellio_crm_app_can_access_audit_client((int) ($profile["id"] ?? 0)); }));
 if (count($profiles) < 2) {
     return;
 }

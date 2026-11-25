@@ -136,12 +136,15 @@ function upsellio_crm_sidebar_items(): array
         ["type" => "link", "view" => "dashboard"],
         ["type" => "link", "view" => "inbox", "badge" => "inbox"],
         ["type" => "link", "view" => "tasks", "badge" => "tasks"],
+        ["type" => "link", "view" => "calendar"],
         ["type" => "section", "id" => "sales"],
         ["type" => "link", "view" => "leads"],
+        ["type" => "link", "view" => "contact-queue"],
         ["type" => "link", "view" => "pipeline"],
         ["type" => "link", "view" => "offers"],
         ["type" => "link", "view" => "clients"],
         ["type" => "link", "view" => "contracts"],
+        ["type" => "link", "view" => "prospecting"],
         ["type" => "section", "id" => "marketing"],
         ["type" => "link", "view" => "analytics", "args" => ["atab" => "today"]],
         ["type" => "section", "id" => "audit"],
@@ -171,7 +174,7 @@ function upsellio_crm_nav_is_active(string $nav_view, string $current_view, arra
     if ($nav_view === "analytics" && $current_view === "analytics") {
         return true;
     }
-    if ($nav_view === "ca-clients" && in_array($current_view, ["ca-clients", "ca-dashboard", "ca-command-center", "ca-reports", "ca-plan", "ca-library"], true)) {
+    if ($nav_view === "ca-clients" && in_array($current_view, ["ca-clients", "ca-reports", "ca-plan", "ca-library"], true)) {
         return true;
     }
     if ($nav_view === "ca-command-center" && $current_view === "ca-command-center") {
@@ -243,7 +246,6 @@ function upsellio_crm_breadcrumbs(string $view, array $ctx = []): array
     }
 
     if (in_array($view, ["ca-dashboard", "ca-reports", "ca-plan"], true)) {
-        $crumbs[] = ["label" => __("Audyt agencji", "upsellio")];
         $crumbs[] = ["label" => __("Profile klientów", "upsellio"), "url" => upsellio_crm_url("ca-clients")];
         $cid = (int) ($ctx["cid"] ?? 0);
         if ($cid > 0) {

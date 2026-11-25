@@ -916,7 +916,7 @@ function ups_audit_build_dashboard_pdf_html(int $client_id, array $agg, int $win
         ["CTR GSC", number_format((float) ($derived["gsc_ctr"] ?? ($agg["gsc_ctr"] ?? 0)), 2, ",", " ") . "%", "", ""],
         ["Śr. poz. GSC", number_format((float) ($derived["gsc_avg_position"] ?? ($agg["gsc_avg_position"] ?? 0)), 1, ",", " "), "", ""],
         ["Wydatek Ads", $fmt_money($agg["ads_cost"] ?? 0), $fmt_delta("ads_cost"), ""],
-        ["ROAS", number_format((float) ($agg["roas"] ?? 0), 2, ",", " ") . "x", $fmt_delta("roas"), ""],
+        ["ROAS Google", isset($agg["roas"]) ? number_format((float) $agg["roas"], 2, ",", " ") . "x" : "—", "", ""],
     ];
 
     ob_start();

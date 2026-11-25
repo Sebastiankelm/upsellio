@@ -194,6 +194,10 @@ function upsellio_automation_refresh_task_priority_meta($task_id)
 
 function upsellio_automation_process_pipeline_sla_deals()
 {
+    global $wpdb;
+    $lock = "ups_sla_cron_" . md5($wpdb->prefix);
+    if ((string) $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 0)", $lock)) !== "1") { return; }
+    try {
     $defs = upsellio_automation_get_pipeline_sla_definitions();
     $offers = get_posts([
         "post_type" => "crm_offer",
@@ -234,18 +238,20 @@ function upsellio_automation_process_pipeline_sla_deals()
         if (!empty($breached_map[$sla_stage])) {
             continue;
         }
-        $breached_map[$sla_stage] = current_time("mysql");
-        update_post_meta($offer_id, "_ups_offer_pipeline_sla_breached_map", $breached_map);
-        update_post_meta($offer_id, "_ups_offer_sla_active_alert", "1");
-        update_post_meta($offer_id, "_ups_offer_priority", "high");
+
         $esc = (int) ($defs[$sla_stage]["escalation"] ?? 1);
         $action_label = (string) ($defs[$sla_stage]["action"] ?? "SLA");
         $task_title = "SLA: " . $action_label . " (E" . $esc . ")";
         $task_note = "Przekroczono limit " . $limit_h . "h w etapie " . $sla_stage . ". Wymagane działanie.";
-        upsellio_automation_create_task($offer_id, $task_title, $task_note, [
+        $task_id = upsellio_automation_create_task($offer_id, $task_title, $task_note, [
             "impact_score" => min(100, 60 + ($esc * 10)),
             "close_probability" => 70,
         ]);
+        if ($task_id <= 0) { continue; }
+        $breached_map[$sla_stage] = current_time("mysql");
+        update_post_meta($offer_id, "_ups_offer_pipeline_sla_breached_map", $breached_map);
+        update_post_meta($offer_id, "_ups_offer_sla_active_alert", "1");
+        update_post_meta($offer_id, "_ups_offer_priority", "high");
         $template_id = upsellio_automation_pick_followup_template($marketing_stage === "decision" ? "decision" : ($marketing_stage === "consideration" ? "consideration" : "awareness"));
         if ($template_id > 0 && function_exists("upsellio_followup_queue_message")) {
             upsellio_followup_queue_message($offer_id, $template_id, $marketing_stage);
@@ -274,6 +280,9 @@ function upsellio_automation_process_pipeline_sla_deals()
             $clean = [];
             update_post_meta($offer_id, "_ups_offer_pipeline_sla_breached_map", $clean);
         }
+    }
+    } finally {
+        $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock));
     }
 }
 
@@ -322,22 +331,32 @@ function upsellio_automation_register_crm_roles()
 }
 add_action("init", "upsellio_automation_register_crm_roles", 7);
 
+function upsellio_automation_webhook_permission($request)
+{
+    $secret = (string) get_option("ups_followup_inbound_secret", "");
+    $header = (string) $request->get_header("x-upsellio-secret");
+    if ($secret === "" || !hash_equals($secret, $header)) {
+        return new WP_Error("upsellio_webhook_forbidden", "Forbidden", ["status" => 403]);
+    }
+    return true;
+}
+
 function upsellio_automation_register_rest_routes()
 {
     register_rest_route("upsellio/v1", "/ga4-aggregate", [
         "methods" => "POST",
         "callback" => "upsellio_automation_receive_ga4_aggregate",
-        "permission_callback" => "__return_true",
+        "permission_callback" => "upsellio_automation_webhook_permission",
     ]);
     register_rest_route("upsellio/v1", "/gsc-keywords", [
         "methods" => "POST",
         "callback" => "upsellio_automation_receive_gsc_keywords",
-        "permission_callback" => "__return_true",
+        "permission_callback" => "upsellio_automation_webhook_permission",
     ]);
     register_rest_route("upsellio/v1", "/lead-capture", [
         "methods" => "POST",
         "callback" => "upsellio_automation_capture_lead_from_form",
-        "permission_callback" => "__return_true",
+        "permission_callback" => "upsellio_automation_webhook_permission",
     ]);
 }
 add_action("rest_api_init", "upsellio_automation_register_rest_routes");
@@ -350,7 +369,10 @@ function upsellio_automation_receive_ga4_aggregate($request)
         return new WP_REST_Response(["ok" => false, "message" => "forbidden"], 403);
     }
     $payload = $request->get_json_params();
-    $rows = isset($payload["rows"]) && is_array($payload["rows"]) ? $payload["rows"] : [];
+    if (!is_array($payload) || !isset($payload["rows"]) || !is_array($payload["rows"]) || count($payload["rows"]) > 25000) {
+        return new WP_REST_Response(["ok" => false, "message" => "invalid_rows"], 400);
+    }
+    $rows = $payload["rows"];
     $normalized = [];
     foreach ($rows as $row) {
         if (!is_array($row)) {
@@ -358,14 +380,23 @@ function upsellio_automation_receive_ga4_aggregate($request)
         }
         $source = sanitize_text_field((string) ($row["source"] ?? ""));
         $campaign = sanitize_text_field((string) ($row["campaign"] ?? ""));
-        $key = strtolower(trim($source . "|" . $campaign));
-        if ($key === "|") {
+        if ($source === "" && $campaign === "") {
             continue;
         }
+        $date = sanitize_text_field((string) ($row["date"] ?? current_time("Y-m-d")));
+        if (preg_match('/^[0-9]{8}$/D', $date)) {
+            $date = substr($date, 0, 4) . "-" . substr($date, 4, 2) . "-" . substr($date, 6, 2);
+        }
+        if (!preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/D', $date) ||
+            !checkdate((int) substr($date, 5, 2), (int) substr($date, 8, 2), (int) substr($date, 0, 4))) {
+            continue;
+        }
+        $medium = sanitize_text_field((string) ($row["medium"] ?? ""));
+        $key = wp_json_encode([$date, strtolower($source), strtolower($medium), strtolower($campaign)]);
         $normalized[$key] = [
-            "date" => sanitize_text_field((string) ($row["date"] ?? current_time("Y-m-d"))),
+            "date" => $date,
             "source" => $source,
-            "medium" => sanitize_text_field((string) ($row["medium"] ?? "")),
+            "medium" => $medium,
             "campaign" => $campaign,
             "sessions" => max(0, (int) ($row["sessions"] ?? 0)),
             "engaged_sessions" => max(0, (int) ($row["engaged_sessions"] ?? 0)),
@@ -415,7 +446,10 @@ function upsellio_automation_receive_gsc_keywords($request)
         return new WP_REST_Response(["ok" => false, "message" => "forbidden"], 403);
     }
     $payload = $request->get_json_params();
-    $rows = isset($payload["rows"]) && is_array($payload["rows"]) ? $payload["rows"] : [];
+    if (!is_array($payload) || !isset($payload["rows"]) || !is_array($payload["rows"]) || count($payload["rows"]) > 25000) {
+        return new WP_REST_Response(["ok" => false, "message" => "invalid_rows"], 400);
+    }
+    $rows = $payload["rows"];
     $normalized = [];
     $date_re = "/^\d{4}-\d{2}-\d{2}$/";
     foreach ($rows as $row) {
@@ -462,8 +496,14 @@ function upsellio_automation_capture_lead_from_form($request)
         return new WP_REST_Response(["ok" => false, "message" => "lead_module_missing"], 500);
     }
     $payload = $request->get_json_params();
+    if (!is_array($payload)) {
+        return new WP_REST_Response(["ok" => false, "message" => "invalid_payload"], 400);
+    }
     $name = sanitize_text_field((string) ($payload["name"] ?? "Lead formularza"));
-    $email = sanitize_email((string) ($payload["email"] ?? ""));
+    $email = strtolower(sanitize_email((string) ($payload["email"] ?? "")));
+    if (!is_email($email)) {
+        return new WP_REST_Response(["ok" => false, "message" => "invalid_email"], 400);
+    }
     $lead_id = 0;
     if (is_email($email)) {
         $existing = get_posts([
@@ -481,7 +521,8 @@ function upsellio_automation_capture_lead_from_form($request)
         ]);
         $lead_id = !empty($existing) ? (int) $existing[0] : 0;
     }
-    if ($lead_id <= 0) {
+    $is_new = $lead_id <= 0;
+    if ($is_new) {
         $lead_id = (int) wp_insert_post([
             "post_type" => "crm_lead",
             "post_status" => "publish",
@@ -492,13 +533,23 @@ function upsellio_automation_capture_lead_from_form($request)
         return new WP_REST_Response(["ok" => false, "message" => "insert_failed"], 500);
     }
     update_post_meta($lead_id, "_ups_lead_email", $email);
-    update_post_meta($lead_id, "_ups_lead_phone", sanitize_text_field((string) ($payload["phone"] ?? "")));
+    if (isset($payload["phone"]) && trim((string) $payload["phone"]) !== "") {
+        update_post_meta($lead_id, "_ups_lead_phone", sanitize_text_field((string) ($payload["phone"] ?? "")));
+    }
     update_post_meta($lead_id, "_ups_lead_source", sanitize_text_field((string) ($payload["source"] ?? "form")));
     update_post_meta($lead_id, "_ups_lead_type", sanitize_key((string) ($payload["type"] ?? "inbound")));
-    update_post_meta($lead_id, "_ups_lead_qualification_status", "new");
-    update_post_meta($lead_id, "_ups_lead_utm_source", sanitize_text_field((string) ($payload["utm_source"] ?? "")));
-    update_post_meta($lead_id, "_ups_lead_utm_campaign", sanitize_text_field((string) ($payload["utm_campaign"] ?? "")));
-    update_post_meta($lead_id, "_ups_lead_gclid", sanitize_text_field((string) ($payload["gclid"] ?? "")));
+    if ($is_new) {
+        update_post_meta($lead_id, "_ups_lead_qualification_status", "new");
+    }
+    if (isset($payload["utm_source"]) && trim((string) $payload["utm_source"]) !== "") {
+        update_post_meta($lead_id, "_ups_lead_utm_source", sanitize_text_field((string) ($payload["utm_source"] ?? "")));
+    }
+    if (isset($payload["utm_campaign"]) && trim((string) $payload["utm_campaign"]) !== "") {
+        update_post_meta($lead_id, "_ups_lead_utm_campaign", sanitize_text_field((string) ($payload["utm_campaign"] ?? "")));
+    }
+    if (isset($payload["gclid"]) && trim((string) $payload["gclid"]) !== "") {
+        update_post_meta($lead_id, "_ups_lead_gclid", sanitize_text_field((string) ($payload["gclid"] ?? "")));
+    }
     if (function_exists("upsellio_sales_engine_refresh_lead_hybrid_scores")) {
         upsellio_sales_engine_refresh_lead_hybrid_scores($lead_id);
     }
@@ -789,20 +840,7 @@ function upsellio_automation_data_hygiene()
         }
         if (!isset($seen[$email])) {
             $seen[$email] = $cid;
-            if ((float) get_post_meta($cid, "_ups_client_budget_range", true) <= 0) {
-                $industry = strtolower((string) get_post_meta($cid, "_ups_client_industry", true));
-                $defaults = [
-                    "saas" => 8000,
-                    "ecommerce" => 6000,
-                    "uslugi" => 4000,
-                ];
-                foreach ($defaults as $needle => $budget) {
-                    if ($industry !== "" && strpos($industry, $needle) !== false) {
-                        update_post_meta($cid, "_ups_client_budget_range", (string) $budget);
-                        break;
-                    }
-                }
-            }
+            // Never fabricate client budgets from industry labels.
             continue;
         }
         update_post_meta($cid, "_ups_client_duplicate_of", (int) $seen[$email]);
@@ -920,7 +958,7 @@ function upsellio_automation_sync_ga4_channel_quality()
         return;
     }
     $rows = get_option("ups_automation_ga4_daily_aggregates", []);
-    if (!is_array($rows) || empty($rows)) {
+    if (!is_array($rows)) {
         return;
     }
     $scores = [];
@@ -933,18 +971,30 @@ function upsellio_automation_sync_ga4_channel_quality()
         $sessions = max(0, (int) ($row["sessions"] ?? 0));
         $engaged = max(0, (int) ($row["engaged_sessions"] ?? 0));
         $conversions = max(0, (int) ($row["conversions"] ?? 0));
-        $engagement_rate = $sessions > 0 ? ($engaged / $sessions) : 0;
-        $conversion_rate = $sessions > 0 ? ($conversions / $sessions) : 0;
-        $score = (int) round(($engagement_rate * 40) + ($conversion_rate * 60), 2);
         $key = strtolower(trim($source . "|" . $campaign));
-        $scores[$key] = [
-            "source" => $source,
-            "campaign" => $campaign,
-            "score" => max(0, min(100, $score)),
-            "sessions" => $sessions,
-            "conversions" => $conversions,
-        ];
+        if ($key === "|") {
+            continue;
+        }
+        if (!isset($scores[$key])) {
+            $scores[$key] = [
+                "source" => $source,
+                "campaign" => $campaign,
+                "sessions" => 0,
+                "engaged_sessions" => 0,
+                "conversions" => 0,
+            ];
+        }
+        $scores[$key]["sessions"] += $sessions;
+        $scores[$key]["engaged_sessions"] += $engaged;
+        $scores[$key]["conversions"] += $conversions;
     }
+    foreach ($scores as &$channel) {
+        $sessions = $channel["sessions"];
+        $engagement_rate = $sessions > 0 ? min(1, $channel["engaged_sessions"] / $sessions) : 0;
+        $conversion_rate = $sessions > 0 ? min(1, $channel["conversions"] / $sessions) : 0;
+        $channel["score"] = (int) round($engagement_rate * 40 + $conversion_rate * 60);
+    }
+    unset($channel);
     update_option("ups_automation_channel_quality_scores", $scores, false);
     $offers = get_posts([
         "post_type" => "crm_offer",
@@ -1226,9 +1276,12 @@ function upsellio_automation_sync_client_lifecycle_from_offer($offer_id, $new_st
         return;
     }
     $client_id = (int) get_post_meta($offer_id, "_ups_offer_client_id", true);
-    if ($client_id <= 0) {
+    if ($client_id <= 0 || get_post_type($client_id) !== "crm_client") {
         return;
     }
+    // A lost upsell must not downgrade an existing active client.
+    $existing = (string) get_post_meta($client_id, "_ups_client_lifecycle_status", true);
+    if ($existing === "active_client" && $new_status !== "won") { return; }
     if ($new_status === "won") {
         update_post_meta($client_id, "_ups_client_lifecycle_status", "active_client");
     } elseif ($new_status === "lost") {

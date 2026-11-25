@@ -9,25 +9,28 @@ $form_ab = (array) get_option("ups_ai_form_ab_suggestions", []);
 $ad_copy = (string) get_option("ups_ai_ad_copy", "");
 $anomalies = (array) get_option("ups_ai_anomaly_explanations", []);
 ?>
-<section class="card">
-  <h2>✨ Insights AI</h2>
+<section class="card crm-insights-hero">
+  <div class="crm-view-heading"><div><h2>Brief tygodniowy</h2><p>Najważniejsze sygnały i rekomendacje dla agencji.</p></div><button type="button" class="btn alt" onclick="crmRefreshWeeklyBrief()"><i class="ti ti-refresh" aria-hidden="true"></i> Odśwież brief</button></div>
   <?php if (!empty($weekly["html"])) : ?>
     <div class="crm-brief-card" style="margin-bottom:12px">
       <div class="crm-brief-badge"><i class="ti ti-sparkles" aria-hidden="true"></i>Brief tygodniowy AI <?php if (!empty($weekly["at"])) { echo "· " . esc_html(wp_date("j M H:i", (int) $weekly["at"])); } ?></div>
       <div class="crm-brief-title"><?php echo wp_kses_post((string) $weekly["html"]); ?></div>
       <div class="crm-brief-actions">
-        <button type="button" class="crm-brief-btn white" onclick="crmRefreshWeeklyBrief()">Odśwież brief AI</button>
+
         <button type="button" class="crm-brief-btn ghost" onclick="crmAI('Co powinienem priorytetyzować w tym tygodniu CRM Upsellio')">Priorytety tygodnia</button>
       </div>
     </div>
   <?php else : ?>
     <p class="muted">Brak danych — włącz sync i poczekaj na cron.</p>
   <?php endif; ?>
-  <?php if ($icp !== "") : ?>
-    <h3>ICP</h3><div style="max-height:220px;overflow:auto"><?php echo wp_kses_post($icp); ?></div>
-  <?php endif; ?>
+</section>
+<section class="card half crm-insight-panel">
+  <h3>Idealny profil klienta (ICP)</h3>
+  <?php if ($icp !== "") : ?><div class="crm-insight-scroll"><?php echo wp_kses_post($icp); ?></div><?php else : ?><p class="muted">Brak zapisanej analizy ICP.</p><?php endif; ?>
+</section>
+<section class="card half crm-insight-panel">
+  <h3>Anomalie marketingowe</h3>
   <?php if (!empty($anomalies)) : ?>
-    <h3>Anomalie</h3>
     <?php foreach (array_slice(array_values($anomalies), 0, 4) as $a) : ?>
       <?php if (!is_array($a)) { continue; } ?>
       <?php $pct = (float) ($a["pct"] ?? 0); ?>
@@ -42,17 +45,23 @@ $anomalies = (array) get_option("ups_ai_anomaly_explanations", []);
         </div>
       </div>
     <?php endforeach; ?>
-  <?php endif; ?>
+  <?php else : ?><p class="muted">Brak zapisanych anomalii AI.</p><?php endif; ?>
+</section>
+<section class="card half crm-insight-panel">
+  <h3>Strony do optymalizacji</h3>
   <?php if (!empty($page_perf)) : ?>
-    <h3>Pages to optimize</h3>
     <ul><?php foreach (array_slice($page_perf, 0, 6) as $p) { if (!is_array($p)) { continue; } echo "<li>" . esc_html((string) ($p["title"] ?? "—")) . "</li>"; } ?></ul>
-  <?php endif; ?>
+  <?php else : ?><p class="muted">Brak rekomendacji stron.</p><?php endif; ?>
+</section>
+<section class="card half crm-insight-panel">
+  <h3>Testy A/B formularzy</h3>
   <?php if (!empty($form_ab["suggestions"])) : ?>
-    <h3>Form AB</h3>
     <ul><?php foreach (array_slice((array) $form_ab["suggestions"], 0, 4) as $f) { if (!is_array($f)) { continue; } echo "<li>" . esc_html((string) ($f["suggested_test"] ?? "")) . "</li>"; } ?></ul>
-  <?php endif; ?>
+  <?php else : ?><p class="muted">Brak zapisanych propozycji testów.</p><?php endif; ?>
+</section>
+<section class="card crm-insight-panel">
+  <h3>Propozycje tekstów reklam</h3>
   <?php if ($ad_copy !== "") : ?>
-    <h3>Ad copy</h3>
     <pre style="max-height:260px;overflow:auto"><?php echo esc_html($ad_copy); ?></pre>
-  <?php endif; ?>
+  <?php else : ?><p class="muted">Brak zapisanych propozycji reklam.</p><?php endif; ?>
 </section>

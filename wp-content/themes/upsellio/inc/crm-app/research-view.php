@@ -4,15 +4,16 @@ if (!defined("ABSPATH")) {
 }
 $rv_research_tab = isset($research_tab) && is_string($research_tab) ? $research_tab : "keywords";
 $rv_ads_ready = function_exists("upsellio_google_ads_api_ready") && upsellio_google_ads_api_ready();
-$rv_campaigns = get_option("ups_ads_campaigns_data", []);
+$rv_campaigns = $rv_research_tab === "campaigns" ? get_option("ups_ads_campaigns_data", []) : [];
 if (!is_array($rv_campaigns)) {
     $rv_campaigns = [];
 }
+$rv_campaigns = array_values(array_filter($rv_campaigns, "is_array"));
 $rv_synced_at = (string) get_option("ups_ads_campaigns_synced", "");
 $rv_nonce = wp_create_nonce("ups_crm_app_action");
 $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_site_analytics_admin_url() : admin_url("admin.php");
 ?>
-            <section class="card" style="padding:0;overflow:hidden">
+            <section class="card crm-research-shell" style="padding:0;overflow:hidden">
               <div style="padding:18px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;flex-wrap:wrap">
                 <div>
                   <h2 style="margin:0;font-size:18px"><?php esc_html_e("Research Centrum", "upsellio"); ?></h2>
@@ -28,7 +29,7 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                 <?php endif; ?>
               </div>
 
-              <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg)">
+              <div class="crm-research-tabs" role="navigation" aria-label="Research" style="display:flex;border-bottom:1px solid var(--border);background:var(--bg)">
                 <?php
                 $rv_tabs = [
                     "keywords" => "🔑 " . __("Keyword Research", "upsellio"),
@@ -40,7 +41,7 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                     $rv_active = $rv_research_tab === $rv_k;
                     $rv_tab_url = add_query_arg(["view" => "research", "research_tab" => $rv_k], home_url("/crm-app/"));
                     ?>
-                <a href="<?php echo esc_url($rv_tab_url); ?>"
+                <a href="<?php echo esc_url($rv_tab_url); ?>" <?php if ($rv_active) : ?>aria-current="page"<?php endif; ?>
                    style="padding:12px 20px;font-size:13px;font-weight:<?php echo $rv_active ? "700" : "500"; ?>;
                           color:<?php echo $rv_active ? "var(--teal)" : "var(--text-3)"; ?>;
                           border-bottom:2px solid <?php echo $rv_active ? "var(--teal)" : "transparent"; ?>;
@@ -54,7 +55,7 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
               <div style="padding:20px 24px">
                 <div style="background:#f8f9f4;border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:20px">
                   <div style="font-size:13px;font-weight:700;margin-bottom:12px"><?php esc_html_e("Wpisz frazy seed — Keyword Planner + dane GSC", "upsellio"); ?></div>
-                  <div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:start">
+                  <div class="crm-research-query" style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:start">
                     <div>
                       <textarea id="kw-seeds-input" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px;min-height:80px;resize:vertical" placeholder="google ads agencja&#10;kampanie google ads"></textarea>
                       <div style="font-size:11px;color:var(--text-3);margin-top:4px"><?php esc_html_e("Każda linia = fraza (max 20).", "upsellio"); ?></div>
@@ -75,8 +76,8 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                     </div>
                   </div>
                 </div>
-                <div id="kw-status" style="display:none;padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;color:#16a34a;margin-bottom:16px"></div>
-                <div id="kw-error" style="display:none;padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:12px;color:#dc2626;margin-bottom:16px"></div>
+                <div id="kw-status" role="status" aria-live="polite" style="display:none;padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;color:#16a34a;margin-bottom:16px"></div>
+                <div id="kw-error" role="alert" aria-live="polite" style="display:none;padding:12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:12px;color:#dc2626;margin-bottom:16px"></div>
                 <div id="kw-results" style="display:none">
                   <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
                     <div style="font-size:12px;color:var(--text-3)"><?php esc_html_e("Filtruj:", "upsellio"); ?></div>
@@ -125,7 +126,7 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                   </div>
                   <button type="button" id="ads-sync-btn" class="btn" data-nonce="<?php echo esc_attr($rv_nonce); ?>"
                     <?php echo !$rv_ads_ready ? 'disabled' : ""; ?>><?php esc_html_e("↻ Synchronizuj teraz", "upsellio"); ?></button>
-                  <div id="ads-sync-status" style="font-size:12px;color:var(--text-3)"></div>
+                  <div id="ads-sync-status" role="status" aria-live="polite" style="font-size:12px;color:var(--text-3)"></div>
                 </div>
                 <?php if (!empty($rv_campaigns)) : ?>
                 <?php
@@ -143,11 +144,11 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                     [__("Łączny koszt", "upsellio"), number_format($rv_total_cost, 0, ",", " ") . " PLN", $rv_total_cost > 0 ? "#0f766e" : ""],
                     [__("Kliknięcia", "upsellio"), number_format($rv_total_clicks, 0, ",", " "), ""],
                     [__("Konwersje", "upsellio"), number_format($rv_total_conv, 1, ",", " "), $rv_total_conv > 0 ? "#0f766e" : ""],
-                    [__("Śr. CPC", "upsellio"), $rv_avg_cpc . " PLN", ""],
-                    [__("CPA", "upsellio"), $rv_avg_cpa > 0 ? $rv_avg_cpa . " PLN" : "—", $rv_avg_cpa > 0 && $rv_avg_cpa < 500 ? "#0f766e" : ""],
+                    [__("Śr. CPC", "upsellio"), $rv_total_clicks > 0 ? number_format($rv_avg_cpc, 2, ",", " ") . " PLN" : "—", ""],
+                    [__("CPA", "upsellio"), $rv_total_conv > 0 ? number_format($rv_avg_cpa, 2, ",", " ") . " PLN" : "—", ""],
                 ];
                 ?>
-                <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:20px">
+                <div class="crm-research-kpis" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:20px">
                   <?php foreach ($rv_kpis as $rv_k) : ?>
                   <div style="background:#f8f9f4;border:1px solid var(--border);border-radius:10px;padding:12px 16px">
                     <div style="font-size:18px;font-weight:800;letter-spacing:-.5px;color:<?php echo $rv_k[2] !== "" ? esc_attr($rv_k[2]) : "var(--text)"; ?>">
@@ -157,7 +158,7 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                   </div>
                   <?php endforeach; ?>
                 </div>
-                <table style="width:100%;border-collapse:collapse;font-size:12px">
+                <div class="crm-research-table" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
                   <thead>
                     <tr style="border-bottom:2px solid var(--border);background:#f8f9f4">
                       <th style="text-align:left;padding:8px 12px"><?php esc_html_e("Kampania", "upsellio"); ?></th>
@@ -174,7 +175,7 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                     <?php foreach ($rv_campaigns as $camp) : ?>
                       <?php
                       $cpa = ($camp["conversions"] ?? 0) > 0 ? round((float) $camp["cost_pln"] / (float) $camp["conversions"], 0) : 0;
-                      $is_good = ($camp["conversions"] ?? 0) > 0 && $cpa < 1000;
+                      $is_good = false; // No universal CPA target; depends on campaign economics.
                       ?>
                     <tr style="border-bottom:1px solid var(--border);<?php echo $is_good ? "background:#f0fdf4;" : ""; ?>">
                       <td style="padding:10px 12px;font-weight:600"><?php echo esc_html((string) ($camp["name"] ?? "")); ?></td>
@@ -183,12 +184,12 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                       <td style="padding:10px 8px;text-align:right"><?php echo ($camp["conversions"] ?? 0) > 0 ? esc_html(number_format((float) $camp["conversions"], 1, ",", " ")) : "—"; ?></td>
                       <td style="padding:10px 8px;text-align:right"><?php echo esc_html((string) ($camp["ctr"] ?? "0")); ?>%</td>
                       <td style="padding:10px 8px;text-align:right"><?php echo esc_html((string) ($camp["avg_cpc_pln"] ?? "0")); ?></td>
-                      <td style="padding:10px 8px;text-align:right"><?php echo $cpa > 0 ? esc_html((string) $cpa) . " PLN" : "—"; ?></td>
+                      <td style="padding:10px 8px;text-align:right"><?php echo ($camp["conversions"] ?? 0) > 0 ? esc_html((string) $cpa) . " PLN" : "—"; ?></td>
                       <td style="padding:10px 8px;text-align:center"><span style="font-size:10px;padding:2px 7px;border-radius:99px;background:#e0e7ff;color:#3730a3;font-weight:700"><?php echo esc_html((string) ($camp["type"] ?? "")); ?></span></td>
                     </tr>
                     <?php endforeach; ?>
                   </tbody>
-                </table>
+                </table></div>
                 <?php else : ?>
                 <div style="text-align:center;padding:48px;color:var(--text-3)">
                   <div style="font-size:14px;font-weight:600;margin-bottom:6px"><?php esc_html_e("Brak danych kampanii", "upsellio"); ?></div>
@@ -209,8 +210,8 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                     <button type="button" id="comp-ai-btn" class="btn alt" style="display:none"><?php esc_html_e("✨ Analiza AI", "upsellio"); ?></button>
                   </div>
                 </div>
-                <div id="comp-status" style="display:none;padding:10px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#16a34a;margin-bottom:16px"></div>
-                <div id="comp-error" style="display:none;padding:10px;background:#fef2f2;border-radius:8px;font-size:12px;color:#dc2626;margin-bottom:16px"></div>
+                <div id="comp-status" role="status" aria-live="polite" style="display:none;padding:10px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#16a34a;margin-bottom:16px"></div>
+                <div id="comp-error" role="alert" aria-live="polite" style="display:none;padding:10px;background:#fef2f2;border-radius:8px;font-size:12px;color:#dc2626;margin-bottom:16px"></div>
                 <div id="comp-table-wrap" style="display:none;overflow-x:auto;margin-bottom:24px">
                   <table style="width:100%;border-collapse:collapse;font-size:12px" id="comp-table">
                     <thead>
@@ -235,19 +236,19 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
               <?php elseif ($rv_research_tab === "client_plan") : ?>
               <div style="padding:20px 24px">
                 <div style="font-size:13px;font-weight:700;margin-bottom:16px"><?php esc_html_e("Plan słów kluczowych per klient", "upsellio"); ?></div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+                <div class="crm-research-client-form" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
                   <div>
                     <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px"><?php esc_html_e("Klient", "upsellio"); ?></label>
                     <select id="cp-client-select" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px">
                       <option value="">— <?php esc_html_e("wybierz klienta", "upsellio"); ?> —</option>
-                      <?php foreach ($clients as $cp_c) : if (!($cp_c instanceof WP_Post)) { continue; } ?>
+                      <?php foreach ($clients as $cp_c) : if (!($cp_c instanceof WP_Post) || !current_user_can("edit_post", $cp_c->ID)) { continue; } ?>
                       <option value="<?php echo (int) $cp_c->ID; ?>"><?php echo esc_html((string) $cp_c->post_title); ?></option>
                       <?php endforeach; ?>
                     </select>
                   </div>
                   <div>
                     <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px"><?php esc_html_e("Budżet Ads (PLN/mies.)", "upsellio"); ?></label>
-                    <input type="number" id="cp-budget" placeholder="3000" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px" />
+                    <input type="number" id="cp-budget" min="0" step="0.01" placeholder="3000" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px" />
                   </div>
                 </div>
                 <label style="font-size:12px;font-weight:700;display:block;margin-bottom:6px"><?php esc_html_e("Frazy seed (opcjonalnie)", "upsellio"); ?></label>
@@ -255,7 +256,7 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                 <p style="margin-top:14px">
                   <button type="button" id="cp-generate-btn" class="btn" data-nonce="<?php echo esc_attr($rv_nonce); ?>" <?php echo !$rv_ads_ready ? "disabled" : ""; ?>><?php esc_html_e("✨ Generuj plan", "upsellio"); ?></button>
                 </p>
-                <div id="cp-status" style="display:none;margin-top:12px;padding:10px;border-radius:8px;font-size:12px"></div>
+                <div id="cp-status" role="status" aria-live="polite" style="display:none;margin-top:12px;padding:10px;border-radius:8px;font-size:12px"></div>
                 <div id="cp-result" style="display:none;margin-top:20px"></div>
               </div>
               <?php endif; ?>
@@ -263,8 +264,8 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
 
             <script>
             (function () {
-              var nonce = <?php echo wp_json_encode($rv_nonce); ?>;
-              var ajaxUrl = <?php echo wp_json_encode(admin_url("admin-ajax.php")); ?>;
+              var nonce = <?php echo wp_json_encode($rv_nonce, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+              var ajaxUrl = <?php echo wp_json_encode(admin_url("admin-ajax.php"), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
               function post(action, data) {
                 var fd = new FormData();
@@ -274,10 +275,26 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                   fd.append(k, data[k]);
                 });
                 return fetch(ajaxUrl, { method: "POST", body: fd, credentials: "same-origin" }).then(function (r) {
-                  return r.json();
+                  return r.json().then(function (j) {
+                    return r.ok && j && typeof j.success === "boolean" ? j : {success:false,data:wpAjaxMessage(j)};
+                  });
+                }).catch(function () {
+                  return {success:false,data:"Nie udało się pobrać odpowiedzi serwera. Spróbuj ponownie."};
                 });
               }
 
+              function escapeHtml(value) {
+                return String(value == null ? "" : value).replace(/[&<>"\']/g, function (c) {
+                  return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","\'":"&#39;"}[c];
+                });
+              }
+              function numeric(value) {
+                var n = Number(value);
+                return Number.isFinite(n) ? n : 0;
+              }
+              function records(value) {
+                return Array.isArray(value) ? value.filter(function (v) { return v && typeof v === "object" && !Array.isArray(v); }) : [];
+              }
               function wpAjaxMessage(j) {
                 if (j && j.success) return "";
                 if (!j || typeof j.data === "undefined") return "Błąd.";
@@ -307,6 +324,7 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
               function setLoading(btn, loading) {
                 if (!btn) return;
                 btn.disabled = !!loading;
+                btn.setAttribute("aria-busy", loading ? "true" : "false");
                 if (loading) {
                   btn.setAttribute("data-orig", btn.textContent);
                   btn.textContent = "⏳ …";
@@ -319,24 +337,26 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                 if (!kwTbody) return;
                 var compColors = { LOW: "#16a34a", MEDIUM: "#d97706", HIGH: "#dc2626" };
                 kwTbody.innerHTML = rows.map(function (kw) {
+                  var opportunity = Math.max(0, Math.min(100, numeric(kw.opportunity)));
+                  var cpc = numeric(kw.cpc_pln);
                   var posCell = kw.gsc_position !== null && kw.gsc_position !== undefined
                     ? "<span style=\"font-weight:700;color:" + (kw.gsc_position <= 10 ? "#0f766e" : kw.gsc_position <= 30 ? "#d97706" : "var(--text-3)") + "\">" + Number(kw.gsc_position).toFixed(0) + "</span>"
                     : "<span style=\"color:var(--text-3)\">—</span>";
-                  var oppBar = "<div style=\"display:flex;align-items:center;gap:6px\"><div style=\"width:40px;height:6px;background:#f4f5f0;border-radius:3px;overflow:hidden\"><div style=\"width:" + (kw.opportunity || 0) + "%;height:100%;background:" + ((kw.opportunity || 0) >= 70 ? "#0d9488" : (kw.opportunity || 0) >= 40 ? "#d97706" : "#e2e5de") + ";border-radius:3px\"></div></div><span style=\"font-size:11px;font-weight:700\">" + (kw.opportunity || 0) + "</span></div>";
+                  var oppBar = "<div style=\"display:flex;align-items:center;gap:6px\"><div style=\"width:40px;height:6px;background:#f4f5f0;border-radius:3px;overflow:hidden\"><div style=\"width:" + opportunity + "%;height:100%;background:" + (opportunity >= 70 ? "#0d9488" : opportunity >= 40 ? "#d97706" : "#e2e5de") + ";border-radius:3px\"></div></div><span style=\"font-size:11px;font-weight:700\">" + opportunity + "</span></div>";
                   var channelBadge = kw.ads_quick_win
                     ? "<span style=\"background:#e0e7ff;color:#3730a3;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700\">SEO+ADS</span>"
                     : kw.in_gsc
                       ? "<span style=\"background:#f0fdf4;color:#16a34a;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700\">SEO</span>"
                       : "<span style=\"background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700\">ADS</span>";
-                  var trend = (kw.monthly_searches || []).slice(-6);
-                  var maxV = Math.max.apply(null, trend.map(function (t) { return t.volume || 0; }).concat([1]));
+                  var trend = records(kw.monthly_searches).slice(-6);
+                  var maxV = Math.max.apply(null, trend.map(function (t) { return Math.max(0, numeric(t.volume)); }).concat([1]));
                   var spark = trend.map(function (t) {
-                    var h = Math.round((t.volume / maxV) * 20);
+                    var h = Math.round((Math.max(0, numeric(t.volume)) / maxV) * 20);
                     return "<div style=\"width:4px;height:" + h + "px;background:#0d9488;border-radius:1px\"></div>";
                   }).join("");
                   var trendHtml = "<div style=\"display:flex;align-items:flex-end;gap:2px;height:20px\">" + spark + "</div>";
-                  var kwEsc = String(kw.keyword || "").replace(/</g, "&lt;");
-                  return "<tr style=\"border-bottom:1px solid var(--border)\" data-in-gsc=\"" + (kw.in_gsc ? "1" : "0") + "\" data-quick-win=\"" + (kw.ads_quick_win ? "1" : "0") + "\" data-cpc=\"" + (kw.cpc_pln || 0) + "\"><td style=\"padding:9px 12px;font-weight:600\">" + kwEsc + "</td><td style=\"padding:9px 8px;text-align:right;font-weight:700\">" + Number(kw.avg_monthly || 0).toLocaleString("pl") + "</td><td style=\"padding:9px 8px;text-align:right\">" + Number(kw.cpc_pln || 0).toFixed(2) + "</td><td style=\"padding:9px 8px;text-align:center\"><span style=\"color:" + (compColors[kw.competition] || "var(--text-3)") + ";font-weight:700;font-size:11px\">" + (kw.competition || "") + "</span></td><td style=\"padding:9px 8px;text-align:right\">" + posCell + "</td><td style=\"padding:9px 8px;text-align:right;color:var(--text-3)\">" + (kw.gsc_impressions != null ? Number(kw.gsc_impressions).toLocaleString("pl") : "—") + "</td><td style=\"padding:9px 8px\">" + oppBar + "</td><td style=\"padding:9px 8px;text-align:center\">" + channelBadge + "</td><td style=\"padding:9px 8px\">" + trendHtml + "</td></tr>";
+                  var kwEsc = escapeHtml(kw.keyword);
+                  return "<tr style=\"border-bottom:1px solid var(--border)\" data-in-gsc=\"" + (kw.in_gsc ? "1" : "0") + "\" data-quick-win=\"" + (kw.ads_quick_win ? "1" : "0") + "\" data-cpc=\"" + cpc + "\"><td style=\"padding:9px 12px;font-weight:600\">" + kwEsc + "</td><td style=\"padding:9px 8px;text-align:right;font-weight:700\">" + Number(kw.avg_monthly || 0).toLocaleString("pl") + "</td><td style=\"padding:9px 8px;text-align:right\">" + (kw.cpc_pln == null || kw.cpc_pln === "" || !Number.isFinite(Number(kw.cpc_pln)) ? "—" : cpc.toFixed(2)) + "</td><td style=\"padding:9px 8px;text-align:center\"><span style=\"color:" + (Object.prototype.hasOwnProperty.call(compColors, kw.competition) ? compColors[kw.competition] : "var(--text-3)") + ";font-weight:700;font-size:11px\">" + escapeHtml(kw.competition) + "</span></td><td style=\"padding:9px 8px;text-align:right\">" + posCell + "</td><td style=\"padding:9px 8px;text-align:right;color:var(--text-3)\">" + (kw.gsc_impressions != null ? Number(kw.gsc_impressions).toLocaleString("pl") : "—") + "</td><td style=\"padding:9px 8px\">" + oppBar + "</td><td style=\"padding:9px 8px;text-align:center\">" + channelBadge + "</td><td style=\"padding:9px 8px\">" + trendHtml + "</td></tr>";
                 }).join("");
               }
 
@@ -344,11 +364,18 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                 kwBtn.addEventListener("click", function () {
                   var seeds = document.getElementById("kw-seeds-input");
                   var txt = seeds && seeds.value ? seeds.value.trim() : "";
+                  if (kwBtn.disabled || (kwCluster && kwCluster.disabled)) return;
                   if (!txt) { alert("<?php echo esc_js(__("Wpisz minimum jedną frazę.", "upsellio")); ?>"); return; }
                   var seedArr = txt.split(/\n/).map(function (s) { return s.trim(); }).filter(Boolean);
                   if (seedArr.length > 20) { alert("Max 20."); return; }
                   if (kwStatus) kwStatus.style.display = "none";
                   if (kwError) kwError.style.display = "none";
+                  kwData = [];
+                  if (kwResults) kwResults.style.display = "none";
+                  if (kwCluster) kwCluster.style.display = "none";
+                  var oldClusters = document.getElementById("kw-clusters");
+                  if (oldClusters) oldClusters.style.display = "none";
+                  document.querySelectorAll(".kw-filter-btn").forEach(function (b) { b.classList.toggle("is-active", b.getAttribute("data-filter") === "all"); });
                   setLoading(kwBtn, true);
                   var geoEl = document.getElementById("kw-geo");
                   post("upsellio_kw_research", {
@@ -362,12 +389,12 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                       if (kwError) kwError.style.display = "block";
                       return;
                     }
-                    kwData = (j.data && j.data.keywords) ? j.data.keywords : [];
+                    kwData = records(j.data && j.data.keywords);
                     renderKwTable(kwData);
                     showKwStatus(kwStatus, "<?php echo esc_js(__("Pobrano frazy.", "upsellio")); ?> " + kwData.length, false);
                     if (kwStatus) kwStatus.style.display = "block";
                     if (kwResults) kwResults.style.display = "block";
-                    if (kwCluster) kwCluster.style.display = "inline-flex";
+                    if (kwCluster && kwData.length) kwCluster.style.display = "inline-flex";
                     if (kwCount) kwCount.textContent = kwData.length + " fraz";
                   });
                 });
@@ -382,7 +409,7 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                   if (f === "gsc") filtered = kwData.filter(function (k) { return k.in_gsc; });
                   if (f === "gaps") filtered = kwData.filter(function (k) { return !k.in_gsc; });
                   if (f === "quick_win") filtered = kwData.filter(function (k) { return k.ads_quick_win; });
-                  if (f === "low_cpc") filtered = kwData.filter(function (k) { return (k.cpc_pln || 0) < 2; });
+                  if (f === "low_cpc") filtered = kwData.filter(function (k) { return k.cpc_pln != null && k.cpc_pln !== "" && Number.isFinite(Number(k.cpc_pln)) && Number(k.cpc_pln) > 0 && Number(k.cpc_pln) < 2; });
                   renderKwTable(filtered);
                   if (kwCount) kwCount.textContent = filtered.length + " fraz";
                 });
@@ -390,7 +417,10 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
 
               if (kwCluster) {
                 kwCluster.addEventListener("click", function () {
-                  if (!kwData.length) return;
+                  if (!kwData.length || kwCluster.disabled || (kwBtn && kwBtn.disabled)) return;
+                  if (kwError) kwError.style.display = "none";
+                  var oldClusters = document.getElementById("kw-clusters");
+                  if (oldClusters) oldClusters.style.display = "none";
                   setLoading(kwCluster, true);
                   post("upsellio_kw_cluster_ai", { keywords: JSON.stringify(kwData) }).then(function (j) {
                     setLoading(kwCluster, false);
@@ -400,19 +430,19 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                       return;
                     }
                     var d = j.data || {};
-                    var clusters = d.clusters || [];
+                    var clusters = records(d.clusters);
                     var cEl = document.getElementById("kw-clusters");
                     var cContent = document.getElementById("kw-clusters-content");
                     var chanColors = { ads: ["#e0e7ff", "#3730a3"], seo: ["#f0fdf4", "#16a34a"], both: ["#fef3c7", "#92400e"] };
                     cContent.innerHTML = clusters.map(function (cl) {
-                      var cc = chanColors[cl.channel] || ["#f4f5f0", "var(--text-3)"];
-                      var kws = (cl.keywords || []).map(function (k) {
-                        return "<span style=\"background:#fff;border:1px solid var(--border);padding:2px 8px;border-radius:99px;font-size:11px\">" + String(k).replace(/</g, "&lt;") + "</span>";
+                      var cc = Object.prototype.hasOwnProperty.call(chanColors, cl.channel) ? chanColors[cl.channel] : ["#f4f5f0", "var(--text-3)"];
+                      var kws = (Array.isArray(cl.keywords) ? cl.keywords : []).map(function (k) {
+                        return "<span style=\"background:#fff;border:1px solid var(--border);padding:2px 8px;border-radius:99px;font-size:11px\">" + escapeHtml(k) + "</span>";
                       }).join("");
-                      return "<div style=\"background:#f8f9f4;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px\"><div style=\"display:flex;align-items:center;gap:10px;margin-bottom:8px\"><strong>" + String(cl.name || "") + "</strong><span style=\"background:" + cc[0] + ";color:" + cc[1] + ";padding:2px 8px;border-radius:99px;font-size:10px;font-weight:800\">" + String(cl.channel || "").toUpperCase() + "</span></div><div style=\"font-size:11px;color:var(--text-3);margin-bottom:8px\">" + String(cl.rationale || "") + "</div><div style=\"display:flex;gap:4px;flex-wrap:wrap\">" + kws + "</div></div>";
+                      return "<div style=\"background:#f8f9f4;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:8px\"><div style=\"display:flex;align-items:center;gap:10px;margin-bottom:8px\"><strong>" + escapeHtml(cl.name) + "</strong><span style=\"background:" + cc[0] + ";color:" + cc[1] + ";padding:2px 8px;border-radius:99px;font-size:10px;font-weight:800\">" + escapeHtml(String(cl.channel || "").toUpperCase()) + "</span></div><div style=\"font-size:11px;color:var(--text-3);margin-bottom:8px\">" + escapeHtml(cl.rationale) + "</div><div style=\"display:flex;gap:4px;flex-wrap:wrap\">" + kws + "</div></div>";
                     }).join("");
                     if (d.summary) {
-                      cContent.innerHTML += "<div style=\"padding:12px;background:#fff;border:1px solid #0d9488;border-radius:10px;margin-top:8px;font-size:13px\">" + String(d.summary).replace(/</g, "&lt;") + "</div>";
+                      cContent.innerHTML += "<div style=\"padding:12px;background:#fff;border:1px solid #0d9488;border-radius:10px;margin-top:8px;font-size:13px\">" + escapeHtml(d.summary) + "</div>";
                     }
                     if (cEl) cEl.style.display = "block";
                   });
@@ -449,6 +479,10 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
 
               if (compBtn) {
                 compBtn.addEventListener("click", function () {
+                  if (compBtn.disabled || (compAiBtn && compAiBtn.disabled)) return;
+                  compData = [];
+                  if (compAiBtn) compAiBtn.style.display = "none";
+                  ["comp-table-wrap", "comp-ai-result"].forEach(function (id) { var el = document.getElementById(id); if (el) el.style.display = "none"; });
                   setLoading(compBtn, true);
                   var st = document.getElementById("comp-status");
                   var er = document.getElementById("comp-error");
@@ -460,18 +494,18 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                       if (er) { er.style.display = "block"; er.textContent = wpAjaxMessage(j); }
                       return;
                     }
-                    compData = (j.data && j.data.competitors) ? j.data.competitors : [];
+                    compData = records(j.data && j.data.competitors);
                     var tbody = document.getElementById("comp-tbody");
                     var wrap = document.getElementById("comp-table-wrap");
                     if (tbody) {
                       tbody.innerHTML = compData.map(function (c) {
                         var threat = c.impression_share >= 60 ? "<?php echo esc_js(__("Wysokie", "upsellio")); ?>" : c.impression_share >= 30 ? "<?php echo esc_js(__("Średnie", "upsellio")); ?>" : "<?php echo esc_js(__("Niskie", "upsellio")); ?>";
                         var tColor = c.impression_share >= 60 ? "#dc2626" : c.impression_share >= 30 ? "#d97706" : "#16a34a";
-                        return "<tr style=\"border-bottom:1px solid var(--border)\"><td style=\"padding:9px 12px;font-weight:700\">" + String(c.domain || "").replace(/</g, "&lt;") + "</td><td style=\"padding:9px 8px;text-align:right;font-weight:700;color:" + compColor(c.impression_share, 30, 60) + "\">" + c.impression_share + "%</td><td style=\"padding:9px 8px;text-align:right\">" + c.overlap_rate + "%</td><td style=\"padding:9px 8px;text-align:right;color:" + compColor(c.position_above_rate, 30, 60) + "\">" + c.position_above_rate + "%</td><td style=\"padding:9px 8px;text-align:right\">" + c.top_share + "%</td><td style=\"padding:9px 8px;text-align:center\"><span style=\"color:" + tColor + ";font-weight:700;font-size:11px\">" + threat + "</span></td></tr>";
+                        return "<tr style=\"border-bottom:1px solid var(--border)\"><td style=\"padding:9px 12px;font-weight:700\">" + escapeHtml(c.domain) + "</td><td style=\"padding:9px 8px;text-align:right;font-weight:700;color:" + compColor(c.impression_share, 30, 60) + "\">" + escapeHtml(c.impression_share) + "%</td><td style=\"padding:9px 8px;text-align:right\">" + escapeHtml(c.overlap_rate) + "%</td><td style=\"padding:9px 8px;text-align:right;color:" + compColor(c.position_above_rate, 30, 60) + "\">" + escapeHtml(c.position_above_rate) + "%</td><td style=\"padding:9px 8px;text-align:right\">" + escapeHtml(c.top_share) + "%</td><td style=\"padding:9px 8px;text-align:center\"><span style=\"color:" + tColor + ";font-weight:700;font-size:11px\">" + threat + "</span></td></tr>";
                       }).join("");
                     }
                     if (wrap) wrap.style.display = "block";
-                    if (compAiBtn) compAiBtn.style.display = "inline-flex";
+                    if (compAiBtn && compData.length) compAiBtn.style.display = "inline-flex";
                     if (st) { st.style.display = "block"; st.textContent = "<?php echo esc_js(__("Znaleziono domen:", "upsellio")); ?> " + compData.length; }
                   });
                 });
@@ -479,7 +513,7 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
 
               if (compAiBtn) {
                 compAiBtn.addEventListener("click", function () {
-                  if (!compData.length) return;
+                  if (!compData.length || compAiBtn.disabled || (compBtn && compBtn.disabled)) return;
                   setLoading(compAiBtn, true);
                   post("upsellio_competitor_ai_analysis", { competitors: JSON.stringify(compData) }).then(function (j) {
                     setLoading(compAiBtn, false);
@@ -503,6 +537,8 @@ $rv_admin_url = function_exists("upsellio_site_analytics_admin_url") ? upsellio_
                   var st = document.getElementById("cp-status");
                   var resEl = document.getElementById("cp-result");
                   if (!clientId) { alert("<?php echo esc_js(__("Wybierz klienta.", "upsellio")); ?>"); return; }
+                  if (cpBtn.disabled) return;
+                  if (budget !== "" && (!Number.isFinite(Number(budget)) || Number(budget) < 0)) { alert("Podaj prawidłowy budżet."); return; }
                   setLoading(cpBtn, true);
                   if (st) { st.style.display = "block"; st.style.background = "#f0fdf4"; st.style.color = "#16a34a"; st.textContent = "…"; }
                   if (resEl) resEl.style.display = "none";

@@ -516,8 +516,62 @@
     initIntelCharts();
   }
 
+  var syncStatusTimer = null;
+  var syncStatusGeneration = 0;
+  function showSyncStatus(params) {
+    var generation = ++syncStatusGeneration;
+    if (syncStatusTimer !== null) window.clearTimeout(syncStatusTimer);
+    var panel = document.getElementById("ups-audit-sync-status");
+    if (!panel) {
+      panel = document.createElement("div");
+      panel.id = "ups-audit-sync-status";
+      panel.className = "crm-alert-bar";
+      panel.setAttribute("role", "status");
+      panel.style.cssText = "position:fixed;bottom:18px;right:18px;max-width:calc(100vw - 36px);z-index:9999;padding:12px;background:#fff;color:#1f2937;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 4px 16px #0002";
+      document.body.appendChild(panel);
+    }
+    var label = document.createElement("span");
+    var refresh = document.createElement("button");
+    refresh.type = "button";
+    refresh.className = "btn alt";
+    refresh.textContent = "Sprawdź ponownie";
+    var close = document.createElement("button");
+    close.type = "button";
+    close.className = "btn alt";
+    close.textContent = "Zamknij";
+    panel.replaceChildren(label, document.createElement("br"), refresh, close);
+    var checks = 0;
+    async function poll() {
+      if (generation !== syncStatusGeneration) return;
+      if (syncStatusTimer !== null) window.clearTimeout(syncStatusTimer);
+      refresh.disabled = true;
+      label.textContent = "Sprawdzanie statusu synchronizacji…";
+      try {
+        var json = await auditAjax("ups_audit_sync_status", params);
+        if (generation !== syncStatusGeneration) return;
+        if (!json || !json.success) throw new Error("status unavailable");
+        var c = (json.data || {}).counts || {};
+        label.textContent = "Status zasobów: oczekuje " + (c.queued || 0) + ", w toku " + (c.running || 0) + ", ponowienie " + (c.retrying || 0) + ", gotowe " + (c.completed || 0) + ", błędy " + (c.failed || 0) + ", przerwane " + (c.stale || 0) + ", bez zadania " + (c.idle || 0);
+        if ((c.queued || c.running || c.retrying) && ++checks < 30) {
+          syncStatusTimer = window.setTimeout(poll, 10000);
+        }
+      } catch (error) {
+        if (generation === syncStatusGeneration) label.textContent = "Nie udało się odczytać statusu.";
+      } finally {
+        if (generation === syncStatusGeneration) refresh.disabled = false;
+      }
+    }
+    refresh.addEventListener("click", function () { checks = 0; poll(); });
+    close.addEventListener("click", function () {
+      ++syncStatusGeneration;
+      if (syncStatusTimer !== null) window.clearTimeout(syncStatusTimer);
+      panel.remove();
+    });
+    poll();
+  }
+
   window.upsAuditSyncAllResources = async function (clientId, googleAccountId) {
-    var msg = "Synchronizować wszystkie zasoby z połączonych kont Google? Może potrwać kilka minut.";
+    var msg = "Zaplanować synchronizację wszystkich zasobów?";
     if (googleAccountId) {
       msg = "Synchronizować zasoby tego konta Google?";
     } else if (clientId) {
@@ -532,13 +586,17 @@
     } else if (clientId) {
       params.client_id = String(clientId);
     }
-    var json = await auditAjax("ups_audit_sync_all", params);
-    if (json && json.success) {
-      var d = json.data || {};
-      alert("Sync zakończony: OK " + (d.ok || 0) + ", błędy " + (d.fail || 0));
-      window.location.reload();
-    } else {
-      alert("Sync nie powiódł się.");
+    try {
+      var json = await auditAjax("ups_audit_sync_all", params);
+      if (json && json.success) {
+        var d = json.data || {};
+        alert("Synchronizacja zaplanowana: " + (d.queued || 0) + ", już w kolejce: " + (d.already || 0) + ", błędy planowania: " + (d.fail || 0) + ". Dane zaktualizują się po wykonaniu zadań WP-Cron.");
+        showSyncStatus(params);
+      } else {
+        alert("Nie udało się zaplanować synchronizacji.");
+      }
+    } catch (error) {
+      alert("Błąd połączenia podczas planowania synchronizacji.");
     }
   };
 

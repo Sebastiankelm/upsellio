@@ -7,7 +7,7 @@ if (!defined("ABSPATH")) {
 function ups_audit_ajax_guard($cap = "edit_posts")
 {
     check_ajax_referer("ups_crm_app_action", "nonce");
-    if (!current_user_can($cap)) {
+    if (!upsellio_crm_app_user_can_access() || !current_user_can($cap)) {
         wp_send_json_error(["msg" => "forbidden"], 403);
     }
 }
@@ -123,7 +123,12 @@ add_action("wp_ajax_ups_audit_resource_remove", function () {
     if ($resource_id <= 0 || get_post_type($resource_id) !== "crm_audit_resource") {
         wp_send_json_error(["msg" => "invalid_resource"], 400);
     }
-    wp_delete_post($resource_id, true);
+    if (!current_user_can("delete_post", $resource_id)) {
+        wp_send_json_error(["msg" => "forbidden"], 403);
+    }
+    if (!wp_delete_post($resource_id, true)) {
+        wp_send_json_error(["msg" => "delete_failed"], 500);
+    }
     wp_send_json_success(["ok" => true]);
 });
 
@@ -197,7 +202,7 @@ add_action("wp_ajax_ups_audit_create_client_profile", function () {
 });
 
 add_action("wp_ajax_ups_audit_map_to_client", function () {
-    ups_audit_ajax_guard("edit_posts");
+    ups_audit_ajax_guard("manage_options");
     $client_id = isset($_POST["client_id"]) ? (int) $_POST["client_id"] : 0;
     $google_account_id = isset($_POST["google_account_id"]) ? (int) $_POST["google_account_id"] : 0;
     $resources_json = isset($_POST["resources"]) ? wp_unslash($_POST["resources"]) : "[]";
@@ -266,6 +271,10 @@ add_action("wp_ajax_ups_audit_unmap_from_client", function () {
     if ($resource_id <= 0 || get_post_type($resource_id) !== "crm_audit_resource") {
         wp_send_json_error(["msg" => "invalid_resource"], 400);
     }
+    $linked_client = (int) get_post_meta($resource_id, "_ups_resource_client_id", true);
+    if (!current_user_can("edit_post", $resource_id) || ($linked_client > 0 && !current_user_can("edit_post", $linked_client))) {
+        wp_send_json_error(["msg" => "forbidden"], 403);
+    }
     update_post_meta($resource_id, "_ups_resource_client_id", 0);
     wp_send_json_success(["ok" => true]);
 });
@@ -276,13 +285,32 @@ add_action("wp_ajax_ups_audit_resource_sync", function () {
     if ($resource_id <= 0 || get_post_type($resource_id) !== "crm_audit_resource") {
         wp_send_json_error(["msg" => "invalid_resource"], 400);
     }
-    ups_audit_sync_resource_action($resource_id);
+    if (!current_user_can("edit_post", $resource_id)) {
+        wp_send_json_error(["msg" => "forbidden"], 403);
+    }
+    if (!in_array((string) get_post_meta($resource_id, "_ups_resource_type", true), ["ga4", "gsc", "ads", "meta", "clarity"], true)) {
+        wp_send_json_error(["msg" => "invalid_resource_type"], 400);
+    }
+    try {
+        if (!ups_audit_sync_resource_action($resource_id)) {
+            wp_send_json_error(["msg" => "sync_failed_or_busy"], 409);
+        }
+    } catch (Throwable $e) {
+        wp_send_json_error(["msg" => "sync_failed"], 500);
+    }
+    $cache = get_post_meta($resource_id, "_ups_resource_data_cache", true);
+    if (!is_array($cache) || empty($cache["synced_at"]) || !empty($cache["error"])) {
+        wp_send_json_error(["msg" => "sync_failed"], 502);
+    }
     wp_send_json_success(["ok" => true]);
 });
 
 add_action("wp_ajax_ups_audit_generate_report", function () {
     ups_audit_ajax_guard("edit_posts");
     $client_id = isset($_POST["client_id"]) ? (int) $_POST["client_id"] : 0;
+    if ($client_id <= 0 || get_post_type($client_id) !== "crm_client" || !current_user_can("edit_post", $client_id)) {
+        wp_send_json_error(["msg" => "forbidden_or_invalid_client"], 403);
+    }
     $type = isset($_POST["report_type"]) ? sanitize_key(wp_unslash($_POST["report_type"])) : "monthly";
     if (!in_array($type, ["monthly", "audit", "plan", "comparison", "brief", "seo_roadmap", "ux_audit"], true)) {
         $type = "monthly";
@@ -299,6 +327,9 @@ add_action("wp_ajax_ups_audit_generate_report", function () {
 add_action("wp_ajax_ups_audit_send_report_email", function () {
     ups_audit_ajax_guard("edit_posts");
     $report_id = isset($_POST["report_id"]) ? (int) $_POST["report_id"] : 0;
+    if ($report_id <= 0 || get_post_type($report_id) !== "crm_audit_report" || !current_user_can("read_post", $report_id) || !current_user_can("edit_post", $report_id) || !upsellio_crm_app_can_access_audit_client((int) get_post_meta($report_id, "_ups_report_client_id", true))) {
+        wp_send_json_error(["msg" => "forbidden_or_invalid_report"], 403);
+    }
     $client_id = (int) get_post_meta($report_id, "_ups_report_client_id", true);
     $email_in = isset($_POST["email"]) ? sanitize_email(wp_unslash($_POST["email"])) : "";
     $email = is_email($email_in) ? $email_in : sanitize_email((string) get_post_meta($client_id, "_ups_client_email", true));
@@ -307,33 +338,61 @@ add_action("wp_ajax_ups_audit_send_report_email", function () {
         wp_send_json_error(["msg" => "invalid_email_or_report"], 400);
     }
     $sent = wp_mail($email, "Raport AI - " . get_the_title($report_id), (string) $report->post_content);
-    wp_send_json_success(["sent" => (bool) $sent]);
+    if (!$sent) {
+        wp_send_json_error(["msg" => "mail_failed"], 502);
+    }
+    wp_send_json_success(["sent" => true]);
 });
 
 add_action("wp_ajax_ups_audit_export_pdf", function () {
     ups_audit_ajax_guard("edit_posts");
     $report_id = isset($_POST["report_id"]) ? (int) $_POST["report_id"] : 0;
-    $report = get_post($report_id);
-    if ($report_id <= 0 || !($report instanceof WP_Post)) {
-        wp_send_json_error(["msg" => "invalid_report"], 400);
+    if ($report_id <= 0 || get_post_type($report_id) !== "crm_audit_report" || !current_user_can("read_post", $report_id) || !current_user_can("edit_post", $report_id) || !upsellio_crm_app_can_access_audit_client((int) get_post_meta($report_id, "_ups_report_client_id", true))) {
+        wp_send_json_error(["msg" => "forbidden_or_invalid_report"], 403);
     }
     if (!function_exists("ups_audit_render_html_to_pdf")) {
         wp_send_json_error(["msg" => "pdf_feature_unavailable"], 500);
     }
-    $binary = ups_audit_render_html_to_pdf((string) $report->post_content);
-    if (is_wp_error($binary)) {
-        wp_send_json_error(["msg" => $binary->get_error_message()], 500);
+    // Preserve the existing JSON URL contract without writing confidential files to uploads.
+    $url = add_query_arg([
+        "action" => "ups_audit_download_report_pdf",
+        "report_id" => $report_id,
+        "nonce" => wp_create_nonce("ups_audit_download_report_" . $report_id),
+    ], admin_url("admin-ajax.php"));
+    wp_send_json_success(["url" => $url, "filename" => "audit-report-" . $report_id . ".pdf"]);
+});
+
+add_action("wp_ajax_ups_audit_download_report_pdf", function () {
+    $report_id = isset($_GET["report_id"]) ? (int) $_GET["report_id"] : 0;
+    if (!upsellio_crm_app_user_can_access() || !current_user_can("edit_posts") || $report_id <= 0 || get_post_type($report_id) !== "crm_audit_report" || !current_user_can("read_post", $report_id) || !current_user_can("edit_post", $report_id) || !upsellio_crm_app_can_access_audit_client((int) get_post_meta($report_id, "_ups_report_client_id", true))) {
+        wp_die("Forbidden", "", ["response" => 403]);
     }
-    $upload = wp_upload_dir();
-    $file = "audit-report-" . $report_id . "-" . wp_date("Ymd-His") . ".pdf";
-    $path = trailingslashit((string) $upload["path"]) . $file;
-    file_put_contents($path, $binary, LOCK_EX);
-    wp_send_json_success(["url" => trailingslashit((string) $upload["url"]) . $file, "filename" => $file]);
+    check_ajax_referer("ups_audit_download_report_" . $report_id, "nonce");
+    if (!function_exists("ups_audit_render_html_to_pdf")) {
+        wp_die("PDF unavailable", "", ["response" => 500]);
+    }
+    $report = get_post($report_id);
+    if (!($report instanceof WP_Post)) {
+        wp_die("Report unavailable", "", ["response" => 404]);
+    }
+    $binary = ups_audit_render_html_to_pdf((string) $report->post_content);
+    if (is_wp_error($binary) || !is_string($binary) || $binary === "") {
+        wp_die("PDF generation failed", "", ["response" => 500]);
+    }
+    nocache_headers();
+    header("Content-Type: application/pdf");
+    header("Content-Disposition: attachment; filename=audit-report-" . $report_id . ".pdf");
+    header("X-Content-Type-Options: nosniff");
+    echo $binary;
+    exit;
 });
 
 add_action("wp_ajax_ups_audit_dashboard_data", function () {
     ups_audit_ajax_guard("edit_posts");
     $client_id = isset($_POST["client_id"]) ? (int) $_POST["client_id"] : 0;
+    if ($client_id <= 0 || get_post_type($client_id) !== "crm_client" || !current_user_can("edit_post", $client_id)) {
+        wp_send_json_error(["msg" => "forbidden_or_invalid_client"], 403);
+    }
     $window = isset($_POST["window"]) ? (int) $_POST["window"] : 30;
     $window = in_array($window, [7, 14, 30, 60, 90], true) ? $window : 30;
     $current = ups_audit_aggregate_client_data($client_id, $window, 0, false);
@@ -363,49 +422,87 @@ add_action("wp_ajax_ups_agency_marketing_snapshot", function () {
     wp_send_json_success(["metrics" => $metrics]);
 });
 
+/** Resolve a synchronization scope with the same authorization for queue and status. */
+function ups_audit_ajax_sync_scope_ids(int $google_account_id, int $client_id): array
+{
+    if ($google_account_id > 0) {
+        if (get_post_type($google_account_id) !== "crm_google_account" || !current_user_can("edit_post", $google_account_id)) {
+            wp_send_json_error(["msg" => "forbidden_or_invalid_account"], 403);
+        }
+        $resources = ups_audit_get_google_account_resources($google_account_id);
+    } elseif ($client_id > 0) {
+        if (get_post_type($client_id) !== "crm_client" || !current_user_can("edit_post", $client_id)) {
+            wp_send_json_error(["msg" => "forbidden_or_invalid_client"], 403);
+        }
+        $resources = ups_audit_get_client_resources($client_id);
+    } else {
+        if (!current_user_can("manage_options")) {
+            wp_send_json_error(["msg" => "forbidden"], 403);
+        }
+        $resources = get_posts([
+            "post_type" => "crm_audit_resource",
+            "post_status" => ["publish", "draft"],
+            "posts_per_page" => -1,
+        ]);
+    }
+    $ids = [];
+    foreach ($resources as $resource) {
+        if (!($resource instanceof WP_Post) || $resource->post_type !== "crm_audit_resource") {
+            continue;
+        }
+        if (!current_user_can("edit_post", $resource->ID)) {
+            wp_send_json_error(["msg" => "forbidden_resource"], 403);
+        }
+        $ids[(int) $resource->ID] = true;
+    }
+    return array_keys($ids);
+}
+
 add_action("wp_ajax_ups_audit_sync_all", function () {
     ups_audit_ajax_guard("edit_posts");
     $days = isset($_POST["days"]) ? (int) $_POST["days"] : 0;
-    $google_account_id = isset($_POST["google_account_id"]) ? (int) $_POST["google_account_id"] : 0;
-    $client_id = isset($_POST["client_id"]) ? (int) $_POST["client_id"] : 0;
-    if ($google_account_id > 0 && get_post_type($google_account_id) === "crm_google_account") {
-        $result = function_exists("ups_audit_sync_google_account_resources")
-            ? ups_audit_sync_google_account_resources($google_account_id, $days)
-            : ["ok" => 0, "fail" => 0, "total" => 0];
-        $result["google_account_id"] = $google_account_id;
-        wp_send_json_success($result);
+    if ($days <= 0) {
+        $days = (int) get_option("ups_audit_default_compare_window", 30);
     }
-    if ($client_id > 0) {
-        $resources = ups_audit_get_client_resources($client_id);
-        $ok = 0;
-        $fail = 0;
-        foreach ($resources as $r) {
-            if (!($r instanceof WP_Post)) {
-                continue;
-            }
-            ups_audit_sync_resource_action((int) $r->ID, $days);
-            $cache = get_post_meta((int) $r->ID, "_ups_resource_data_cache", true);
-            $err = is_array($cache) ? trim((string) ($cache["error"] ?? "")) : "";
-            if ($err !== "") {
-                $fail++;
-            } else {
-                $ok++;
-            }
+    $days = in_array($days, [7, 14, 30, 60, 90], true) ? $days : 30;
+    $ids = ups_audit_ajax_sync_scope_ids((int) ($_POST["google_account_id"] ?? 0), (int) ($_POST["client_id"] ?? 0));
+    $queued = $already = $failed = 0;
+    foreach ($ids as $rid) {
+        $result = ups_audit_enqueue_resource_sync($rid, $days, 5 + $queued * 20);
+        if ($result === "queued") {
+            $queued++;
+        } elseif ($result === "already") {
+            $already++;
+        } else {
+            $failed++;
         }
-        if (function_exists("ups_audit_dispatch_high_priority_alerts")) {
-            $agg = ups_audit_aggregate_client_data($client_id, $days > 0 ? $days : (int) get_option("ups_audit_default_compare_window", 30), 0);
-            ups_audit_dispatch_high_priority_alerts($client_id, (array) ($agg["recommendations"] ?? []));
-        }
-        wp_send_json_success(["ok" => $ok, "fail" => $fail, "total" => $ok + $fail, "client_id" => $client_id]);
     }
-    $result = function_exists("ups_audit_sync_all_google_account_resources")
-        ? ups_audit_sync_all_google_account_resources($days)
-        : ups_audit_sync_all_mapped_resources($days);
-    wp_send_json_success($result);
+    if ($failed && !$queued && !$already) {
+        wp_send_json_error(["msg" => "queue_failed", "fail" => $failed], 500);
+    }
+    wp_send_json_success(["queued" => $queued, "already" => $already, "fail" => $failed, "total" => count($ids)]);
+});
+
+add_action("wp_ajax_ups_audit_sync_status", function () {
+    ups_audit_ajax_guard("edit_posts");
+    $ids = ups_audit_ajax_sync_scope_ids((int) ($_POST["google_account_id"] ?? 0), (int) ($_POST["client_id"] ?? 0));
+    $counts = array_fill_keys(["queued", "running", "retrying", "completed", "failed", "stale", "idle"], 0);
+    foreach ($ids as $rid) {
+        $state = (string) get_post_meta($rid, "_ups_resource_manual_sync_state", true);
+        $started = (int) get_post_meta($rid, "_ups_resource_manual_sync_started", true);
+        $days = (int) get_post_meta($rid, "_ups_resource_manual_sync_days", true);
+        if ($state === "running" && $started < time() - 30 * MINUTE_IN_SECONDS) {
+            $state = "stale";
+        } elseif (in_array($state, ["queued", "retrying"], true) && !wp_next_scheduled("ups_audit_queued_resource_sync", [$rid, $days])) {
+            $state = "stale";
+        }
+        $counts[isset($counts[$state]) ? $state : "idle"]++;
+    }
+    wp_send_json_success(["counts" => $counts, "total" => count($ids)]);
 });
 
 add_action("wp_ajax_ups_audit_portfolio", function () {
-    ups_audit_ajax_guard("edit_posts");
+    ups_audit_ajax_guard("manage_options");
     $rows = function_exists("ups_audit_get_portfolio_rows") ? ups_audit_get_portfolio_rows() : [];
     wp_send_json_success(["rows" => $rows]);
 });
@@ -413,6 +510,9 @@ add_action("wp_ajax_ups_audit_portfolio", function () {
 add_action("wp_ajax_ups_audit_refresh_cwv", function () {
     ups_audit_ajax_guard("edit_posts");
     $client_id = isset($_POST["client_id"]) ? (int) $_POST["client_id"] : 0;
+    if ($client_id <= 0 || get_post_type($client_id) !== "crm_client" || !current_user_can("edit_post", $client_id)) {
+        wp_send_json_error(["msg" => "forbidden_or_invalid_client"], 403);
+    }
     if ($client_id <= 0 || get_post_type($client_id) !== "crm_client") {
         wp_send_json_error(["msg" => "invalid_client"], 400);
     }
@@ -434,7 +534,7 @@ add_action("wp_ajax_ups_audit_command_center", function () {
     ups_audit_ajax_guard("edit_posts");
     $window = isset($_POST["window"]) ? (int) $_POST["window"] : 30;
     $data = function_exists("ups_audit_build_command_center")
-        ? ups_audit_build_command_center($window)
+        ? ups_audit_build_command_center($window, true)
         : ["clients" => [], "top_alerts" => [], "summary" => []];
     wp_send_json_success($data);
 });
@@ -442,6 +542,9 @@ add_action("wp_ajax_ups_audit_command_center", function () {
 add_action("wp_ajax_ups_audit_client_resources", function () {
     ups_audit_ajax_guard("edit_posts");
     $client_id = isset($_POST["client_id"]) ? (int) $_POST["client_id"] : 0;
+    if ($client_id <= 0 || get_post_type($client_id) !== "crm_client" || !current_user_can("edit_post", $client_id)) {
+        wp_send_json_error(["msg" => "forbidden_or_invalid_client"], 403);
+    }
     if ($client_id <= 0 || get_post_type($client_id) !== "crm_client") {
         wp_send_json_error(["msg" => "invalid_client"], 400);
     }
@@ -461,6 +564,9 @@ add_action("wp_ajax_ups_audit_client_resources", function () {
             "health" => function_exists("ups_audit_resource_health") ? ups_audit_resource_health($rid) : [],
             "summary" => function_exists("ups_audit_cache_summary") ? ups_audit_cache_summary($cache) : [],
             "last_sync" => (string) get_post_meta($rid, "_ups_resource_last_data_sync", true),
+            "sync_state" => (string) get_post_meta($rid, "_ups_resource_manual_sync_state", true),
+            "sync_attempt" => (int) get_post_meta($rid, "_ups_resource_manual_sync_attempt", true),
+            "sync_finished_at" => (string) get_post_meta($rid, "_ups_resource_manual_sync_finished_at", true),
         ];
     }
     $setup = function_exists("ups_audit_client_setup_status") ? ups_audit_client_setup_status($client_id) : [];
@@ -469,29 +575,54 @@ add_action("wp_ajax_ups_audit_client_resources", function () {
 
 add_action("wp_ajax_ups_audit_export_dashboard_pdf", function () {
     ups_audit_ajax_guard("edit_posts");
+    $client_id = isset($_POST["client_id"]) ? (int) $_POST["client_id"] : 0;
+    $window = isset($_POST["window"]) ? (int) $_POST["window"] : 30;
+    if ($client_id <= 0 || get_post_type($client_id) !== "crm_client" || !current_user_can("edit_post", $client_id)) {
+        wp_send_json_error(["msg" => "forbidden_or_invalid_client"], 403);
+    }
+    $window = in_array($window, [7, 14, 30, 60, 90], true) ? $window : 30;
+    if (!function_exists("ups_audit_build_dashboard_pdf_html") || !function_exists("ups_audit_render_html_to_pdf")) {
+        wp_send_json_error(["msg" => "pdf_feature_unavailable"], 500);
+    }
+    $url = add_query_arg([
+        "action" => "ups_audit_download_dashboard_pdf",
+        "client_id" => $client_id,
+        "window" => $window,
+        "nonce" => wp_create_nonce("ups_audit_download_dashboard_" . $client_id . "_" . $window),
+    ], admin_url("admin-ajax.php"));
+    wp_send_json_success(["url" => $url, "filename" => "audit-dashboard-" . $client_id . ".pdf"]);
+});
+
+add_action("wp_ajax_ups_audit_download_dashboard_pdf", function () {
+    $client_id = isset($_GET["client_id"]) ? (int) $_GET["client_id"] : 0;
+    $window = isset($_GET["window"]) ? (int) $_GET["window"] : 30;
+    if (!upsellio_crm_app_user_can_access() || !current_user_can("edit_posts") || $client_id <= 0 || get_post_type($client_id) !== "crm_client" || !current_user_can("edit_post", $client_id)) {
+        wp_die("Forbidden", "", ["response" => 403]);
+    }
+    if (!in_array($window, [7, 14, 30, 60, 90], true)) {
+        wp_die("Invalid window", "", ["response" => 400]);
+    }
+    check_ajax_referer("ups_audit_download_dashboard_" . $client_id . "_" . $window, "nonce");
     if (function_exists("set_time_limit")) {
         @set_time_limit(120);
     }
-    $client_id = isset($_POST["client_id"]) ? (int) $_POST["client_id"] : 0;
-    $window = isset($_POST["window"]) ? (int) $_POST["window"] : 30;
-    if (!function_exists("ups_audit_export_dashboard_pdf")) {
-        wp_send_json_error(["msg" => __("Moduł PDF niedostępny.", "upsellio")], 500);
-    }
     try {
-        $result = ups_audit_export_dashboard_pdf($client_id, $window);
-        if (is_wp_error($result)) {
-            wp_send_json_error([
-                "msg" => $result->get_error_message(),
-                "code" => $result->get_error_code(),
-            ], 500);
-        }
-        wp_send_json_success($result);
+        $agg = function_exists("ups_audit_prepare_dashboard_export_data")
+            ? ups_audit_prepare_dashboard_export_data($client_id, $window)
+            : ups_audit_aggregate_client_data($client_id, $window, 0, false);
+        $binary = ups_audit_render_html_to_pdf(ups_audit_build_dashboard_pdf_html($client_id, $agg, $window));
     } catch (Throwable $e) {
-        wp_send_json_error([
-            "msg" => __("PDF: ", "upsellio") . $e->getMessage(),
-            "code" => "exception",
-        ], 500);
+        wp_die("PDF generation failed", "", ["response" => 500]);
     }
+    if (is_wp_error($binary) || !is_string($binary) || $binary === "") {
+        wp_die("PDF generation failed", "", ["response" => 500]);
+    }
+    nocache_headers();
+    header("Content-Type: application/pdf");
+    header("Content-Disposition: attachment; filename=audit-dashboard-" . $client_id . ".pdf");
+    header("X-Content-Type-Options: nosniff");
+    echo $binary;
+    exit;
 });
 
 add_action("wp_ajax_ups_audit_meta_account_disconnect", function () {

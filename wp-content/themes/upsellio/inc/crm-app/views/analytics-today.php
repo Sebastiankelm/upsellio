@@ -10,6 +10,7 @@ $idx_summary = (array) get_option("ups_gsc_indexation_summary", []);
 $idx_submitted = (int) ($idx_summary["submitted"] ?? 0);
 $idx_indexed = (int) ($idx_summary["indexed"] ?? 0);
 $idx_ratio = $idx_submitted > 0 ? (int) round($idx_indexed / $idx_submitted * 100) : 0;
+$idx_ratio = max(0, min(100, $idx_ratio));
 $idx_problems = count(array_filter(
     (array) get_option("ups_gsc_indexation_pages", []),
     static function ($r) {
@@ -29,14 +30,19 @@ $kw_top3 = (int) ($kw_vis_today["top3"] ?? 0);
 $kw_top10 = (int) ($kw_vis_today["top10"] ?? 0);
 $rm_summary_today = function_exists("upsellio_rankmath_get_dashboard_summary") ? upsellio_rankmath_get_dashboard_summary(30) : [];
 $gsc_src_label = (string) get_option("upsellio_keyword_metrics_source", "");
+$rm_source_today = (string) ($rm_summary_today["source"] ?? "empty");
+$format_today = static function ($value, int $decimals = 0): string {
+    return is_numeric($value) ? number_format((float) $value, $decimals, ",", " ") : "—";
+};
+$brief_plain = preg_replace("/^\\s{0,3}#{1,6}\\s+/m", "", $today_brief) ?? $today_brief;
 ?>
-<section class="card">
-  <h3 style="margin:0 0 14px">Dziś</h3>
+<section class="crm-today-board" aria-label="Podsumowanie dnia">
+  <header class="crm-today-heading"><div><h1>Dziś</h1><p class="muted">Podsumowanie operacyjne i marketingowe · GSC: ostatnie 30 dni</p></div><a class="btn alt" href="<?php echo esc_url(upsellio_crm_url("analytics", ["atab" => "seo", "range" => 30])); ?>">Raport SEO</a></header>
 
   <!-- AI brief -->
   <div class="crm-brief-card" style="margin-bottom:14px">
     <div class="crm-brief-badge"><i class="ti ti-sparkles" aria-hidden="true"></i>AI Podsumowanie dnia</div>
-    <div class="crm-brief-title" id="crm-today-brief-text"><?php echo esc_html($today_brief); ?></div>
+    <div class="crm-brief-title" id="crm-today-brief-text" role="status" aria-live="polite"><?php echo esc_html($brief_plain); ?></div>
     <div class="crm-brief-actions">
       <button class="crm-brief-btn white" type="button" onclick="crmRefreshTodayBrief()">
         <i class="ti ti-refresh" aria-hidden="true"></i>Odśwież brief
@@ -48,24 +54,23 @@ $gsc_src_label = (string) get_option("upsellio_keyword_metrics_source", "");
     </div>
   </div>
 
-  <!-- Hot leady -->
-  <h4 style="margin:0 0 8px;font-size:13px">Top 3 hot leady</h4>
+  <section class="card crm-today-panel"><h2>Leady o wysokim potencjale</h2>
   <?php
-    $hot_leads = get_posts([
-        "post_type" => "lead",
-        "posts_per_page" => 3,
-        "meta_query" => [["key" => "_upsellio_lead_score", "value" => 60, "compare" => ">="]],
-        "orderby" => "meta_value_num",
-        "meta_key" => "_upsellio_lead_score",
-        "order" => "DESC",
+    $hot_leads = upsellio_crm_app_collect_metric_posts("crm_lead", [
+        "meta_query" => [["key" => "_ups_lead_score_0_100", "value" => 60, "compare" => ">=", "type" => "NUMERIC"]],
     ]);
+    upsellio_crm_app_prime_post_meta_cache($hot_leads);
+    usort($hot_leads, static function ($a, $b) {
+        return ((int) get_post_meta($b->ID, "_ups_lead_score_0_100", true) <=> (int) get_post_meta($a->ID, "_ups_lead_score_0_100", true)) ?: ($b->ID <=> $a->ID);
+    });
+    $hot_leads = array_slice($hot_leads, 0, 3);
     if (empty($hot_leads)) :
         ?>
     <p class="muted" style="margin:0 0 14px">Brak leadów ze score ≥60.</p>
   <?php else : ?>
     <ul style="margin:0 0 14px;padding-left:16px">
       <?php foreach ($hot_leads as $lead) :
-          $score = (int) get_post_meta((int) $lead->ID, "_upsellio_lead_score", true);
+          $score = (int) get_post_meta((int) $lead->ID, "_ups_lead_score_0_100", true);
           $url = add_query_arg(["view" => "leads", "lead_id" => $lead->ID], home_url("/crm-app/"));
           ?>
       <li style="font-size:13px;margin-bottom:4px">
@@ -78,10 +83,10 @@ $gsc_src_label = (string) get_option("upsellio_keyword_metrics_source", "");
     </ul>
   <?php endif; ?>
 
-  <!-- Anomalie -->
-  <h4 style="margin:0 0 8px;font-size:13px">Anomalie</h4>
+  </section>
+  <section class="card crm-today-panel"><h2>Anomalie</h2>
   <?php if (empty($anomalies)) : ?>
-    <p class="muted" style="margin:0 0 14px">Brak danych — włącz sync i poczekaj na cron.</p>
+    <p class="muted" style="margin:0 0 14px">Brak zapisanych analiz anomalii. Nie oznacza to braku anomalii.</p>
   <?php else : ?>
     <?php foreach (array_slice(array_values($anomalies), 0, 4) as $a) : ?>
       <?php if (!is_array($a)) {
@@ -102,17 +107,19 @@ $gsc_src_label = (string) get_option("upsellio_keyword_metrics_source", "");
     <div style="margin-bottom:14px"></div>
   <?php endif; ?>
 
-  <!-- Indeksacja GSC -->
-  <h4 style="margin:0 0 8px;font-size:13px">Indeksacja Google (GSC)</h4>
+  </section>
+  <section class="card crm-today-panel crm-today-wide"><h2>Indeksacja Google (GSC)</h2>
+  <p class="muted">Stan zapisany przez integrację. Liczba zgłoszonych adresów nie oznacza liczby adresów sprawdzonych w URL Inspection.</p>
+  <?php if ($idx_last !== "") : ?><p class="muted">Ostatnia synchronizacja: <?php echo esc_html($idx_last); ?></p><?php endif; ?>
   <?php if ($idx_submitted === 0) : ?>
     <p class="muted" style="margin:0 0 14px">Brak zagregowanych danych z Search Console (sitemap). Po pierwszym cronie lub po odświeżeniu w zakładce SEO pojawią się liczniki.</p>
   <?php else : ?>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+    <div class="crm-report-kpis">
       <?php
         $today_idx_kpis = [
             [$idx_indexed . " / " . $idx_submitted, "Zaindeksowanych", $idx_color],
             [$idx_ratio . "%", "Wskaźnik", $idx_color],
-            [$idx_problems > 0 ? "⚠ " . $idx_problems : "✓ 0", "Problemy", $idx_problems > 0 ? "var(--danger)" : "var(--success)"],
+            [$idx_problems > 0 ? (string) $idx_problems : "—", "Adresy z zapisanym wynikiem innym niż PASS", $idx_problems > 0 ? "var(--warn)" : "var(--text-3)"],
         ];
         foreach ($today_idx_kpis as $tk) :
             list($val, $lbl, $col) = $tk;
@@ -128,9 +135,10 @@ $gsc_src_label = (string) get_option("upsellio_keyword_metrics_source", "");
     </div>
   <?php endif; ?>
 
-  <?php if (!empty($rm_summary_today["clicks"])) : ?>
-  <h4 style="margin:0 0 8px;font-size:13px">GSC (jak Rank Math, 30 dni)</h4>
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+  </section>
+  <section class="card crm-today-panel crm-today-wide"><h2>Wyniki wyszukiwania · 30 dni</h2>
+  <?php if (!empty($rm_summary_today["clicks"]) && !in_array($rm_source_today, ["empty", "computed"], true)) : ?>
+  <div class="crm-report-kpis">
     <?php
     foreach ([
         ["Kliknięcia", "clicks", false],
@@ -139,26 +147,31 @@ $gsc_src_label = (string) get_option("upsellio_keyword_metrics_source", "");
         ["Frazy", "keywords", false],
     ] as $rmk) :
         $m = (array) ($rm_summary_today[$rmk[1]] ?? []);
-        $diff = (float) ($m["difference"] ?? 0);
-        $col = $diff >= 0 && !$rmk[2] ? "var(--success)" : ($diff < 0 && !$rmk[2] ? "var(--danger)" : "var(--text-main)");
-        if ($rmk[2]) {
-            $col = $diff <= 0 ? "var(--success)" : "var(--danger)";
+        $total = $m["total"] ?? null;
+        $previous = $m["previous"] ?? null;
+        $valid = empty($m["na"]) && is_numeric($total) && ($rmk[1] !== "position" || (float) $total > 0);
+        // Rank Math difference has source-specific units. Use actual period totals, never append % blindly.
+        $comparison = "Brak porównywalnego okresu";
+        $col = "var(--text-3)";
+        if ($valid && $rm_source_today === "rank_math_widget" && is_numeric($previous) && (float) $previous > 0) {
+            $delta = (float) $total - (float) $previous;
+            $delta = $rmk[2] ? $delta : 100 * $delta / (float) $previous;
+            $comparison = ($delta > 0 ? "+" : "") . $format_today($delta, 1) . ($rmk[2] ? " poz." : "%");
+            if ($delta !== 0.0) { $col = ($rmk[2] ? $delta < 0 : $delta > 0) ? "var(--success)" : "var(--danger)"; }
         }
         ?>
     <div style="background:var(--bg);border-radius:var(--r-sm);padding:8px;text-align:center">
       <div style="font-size:10px;color:var(--text-3);text-transform:uppercase"><?php echo esc_html($rmk[0]); ?></div>
-      <div style="font-size:16px;font-weight:800;"><?php echo esc_html(number_format((float) ($m["total"] ?? 0), $rmk[1] === "position" ? 1 : 0, ",", " ")); ?></div>
-      <div style="font-size:10px;color:<?php echo esc_attr($col); ?>"><?php echo ($diff > 0 ? "+" : "") . esc_html((string) $diff); ?>%</div>
+      <div style="font-size:16px;font-weight:800;"><?php echo esc_html($valid ? $format_today($total, $rmk[2] ? 1 : 0) : "—"); ?></div>
+      <div style="font-size:10px;color:<?php echo esc_attr($col); ?>"><?php echo esc_html($comparison); ?></div>
     </div>
     <?php endforeach; ?>
   </div>
-  <?php if ($gsc_src_label !== "") : ?>
-    <p style="margin:0 0 14px;font-size:11px;color:var(--text-3)">Źródło danych: <?php echo esc_html($gsc_src_label); ?></p>
-  <?php endif; ?>
-  <?php endif; ?>
-
-  <!-- Widoczność keywords -->
-  <h4 style="margin:0 0 8px;font-size:13px">Widoczność GSC</h4>
+  <p class="muted">Źródło podsumowania: <?php echo esc_html($rm_source_today); ?></p>
+  <?php else : ?><p class="muted">Brak dostępnego podsumowania okresu z integracji.</p><?php endif; ?>
+  </section>
+  <section class="card crm-today-panel crm-today-wide"><h2>Widoczność zapisanych fraz</h2>
+  <p class="muted">Osobny zbiór zapytań; okres może różnić się od podsumowania Rank Math. <?php echo esc_html($gsc_src_label); ?></p>
   <?php if ($kw_total === 0) : ?>
     <p class="muted" style="margin:0">Brak danych keywordów — podłącz GSC OAuth lub wgraj CSV.</p>
   <?php else : ?>
@@ -182,5 +195,5 @@ $gsc_src_label = (string) get_option("upsellio_keyword_metrics_source", "");
       Szczegóły → <a href="<?php echo esc_url(add_query_arg(["view" => "analytics", "atab" => "seo"], home_url("/crm-app/"))); ?>" style="color:var(--teal)">zakładka SEO</a>
     </p>
   <?php endif; ?>
-
+  </section>
 </section>

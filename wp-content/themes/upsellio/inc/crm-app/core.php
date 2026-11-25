@@ -4,10 +4,39 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
+/** Global configuration and account credentials are administrator-only. */
+function upsellio_crm_app_user_can_view(string $view): bool
+{
+    return upsellio_crm_app_user_can_access() && (!in_array($view, ["settings", "ca-library", "ca-accounts", "ca-meta-accounts"], true) || current_user_can("manage_options"));
+}
+
+/** Audit profile access follows the underlying client record permissions. */
+function upsellio_crm_app_can_access_audit_client(int $id): bool
+{
+    return $id > 0 && get_post_type($id) === "crm_client" && current_user_can("read_post", $id) && current_user_can("edit_post", $id);
+}
+
 function upsellio_crm_app_user_can_access()
 {
-    return is_user_logged_in() && (current_user_can("manage_options") || current_user_can("edit_posts"));
+    return is_user_logged_in() && (current_user_can("manage_options") || current_user_can("upsellio_access_crm"));
 }
+
+/**
+ * One-time capability migration: administrators retain access, editors are
+ * explicitly opted in. WordPress authors no longer inherit CRM access.
+ */
+function upsellio_crm_app_migrate_access_capability(): void
+{
+    if ((string) get_option("ups_crm_access_cap_version", "") === "1") {
+        return;
+    }
+    $editor = get_role("editor");
+    if ($editor) {
+        $editor->add_cap("upsellio_access_crm");
+    }
+    update_option("ups_crm_access_cap_version", "1", false);
+}
+add_action("init", "upsellio_crm_app_migrate_access_capability", 1);
 
 /**
  * Czy aktualne żądanie to publiczna aplikacja CRM (osobna strona, nie wp-admin).
@@ -121,32 +150,51 @@ function upsellio_crm_count_posts_all_statuses($post_type)
     return (int) $counts->publish + (int) $counts->draft + (int) $counts->pending + (int) $counts->private + (int) $counts->future;
 }
 
+/** Only explicitly recurring, active subscriptions contribute to current MRR. */
+function upsellio_crm_app_client_mrr(bool $recurring, string $status, $amount): float
+{
+    return $recurring && $status === "active" && is_numeric($amount) && is_finite((float) $amount) ? max(0.0, (float) $amount) : 0.0;
+}
+
+/** Strict local calendar dates; never normalize invalid input. */
+function upsellio_crm_app_client_date(string $raw): ?DateTimeImmutable
+{
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/D', $raw)) {
+        return null;
+    }
+    $date = DateTimeImmutable::createFromFormat("!Y-m-d", $raw, wp_timezone());
+    return $date && $date->format("Y-m-d") === $raw ? $date : null;
+}
+
+/** Estimate from the current monthly rate and completed months, not actual receipts. */
+function upsellio_crm_app_client_ltv_estimate(bool $recurring, string $status, $amount, string $start, string $cancelled, string $today): ?float
+{
+    if (!$recurring || !in_array($status, ["active", "cancelled"], true) || !is_numeric($amount) || !is_finite((float) $amount) || (float) $amount < 0) {
+        return null;
+    }
+    $from = upsellio_crm_app_client_date($start);
+    $as_of = upsellio_crm_app_client_date($today);
+    $end = $status === "cancelled" ? upsellio_crm_app_client_date($cancelled) : $as_of;
+    if (!$from || !$end || !$as_of || $from > $end || $end > $as_of) {
+        return null;
+    }
+    $diff = $from->diff($end);
+    return round((float) $amount * ($diff->y * 12 + $diff->m), 2);
+}
+
 function upsellio_crm_app_compute_active_mrr()
 {
-    if (!post_type_exists("crm_client")) {
-        return 0.0;
-    }
-    $posts = get_posts([
-        "post_type" => "crm_client",
-        "post_status" => upsellio_crm_app_post_statuses_visible(),
-        "posts_per_page" => 500,
-        "meta_query" => [
-            "relation" => "AND",
-            [
-                "key" => "_ups_client_is_recurring",
-                "value" => "1",
-            ],
-            [
-                "key" => "_ups_client_subscription_status",
-                "value" => "active",
-            ],
-        ],
-    ]);
     $sum = 0.0;
-    foreach ($posts as $p) {
-        $sum += (float) get_post_meta((int) $p->ID, "_ups_client_monthly_value", true);
+    foreach (upsellio_crm_app_collect_metric_posts("crm_client") as $p) {
+        if (!current_user_can("read_post", $p->ID)) {
+            continue;
+        }
+        $sum += upsellio_crm_app_client_mrr(
+            (string) get_post_meta($p->ID, "_ups_client_is_recurring", true) === "1",
+            (string) get_post_meta($p->ID, "_ups_client_subscription_status", true),
+            get_post_meta($p->ID, "_ups_client_monthly_value", true)
+        );
     }
-
     return $sum;
 }
 
@@ -298,6 +346,163 @@ function upsellio_crm_app_prime_post_meta_cache(array $posts): void
     }
 }
 
+/**
+ * Collect complete metric input in stable batches; the result is still held in memory.
+ */
+function upsellio_crm_app_collect_metric_posts(string $post_type, array $extra = []): array
+{
+    if (!post_type_exists($post_type)) {
+        return [];
+    }
+    $posts = [];
+    $page = 1;
+    do {
+        $batch = get_posts(array_merge([
+            "post_type" => $post_type,
+            "post_status" => upsellio_crm_app_post_statuses_visible(),
+        ], $extra, [
+            "posts_per_page" => 250,
+            "paged" => $page++,
+            "orderby" => "ID",
+            "order" => "ASC",
+            "no_found_rows" => true,
+        ]));
+        foreach ($batch as $post) {
+            if (current_user_can("edit_post", $post->ID)) {
+                $posts[] = $post;
+            }
+        }
+    } while (count($batch) === 250);
+    return $posts;
+}
+
+/** Primary list pagination, separate from relationship selects and metrics. */
+function upsellio_crm_app_list_page(string $post_type, array $extra = []): array
+{
+    $type = get_post_type_object($post_type);
+    if (!$type) {
+        return ["posts" => [], "page" => 1, "pages" => 0, "total" => 0];
+    }
+    $page = isset($_GET["crm_page"]) ? max(1, (int) wp_unslash($_GET["crm_page"])) : 1;
+    $args = array_merge([
+        "post_type" => $post_type,
+        "post_status" => upsellio_crm_app_post_statuses_visible(),
+        "perm" => "readable",
+        "posts_per_page" => 50,
+        "orderby" => ["modified" => "DESC", "ID" => "DESC"],
+        "no_found_rows" => false,
+    ], $extra);
+    if (!current_user_can($type->cap->edit_others_posts)) {
+        $args["author"] = get_current_user_id();
+    }
+    $query = new WP_Query(array_merge($args, ["paged" => $page]));
+    $pages = (int) $query->max_num_pages;
+    if ($page > max(1, $pages)) {
+        $page = max(1, $pages);
+        $query = new WP_Query(array_merge($args, ["paged" => $page]));
+        $pages = (int) $query->max_num_pages;
+    }
+    return [
+        "posts" => array_values(array_filter($query->posts, static function ($post) {
+            return current_user_can("edit_post", $post->ID);
+        })),
+        "page" => $page,
+        "pages" => $pages,
+        "total" => (int) $query->found_posts,
+    ];
+}
+
+/** Paginate already filtered, priority-sorted records (tasks and calendar share data). */
+/** One canonical column for each deal; terminal status takes precedence. */
+/** Parse a calendar wall-clock value in the site's timezone, without silent normalization. */
+function upsellio_crm_app_parse_local_datetime(string $raw)
+{
+    $raw = str_replace("T", " ", trim($raw));
+    if (!preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?::\d{2})?$/D', $raw)) {
+        return false;
+    }
+    $format = strlen($raw) === 16 ? "Y-m-d H:i" : "Y-m-d H:i:s";
+    $date = DateTimeImmutable::createFromFormat("!" . $format, $raw, wp_timezone());
+    if (!$date || $date->format($format) !== $raw) {
+        return false;
+    }
+    return $date->getTimestamp();
+}
+
+/** Shared business-hour grid. The end is exclusive: 15:00–16:00 is the final slot. */
+function upsellio_crm_app_calendar_work_hours(): array
+{
+    return ["start" => 8, "end" => 16];
+}
+
+/** Validate a drag-and-drop workday slot in the WordPress timezone. Manual edits may retain outside-hours appointments. */
+function upsellio_crm_app_calendar_slot_fits(int $timestamp, int $duration): bool
+{
+    if ($timestamp <= 0 || $duration < 15 || $duration > 480) {
+        return false;
+    }
+    $start = (new DateTimeImmutable("@" . $timestamp))->setTimezone(wp_timezone());
+    $hours = upsellio_crm_app_calendar_work_hours();
+    $min = (int) $start->format("G") * 60 + (int) $start->format("i");
+    return $min >= $hours["start"] * 60 && $min + $duration <= $hours["end"] * 60;
+}
+
+/** Retain appointments outside the grid, limited to the selected local week. */
+function upsellio_crm_app_calendar_outside_hours(array $by_day, DateTimeImmutable $week_start): array
+{
+    $hours = upsellio_crm_app_calendar_work_hours();
+    $first = $week_start->format("Y-m-d");
+    $last = $week_start->modify("+7 days")->format("Y-m-d");
+    $outside = [];
+    foreach ($by_day as $day => $items) {
+        if ($day < $first || $day >= $last) {
+            continue;
+        }
+        foreach ($items as $item) {
+            $hour = (int) ($item["hour"] ?? -1);
+            if ($hour < $hours["start"] || $hour >= $hours["end"]) {
+                $item["date"] = $day;
+                $outside[] = $item;
+            }
+        }
+    }
+    usort($outside, static function ($a, $b) {
+        return strcmp($a["date"] . " " . ($a["time"] ?? ""), $b["date"] . " " . ($b["time"] ?? ""));
+    });
+    return $outside;
+}
+
+function upsellio_crm_app_calendar_week(int $offset): DateTimeImmutable
+{
+    $offset = max(-260, min(260, $offset));
+    return (new DateTimeImmutable("today", wp_timezone()))->modify("monday this week")->modify(sprintf("%+d weeks", $offset));
+}
+
+function upsellio_crm_app_pipeline_bucket(string $status, string $stage): string
+{
+    if (in_array($status, ["won", "lost"], true)) {
+        return $status;
+    }
+    if ($status === "sent") {
+        return "offer_sent";
+    }
+    return in_array($stage, ["awareness", "consideration", "decision"], true) ? $stage : "awareness";
+}
+
+function upsellio_crm_app_slice_list_page(array $posts, int $requested_page, int $per_page = 50): array
+{
+    $per_page = max(1, $per_page);
+    $total = count($posts);
+    $pages = (int) ceil($total / $per_page);
+    $page = max(1, min($requested_page, max(1, $pages)));
+    return [
+        "posts" => array_slice($posts, ($page - 1) * $per_page, $per_page),
+        "page" => $page,
+        "pages" => $pages,
+        "total" => $total,
+    ];
+}
+
 function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $inbox_ctx = null)
 {
     $st = upsellio_crm_app_post_statuses_visible();
@@ -319,6 +524,10 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
         "inbox_list_total" => 0,
         "inbox_list_page" => 1,
         "inbox_list_per_page" => 30,
+        "list_page" => null,
+        "lead_metric_posts" => [],
+        "client_metric_posts" => [],
+        "offer_metric_posts" => [],
     ];
 
     $qlist = static function ($post_type, $n, $orderby = "modified", $order = "DESC") use ($st) {
@@ -340,12 +549,12 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
             $empty["clients"] = $qlist("crm_client", 12);
             $empty["contracts"] = $qlist("crm_contract", 8);
             if (post_type_exists("crm_lead")) {
-                $empty["leads"] = $qlist("crm_lead", 500);
+                $empty["leads"] = upsellio_crm_app_collect_metric_posts("crm_lead");
             }
-            $empty["offers"] = $qlist("crm_offer", 500);
+            $empty["offers"] = upsellio_crm_app_collect_metric_posts("crm_offer");
             if (post_type_exists("lead_task")) {
                 $ta = upsellio_crm_app_get_tasks_query_args(150);
-                $empty["tasks"] = upsellio_crm_app_sort_tasks_by_priority(get_posts($ta));
+                $empty["tasks"] = upsellio_crm_app_sort_tasks_by_priority(upsellio_crm_app_collect_metric_posts("lead_task", $ta));
             }
 
             upsellio_crm_app_prime_post_meta_cache(array_merge(
@@ -359,13 +568,50 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
             return $empty;
 
         case "leads":
-            $empty["leads"] = $qlist("crm_lead", 300);
+            $empty["lead_metric_posts"] = upsellio_crm_app_collect_metric_posts("crm_lead");
+            $tab = isset($_GET["lead_tab"]) ? sanitize_key(wp_unslash($_GET["lead_tab"])) : "all";
+            $filters = [];
+            if (in_array($tab, ["new", "contact"], true)) {
+                $values = $tab === "new" ? ["new", ""] : ["new", "", "nurturing"];
+                $filters["meta_query"] = [
+                    "relation" => "OR",
+                    ["key" => "_ups_lead_qualification_status", "compare" => "NOT EXISTS"],
+                    ["key" => "_ups_lead_qualification_status", "value" => $values, "compare" => "IN"],
+                ];
+            } elseif (in_array($tab, ["qualified", "rejected", "converted"], true)) {
+                $filters["meta_query"] = [["key" => "_ups_lead_qualification_status", "value" => $tab]];
+            }
+            $search = sanitize_text_field(wp_unslash($_GET["lead_q"] ?? ""));
+            $source = sanitize_text_field(wp_unslash($_GET["lead_source_filter"] ?? ""));
+            if ($search !== "") {
+                $filters["s"] = $search;
+            }
+            if ($source !== "") {
+                $status_query = $filters["meta_query"] ?? [];
+                $filters["meta_query"] = ["relation" => "AND", ["key" => "_ups_lead_source", "value" => $source]];
+                if ($status_query) {
+                    $filters["meta_query"][] = $status_query;
+                }
+            }
+            $empty["list_page"] = upsellio_crm_app_list_page("crm_lead", $filters);
+            $empty["leads"] = $empty["list_page"]["posts"];
+            if (isset($_GET["lead_id"])) {
+                $empty["list_page"] = null;
+                $target_id = (int) wp_unslash($_GET["lead_id"]);
+                $target = $target_id > 0 ? get_post($target_id) : null;
+                $empty["leads"] = $target instanceof WP_Post && $target->post_type === "crm_lead" && in_array($target->post_status, $st, true) && current_user_can("read_post", $target_id) && current_user_can("edit_post", $target_id) ? [$target] : [];
+            }
             upsellio_crm_app_prime_post_meta_cache($empty["leads"]);
 
             return $empty;
 
-        case "account-360":
         case "clients":
+            $empty["client_metric_posts"] = upsellio_crm_app_collect_metric_posts("crm_client");
+            $empty["list_page"] = upsellio_crm_app_list_page("crm_client");
+            $empty["clients"] = $empty["list_page"]["posts"];
+            return $empty;
+
+        case "account-360":
         case "research":
             $empty["clients"] = $qlist("crm_client", 300);
             upsellio_crm_app_prime_post_meta_cache($empty["clients"]);
@@ -377,7 +623,14 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
 
         case "contacts":
             $empty["clients"] = $qlist("crm_client", 300);
-            $empty["contacts"] = $qlist("crm_contact", 300);
+            $empty["list_page"] = upsellio_crm_app_list_page("crm_contact");
+            $empty["contacts"] = $empty["list_page"]["posts"];
+            if (isset($_GET["contact_id"])) {
+                $empty["list_page"] = null;
+                $target_id = (int) wp_unslash($_GET["contact_id"]);
+                $target = $target_id > 0 ? get_post($target_id) : null;
+                $empty["contacts"] = $target instanceof WP_Post && $target->post_type === "crm_contact" && in_array($target->post_status, $st, true) && current_user_can("read_post", $target_id) && current_user_can("edit_post", $target_id) ? [$target] : [];
+            }
             upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["contacts"]));
 
             return $empty;
@@ -391,7 +644,14 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
 
         case "offers":
             $empty["clients"] = $qlist("crm_client", 300);
-            $empty["offers"] = $qlist("crm_offer", 300);
+            $empty["offer_metric_posts"] = upsellio_crm_app_collect_metric_posts("crm_offer");
+            $offer_status = sanitize_key(wp_unslash($_GET["offer_status_filter"] ?? ""));
+            $offer_filters = [];
+            if (in_array($offer_status, ["open", "sent", "won", "lost"], true)) {
+                $offer_filters["meta_query"] = [["key" => "_ups_offer_status", "value" => $offer_status]];
+            }
+            $empty["list_page"] = upsellio_crm_app_list_page("crm_offer", $offer_filters);
+            $empty["offers"] = $empty["list_page"]["posts"];
             $empty["followups"] = $qlist("ups_followup_template", 300);
             $empty["offer_layout_templates"] = $qlist("crm_offer_layout", 200, "title", "ASC");
             upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"]));
@@ -409,7 +669,7 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
 
         case "pipeline":
             $empty["clients"] = $qlist("crm_client", 300);
-            $empty["offers"] = $qlist("crm_offer", 300);
+            $empty["offers"] = upsellio_crm_app_collect_metric_posts("crm_offer");
             upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"]));
 
             return $empty;
@@ -417,7 +677,8 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
         case "contracts":
             $empty["clients"] = $qlist("crm_client", 300);
             $empty["offers"] = $qlist("crm_offer", 300);
-            $empty["contracts"] = $qlist("crm_contract", 300);
+            $empty["list_page"] = upsellio_crm_app_list_page("crm_contract");
+            $empty["contracts"] = $empty["list_page"]["posts"];
             $empty["contract_layout_templates"] = $qlist("crm_contract_layout", 200, "title", "ASC");
             upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"], $empty["contracts"]));
 
@@ -438,7 +699,7 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
         case "tasks":
         case "calendar":
             if (post_type_exists("lead_task")) {
-                $empty["tasks"] = upsellio_crm_app_sort_tasks_by_priority(get_posts(upsellio_crm_app_get_tasks_query_args(500)));
+                $empty["tasks"] = upsellio_crm_app_sort_tasks_by_priority(upsellio_crm_app_collect_metric_posts("lead_task", upsellio_crm_app_get_tasks_query_args(500)));
             }
             $empty["offers"] = $qlist("crm_offer", 300);
             upsellio_crm_app_prime_post_meta_cache(array_merge($empty["tasks"], $empty["offers"]));
@@ -517,7 +778,8 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
 
         case "deals":
             $empty["clients"] = $qlist("crm_client", 300);
-            $empty["offers"] = $qlist("crm_offer", 300);
+            $empty["list_page"] = upsellio_crm_app_list_page("crm_offer");
+            $empty["offers"] = $empty["list_page"]["posts"];
             $empty["followups"] = $qlist("ups_followup_template", 300);
             $empty["offer_layout_templates"] = $qlist("crm_offer_layout", 200, "title", "ASC");
             upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"]));
@@ -536,37 +798,32 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
             return $empty;
 
         case "search":
-            $sq = isset($_GET["crm_q"]) ? sanitize_text_field(wp_unslash($_GET["crm_q"])) : "";
-            $sq = trim((string) $sq);
+            $sq = isset($_GET["crm_q"]) ? trim(sanitize_text_field(wp_unslash($_GET["crm_q"]))) : "";
             if ($sq !== "") {
-                if (post_type_exists("crm_client")) {
-                    $empty["clients"] = get_posts([
-                        "post_type" => "crm_client",
+                $types = [
+                    "clients" => "crm_client",
+                    "offers" => "crm_offer",
+                    "tasks" => "lead_task",
+                    "leads" => "crm_lead",
+                    "contacts" => "crm_contact",
+                    "contracts" => "crm_contract",
+                ];
+                foreach ($types as $collection => $post_type) {
+                    if (!post_type_exists($post_type)) {
+                        continue;
+                    }
+                    $matches = get_posts([
+                        "post_type" => $post_type,
                         "post_status" => $st,
                         "s" => $sq,
                         "posts_per_page" => 60,
                     ]);
-                }
-                if (post_type_exists("crm_offer")) {
-                    $empty["offers"] = get_posts([
-                        "post_type" => "crm_offer",
-                        "post_status" => $st,
-                        "s" => $sq,
-                        "posts_per_page" => 60,
-                    ]);
-                }
-                if (post_type_exists("lead_task")) {
-                    $empty["tasks"] = get_posts([
-                        "post_type" => "lead_task",
-                        "post_status" => $st,
-                        "s" => $sq,
-                        "posts_per_page" => 60,
-                    ]);
+                    $empty[$collection] = array_values(array_filter($matches, static function ($post) {
+                        return $post instanceof WP_Post && current_user_can("read_post", $post->ID) && current_user_can("edit_post", $post->ID);
+                    }));
                 }
             }
-
-            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"], $empty["tasks"]));
-
+            upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"], $empty["tasks"], $empty["leads"], $empty["contacts"], $empty["contracts"]));
             return $empty;
 
         case "settings":
@@ -596,9 +853,9 @@ function upsellio_crm_app_sanitize_large_text_option($value)
 }
 
 /**
- * Zapis ustawień CRM App — zsynchronizowany z {@see upsellio_crm_app_user_can_access()} (nie wymaga wyłącznie manage_options).
+ * Global CRM settings affect all staff and automation; restrict them to administrators.
  */
 function upsellio_crm_app_user_can_save_quick_settings()
 {
-    return current_user_can("manage_options") || current_user_can("edit_posts");
+    return current_user_can("manage_options");
 }

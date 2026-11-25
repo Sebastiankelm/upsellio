@@ -1100,53 +1100,24 @@ function ups_audit_intel_customer_journey(array $agg, int $client_id = 0, int $d
     $crm_won = (int) ($crm["won"] ?? 0);
     $crm_revenue = (float) ($crm["revenue"] ?? 0);
 
-    $rate = static function (int $from, int $to): ?float {
-        if ($from <= 0 || $to <= 0) {
-            return null;
-        }
-
-        return round(min(100, ($to / $from) * 100), 1);
-    };
-
+    // These are independent period totals, not a user-linked cohort. Never imply conversion rates.
     $stages = [];
-    if ($paid_clicks > 0) {
-        $stages[] = ["name" => "Klik. Ads", "value" => $paid_clicks, "rate_to_next" => $rate($paid_clicks, $landing), "source" => "ads"];
+    $add = static function (string $name, int $value, string $source) use (&$stages): void {
+        $stages[] = ["name" => $name, "value" => max(0, $value), "rate_to_next" => null, "source" => $source];
+    };
+    if ($paid_clicks > 0) { $add("Kliknięcia Google Ads", $paid_clicks, "ads"); }
+    $add("Sesje GA4 (wszystkie)", $sessions, "ga4");
+    if ($paid_sessions > 0) { $add("Sesje płatne GA4", $paid_sessions, "ga4"); }
+    if ($form_start > 0) { $add("Zdarzenia rozpoczęcia formularza", $form_start, "ga4"); }
+    if ($form_submit > 0) { $add("Zdarzenia wysłania formularza", $form_submit, "ga4"); }
+    if ($phone > 0) { $add("Kliknięcia telefonu", $phone, "ga4"); }
+    if (!empty($crm["has_data"])) {
+        $add("Leady CRM", $crm_leads, "crm");
+        $add("Wysłane oferty CRM", $crm_offers, "crm");
+        $add("Wygrane oferty CRM", $crm_won, "crm");
     }
-    $stages[] = [
-        "name" => "Landing (sesje paid)",
-        "value" => $landing,
-        "rate_to_next" => $rate($landing, max($form_start, $form_submit, $phone, $crm_leads)),
-        "source" => "ga4",
-    ];
-    if ($form_start > 0) {
-        $stages[] = ["name" => "Form Start", "value" => $form_start, "rate_to_next" => $rate($form_start, $form_submit > 0 ? $form_submit : $crm_leads), "source" => "ga4"];
-    }
-    if ($form_submit > 0) {
-        $stages[] = ["name" => "Form Submit", "value" => $form_submit, "rate_to_next" => $crm_leads > 0 ? $rate($form_submit, $crm_leads) : null, "source" => "ga4"];
-    }
-    if ($phone > 0) {
-        $stages[] = ["name" => "Klik telefon", "value" => $phone, "rate_to_next" => $crm_leads > 0 ? $rate($phone, $crm_leads) : null, "source" => "ga4"];
-    }
-    if ($crm_leads > 0) {
-        $stages[] = ["name" => "Lead (CRM)", "value" => $crm_leads, "rate_to_next" => $crm_offers > 0 ? $rate($crm_leads, $crm_offers) : null, "source" => "crm"];
-    }
-    if ($crm_offers > 0) {
-        $stages[] = ["name" => "Oferta (CRM)", "value" => $crm_offers, "rate_to_next" => $crm_won > 0 ? $rate($crm_offers, $crm_won) : null, "source" => "crm"];
-    }
-    if ($crm_won > 0) {
-        $stages[] = ["name" => "Wygrana (CRM)", "value" => $crm_won, "rate_to_next" => $crm_revenue > 0 ? round($crm_revenue / max(1, $crm_won), 0) : null, "source" => "crm"];
-    }
-    if ($crm_revenue > 0) {
-        $stages[] = ["name" => "Przychód CRM (PLN)", "value" => round($crm_revenue, 0), "rate_to_next" => null, "source" => "crm"];
-    } elseif ($revenue > 0) {
-        $purchase = function_exists("ups_audit_ga4_event_count")
-            ? ups_audit_ga4_event_count($agg, ["purchase", "ecommerce_purchase"])
-            : 0;
-        if ($purchase > 0) {
-            $stages[] = ["name" => "Zamówienie e-com", "value" => $purchase, "rate_to_next" => round($revenue / max(1, $purchase), 0), "source" => "ga4"];
-        }
-        $stages[] = ["name" => "Przychód GA4 (PLN)", "value" => round($revenue, 0), "rate_to_next" => null, "source" => "ga4"];
-    }
+    $purchase = (int) ($agg["ga4_purchase_count"] ?? 0);
+    if ($purchase > 0) { $add("Zakupy GA4", $purchase, "ga4"); }
 
     $tracking = ups_audit_intel_tracking_health($agg, []);
     $channels = [];
@@ -1181,9 +1152,11 @@ function ups_audit_intel_customer_journey(array $agg, int $client_id = 0, int $d
     return [
         "stages" => $stages,
         "channels" => $channels,
-        "reliable" => !empty($tracking["ready_for_journey"]) || !empty($crm["has_data"]),
+        "reliable" => false,
+        "is_cohort_funnel" => false,
+        "crm_won_value" => !empty($crm["has_data"]) ? $crm_revenue : null,
         "has_crm" => !empty($crm["has_data"]),
-        "offline_note" => $offline_note,
+        "offline_note" => "Niezależne sumy okresu, nie lejek kohortowy. Nie wyliczamy przejść między osobami, sesjami, zdarzeniami i ofertami.",
         "missing_events" => $missing,
         "note" => !empty($tracking["ready_for_journey"])
             ? ($missing !== [] ? "Brak eventów: " . implode(", ", $missing) . " — rozważ tagowanie w GTM." : "")
@@ -1262,73 +1235,27 @@ function ups_audit_intel_product_analytics(array $agg): array
  */
 function ups_audit_intel_profit_dashboard(array $agg, int $client_id, array $crm_revenue = [], array $revenue_quality = []): array
 {
-    $client_id = (int) $client_id;
-    $margin_pct = (float) get_post_meta($client_id, "_ups_client_profit_margin_pct", true);
-    if ($margin_pct <= 0 || $margin_pct > 100) {
-        $margin_pct = 30.0;
-    }
-
+    $raw_margin = $client_id > 0 ? get_post_meta($client_id, "_ups_client_profit_margin_pct", true) : "";
+    $margin = is_numeric($raw_margin) && is_finite((float) $raw_margin) && (float) $raw_margin >= 0 && (float) $raw_margin <= 100 ? (float) $raw_margin : null;
     if ($revenue_quality === [] && function_exists("ups_audit_revenue_quality")) {
         $revenue_quality = ups_audit_revenue_quality($agg);
     }
-    $ga4_untrusted = empty($revenue_quality["trusted"]);
     $crm_funnel = (array) ($crm_revenue["funnel_totals"] ?? []);
-    $crm_rev = (float) ($crm_funnel["revenue"] ?? 0);
-
-    $revenue = $ga4_untrusted ? $crm_rev : (float) ($agg["ga4_revenue"] ?? 0);
-    $revenue_source = $ga4_untrusted ? "crm" : "ga4_purchase";
-    $ads_cost = (float) ($agg["paid_cost"] ?? ($agg["ads_cost"] ?? 0) + ($agg["meta_cost"] ?? 0));
-    $gross_profit = round($revenue * ($margin_pct / 100), 2);
-    $net_profit = round($gross_profit - $ads_cost, 2);
-    $roas_profit = $ads_cost > 0 && !$ga4_untrusted ? round($gross_profit / $ads_cost, 2) : 0.0;
-    $crm_roas = $ads_cost > 0 && $crm_rev > 0 ? round($crm_rev / $ads_cost, 2) : 0.0;
-    $conv = (int) ($agg["ga4_conversions"] ?? 0);
-    $profit_per_conv = $conv > 0 && !$ga4_untrusted ? round($net_profit / $conv, 2) : 0.0;
-
-    $warning = "";
-    if ($ga4_untrusted) {
-        $warning = (string) ($revenue_quality["message"] ?? "Revenue Quality Warning — używaj ROAS CRM zamiast GA4.");
-    } elseif ($net_profit < 0) {
-        $warning = "Ujemny zysk w GA4 nie oznacza straty firmy — większość konwersji B2B może nie trafiać do purchase.";
-    }
-
+    $crm_value = !empty($crm_funnel["has_data"]) && is_numeric($crm_funnel["revenue"] ?? null) ? (float) $crm_funnel["revenue"] : null;
+    $verified = !empty($revenue_quality["trusted"]) && !empty($agg["ga4_purchase_window_verified"]) && (int) ($agg["ga4_purchase_source_count"] ?? 0) === 1 && ($agg["ga4_revenue_source"] ?? "") === "purchaseRevenue" && (int) ($agg["unavailable_resource_count"] ?? 0) === 0;
+    $revenue = $verified && is_numeric($agg["ga4_revenue"] ?? null) && is_finite((float) $agg["ga4_revenue"]) && (float) $agg["ga4_revenue"] >= 0 ? (float) $agg["ga4_revenue"] : null;
+    $cost = (int) ($agg["unavailable_resource_count"] ?? 0) === 0 && is_numeric($agg["paid_cost"] ?? null) && is_finite((float) $agg["paid_cost"]) && (float) $agg["paid_cost"] >= 0 ? (float) $agg["paid_cost"] : null;
+    $gross = $revenue !== null && $margin !== null ? round($revenue * $margin / 100, 2) : null;
+    $contribution = $gross !== null && $cost !== null ? round($gross - $cost, 2) : null;
     return [
-        "phase" => 3,
-        "margin_pct" => $margin_pct,
-        "revenue" => $revenue,
-        "revenue_source" => $revenue_source,
-        "crm_revenue" => $crm_rev,
-        "crm_roas" => $crm_roas,
-        "ga4_untrusted" => $ga4_untrusted,
-        "gross_profit" => $gross_profit,
-        "ads_cost" => $ads_cost,
-        "net_profit" => $net_profit,
-        "roas_profit" => $roas_profit,
-        "profit_per_conversion" => $profit_per_conv,
-        "configurable" => true,
-        "reliability" => $ga4_untrusted ? "crm_preferred" : "low",
-        "disclaimer" => $ga4_untrusted
-            ? "Przychód GA4 wyłączony z wniosków — poniżej szacunek na bazie CRM (wygrane + wartość ofert)."
-            : "Szacunek e-commerce — nie uwzględnia sprzedaży offline, telefonów ani zamówień B2B z opóźnieniem.",
-        "warning" => $warning,
-        "note" => $ga4_untrusted
-            ? "ROAS CRM jest metryką decyzyjną dla B2B. GA4 purchase pozostaje w diagnostyce technicznej."
-            : "Tylko przychód z eventu purchase w GA4. Dla WTapes i podobnych: traktuj jako orientacyjny, nie decyzja inwestycyjna.",
-        "summary" => $ga4_untrusted && $crm_rev > 0
-            ? sprintf(
-                "ROAS CRM %.1fx (przychód %.0f PLN / koszt paid %.0f PLN) — GA4 revenue wyłączony z AI.",
-                $crm_roas,
-                $crm_rev,
-                $ads_cost
-            )
-            : ($revenue > 0
-                ? sprintf(
-                    "Szac. zysk netto e-com %.0f PLN (marża %.0f%%, koszt paid %.0f PLN) — bez offline.",
-                    $net_profit,
-                    $margin_pct,
-                    $ads_cost
-                )
-                : "Brak purchase w GA4 — Profit Dashboard nie obejmuje leadów telefonicznych ani ofert."),
+        "phase" => 3, "margin_pct" => $margin, "revenue" => $revenue, "revenue_source" => $revenue === null ? "unavailable" : "ga4_purchase",
+        "crm_revenue" => $crm_value, "crm_roas" => null, "ga4_untrusted" => !$verified,
+        "gross_profit" => $gross, "ads_cost" => $cost, "net_profit" => $contribution, "roas_profit" => null, "profit_per_conversion" => null,
+        "configurable" => true, "reliability" => $contribution === null ? "unavailable" : "estimate",
+        "disclaimer" => "Szacunek marży po kosztach reklam, nie zysk netto firmy ani rentowność przypisana do kampanii. Wartość wygranych ofert CRM nie jest wpływem z faktur.",
+        "warning" => $margin === null ? "Brak zapisanej marży klienta — nie podstawiamy wartości domyślnej." : ($revenue === null || $cost === null ? "Brak kompletnych danych przychodu zakupowego lub wydatków." : ""),
+        "note" => "Nie używaj tego szacunku jako samodzielnej podstawy decyzji budżetowej.",
+        "summary" => $contribution === null ? "Nie można wiarygodnie oszacować wyniku." : sprintf("Szacowana marża po kosztach reklam: %.0f PLN (bez pozostałych kosztów firmy).", $contribution),
     ];
 }
 
@@ -1426,7 +1353,7 @@ function ups_audit_intel_benchmark_compare(array $agg, array $benchmark, array $
  *
  * @return array<string, mixed>
  */
-function ups_audit_build_command_center(int $window = 30): array
+function ups_audit_build_command_center(int $window = 30, bool $restrict_to_current_user = false): array
 {
     $window = in_array($window, [7, 14, 30, 60, 90], true) ? $window : 30;
     $rows = [];
@@ -1435,10 +1362,18 @@ function ups_audit_build_command_center(int $window = 30): array
     foreach (function_exists("ups_audit_collect_profile_client_ids") ? ups_audit_collect_profile_client_ids() : [] as $cid) {
         $cid = (int) $cid;
         $client = get_post($cid);
-        if (!($client instanceof WP_Post)) {
+        if (!($client instanceof WP_Post) || $client->post_type !== "crm_client" || ($restrict_to_current_user && !upsellio_crm_app_can_access_audit_client($cid))) {
             continue;
         }
-        $agg = ups_audit_aggregate_client_data($cid, $window, 0, false);
+        try {
+            $agg = ups_audit_aggregate_client_data($cid, $window, 0, false);
+        } catch (Throwable $e) {
+            $agg = [];
+        }
+        if (!is_array($agg) || $agg === [] || (int) ($agg["usable_resource_count"] ?? 0) === 0) {
+            $rows[] = ["id" => $cid, "title" => (string) $client->post_title, "status" => "unknown", "health_score" => null, "attention" => ["Brak danych — sprawdź synchronizację"], "dashboard_url" => upsellio_crm_url("ca-dashboard", ["cid" => $cid, "window" => $window])];
+            continue;
+        }
         $intel = (array) ($agg["intelligence"] ?? []);
         $alerts = (array) ($intel["alerts"] ?? []);
         $critical = count(array_filter($alerts, static fn($a) => is_array($a) && ($a["severity"] ?? "") === "critical"));
@@ -1447,7 +1382,7 @@ function ups_audit_build_command_center(int $window = 30): array
         $status = "green";
         if ($critical > 0) {
             $status = "red";
-        } elseif ($warning > 0 || (int) ($agg["health_score"] ?? 0) < 50) {
+        } elseif ($warning > 0 || (int) ($agg["unavailable_resource_count"] ?? 0) > 0 || (int) ($agg["health_score"] ?? 0) < 50) {
             $status = "yellow";
         }
 
@@ -1457,7 +1392,14 @@ function ups_audit_build_command_center(int $window = 30): array
                 continue;
             }
             $attention[] = (string) ($al["title"] ?? "");
-            $all_alerts[] = array_merge($al, ["client_id" => $cid, "client_name" => $client->post_title]);
+        }
+        if ((int) ($agg["unavailable_resource_count"] ?? 0) > 0) {
+            $attention[] = "Niepełne dane — sprawdź synchronizację.";
+        }
+        foreach ($alerts as $al) {
+            if (is_array($al) && in_array($al["severity"] ?? "", ["critical", "warning"], true)) {
+                $all_alerts[] = array_merge($al, ["client_id" => $cid, "client_name" => $client->post_title]);
+            }
         }
 
         $rows[] = [
@@ -1483,7 +1425,7 @@ function ups_audit_build_command_center(int $window = 30): array
     });
 
     usort($rows, static function ($a, $b) {
-        $order = ["red" => 0, "yellow" => 1, "green" => 2];
+        $order = ["red" => 0, "yellow" => 1, "unknown" => 2, "green" => 3];
         $sa = $order[$a["status"] ?? "green"] ?? 9;
         $sb = $order[$b["status"] ?? "green"] ?? 9;
         if ($sa !== $sb) {
@@ -1502,6 +1444,7 @@ function ups_audit_build_command_center(int $window = 30): array
             "red" => count(array_filter($rows, static fn($r) => ($r["status"] ?? "") === "red")),
             "yellow" => count(array_filter($rows, static fn($r) => ($r["status"] ?? "") === "yellow")),
             "green" => count(array_filter($rows, static fn($r) => ($r["status"] ?? "") === "green")),
+            "unknown" => count(array_filter($rows, static fn($r) => ($r["status"] ?? "") === "unknown")),
         ],
     ];
 }

@@ -738,7 +738,7 @@ $intel_charts_payload = [
 <section class="card" id="ups-audit-intel-journey">
   <div class="ups-audit-section-head">
     <div>
-      <h3><?php esc_html_e("Customer Journey (B2B)", "upsellio"); ?></h3>
+      <h3><?php esc_html_e("Customer Journey — aktywność w okresie", "upsellio"); ?></h3>
       <?php if (!empty($journey["offline_note"])) : ?>
         <p class="muted" style="margin:4px 0 0;font-size:11px;"><?php echo esc_html((string) $journey["offline_note"]); ?></p>
       <?php endif; ?>
@@ -753,12 +753,12 @@ $intel_charts_payload = [
       <?php
         $jval = is_numeric($stage["value"] ?? null) ? (float) $stage["value"] : 0;
         $jpct = $journey_max > 0 ? min(100, round(($jval / $journey_max) * 100)) : 0;
-        $jbar_cls = $i >= 4 ? "ups-audit-funnel-step__bar--crm" : ($i <= 1 ? "ups-audit-funnel-step__bar--ads" : "");
+        $jbar_cls = ($stage["source"] ?? "") === "crm" ? "ups-audit-funnel-step__bar--crm" : (($stage["source"] ?? "") === "ads" ? "ups-audit-funnel-step__bar--ads" : "");
         ?>
       <div class="ups-audit-funnel-step">
         <span class="muted"><?php echo esc_html((string) ($stage["name"] ?? "")); ?></span>
         <div class="ups-audit-funnel-step__bar-wrap">
-          <div class="ups-audit-funnel-step__bar <?php echo esc_attr($jbar_cls); ?>" style="width:<?php echo (int) max(4, $jpct); ?>%;"></div>
+          <div class="ups-audit-funnel-step__bar <?php echo esc_attr($jbar_cls); ?>" style="width:<?php echo (int) max(0, $jpct); ?>%;"></div>
         </div>
         <div>
           <div class="ups-audit-funnel-step__val"><?php echo esc_html(is_numeric($stage["value"] ?? null) ? number_format($jval, 0, ",", " ") : (string) ($stage["value"] ?? "")); ?></div>
@@ -798,10 +798,10 @@ $intel_charts_payload = [
     <p style="margin:0 0 10px;font-size:12px;color:#b45309;"><?php echo esc_html((string) $profit["warning"]); ?></p>
   <?php endif; ?>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-size:12px;">
-    <div style="padding:10px;border:1px solid #fde68a;border-radius:8px;background:#fff;"><div class="muted">Przychód GA4</div><div style="font-weight:800;"><?php echo esc_html(number_format((float) ($profit["revenue"] ?? 0), 0, ",", " ")); ?> PLN</div></div>
-    <div style="padding:10px;border:1px solid #fde68a;border-radius:8px;background:#fff;"><div class="muted">Marża <?php echo (int) ($profit["margin_pct"] ?? 30); ?>%</div><div style="font-weight:800;"><?php echo esc_html(number_format((float) ($profit["gross_profit"] ?? 0), 0, ",", " ")); ?> PLN</div></div>
-    <div style="padding:10px;border:1px solid #fde68a;border-radius:8px;background:#fff;"><div class="muted">Koszt paid</div><div style="font-weight:800;"><?php echo esc_html(number_format((float) ($profit["ads_cost"] ?? 0), 0, ",", " ")); ?> PLN</div></div>
-    <div style="padding:10px;border:1px solid #fde68a;border-radius:8px;background:#fff;"><div class="muted">Zysk netto (e-com)</div><div style="font-weight:800;color:<?php echo (float) ($profit["net_profit"] ?? 0) >= 0 ? "var(--ok,#16a34a)" : "var(--danger,#dc2626)"; ?>;"><?php echo esc_html(number_format((float) ($profit["net_profit"] ?? 0), 0, ",", " ")); ?> PLN</div></div>
+    <?php foreach (["revenue" => "Przychód zakupowy GA4", "crm_revenue" => "Wartość wygranych CRM", "gross_profit" => "Szacowana marża kwotowa", "ads_cost" => "Koszt Google + Meta", "net_profit" => "Marża po kosztach reklam"] as $key => $label) : ?>
+    <div style="padding:10px;border:1px solid #fde68a;border-radius:8px;background:#fff;"><div class="muted"><?php echo esc_html($label); ?></div><div style="font-weight:800;"><?php echo isset($profit[$key]) ? esc_html(number_format((float) $profit[$key], 0, ",", " ") . " PLN") : "—"; ?></div></div>
+    <?php endforeach; ?>
+    <div style="padding:10px;border:1px solid #fde68a;border-radius:8px;background:#fff;"><div class="muted">Zapisana marża</div><div style="font-weight:800;"><?php echo isset($profit["margin_pct"]) ? esc_html(number_format((float) $profit["margin_pct"], 1, ",", " ") . "%") : "—"; ?></div></div>
   </div>
   <p class="muted" style="margin:8px 0 0;font-size:11px;"><?php echo esc_html((string) ($profit["summary"] ?? "")); ?></p>
 </section>

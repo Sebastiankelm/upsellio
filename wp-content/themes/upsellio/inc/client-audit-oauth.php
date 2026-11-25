@@ -211,26 +211,11 @@ function ups_audit_oauth_resolve_pending_session(string $state_in, int $uid = 0)
     }
 
     $by_state = get_transient(ups_audit_oauth_pending_state_key($state_in));
-    if (is_array($by_state) && isset($by_state["state"]) && hash_equals((string) $by_state["state"], $state_in)) {
+    if ($uid > 0 && is_array($by_state) && (int) ($by_state["wp_user_id"] ?? 0) === $uid && isset($by_state["state"]) && hash_equals((string) $by_state["state"], $state_in)) {
         return $by_state;
     }
 
     return null;
-}
-
-/** Gdy transient zginął (np. błąd pamięci), ale Google zwrócił poprawny state + code. */
-function ups_audit_oauth_fallback_pending(string $state, int $uid = 0): array
-{
-    return [
-        "state" => $state,
-        "gsc_property" => "",
-        "ga4_property_id" => "",
-        "managed_oauth" => false,
-        "conn_type" => "audit",
-        "label" => "",
-        "include_ads" => (string) get_option("upsellio_google_ads_include_scope", "0") === "1" ? "1" : "0",
-        "wp_user_id" => (int) $uid,
-    ];
 }
 
 function ups_audit_oauth_crm_resume_url(string $state = ""): string
@@ -577,7 +562,7 @@ function ups_audit_oauth_process_callback(): void
         );
     }
 
-    if (!current_user_can("edit_posts")) {
+    if (!upsellio_crm_app_user_can_access() || !current_user_can("manage_options")) {
         ups_audit_oauth_exit_redirect(ups_audit_oauth_crm_error_url("Brak uprawnień do połączenia Google."));
     }
 
@@ -591,16 +576,18 @@ function ups_audit_oauth_process_callback(): void
     }
 
     $pending = ups_audit_oauth_resolve_pending_session($state, $uid);
-    if (!is_array($pending) || sanitize_key((string) ($pending["conn_type"] ?? "")) !== "audit") {
-        if ($has_code && $state !== "") {
-            $pending = ups_audit_oauth_fallback_pending($state, $uid);
-        } else {
-            ups_audit_oauth_exit_redirect(
-                ups_audit_oauth_crm_error_url("Sesja OAuth wygasła — kliknij „Połącz konto” ponownie.")
-            );
-        }
+    if (!is_array($pending) ||
+        (int) ($pending["wp_user_id"] ?? 0) !== $uid ||
+        sanitize_key((string) ($pending["conn_type"] ?? "")) !== "audit") {
+        ups_audit_oauth_exit_redirect(
+            ups_audit_oauth_crm_error_url("Sesja OAuth wygasła lub jest nieprawidłowa — kliknij „Połącz konto” ponownie.")
+        );
     }
 
+    $target_id = (int) ($pending["reconnect_account_id"] ?? 0);
+    if ($target_id !== 0 && ($target_id < 0 || get_post_type($target_id) !== "crm_google_account" || !current_user_can("edit_post", $target_id))) {
+        ups_audit_oauth_exit_redirect(ups_audit_oauth_crm_error_url("Nieprawidłowe konto Google do ponownego połączenia."));
+    }
     $creds = upsellio_get_gsc_credentials();
     $client_id = (string) ($creds["client_id"] ?? "");
     $client_secret = (string) ($creds["client_secret"] ?? "");
@@ -704,18 +691,21 @@ function ups_audit_oauth_handle_start(): void
         ups_audit_oauth_exit_redirect(wp_login_url(ups_audit_oauth_connect_url()));
     }
 
-    if (!current_user_can("edit_posts")) {
+    if (!upsellio_crm_app_user_can_access() || !current_user_can("manage_options")) {
         ups_audit_oauth_exit_redirect(ups_audit_oauth_crm_error_url("Brak uprawnień."));
     }
 
     $include_ads = !isset($_GET["include_ads"]) || (string) wp_unslash($_GET["include_ads"]) !== "0";
     $label = isset($_GET["label"]) ? sanitize_text_field((string) wp_unslash($_GET["label"])) : "";
     $reconnect_id = isset($_GET["reconnect_id"]) ? (int) wp_unslash($_GET["reconnect_id"]) : 0;
+    if ($reconnect_id !== 0 && ($reconnect_id < 0 || get_post_type($reconnect_id) !== "crm_google_account" || !current_user_can("edit_post", $reconnect_id))) {
+        ups_audit_oauth_exit_redirect(ups_audit_oauth_crm_error_url("Nieprawidłowe konto Google do ponownego połączenia."));
+    }
     $url = function_exists("ups_audit_start_oauth_connect")
         ? ups_audit_start_oauth_connect($label, $include_ads, $reconnect_id)
         : ups_audit_oauth_start_direct($label, $include_ads, $reconnect_id);
 
-    if ($url !== "" && strpos($url, "accounts.google.com") !== false) {
+    if (is_string($url) && wp_parse_url($url, PHP_URL_SCHEME) === "https" && wp_parse_url($url, PHP_URL_HOST) === "accounts.google.com") {
         wp_redirect($url);
         exit;
     }
