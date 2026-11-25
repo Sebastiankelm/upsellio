@@ -419,6 +419,8 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
         "inbox_list_per_page" => 30,
         "list_page" => null,
         "lead_metric_posts" => [],
+        "client_metric_posts" => [],
+        "offer_metric_posts" => [],
     ];
 
     $qlist = static function ($post_type, $n, $orderby = "modified", $order = "DESC") use ($st) {
@@ -472,6 +474,18 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
             } elseif (in_array($tab, ["qualified", "rejected", "converted"], true)) {
                 $filters["meta_query"] = [["key" => "_ups_lead_qualification_status", "value" => $tab]];
             }
+            $search = sanitize_text_field(wp_unslash($_GET["lead_q"] ?? ""));
+            $source = sanitize_text_field(wp_unslash($_GET["lead_source_filter"] ?? ""));
+            if ($search !== "") {
+                $filters["s"] = $search;
+            }
+            if ($source !== "") {
+                $status_query = $filters["meta_query"] ?? [];
+                $filters["meta_query"] = ["relation" => "AND", ["key" => "_ups_lead_source", "value" => $source]];
+                if ($status_query) {
+                    $filters["meta_query"][] = $status_query;
+                }
+            }
             $empty["list_page"] = upsellio_crm_app_list_page("crm_lead", $filters);
             $empty["leads"] = $empty["list_page"]["posts"];
             if (isset($_GET["lead_id"])) {
@@ -485,6 +499,7 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
             return $empty;
 
         case "clients":
+            $empty["client_metric_posts"] = upsellio_crm_app_collect_metric_posts("crm_client");
             $empty["list_page"] = upsellio_crm_app_list_page("crm_client");
             $empty["clients"] = $empty["list_page"]["posts"];
             return $empty;
@@ -522,7 +537,13 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
 
         case "offers":
             $empty["clients"] = $qlist("crm_client", 300);
-            $empty["list_page"] = upsellio_crm_app_list_page("crm_offer");
+            $empty["offer_metric_posts"] = upsellio_crm_app_collect_metric_posts("crm_offer");
+            $offer_status = sanitize_key(wp_unslash($_GET["offer_status_filter"] ?? ""));
+            $offer_filters = [];
+            if (in_array($offer_status, ["open", "sent", "won", "lost"], true)) {
+                $offer_filters["meta_query"] = [["key" => "_ups_offer_status", "value" => $offer_status]];
+            }
+            $empty["list_page"] = upsellio_crm_app_list_page("crm_offer", $offer_filters);
             $empty["offers"] = $empty["list_page"]["posts"];
             $empty["followups"] = $qlist("ups_followup_template", 300);
             $empty["offer_layout_templates"] = $qlist("crm_offer_layout", 200, "title", "ASC");
@@ -541,7 +562,7 @@ function upsellio_crm_app_load_render_collections($view, $template_studio_tab, $
 
         case "pipeline":
             $empty["clients"] = $qlist("crm_client", 300);
-            $empty["offers"] = $qlist("crm_offer", 300);
+            $empty["offers"] = upsellio_crm_app_collect_metric_posts("crm_offer");
             upsellio_crm_app_prime_post_meta_cache(array_merge($empty["clients"], $empty["offers"]));
 
             return $empty;
