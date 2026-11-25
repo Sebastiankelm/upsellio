@@ -745,7 +745,7 @@ function upsellio_followup_render_template_meta_box($post)
       <label><strong>Trigger event</strong></label><br />
       <select class="widefat" name="ups_followup_trigger_event">
         <?php
-        $events = ["any", "offer_email_sent", "offer_view", "offer_section_view", "offer_engagement_tick", "offer_cta_click", "offer_hot_detected", "inbound_positive", "inbound_price_objection", "inbound_timing_objection", "inbound_no_priority"];
+        $events = ["any", "offer_email_sent", "offer_view", "offer_section_view", "offer_engagement_tick", "offer_cta_click", "offer_commit_selected", "offer_accept_started", "offer_hot_detected", "inbound_positive", "inbound_price_objection", "inbound_timing_objection", "inbound_no_priority"];
         foreach ($events as $event) :
         ?>
           <option value="<?php echo esc_attr($event); ?>" <?php selected($trigger_event, $event); ?>><?php echo esc_html($event); ?></option>
@@ -816,7 +816,7 @@ function upsellio_followup_render_settings_page()
     $consideration_views = (int) get_option("ups_offer_stage_consideration_views", 2);
     $decision_views = (int) get_option("ups_offer_stage_decision_views", 3);
     $decision_require_cta = (string) get_option("ups_offer_stage_decision_require_cta", "0") === "1";
-    $hint_awareness = (string) get_option("ups_followup_hint_awareness", "Klient dopiero poznaje oferte. Wyslij edukacyjny follow-up z case study i odpowiedzia na FAQ.");
+    $hint_awareness = (string) get_option("ups_followup_hint_awareness", "Klient dopiero poznaje oferte. Wyslij krotkie wyjasnienie procesu, zakresu i odpowiedz na FAQ.");
     $hint_consideration = (string) get_option("ups_followup_hint_consideration", "Klient porownuje opcje. Wyslij follow-up z ROI, timeline i obiekcjami cenowymi.");
     $hint_decision = (string) get_option("ups_followup_hint_decision", "Klient jest blisko decyzji. Wyslij follow-up domykajacy: call-to-action, termin startu, ograniczona dostepnosc.");
     $offer_email_subject = (string) get_option("ups_offer_email_subject", "Twoja oferta: {{offer_title}}");
@@ -957,6 +957,9 @@ function upsellio_followup_find_matching_templates($event_name, $stage)
         }
         $trigger = (string) get_post_meta($template_id, "_ups_followup_trigger_event", true);
         $stage_rule = (string) get_post_meta($template_id, "_ups_followup_stage", true);
+        if ($trigger === "any" && in_array((string) $event_name, ["offer_engagement_tick", "offer_section_view", "offer_cta_click"], true)) {
+            continue;
+        }
         if ($trigger !== "any" && $trigger !== (string) $event_name) {
             continue;
         }
