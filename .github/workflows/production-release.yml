@@ -33,6 +33,7 @@ jobs:
           python3 -m py_compile tools/deploy/build-release.py
           php -n -l tools/deploy/apply-release.php
           php -n tests/mobile-callback-contract.php
+          php -n tests/seo-indexability-contract.php
           bash tests/production-deploy-contract.sh
       - name: Lint public theme
         run: |
