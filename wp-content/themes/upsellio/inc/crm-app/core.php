@@ -150,32 +150,51 @@ function upsellio_crm_count_posts_all_statuses($post_type)
     return (int) $counts->publish + (int) $counts->draft + (int) $counts->pending + (int) $counts->private + (int) $counts->future;
 }
 
+/** Only explicitly recurring, active subscriptions contribute to current MRR. */
+function upsellio_crm_app_client_mrr(bool $recurring, string $status, $amount): float
+{
+    return $recurring && $status === "active" && is_numeric($amount) && is_finite((float) $amount) ? max(0.0, (float) $amount) : 0.0;
+}
+
+/** Strict local calendar dates; never normalize invalid input. */
+function upsellio_crm_app_client_date(string $raw): ?DateTimeImmutable
+{
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/D', $raw)) {
+        return null;
+    }
+    $date = DateTimeImmutable::createFromFormat("!Y-m-d", $raw, wp_timezone());
+    return $date && $date->format("Y-m-d") === $raw ? $date : null;
+}
+
+/** Estimate from the current monthly rate and completed months, not actual receipts. */
+function upsellio_crm_app_client_ltv_estimate(bool $recurring, string $status, $amount, string $start, string $cancelled, string $today): ?float
+{
+    if (!$recurring || !in_array($status, ["active", "cancelled"], true) || !is_numeric($amount) || !is_finite((float) $amount) || (float) $amount < 0) {
+        return null;
+    }
+    $from = upsellio_crm_app_client_date($start);
+    $as_of = upsellio_crm_app_client_date($today);
+    $end = $status === "cancelled" ? upsellio_crm_app_client_date($cancelled) : $as_of;
+    if (!$from || !$end || !$as_of || $from > $end || $end > $as_of) {
+        return null;
+    }
+    $diff = $from->diff($end);
+    return round((float) $amount * ($diff->y * 12 + $diff->m), 2);
+}
+
 function upsellio_crm_app_compute_active_mrr()
 {
-    if (!post_type_exists("crm_client")) {
-        return 0.0;
-    }
-    $posts = get_posts([
-        "post_type" => "crm_client",
-        "post_status" => upsellio_crm_app_post_statuses_visible(),
-        "posts_per_page" => 500,
-        "meta_query" => [
-            "relation" => "AND",
-            [
-                "key" => "_ups_client_is_recurring",
-                "value" => "1",
-            ],
-            [
-                "key" => "_ups_client_subscription_status",
-                "value" => "active",
-            ],
-        ],
-    ]);
     $sum = 0.0;
-    foreach ($posts as $p) {
-        $sum += (float) get_post_meta((int) $p->ID, "_ups_client_monthly_value", true);
+    foreach (upsellio_crm_app_collect_metric_posts("crm_client") as $p) {
+        if (!current_user_can("read_post", $p->ID)) {
+            continue;
+        }
+        $sum += upsellio_crm_app_client_mrr(
+            (string) get_post_meta($p->ID, "_ups_client_is_recurring", true) === "1",
+            (string) get_post_meta($p->ID, "_ups_client_subscription_status", true),
+            get_post_meta($p->ID, "_ups_client_monthly_value", true)
+        );
     }
-
     return $sum;
 }
 
