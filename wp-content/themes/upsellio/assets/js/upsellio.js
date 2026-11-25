@@ -804,26 +804,29 @@
     return "lead_web_form";
   }
 
+  // Allocate before POST so browser and server use the same Meta event ID.
+  function ensureLeadEventId(formElement, fresh = false) {
+    let input = formElement && formElement.querySelector('input[name="lead_event_id"]');
+    if (input && input.value && !fresh) return input.value;
+    const eventId = window.crypto && typeof window.crypto.randomUUID === "function"
+      ? window.crypto.randomUUID()
+      : "lead_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+    if (formElement) {
+      if (!input) {
+        input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "lead_event_id";
+        formElement.appendChild(input);
+      }
+      input.value = eventId;
+    }
+    return eventId;
+  }
+
   function pushLeadConversionStack(formElement) {
     const payload = buildLeadPayload(formElement);
-    const eventId =
-      window.crypto && crypto.randomUUID
-        ? crypto.randomUUID()
-        : "lead_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+    const eventId = ensureLeadEventId(formElement);
     const enrichedPayload = { ...payload, event_id: eventId };
-
-    if (formElement) {
-      const existingEventInput = formElement.querySelector('input[name="lead_event_id"]');
-      if (existingEventInput) {
-        existingEventInput.value = eventId;
-      } else {
-        const hiddenInput = document.createElement("input");
-        hiddenInput.type = "hidden";
-        hiddenInput.name = "lead_event_id";
-        hiddenInput.value = eventId;
-        formElement.appendChild(hiddenInput);
-      }
-    }
 
     pushDataLayerEvent("generate_lead", enrichedPayload);
     const extra = resolveLeadConversionEventName(payload.form_origin);
@@ -1274,6 +1277,16 @@
     return m === "GET" ? "GET" : "POST";
   }
 
+  function isConfirmedLeadSuccess(response) {
+    if (!response || !response.ok || !response.url) return false;
+    try {
+      const url = new URL(response.url, window.location.origin);
+      return url.origin === window.location.origin && url.searchParams.get("ups_lead_status") === "success";
+    } catch (error) {
+      return false;
+    }
+  }
+
   function initServerLeadForms() {
     const serverForms = Array.from(document.querySelectorAll("form[data-upsellio-server-form='1']"));
     if (!serverForms.length) return;
@@ -1286,6 +1299,7 @@
 
       serverForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (serverSubmit.disabled) return;
         const defaultText = serverSubmit.textContent || serverSubmit.value || "Wyślij";
         let feedback = serverForm.querySelector("[data-form-feedback]");
         const nameVal = ((serverForm.querySelector("[name='lead_name']") || {}).value || "").trim();
@@ -1320,6 +1334,7 @@
         feedback.classList.remove("is-success", "is-error");
 
         try {
+          ensureLeadEventId(serverForm, true);
           let response = await fetch(resolveFormActionUrl(serverForm), {
             method: resolveFormMethod(serverForm),
             body: new FormData(serverForm),
@@ -1339,7 +1354,7 @@
               reason = upsellioLeadFormErrorReasonFromUrl(response.url);
             }
           }
-          if (!response.ok || reason) {
+          if (!isConfirmedLeadSuccess(response) || reason) {
             var msg = upsellioMessageForLeadFormResponse(response.url, response.ok);
             var statusMsg = upsellioMessageForHttpStatus(response.status);
             if (statusMsg) msg = statusMsg;
@@ -1359,20 +1374,15 @@
             // Sukces zapisu leada nie może zależeć od GTM/dataLayer
           }
           serverForm.reset();
+          const eventInput = serverForm.querySelector('input[name="lead_event_id"]');
+          if (eventInput) eventInput.remove();
           applyAttributionToLeadForms(attribution);
         } catch (error) {
-          var blockedByClient =
-            error &&
-            typeof error.message === "string" &&
-            (error.message.indexOf("Failed to fetch") !== -1 ||
-              error.message.indexOf("NetworkError") !== -1);
-          if (blockedByClient && serverForm.dataset.upsellioNativeRetry !== "1") {
-            // Fallback: if browser extension blocks fetch/XHR, try native form submit.
-            serverForm.dataset.upsellioNativeRetry = "1";
-            serverForm.submit();
-            return;
-          }
-          feedback.textContent = error.message || "Błąd wysyłki. Spróbuj ponownie.";
+          // A lost response does not prove the server failed to save the lead.
+          // Do not automatically POST again (could create duplicate CRM records).
+          feedback.textContent = error instanceof TypeError
+            ? "Nie udało się potwierdzić zapisu. Jeśli nie otrzymasz odpowiedzi, skontaktuj się telefonicznie."
+            : (error.message || "Błąd wysyłki. Spróbuj ponownie.");
           feedback.classList.add("is-error");
         } finally {
           if ("textContent" in serverSubmit) serverSubmit.textContent = defaultText;
