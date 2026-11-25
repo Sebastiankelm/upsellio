@@ -457,6 +457,7 @@ function upsellio_offer_build_analytics_summary($offer_id)
     $unique_views = 0;
     $seen_sessions = [];
     $section_views = [];
+    $seen_session_sections = [];
     $section_seconds = [];
     $cta_clicks = 0;
     $accept_clicks = 0;
@@ -470,6 +471,7 @@ function upsellio_offer_build_analytics_summary($offer_id)
     foreach ($events as $event) {
         $event_name = sanitize_key((string) ($event["event"] ?? ""));
         $section_id = sanitize_key((string) ($event["section_id"] ?? ""));
+        if ($section_id === "cennik") { $section_id = "pricing"; }
         $seconds = (int) ($event["seconds"] ?? 0);
         $ts = (string) ($event["ts"] ?? "");
         if ($ts !== "") {
@@ -489,7 +491,11 @@ function upsellio_offer_build_analytics_summary($offer_id)
             if (!isset($section_views[$section_id])) {
                 $section_views[$section_id] = 0;
             }
-            $section_views[$section_id]++;
+            $sid = (string) ($event["session_id"] ?? "");
+            if ($sid === "" || !isset($seen_session_sections[$sid][$section_id])) {
+                $section_views[$section_id]++;
+                if ($sid !== "") { $seen_session_sections[$sid][$section_id] = true; }
+            }
         }
         if ($event_name === "offer_engagement_tick") {
             $duration = !empty($event["session_id"]) ? max(0, min(10, $seconds)) : 10;
@@ -1225,16 +1231,7 @@ function upsellio_offer_track_event()
         wp_send_json_error(["message" => "invalid_event_id"], 400);
     }
 
-    $events = get_post_meta($offer_id, "_ups_offer_events", true);
-    if (!is_array($events)) {
-        $events = [];
-    }
-    foreach ($events as $previous_event) {
-        if (($previous_event["event_id"] ?? "") === $event_id) {
-            wp_send_json_success(["ok" => true, "duplicate" => true]);
-        }
-    }
-    $events[] = [
+    $new_event = [
         "ts" => current_time("mysql"),
         "session_id" => $session_id,
         "event_id" => $event_id,
@@ -1246,13 +1243,37 @@ function upsellio_offer_track_event()
         "person_id" => "",
         "utm_source" => isset($_POST["utm_source"]) ? sanitize_text_field(wp_unslash($_POST["utm_source"])) : "",
         "utm_campaign" => isset($_POST["utm_campaign"]) ? sanitize_text_field(wp_unslash($_POST["utm_campaign"])) : "",
-        "gclid" => isset($_POST["gclid"]) ? sanitize_text_field(wp_unslash($_POST["gclid"])) : "",
+        "gclid" => isset($_POST["gclid"]) ? substr(sanitize_text_field(wp_unslash($_POST["gclid"])), 0, 200) : "",
         "offer_version" => (int) get_post_meta($offer_id, "_ups_offer_current_version", true),
     ];
-    if (count($events) > 600) {
-        $events = array_slice($events, -600);
+    // Serialize read-modify-write across browsers and tabs, then release before running hooks.
+    global $wpdb;
+    $lock_name = "ups_offer_events_" . md5((string) $wpdb->postmeta . ":" . $offer_id);
+    if ((string) $wpdb->get_var($wpdb->prepare("SELECT GET_LOCK(%s, 2)", $lock_name)) !== "1") {
+        wp_send_json_error(["message" => "busy_retry"], 503);
     }
-    update_post_meta($offer_id, "_ups_offer_events", $events);
+    $duplicate = false;
+    $saved = false;
+    try {
+        wp_cache_delete($offer_id, "post_meta");
+        $events = get_post_meta($offer_id, "_ups_offer_events", true);
+        if (!is_array($events)) { $events = []; }
+        foreach ($events as $previous_event) {
+            if (($previous_event["event_id"] ?? "") === $event_id) {
+                $duplicate = true;
+                break;
+            }
+        }
+        if (!$duplicate) {
+            $events[] = $new_event;
+            if (count($events) > 600) { $events = array_slice($events, -600); }
+            $saved = (bool) update_post_meta($offer_id, "_ups_offer_events", $events);
+        }
+    } finally {
+        $wpdb->get_var($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock_name));
+    }
+    if ($duplicate) { wp_send_json_success(["ok" => true, "duplicate" => true]); }
+    if (!$saved) { wp_send_json_error(["message" => "write_failed"], 503); }
     $first_source = (string) get_post_meta($offer_id, "_ups_offer_utm_source", true);
     $first_campaign = (string) get_post_meta($offer_id, "_ups_offer_utm_campaign", true);
     $event_utm_source = isset($_POST["utm_source"]) ? sanitize_text_field(wp_unslash($_POST["utm_source"])) : "";
