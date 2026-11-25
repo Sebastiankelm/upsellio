@@ -37,7 +37,7 @@ jobs:
       - name: Lint public theme
         run: |
           set -eu
-          for file in front-page.php functions.php header.php home.php single.php inc/crm.php inc/form-component.php page-kontakt.php page-marketing-google-ads.php page-marketing-meta-ads.php page-tworzenie-stron-internetowych.php; do
+          for file in front-page.php functions.php header.php home.php single.php inc/crm.php inc/form-component.php inc/technical-seo.php inc/seo-indexing-fixes.php inc/cities-seed.php inc/definitions-seed.php page-kontakt.php page-marketing-google-ads.php page-marketing-meta-ads.php page-tworzenie-stron-internetowych.php; do
             php -n -l "wp-content/themes/upsellio/$file"
           done
           node --check wp-content/themes/upsellio/assets/js/upsellio.js
