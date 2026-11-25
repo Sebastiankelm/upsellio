@@ -109,13 +109,15 @@
   }
 
   if (ham && mob) {
+    const redesignHeader = ham.closest(".up-redesign-nav");
+    const desktopQuery = window.matchMedia(redesignHeader ? "(min-width: 981px)" : "(min-width: 761px)");
     let wasOpen = false;
     const getMenuFocusable = () =>
       Array.from(mob.querySelectorAll("a, button, [tabindex]:not([tabindex='-1'])")).filter(
-        (element) => !element.hasAttribute("disabled")
+        (element) => !element.hasAttribute("disabled") && element.getClientRects().length > 0
       );
 
-    const setMobileMenuState = (isOpen) => {
+    const setMobileMenuState = (isOpen, restoreFocus = true) => {
       ham.classList.toggle("open", isOpen);
       mob.classList.toggle("open", isOpen);
       ham.setAttribute("aria-expanded", isOpen ? "true" : "false");
@@ -125,53 +127,64 @@
       if (isOpen) {
         const [firstFocusable] = getMenuFocusable();
         if (firstFocusable) {
-          window.requestAnimationFrame(() => firstFocusable.focus());
+          window.requestAnimationFrame(() => {
+            if (ham.classList.contains("open")) firstFocusable.focus();
+          });
         }
-      } else if (wasOpen) {
-        window.requestAnimationFrame(() => ham.focus());
+      } else if (wasOpen && restoreFocus) {
+        window.requestAnimationFrame(() => {
+          if (!ham.classList.contains("open") && ham.getClientRects().length) ham.focus();
+        });
       }
       wasOpen = isOpen;
     };
 
-    setMobileMenuState(false);
+    setMobileMenuState(false, false);
 
     ham.addEventListener("click", () => {
-      const isOpen = !ham.classList.contains("open");
-      setMobileMenuState(isOpen);
+      setMobileMenuState(!ham.classList.contains("open"));
     });
 
     mob.querySelectorAll("a").forEach((a) => {
       a.addEventListener("click", () => {
+        // Same-page anchors and new-tab links must not leave focus in a hidden panel.
         setMobileMenuState(false);
       });
     });
 
     window.addEventListener("resize", () => {
-      if (window.innerWidth >= 761) {
-        setMobileMenuState(false);
+      if (desktopQuery.matches && wasOpen) {
+        const focusWasInMenu = mob.contains(document.activeElement) || document.activeElement === ham;
+        setMobileMenuState(false, false);
+        if (focusWasInMenu && redesignHeader) {
+          const firstDesktopLink = redesignHeader.querySelector(".nav-links a");
+          if (firstDesktopLink) firstDesktopLink.focus();
+        }
       }
     });
 
     window.addEventListener("keydown", (event) => {
+      if (!wasOpen) return;
       if (event.key === "Escape") {
+        event.preventDefault();
         setMobileMenuState(false);
         return;
       }
-      if (event.key !== "Tab" || !ham.classList.contains("open")) return;
-      const focusable = getMenuFocusable();
-      if (!focusable.length) return;
+      if (event.key !== "Tab") return;
+      const focusable = [ham, ...getMenuFocusable()];
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       const active = document.activeElement;
 
-      if (event.shiftKey && active === first) {
+      if (event.shiftKey && (active === first || !focusable.includes(active))) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && active === last) {
+      } else if (!event.shiftKey && (active === last || !focusable.includes(active))) {
         event.preventDefault();
         first.focus();
       }
     });
+    if (redesignHeader) redesignHeader.classList.add("up-nav-ready");
   }
 
   const dropdownRoots = Array.from(document.querySelectorAll(".nav-dropdown"));
@@ -197,11 +210,24 @@
           toggle.setAttribute("aria-expanded", "true");
         }
       });
+      root.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && root.classList.contains("open")) {
+          event.preventDefault();
+          closeDropdown(root);
+          toggle.focus();
+        }
+      });
+      root.addEventListener("focusout", (event) => {
+        if (!root.contains(event.relatedTarget)) closeDropdown(root);
+      });
     });
 
     document.addEventListener("click", (event) => {
       const clickedInside = dropdownRoots.some((root) => root.contains(event.target));
       if (!clickedInside) closeAllDropdowns();
+    });
+    window.addEventListener("resize", () => {
+      if (window.matchMedia("(max-width: 980px)").matches) closeAllDropdowns();
     });
   }
 
