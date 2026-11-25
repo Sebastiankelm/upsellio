@@ -55,6 +55,13 @@ const fs = require('node:fs');
  assert.equal((await duplicate.json()).data.duplicate,true,'Repeated event ID deduplicated');
  const invalid=await context.request.post('http://127.0.0.1:8080/wp-admin/admin-ajax.php',{form:{...event,event_id:'ci-invalid-event-1234',event_name:'offer_accept_step',section_id:'step_9'}});
  assert.equal(invalid.status(),400,'Invalid acceptance step rejected');
+ // Real Q&A request, retaining canonical question text rather than arbitrary POST keys.
+ const qa=await page.locator('#qaForm').evaluate(form=>Object.fromEntries(new FormData(form)));
+ const fingerprint=await page.locator('script').evaluateAll(nodes=>{const script=nodes.find(n=>n.textContent.includes('var offerFingerprint='));const m=script?.textContent.match(/var offerFingerprint=("[^"]+");/);return m?JSON.parse(m[1]):'';});
+ assert(fingerprint,'Fixture has commercial fingerprint');
+ const qaResponse=await context.request.post('http://127.0.0.1:8080/wp-admin/admin-ajax.php',{form:{...qa,offer_token:event.offer_token,offer_fingerprint:fingerprint,qa_email:'test@example.invalid',answer_0:'Budżet testowy 4000 zł',answer_999:'Unknown answer must not persist'}});
+ assert.equal((await qaResponse.json()).success,true,'Q&A accepted');
+ 
  await page.locator('input[name=commit][value=base]').check();
  await page.locator('#btn-offer-accept-mobile').click();
  await page.locator('#accept_email').fill('test@example.invalid');
