@@ -1443,7 +1443,7 @@ function ups_audit_build_command_center(int $window = 30, bool $restrict_to_curr
         } catch (Throwable $e) {
             $agg = [];
         }
-        if (!is_array($agg) || $agg === []) {
+        if (!is_array($agg) || $agg === [] || (int) ($agg["usable_resource_count"] ?? 0) === 0) {
             $rows[] = ["id" => $cid, "title" => (string) $client->post_title, "status" => "unknown", "health_score" => null, "attention" => ["Brak danych — sprawdź synchronizację"], "dashboard_url" => upsellio_crm_url("ca-dashboard", ["cid" => $cid, "window" => $window])];
             continue;
         }
@@ -1455,7 +1455,7 @@ function ups_audit_build_command_center(int $window = 30, bool $restrict_to_curr
         $status = "green";
         if ($critical > 0) {
             $status = "red";
-        } elseif ($warning > 0 || (int) ($agg["health_score"] ?? 0) < 50) {
+        } elseif ($warning > 0 || (int) ($agg["unavailable_resource_count"] ?? 0) > 0 || (int) ($agg["health_score"] ?? 0) < 50) {
             $status = "yellow";
         }
 
@@ -1465,7 +1465,14 @@ function ups_audit_build_command_center(int $window = 30, bool $restrict_to_curr
                 continue;
             }
             $attention[] = (string) ($al["title"] ?? "");
-            $all_alerts[] = array_merge($al, ["client_id" => $cid, "client_name" => $client->post_title]);
+        }
+        if ((int) ($agg["unavailable_resource_count"] ?? 0) > 0) {
+            $attention[] = "Niepełne dane — sprawdź synchronizację.";
+        }
+        foreach ($alerts as $al) {
+            if (is_array($al) && in_array($al["severity"] ?? "", ["critical", "warning"], true)) {
+                $all_alerts[] = array_merge($al, ["client_id" => $cid, "client_name" => $client->post_title]);
+            }
         }
 
         $rows[] = [
