@@ -729,7 +729,8 @@ function upsellio_offer_update_followup_on_visit(int $offer_id): void
             continue;
         }
 
-        $send_at_ts = strtotime((string) ($item["send_at"] ?? ""));
+        $send_at_raw = (string) ($item["send_at"] ?? "");
+        $send_at_ts = $send_at_raw !== "" ? strtotime($send_at_raw . " UTC") : false;
         if ($send_at_ts === false) {
             $gap_h = 999.0;
         } else {
@@ -751,7 +752,7 @@ function upsellio_offer_update_followup_on_visit(int $offer_id): void
         } elseif ($objection === "trust") {
             $queue[$idx]["context_override"] = [
                 "subject_prefix" => "",
-                "note" => "Klient czytal FAQ — dolacz case study lub referencje.",
+                "note" => "Klient czytal FAQ — wyjasnij proces wspolpracy i odpowiedz na konkretne watpliwosci.",
             ];
         } elseif ($objection === "scope") {
             $queue[$idx]["context_override"] = [
