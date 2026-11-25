@@ -109,3 +109,48 @@ jobs:
           check($rm["follow"] === "nofollow", "Rank Math global nofollow overridden");
           echo "Filtered blog robots cases passed." . PHP_EOL;
           PHP
+
+      - name: Test server-side conversion consent and event identity
+        run: |
+          php <<'PHP'
+          <?php
+          define("ABSPATH", __DIR__);
+          define("UPSELLIO_GA4_API_SECRET", "fixture-secret");
+          define("UPSELLIO_GA4_MEASUREMENT_ID", "G-FIXTURE");
+          define("UPSELLIO_META_CAPI_TOKEN", "fixture-token");
+          define("UPSELLIO_META_PIXEL_ID", "fixture-pixel");
+          function wp_unslash($value) { return stripslashes($value); }
+          function sanitize_text_field($value) { return trim(strip_tags($value)); }
+          function wp_generate_uuid4() { return "fixture-fallback-uuid"; }
+          function add_query_arg($args, $url) { return $url . "?" . http_build_query($args); }
+          function home_url($path) { return "https://fixture.test" . $path; }
+          function wp_json_encode($value) { return json_encode($value); }
+          function wp_remote_post($url, $options) {
+              $GLOBALS["requests"][] = [parse_url($url, PHP_URL_HOST), json_decode($options["body"], true)];
+          }
+          function check($ok, $message) {
+              if (!$ok) { fwrite(STDERR, $message . PHP_EOL); exit(1); }
+          }
+          require "wp-content/themes/upsellio/inc/server-side-tracking.php";
+          $cases = [
+              [null, []],
+              ["invalid", []],
+              ["{statistics:false,marketing:false}", []],
+              ["{statistics:true,marketing:false}", ["www.google-analytics.com"]],
+              ["{statistics:false,marketing:true}", ["graph.facebook.com"]],
+              ["{statistics:true,marketing:true}", ["www.google-analytics.com", "graph.facebook.com"]],
+              [rawurlencode('{"statistics":true,"marketing":false}'), ["www.google-analytics.com"]],
+              ["{statistics:nottrue,marketing:trueish}", []],
+          ];
+          foreach ($cases as [$cookie, $expected]) {
+              $_COOKIE = $cookie === null ? [] : ["CookieConsent" => $cookie];
+              $GLOBALS["requests"] = [];
+              upsellio_server_send_lead_conversion(1, ["event_id"=>"fixture-event", "form_origin"=>"contact-page-form", "landing_url"=>"https://fixture.test/kontakt/"]);
+              check(array_column($GLOBALS["requests"], 0) === $expected, "Unexpected analytics destinations");
+              foreach ($GLOBALS["requests"] as [$host, $payload]) {
+                  $event = $host === "graph.facebook.com" ? $payload["data"][0] : $payload["events"][0]["params"];
+                  check($event["event_id"] === "fixture-event", "Event ID mismatch");
+              }
+          }
+          echo "Eight consent scenarios and shared event ID passed (mock transport)." . PHP_EOL;
+          PHP
