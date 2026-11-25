@@ -382,6 +382,18 @@ function upsellio_crm_app_list_page(string $post_type, array $extra = []): array
 }
 
 /** Paginate already filtered, priority-sorted records (tasks and calendar share data). */
+/** One canonical column for each deal; terminal status takes precedence. */
+function upsellio_crm_app_pipeline_bucket(string $status, string $stage): string
+{
+    if (in_array($status, ["won", "lost"], true)) {
+        return $status;
+    }
+    if ($status === "sent") {
+        return "offer_sent";
+    }
+    return in_array($stage, ["awareness", "consideration", "decision"], true) ? $stage : "awareness";
+}
+
 function upsellio_crm_app_slice_list_page(array $posts, int $requested_page, int $per_page = 50): array
 {
     $per_page = max(1, $per_page);
