@@ -41,6 +41,7 @@ $allowed = [
     'assets/css/upsellio.css', 'assets/js/upsellio-ui.js', 'assets/js/upsellio.js',
     'front-page.php', 'functions.php', 'header.php', 'home.php', 'single.php',
     'inc/crm.php', 'inc/form-component.php', 'page-kontakt.php',
+    'inc/technical-seo.php', 'inc/seo-indexing-fixes.php', 'inc/cities-seed.php', 'inc/definitions-seed.php',
     'page-marketing-google-ads.php', 'page-marketing-meta-ads.php', 'page-tworzenie-stron-internetowych.php',
 ];
 $initial = 'd8b359ae80d1f8021cbe904e0bf43fa6115ac056';
