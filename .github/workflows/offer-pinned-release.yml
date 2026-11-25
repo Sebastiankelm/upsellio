@@ -19,7 +19,7 @@ jobs:
           python3 - <<'PY'
           import base64, hashlib, json, pathlib, shutil, subprocess
           base = "cfe6ef80746a0f8a51277b45cdebebf49045430f"
-          release = "10ad9e5daf5fb0a338b758f5776f8ccb474fa9db"
+          release = "5e7e74de0a671c73d84825f9aca976740902c3ef"
           files = ["inc/anthropic-offer-ai.php", "inc/crm-app/actions.php", "inc/crm-app/render.php", "inc/followups.php", "inc/offer-landing.php", "inc/offers.php", "inc/sales-engine.php"]
           prefix = "wp-content/themes/upsellio/"
           production_hashes = {
@@ -74,7 +74,10 @@ jobs:
           function get_posts($args){return [];}
           function register_activation_hook(...$args){}
           function add_action(...$args){}
-          class MockDB { public $prefix='ci_'; public function prepare($sql,...$args){return $sql;} public function get_var($q){return '1';} }
+          $options = [];
+          function update_option($key,$value,$autoload=false){$GLOBALS['options'][$key]=$value;return true;}
+          function get_option($key,$default=false){return $GLOBALS['options'][$key]??$default;}
+          class MockDB { public $prefix='ci_'; public $posts='ci_posts'; public $last_error=''; public function prepare($sql,...$args){return $sql;} public function get_var($q){return '1';} public function get_col($q){return ['42','43','81'];} }
           $wpdb = new MockDB();
           require PACKAGE.'upsellio-offer-release.php';
           $m=require PACKAGE.'manifest.php';
@@ -86,6 +89,7 @@ jobs:
               file_put_contents($p,bytes($row['old']));
           }
           check(Upsellio_Offer_Release_200::apply()==='deployed','Pinned update completed');
+          check(get_option('upsellio_offer_legacy_payload_ids_v2')===[42=>true,43=>true,81=>true],'Existing IDs recorded without modifying offer metadata');
           foreach($m['files'] as $rel=>$row)check(hash_file('sha256',get_template_directory().'/'.$rel)===$row['new']['sha256'],'New hash: '.$rel);
           check(!file_exists(ABSPATH.'.maintenance'),'Maintenance removed');
           check(Upsellio_Offer_Release_200::apply()==='already_deployed','Repeated activation is idempotent');
@@ -109,7 +113,7 @@ jobs:
           php /tmp/test-offer-release.php
       - uses: actions/upload-artifact@v4
         with:
-          name: upsellio-offer-release-2.0.2
+          name: upsellio-offer-release-2.0.3
           path: release-package/
           retention-days: 7
           if-no-files-found: error
