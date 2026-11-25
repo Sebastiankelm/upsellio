@@ -85,7 +85,11 @@ try {
         await form.locator('[name="lead_email"]').fill("browser-contact@example.invalid");
         await form.locator('[name="lead_consent"]').check();
         await form.locator('button[type="submit"], input[type="submit"]').first().click();
-        await form.locator('[data-form-feedback].is-success').waitFor({ state: "visible", timeout: 15000 });
+        const feedback = form.locator('[data-form-feedback].is-success, [data-form-feedback].is-error');
+        await feedback.waitFor({ state: "visible", timeout: 15000 });
+        assert.ok((await feedback.getAttribute("class")).includes("is-success"),
+          "Form response: " + (await feedback.textContent()) + "; POST count: " + posts);
+
         const events = await page.evaluate(() => (window.dataLayer || []).filter(e => e.event === "generate_lead"));
         assert.equal(posts, 1, "Exactly one browser POST");
         assert.ok(postedEventId, "Event ID allocated before POST");
