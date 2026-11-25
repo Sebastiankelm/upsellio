@@ -3679,6 +3679,7 @@ function upsellio_crm_app_template_redirect()
               $pipeline_total_age_days = 0;
               $pipeline_total_stage_days = 0;
               $pipeline_open_age_count = 0;
+              $pipeline_stage_age_count = 0;
               foreach ($offers as $offer_stats) {
                   $deal_id_stats = (int) $offer_stats->ID;
                   $deal_status_stats = (string) get_post_meta($deal_id_stats, "_ups_offer_status", true);
@@ -3714,16 +3715,17 @@ function upsellio_crm_app_template_redirect()
                       }
                       if ($stage_entered_ts_stats !== false && $stage_entered_ts_stats > 0) {
                           $pipeline_total_stage_days += max(0, (int) floor((time() - $stage_entered_ts_stats) / DAY_IN_SECONDS));
+                          $pipeline_stage_age_count++;
                       }
                   }
               }
               $pipeline_avg_age_days = $pipeline_open_age_count > 0 ? (int) round($pipeline_total_age_days / $pipeline_open_age_count) : 0;
-              $pipeline_avg_stage_days = $pipeline_open_age_count > 0 ? (int) round($pipeline_total_stage_days / $pipeline_open_age_count) : 0;
+              $pipeline_avg_stage_days = $pipeline_stage_age_count > 0 ? (int) round($pipeline_total_stage_days / $pipeline_stage_age_count) : null;
               ?>
               <section class="card kpi"><span class="muted">Wartość pipeline</span><b><?php echo esc_html(number_format($pipeline_value, 0, ",", " ")); ?> zł</b><small class="muted"><?php echo (int) $pipeline_open_deals; ?> otwartych</small></section>
               <section class="card kpi"><span class="muted">Ważona prognoza</span><b><?php echo esc_html(number_format($pipeline_weighted_value, 0, ",", " ")); ?> zł</b><small class="muted">Tylko zapisane prawdopodobieństwa</small></section>
               <section class="card kpi"><span class="muted">Śr. wiek deala</span><b><?php echo esc_html((string) $pipeline_avg_age_days); ?> dni</b></section>
-              <section class="card kpi"><span class="muted">Śr. czas w etapie</span><b><?php echo esc_html((string) $pipeline_avg_stage_days); ?> dni</b></section>
+              <section class="card kpi"><span class="muted">Śr. czas w etapie</span><b><?php echo esc_html($pipeline_avg_stage_days === null ? "—" : $pipeline_avg_stage_days . " dni"); ?></b></section>
               <section class="card" style="grid-column:1/-1;padding:12px 18px">
                 <div class="crm-view-tabs" style="margin:0">
                   <a class="crm-tab-link <?php echo $pipeline_mode === "kanban" ? "is-active" : ""; ?>" href="<?php echo esc_url(add_query_arg(["view" => "pipeline", "pipeline_mode" => "kanban"], home_url("/crm-app/"))); ?>"><?php esc_html_e("Kanban", "upsellio"); ?></a>
@@ -3828,8 +3830,10 @@ function upsellio_crm_app_template_redirect()
                   const cards = Array.from(document.querySelectorAll(".pipeline-card"));
                   const cols = Array.from(document.querySelectorAll("[data-pipeline-col]"));
                   let draggedCard = null;
+                  let movePending = false;
                   cards.forEach((card) => {
-                    card.addEventListener("dragstart", () => {
+                    card.addEventListener("dragstart", (event) => {
+                      if (movePending) { event.preventDefault(); return; }
                       draggedCard = card;
                       card.classList.add("dragging");
                     });
@@ -3849,10 +3853,13 @@ function upsellio_crm_app_template_redirect()
                     col.addEventListener("drop", async (event) => {
                       event.preventDefault();
                       col.classList.remove("is-over");
-                      if (!draggedCard) return;
+                      const card = draggedCard;
+                      if (!card || movePending) return;
                       const dropzone = col.querySelector(".pipeline-drop");
-                      if (!dropzone) return;
+                      if (!dropzone || card.parentElement === dropzone) return;
                       const stage = String(col.getAttribute("data-pipeline-col") || "");
+                      movePending = true;
+                      try {
                       let lossReason = "";
                       let lossNote = "";
                       if (stage === "lost") {
@@ -3866,37 +3873,31 @@ function upsellio_crm_app_template_redirect()
                         lossReason = modalRes.reason;
                         lossNote = modalRes.note || "";
                       }
-                      const prevParent = draggedCard.parentElement;
-                      dropzone.appendChild(draggedCard);
                       const payload = new URLSearchParams();
                       payload.append("action", "upsellio_crm_move_offer_pipeline");
                       payload.append("nonce", "<?php echo esc_js(wp_create_nonce("ups_crm_app_action")); ?>");
-                      payload.append("offer_id", String(draggedCard.getAttribute("data-offer-id") || ""));
+                      payload.append("offer_id", String(card.getAttribute("data-offer-id") || ""));
                       payload.append("stage", stage);
                       payload.append("loss_reason", lossReason);
                       payload.append("loss_reason_note", lossNote);
-                      try {
                         const res = await fetch("<?php echo esc_url(admin_url("admin-ajax.php")); ?>", {
                           method: "POST",
                           headers: {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"},
                           body: payload.toString()
                         });
                         const json = await res.json();
-                        if (!json || !json.success) {
-                          const msg =
-                            json && json.data && json.data.message ? String(json.data.message) : "Nie zapisano zmiany pipeline.";
+                        if (!res.ok || !json || !json.success) {
+                          const msg = json && json.data && json.data.message ? String(json.data.message) : "Nie zapisano zmiany pipeline.";
                           alert(msg);
-                          if (prevParent) {
-                            prevParent.appendChild(draggedCard);
-                          } else {
-                            window.location.reload();
-                          }
+                          return;
                         }
+                        // Refresh counts, forecast, status and SLA from persisted data.
+                        window.location.reload();
                       } catch (error) {
                         console.error("Pipeline update failed", error);
-                        if (prevParent) {
-                          prevParent.appendChild(draggedCard);
-                        }
+                        alert("Nie udało się potwierdzić zapisu. Odśwież widok przed ponowieniem.");
+                      } finally {
+                        movePending = false;
                       }
                     });
                   });
@@ -3921,7 +3922,7 @@ function upsellio_crm_app_template_redirect()
                       ?>
                       <tr>
                         <td><?php echo esc_html((string) $offer_pt->post_title); ?> <small class="muted">#<?php echo esc_html((string) $oid_t); ?></small></td>
-                        <td><?php echo $cid_t > 0 ? esc_html((string) get_the_title($cid_t)) : "—"; ?></td>
+                        <td><?php echo $cid_t > 0 && get_post_type($cid_t) === "crm_client" && current_user_can("read_post", $cid_t) ? esc_html((string) get_the_title($cid_t)) : "—"; ?></td>
                         <td><?php echo esc_html($ost_t === "sent" ? __("oferta wysłana", "upsellio") : $stage_t); ?></td>
                         <td><?php echo esc_html($ost_t !== "" ? $ost_t : "open"); ?></td>
                         <td><?php echo esc_html(number_format($cv_t, 0, ",", " ")); ?> PLN</td>
