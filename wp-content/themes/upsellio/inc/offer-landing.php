@@ -275,7 +275,7 @@ function upsellio_offer_render_lines_as_checklist($lines, $use_optional_icon = f
 
 function upsellio_offer_terms_fingerprint(int $offer_id): string
 {
-    $terms = [get_post_field("post_title", $offer_id), get_post_field("post_content", $offer_id), get_post_meta($offer_id, "_ups_offer_price", true), get_post_meta($offer_id, "_ups_offer_timeline", true), get_post_meta($offer_id, "_ups_offer_expires_at", true), get_post_meta($offer_id, "_ups_offer_cta_text", true), upsellio_offer_get_landing_payload($offer_id)];
+    $terms = [get_post_field("post_title", $offer_id), get_post_field("post_content", $offer_id), get_post_meta($offer_id, "_ups_offer_price", true), upsellio_offer_get_commercial_timeline($offer_id), get_post_meta($offer_id, "_ups_offer_expires_at", true), get_post_meta($offer_id, "_ups_offer_cta_text", true), upsellio_offer_get_landing_payload($offer_id)];
     return hash_hmac("sha256", wp_json_encode($terms), wp_salt("nonce"));
 }
 
@@ -298,7 +298,7 @@ function upsellio_offer_render_public_landing($offer)
     }
     $client_name = $client_id > 0 ? (string) get_the_title($client_id) : "Klient";
     $price = (string) get_post_meta($offer_id, "_ups_offer_price", true);
-    $timeline = upsellio_offer_normalize_timeline_display(get_post_meta($offer_id, "_ups_offer_timeline", true));
+    $timeline = upsellio_offer_normalize_timeline_display(upsellio_offer_get_commercial_timeline($offer_id));
     $cta_text = (string) get_post_meta($offer_id, "_ups_offer_cta_text", true);
     if ($cta_text === "") {
         $cta_text = "Akceptuję ofertę";
@@ -1221,7 +1221,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
     <p>Opisz krótko, o co chodzi — dostaniesz <strong>kopię wiadomości</strong> na podany e-mail, a opiekun odpowie bezpośrednio.</p>
     <div class="ups-modal__err" id="ups-modal-q-err"></div>
     <label class="ups-modal__field"><span>Pytanie</span><textarea id="ups-modal-q-text" placeholder="Np. czy możemy zacząć od jednego kanału?"></textarea></label>
-    <label class="ups-modal__field" id="ups-modal-q-email-wrap"<?php echo $client_email_ok ? ' style="display:none"' : ""; ?>><span>Twój e-mail (kontakt)</span><input type="email" id="ups-modal-q-email" autocomplete="email" placeholder="jan@firma.pl"<?php echo $client_email_ok ? "" : " required"; ?>/></label>
+    <label class="ups-modal__field" id="ups-modal-q-email-wrap"><span>Twój e-mail (kontakt)</span><input type="email" id="ups-modal-q-email" autocomplete="email" placeholder="jan@firma.pl" required /></label>
     <div class="ups-modal__actions">
       <button type="button" class="btn btn-g" data-ups-close>Anuluj</button>
       <button type="button" class="btn btn-p" id="ups-modal-q-submit">Wyślij</button>
@@ -1266,7 +1266,7 @@ var clientId=<?php echo (int) $client_id; ?>;
 var ajaxUrl=<?php echo wp_json_encode((string) $ajax_url); ?>;
 var __upsTrackPublic=<?php echo $upsellio_offer_track_public ? "true" : "false"; ?>;
 var __upsPreviewMode=<?php echo $is_preview_mode ? "true" : "false"; ?>;
-var hasClientEmail=<?php echo $client_email_ok ? "true" : "false"; ?>;
+var hasClientEmail=false;
 var publicNonce=<?php echo wp_json_encode((string) $public_nonce); ?>;
 var offerToken=<?php echo wp_json_encode($slug); ?>;
 var offerVersion=<?php echo (int) $offer_version; ?>;
@@ -1593,7 +1593,6 @@ if(elCs)elCs.addEventListener('click',function(){
     .then(function(r){return r.json();})
     .then(function(res){
       if(res&&res.success){
-        hasClientEmail=true;
         offerCanAccept=false;
         [elAccP,elAccF,elAccM].forEach(function(btn){if(btn){btn.disabled=true;btn.textContent='Oferta zaakceptowana';}});
         closeModals();
@@ -1740,12 +1739,8 @@ function upsellio_offer_public_messaging_ajax()
     $stored_email = $client_id > 0 ? (string) get_post_meta($client_id, "_ups_client_email", true) : "";
     $contact_in = isset($_POST["contact_email"]) ? sanitize_email(wp_unslash($_POST["contact_email"])) : "";
 
-    $client_email = is_email($stored_email) ? $stored_email : "";
+    $client_email = is_email($contact_in) ? $contact_in : "";
     $saved_contact = false;
-    if ($client_email === "" && is_email($contact_in)) {
-        $client_email = $contact_in;
-        // An unverified public submission must not modify the CRM client record.
-    }
 
     if ($client_email === "") {
         wp_send_json_error(["message" => "Podaj poprawny adres e-mail kontaktowy (do kopii wiadomości)."]);
@@ -1781,13 +1776,17 @@ function upsellio_offer_public_messaging_ajax()
         $rows,
         $owner_name
     );
-    if (!wp_mail($owner_email, $subject, $body, $headers)) {
-        wp_send_json_error(["message" => "Nie udało się wysłać wiadomości. Spróbuj ponownie lub skontaktuj się telefonicznie."], 502);
+    $mail_sent = wp_mail($owner_email, $subject, $body, $headers);
+    $question_id = add_post_meta($offer_id, "_ups_offer_public_question", ["email" => $client_email, "body" => $question_body, "created_at" => current_time("mysql"), "mail_status" => $mail_sent ? "sent" : "failed"]);
+    if ($question_id && function_exists("upsellio_inbox_append_message")) {
+        upsellio_inbox_append_message($offer_id, ["direction" => "in", "from" => $client_email, "to" => $owner_email, "subject" => $subject, "body_plain" => $question_body, "body_html" => "", "source" => "offer_public_question", "read" => false]);
     }
+    if (!$mail_sent && !$question_id) { wp_send_json_error(["message" => "Nie udało się zapisać wiadomości. Skontaktuj się telefonicznie."], 502); }
+    if (!$mail_sent) { wp_send_json_success(["message" => "Pytanie zapisane w CRM, ale nie wysłano kopii e-mail."]); }
     wp_send_json_success([
         "message" => sprintf(
             /* translators: %s: client email */
-            __("Wysłane. Kopia trafiła na %s — opiekun też dostał wiadomość.", "upsellio"),
+            __("Wysłane. Kopię wiadomości skierowano na podany adres: %s.", "upsellio"),
             $client_email
         ),
         "saved_contact" => $saved_contact,
