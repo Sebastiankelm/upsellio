@@ -1,47 +1,4 @@
 {
   "schema": 1,
-  "request_id": "redesign-all-views-20261125-d8b359ae",
-  "commit": "d8b359ae80d1f8021cbe904e0bf43fa6115ac056",
-  "files": [
-    {
-      "path": "front-page.php",
-      "before": "ddce01195ab538386b97f6ed7b43b873dad665675a6757250fe49b103f420910",
-      "after": "388f536937a66ecd8ef62ad560fc4c14c8da66e62d69d4b7e47c960cc01c3716"
-    },
-    {
-      "path": "home.php",
-      "before": "3b3ccfbf87dc0edc0f9bfadfce722209ad6e7c8be5ddf99db3405bd21f4cb0f5",
-      "after": "d336e865dad3ce5f2e930c7f0248dcf0cdbf085e42b018e713f6e2d3246960c1"
-    },
-    {
-      "path": "page-kontakt.php",
-      "before": "5967078bd5fddd35d2194e3360db0b4f2c3755c2e59530bfa7c219d7002ea8eb",
-      "after": "53ae7cbfe7e4c3d895193ea4d774c87cf717146c76f472dd781bba5784d73dc6"
-    },
-    {
-      "path": "page-marketing-google-ads.php",
-      "before": "eeda29f4d99b3df99374ee739ce28908bd328d5b8e67983996a04806ca3d6f9c",
-      "after": "f7267277b31c82a219bf33a5ced861df201b7db0173e206588f0f467dc5263a7"
-    },
-    {
-      "path": "page-marketing-meta-ads.php",
-      "before": "929108b773626dcd213765a92fdd40e6e3b9712fe4834a9d59cb8e97f6cdf53d",
-      "after": "39c2e243a831b4c89e815efc5645a5b2bb3af296842923d94b4bc0a680921c86"
-    },
-    {
-      "path": "page-tworzenie-stron-internetowych.php",
-      "before": "0a099b3c9df568073a2464dc07e7d5683203e0878c5f4184165b94d36ed6f42f",
-      "after": "856745624fc6861209e0f47fa9a6c8bf5ae73a477e3c7b9d1bfb4437a5d41aeb"
-    },
-    {
-      "path": "single.php",
-      "before": "f050d5f43dedd69d66d5ca18a5e5e56292a84f1c30c3a224047819f4ac2a021d",
-      "after": "2b43ae84649b3354373c5c74cc27d659bc7e6c01dd1589d240e18a421e3ee13f"
-    },
-    {
-      "path": "assets/css/upsellio.css",
-      "before": "af3813dc5bf2413d4bfa5e02d2a68b180de6171bd9b6de23ff8fbdc0efa781ae",
-      "after": "d94e0b185c3d32f63bd51039a1dbd3843d20abb761a1ad7a4ba8fcd9ad759747"
-    }
-  ]
+  "action": "idle"
 }
