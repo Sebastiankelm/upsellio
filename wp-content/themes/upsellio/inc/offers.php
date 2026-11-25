@@ -1210,6 +1210,24 @@ function upsellio_offer_public_request_valid(int $offer_id): bool
     return $expected !== "" && hash_equals($expected, $provided);
 }
 
+function upsellio_offer_event_section_valid(string $event, string $section, array $variant_keys = []): bool
+{
+    $sections = ["zakres", "szczegoly", "etapy", "pytania", "pricing", "cennik", "faq"];
+    switch ($event) {
+        case "offer_view": return $section === "";
+        case "offer_section_view":
+        case "offer_section_click":
+        case "offer_engagement_tick": return in_array($section, $sections, true);
+        case "offer_stage_detected": return in_array($section, ["pricing_30s", "pricing_60s", "pricing_120s"], true);
+        case "offer_pricing_exit": return $section === "pricing";
+        case "offer_commit_selected": return in_array($section, $variant_keys, true);
+        case "offer_accept_started": return in_array($section, ["pricing", "footer", "mobile"], true);
+        case "offer_accept_step": return in_array($section, ["step_1", "step_2", "step_3", "step_4"], true);
+        case "offer_cta_click": return in_array($section, ["nav", "hero_primary", "hero_scope", "sum_card_minimal", "sum_card", "final_phone", "pricing_accept_ajax", "footer_accept_ajax", "mobile_accept_ajax", "pricing_question_modal", "footer_question_modal"], true);
+    }
+    return false;
+}
+
 function upsellio_offer_track_event()
 {
     $offer_id = isset($_POST["offer_id"]) ? (int) $_POST["offer_id"] : 0;
@@ -1244,20 +1262,31 @@ function upsellio_offer_track_event()
         wp_send_json_error(["message" => "invalid_event_id"], 400);
     }
 
+    $section_id = isset($_POST["section_id"]) && is_string($_POST["section_id"]) ? sanitize_key(wp_unslash($_POST["section_id"])) : "";
+    $variant_keys = [];
+    if ($event_name === "offer_commit_selected") {
+        $payload = upsellio_offer_get_landing_payload($offer_id);
+        $variants = json_decode((string) ($payload["services_json"] ?? "[]"), true);
+        foreach (is_array($variants) ? $variants : [] as $row) { if (is_array($row) && !empty($row["key"])) { $variant_keys[] = sanitize_key((string) $row["key"]); } }
+    }
+    if (!upsellio_offer_event_section_valid($event_name, $section_id, $variant_keys)) { wp_send_json_error(["message" => "invalid_section"], 400); }
+    $current_version = (int) get_post_meta($offer_id, "_ups_offer_current_version", true);
+    $event_version = isset($_POST["offer_version"]) && is_scalar($_POST["offer_version"]) && ctype_digit((string) $_POST["offer_version"]) ? (int) $_POST["offer_version"] : $current_version;
+    if ($event_version > $current_version) { wp_send_json_error(["message" => "invalid_version"], 400); }
     $new_event = [
         "ts" => current_time("mysql"),
         "session_id" => $session_id,
         "event_id" => $event_id,
         "event" => $event_name,
-        "section_id" => isset($_POST["section_id"]) ? sanitize_key(wp_unslash($_POST["section_id"])) : "",
-        "seconds" => isset($_POST["seconds"]) ? max(0, min(10, (int) $_POST["seconds"])) : 0,
+        "section_id" => $section_id === "cennik" ? "pricing" : $section_id,
+        "seconds" => $event_name === "offer_engagement_tick" && isset($_POST["seconds"]) && is_scalar($_POST["seconds"]) ? max(0, min(10, (int) $_POST["seconds"])) : 0,
         "page" => "",
         "client_id" => (int) get_post_meta($offer_id, "_ups_offer_client_id", true),
         "person_id" => "",
-        "utm_source" => isset($_POST["utm_source"]) ? sanitize_text_field(wp_unslash($_POST["utm_source"])) : "",
-        "utm_campaign" => isset($_POST["utm_campaign"]) ? sanitize_text_field(wp_unslash($_POST["utm_campaign"])) : "",
-        "gclid" => isset($_POST["gclid"]) ? substr(sanitize_text_field(wp_unslash($_POST["gclid"])), 0, 200) : "",
-        "offer_version" => (int) get_post_meta($offer_id, "_ups_offer_current_version", true),
+        "utm_source" => isset($_POST["utm_source"]) && is_string($_POST["utm_source"]) ? substr(sanitize_text_field(wp_unslash($_POST["utm_source"])), 0, 160) : "",
+        "utm_campaign" => isset($_POST["utm_campaign"]) && is_string($_POST["utm_campaign"]) ? substr(sanitize_text_field(wp_unslash($_POST["utm_campaign"])), 0, 160) : "",
+        "gclid" => isset($_POST["gclid"]) && is_string($_POST["gclid"]) ? substr(sanitize_text_field(wp_unslash($_POST["gclid"])), 0, 200) : "",
+        "offer_version" => $event_version,
     ];
     // Serialize read-modify-write across browsers and tabs, then release before running hooks.
     global $wpdb;
@@ -1289,9 +1318,9 @@ function upsellio_offer_track_event()
     if (!$saved) { wp_send_json_error(["message" => "write_failed"], 503); }
     $first_source = (string) get_post_meta($offer_id, "_ups_offer_utm_source", true);
     $first_campaign = (string) get_post_meta($offer_id, "_ups_offer_utm_campaign", true);
-    $event_utm_source = isset($_POST["utm_source"]) ? sanitize_text_field(wp_unslash($_POST["utm_source"])) : "";
-    $event_utm_campaign = isset($_POST["utm_campaign"]) ? sanitize_text_field(wp_unslash($_POST["utm_campaign"])) : "";
-    $event_gclid = isset($_POST["gclid"]) ? sanitize_text_field(wp_unslash($_POST["gclid"])) : "";
+    $event_utm_source = $new_event["utm_source"];
+    $event_utm_campaign = $new_event["utm_campaign"];
+    $event_gclid = $new_event["gclid"];
     if ($first_source === "" && $event_utm_source !== "") {
         update_post_meta($offer_id, "_ups_offer_utm_source", $event_utm_source);
     }
@@ -1308,7 +1337,7 @@ function upsellio_offer_track_event()
         update_post_meta($offer_id, "_ups_offer_gclid", $event_gclid);
     }
     if ($event_name === "offer_view" && (int) get_post_meta($offer_id, "_ups_offer_first_seen_version", true) <= 0) {
-        update_post_meta($offer_id, "_ups_offer_first_seen_version", (int) get_post_meta($offer_id, "_ups_offer_current_version", true));
+        update_post_meta($offer_id, "_ups_offer_first_seen_version", $event_version);
     }
     update_post_meta($offer_id, "_ups_offer_last_seen", current_time("mysql"));
     $summary = upsellio_offer_build_analytics_summary($offer_id);
