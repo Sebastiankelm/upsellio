@@ -921,7 +921,7 @@ get_header();
               <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"></path>
             </svg>
           </span>
-          <input class="js-ups-blog-search-input" type="text" name="s" aria-label="Szukaj artykułu" placeholder="Szukaj artykułu..." value="<?php echo esc_attr($search_term); ?>" />
+          <input class="js-ups-blog-search-input" type="search" name="s" aria-label="Szukaj artykułu" placeholder="Szukaj artykułu..." value="<?php echo esc_attr($search_term); ?>" />
           <?php if ($selected_category !== "" && $selected_category !== "all") : ?>
             <input type="hidden" name="category" value="<?php echo esc_attr($selected_category); ?>" />
           <?php endif; ?>
@@ -929,12 +929,12 @@ get_header();
             <input type="hidden" name="tags" value="<?php echo esc_attr(implode(",", $selected_tags)); ?>" />
           <?php endif; ?>
         </div>
-        <div class="ups-blog-search-note">Porady o reklamach, sklepach internetowych i sprzedaży.</div>
+        <button type="submit" class="up-blog-search-submit">Szukaj</button>
       </form>
     </div>
   </section>
 
-  <section class="ups-blog-categories">
+  <section class="ups-blog-categories" aria-label="Filtry artykułów">
     <div class="wrap">
       <div class="ups-blog-category-list">
         <?php
@@ -1051,7 +1051,7 @@ get_header();
     </div>
   </section>
 
-  <div class="js-ups-blog-dynamic">
+  <div class="js-ups-blog-dynamic" id="up-blog-results">
     <?php echo upsellio_render_blog_dynamic_content($selected_category, $selected_tags, $search_term, $paged); ?>
   </div>
   <div class="ups-blog-skeleton js-ups-blog-skeleton" aria-hidden="true">
@@ -1068,6 +1068,7 @@ get_header();
     </div>
   </div>
 
+  <details class="up-extra-content"><summary>Więcej o blogu Upsellio</summary><div class="up-extra-body">
   <section class="ups-blog-topics" aria-label="O blogu"><div class="wrap"><p class="ups-blog-lead">
           Ten blog powstał z jednego powodu: zbyt wiele firm wydaje pieniądze na marketing, nie rozumiejąc, dlaczego wyniki są takie, jakie są. Znajdziesz tu konkretne artykuły o Meta Ads, Google Ads, stronach, landing pages, pozyskiwaniu klientów i mierzeniu jakości zapytań.
         </p>
@@ -1075,6 +1076,7 @@ get_header();
           <p>Większość artykułów o marketingu internetowym jest pisana albo zbyt ogólnie, bez liczb i decyzji, albo zbyt technicznie, bez kontekstu biznesowego. Tutaj chodzi o treści, które pomagają właścicielom firm i managerom podejmować lepsze decyzje.</p>
           <p>Jeśli zastanawiasz się, kiedy inwestować w Google Ads zamiast Meta Ads, co blokuje konwersję strony, jak działa remarketing albo jak mierzyć jakość leadów, a nie tylko ich liczbę, jesteś w dobrym miejscu.</p>
         </div></div></section>
+</div></details>
   <section class="ups-blog-topics">
     <div class="wrap">
       <div class="ups-blog-topics-head">
@@ -1143,7 +1145,7 @@ echo wp_json_encode([
     "@type" => "Blog",
     "name" => "Blog Upsellio",
     "url" => $blog_index_url,
-    "description" => "Blog o marketingu B2B, Meta Ads, Google Ads, tworzeniu stron i pozyskiwaniu klientów.",
+    "description" => "Praktyczne porady dla małych firm o Google Ads, Meta Ads, sklepach i pozyskiwaniu klientów.",
     "blogPost" => array_map(static function ($schema_post) {
         return [
             "@type" => "BlogPosting",
