@@ -727,6 +727,27 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   .ups-toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 }
 .btn:disabled{opacity:.65;cursor:not-allowed;transform:none}
+/* Hero and summary follow the supplied desktop/mobile layout. */
+.w,.nav-in,.snav-in{max-width:1160px}
+.hero{padding-top:clamp(32px,5vw,64px)}
+.hero-grid{gap:clamp(24px,4vw,48px);align-items:center;grid-template-columns:minmax(0,1fr) minmax(300px,400px)}
+.hero-name{display:inline-flex;flex-wrap:wrap;align-items:center;gap:5px;padding:6px 12px;border:1px solid #cdeee6;background:#fff;border-radius:999px;color:#06745f;font-size:14px;font-weight:600;margin-bottom:18px}
+.hero-client-dot{width:8px;height:8px;flex:none;border-radius:50%;background:#0bb39c}
+.hero .h1{font-size:clamp(36px,4.6vw,56px);line-height:1.04;letter-spacing:-.035em;overflow-wrap:anywhere}
+.hero-lead{font-size:18px;color:#3a3d44;max-width:54ch}
+.acts--hero .btn{min-height:54px;padding:0 26px}
+.hero-owner{display:flex;align-items:center;gap:12px;border-top:1px solid #cdeee6;margin-top:24px;padding-top:20px;line-height:1.35}
+.hero-owner-avatar{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#0f1115;color:#fff;font-weight:800;flex:none}
+.hero-owner small{display:block;color:#5f636b;font-size:14px}
+.sc{border-radius:24px;padding:28px;box-shadow:0 24px 48px rgba(15,17,21,.08)}
+.sc-for{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.sc-expiry-pill{padding:3px 9px;border-radius:999px;background:#fff4e5;color:#9a4308;font-size:12px;letter-spacing:0;text-transform:none}
+.sc-price{font-size:clamp(28px,3vw,36px);line-height:1.12;overflow-wrap:anywhere}
+.sc-rows{margin-top:16px;padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.sc-row{gap:14px}.sc-r{text-align:right;overflow-wrap:anywhere}
+.summary-question{background:none;border:0;display:block;margin:12px auto 0;color:var(--ink);font:600 14px var(--font-b);cursor:pointer;min-height:44px}
+@media(max-width:768px){.hero-grid{grid-template-columns:minmax(0,1fr)}.hero .h1{font-size:36px}.hero-lead{font-size:16px}.sc{padding:22px}.acts--hero .btn{min-height:48px;padding:0 18px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}.r{opacity:1!important;transform:none!important}}
 </style>
 </head>
 <body>
@@ -780,59 +801,23 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
   </div>
 </nav>
 
-<div class="w offer-process-bar">
-  <div class="process-bar">
-    <div class="process-bar-inner">
-      <div class="process-bar-head">
-        <div class="process-bar-label">Gdzie jesteśmy w procesie współpracy</div>
-        <div class="process-bar-meta">Etap <strong>2 z 4</strong></div>
-      </div>
-      <div class="process-track">
-        <div class="process-track-fill"></div>
-        <div class="process-steps">
-          <div class="process-step is-done">
-            <span class="process-step-num">Krok 1 · Zakończony</span>
-            <div class="process-step-name">Diagnoza</div>
-            <div class="process-step-desc">Krótka rozmowa i audyt — już za nami.</div>
-          </div>
-          <div class="process-step is-current">
-            <span class="process-step-num">Krok 2 · Teraz</span>
-            <div class="process-step-name">Oferta</div>
-            <div class="process-step-desc">Czytasz zakres, etapy i wycenę dopasowane do rozmowy.</div>
-          </div>
-          <div class="process-step">
-            <span class="process-step-num">Krok 3 · Następnie</span>
-            <div class="process-step-name">Akceptacja</div>
-            <div class="process-step-desc">Potwierdzenie w sekcji Cennik — umowa i pro forma w 24h.</div>
-          </div>
-          <div class="process-step">
-            <span class="process-step-num">Krok 4 · Potem</span>
-            <div class="process-step-name">Wdrożenie</div>
-            <div class="process-step-desc">Onboarding, dostępy i start prac według planu.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div class="w">
 <div class="hero r">
   <div class="hero-lbl">Oferta indywidualna · <?php echo esc_html($offer_date_label); ?></div>
   <div class="hero-grid">
     <div>
-      <div class="hero-name">Dla: <strong><?php echo esc_html($client_name); ?></strong></div>
+      <div class="hero-name"><span class="hero-client-dot"></span> Oferta przygotowana dla <strong><?php echo esc_html($client_name); ?></strong></div>
       <h1 class="h1"><?php echo esc_html($offer_title); ?></h1>
       <p class="hero-lead"><?php echo esc_html((string) ($payload["lead"] ?? "")); ?></p>
       <div class="chips">
-        <span class="chip chip-t">✓ Bez ukrytych kosztów</span>
-        <span class="chip chip-t">✓ Konsultacja wdrożeniowa w cenie</span>
+
         <span class="chip chip-g">Ważna do: <?php echo esc_html($offer_expires_label); ?></span>
       </div>
       <div class="acts acts--hero">
         <a class="btn btn-p" href="#sec-cennik" onclick="cta('hero_primary')">Przejdź do ceny →</a>
-        <a class="acts-link" href="#sec-zakres" onclick="cta('hero_scope')">Zobacz pełny zakres</a>
+        <a class="btn btn-g" href="#sec-zakres" onclick="cta('hero_scope')">Zobacz zakres</a>
       </div>
+      <div class="hero-owner"><span class="hero-owner-avatar" aria-hidden="true"><?php echo esc_html(function_exists("mb_substr") ? mb_substr($owner_name, 0, 1) : substr($owner_name, 0, 1)); ?></span><div><strong><?php echo esc_html($owner_name); ?></strong><small>Opiekun oferty<?php if ($owner_phone !== "") : ?> · <a href="tel:<?php echo esc_attr(preg_replace("/\s+/", "", $owner_phone)); ?>"><?php echo esc_html($owner_phone); ?></a><?php endif; ?></small></div></div>
       <?php if ($show_proof && count($proof_lines_arr) >= 2) : ?>
       <div class="proof-strip">
         <div class="proof-strip-label">Pracuję m.in. z firmami z Twojej branży</div>
@@ -857,19 +842,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
         <strong>30-min rozmowa</strong>
         <p>Zaplanujmy diagnozę zanim ustalimy cenę. Bez zobowiązań.</p>
         <a href="#sec-cennik" class="btn btn-p" style="width:100%;justify-content:center;padding:13px;" onclick="cta('sum_card_minimal')">Umów rozmowę →</a>
-        <a href="tel:+48575522595" class="acts-link" style="display:inline-block;margin-top:10px">+48 575 522 595</a>
+        <?php if ($owner_phone !== "") : ?><a href="tel:<?php echo esc_attr(preg_replace("/\s+/", "", $owner_phone)); ?>" class="acts-link" style="display:inline-block;margin-top:10px"><?php echo esc_html($owner_phone); ?></a><?php endif; ?>
       </div>
       <?php else : ?>
-      <div class="sc-for">Oferta dla</div>
-      <div class="sc-cli"><?php echo esc_html($client_name); ?></div>
+      <div class="sc-for">Podsumowanie <?php if ($expires_at > 0) : ?><span class="sc-expiry-pill">Ważna do <?php echo esc_html($offer_expires_label); ?></span><?php endif; ?></div>
+      <div class="sc-price" id="summaryOfferPrice"><?php echo esc_html($price !== "" ? $price : "Wycena w sekcji poniżej"); ?></div>
+      <div class="sc-pnote"><?php echo esc_html((string) ($payload["price_note"] ?? "")); ?></div>
       <div class="sc-rows">
         <div class="sc-row"><span class="sc-l">Opiekun</span><span class="sc-r"><?php echo esc_html($owner_name); ?></span></div>
         <div class="sc-row"><span class="sc-l">Start realizacji</span><span class="sc-r"><?php echo esc_html($timeline !== "" ? $timeline : "Po akceptacji"); ?></span></div>
         <div class="sc-row"><span class="sc-l">Czas trwania</span><span class="sc-r"><?php echo esc_html((string) ($payload["duration"] ?? "")); ?></span></div>
         <div class="sc-row"><span class="sc-l">Model rozliczenia</span><span class="sc-r"><?php echo esc_html((string) ($payload["billing"] ?? "")); ?></span></div>
       </div>
-      <div class="sc-price"><?php echo esc_html($price !== "" ? $price : "Wycena w sekcji poniżej"); ?></div>
-      <div class="sc-pnote"><?php echo esc_html((string) ($payload["price_note"] ?? "")); ?></div>
+
       <?php if ($expires_at > 0) : ?>
       <div class="sc-exp">
         <div class="sc-dot"></div>
@@ -877,15 +862,52 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{ou
       </div>
       <?php endif; ?>
 
-      <a class="btn btn-p" href="#pricing-accept-anchor" onclick="cta('sum_card')" id="scCta" style="width:100%;justify-content:center;padding:13px;">Chcę tę ofertę →</a>
+      <a class="btn btn-p" href="#pricing-accept-anchor" onclick="cta('sum_card')" id="scCta" style="width:100%;justify-content:center;padding:13px;"><?php echo $has_variants ? "Wybierz wariant →" : "Przejdź do akceptacji →"; ?></a>
+      <button type="button" class="summary-question" id="btn-offer-question-summary">Mam pytanie do oferty</button>
       <div class="sc-note">
         <div class="sc-shield"><svg viewBox="0 0 20 20"><path d="M10 2L3 5v5c0 4.4 3.1 8.1 7 9 3.9-.9 7-4.6 7-9V5l-7-3Z"/></svg></div>
-        Bez zobowiązań do podpisania umowy. Konsultacja wdrożeniowa gratis.
+        Akceptacja nie jest podpisaniem umowy.
       </div>
       <?php endif; ?>
     </div>
   </div>
 </div>
+</div>
+
+<div class="w offer-process-bar">
+  <div class="process-bar">
+    <div class="process-bar-inner">
+      <div class="process-bar-head">
+        <div class="process-bar-label">Gdzie jesteśmy w procesie współpracy</div>
+        <div class="process-bar-meta">Etap <strong>2 z 4</strong></div>
+      </div>
+      <div class="process-track">
+        <div class="process-track-fill"></div>
+        <div class="process-steps">
+          <div class="process-step is-done">
+            <span class="process-step-num">Krok 1 · Zakończony</span>
+            <div class="process-step-name">Diagnoza</div>
+            <div class="process-step-desc">Rozpoznanie potrzeb i sytuacji biznesowej.</div>
+          </div>
+          <div class="process-step is-current">
+            <span class="process-step-num">Krok 2 · Teraz</span>
+            <div class="process-step-name">Oferta</div>
+            <div class="process-step-desc">Czytasz zakres, etapy i wycenę dopasowane do rozmowy.</div>
+          </div>
+          <div class="process-step">
+            <span class="process-step-num">Krok 3 · Następnie</span>
+            <div class="process-step-name">Akceptacja</div>
+            <div class="process-step-desc">Potwierdzenie zainteresowania i ustalenie dalszych kroków.</div>
+          </div>
+          <div class="process-step">
+            <span class="process-step-num">Krok 4 · Potem</span>
+            <div class="process-step-name">Wdrożenie</div>
+            <div class="process-step-desc">Onboarding, dostępy i start prac według planu.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="hr"></div>
@@ -1405,7 +1427,7 @@ window.commitSelect=function(el){
   var t=labEl?labEl.textContent.trim():el.textContent.replace(/\s+/g,' ').trim();
   if(ctaEl&&val&&t)ctaEl.textContent='Chcę: '+t+' →';
   ['btn-offer-accept-pricing','btn-offer-accept-footer','btn-offer-accept-mobile'].forEach(function(id){var btn=document.getElementById(id);if(btn&&val&&t&&offerCanAccept)btn.textContent='Chcę: '+t;});
-  var price=el.querySelector('.commit-price'),mp=document.getElementById('mobileOfferPrice');if(price&&mp&&price.textContent.trim())mp.textContent=price.textContent.trim();
+  var price=el.querySelector('.commit-price');['mobileOfferPrice','summaryOfferPrice'].forEach(function(id){var target=document.getElementById(id);if(price&&target&&price.textContent.trim())target.textContent=price.textContent.trim();});
 };
 window.cta=function(l){pushDl('offer_cta_click',{cta_label:l});trackEvent('offer_cta_click',{section_id:String(l)});};
 window.faqToggle=function(i){var o=i.classList.contains('open');document.querySelectorAll('.fi.open').forEach(function(el){el.classList.remove('open');});if(!o)i.classList.add('open');};
@@ -1546,6 +1568,7 @@ if(!offerCanAccept){[elAccP,elAccF,elAccM].forEach(function(btn){if(btn){btn.dis
 if(elAccP)elAccP.addEventListener('click',function(){onAcceptClick('pricing');});
 if(elAccF)elAccF.addEventListener('click',function(){onAcceptClick('footer');});
 var elQp=document.getElementById('btn-offer-question-pricing');
+var elQsummary=document.getElementById('btn-offer-question-summary');if(elQsummary)elQsummary.addEventListener('click',function(){onQuestionClick('pricing');});
 var elQf=document.getElementById('btn-offer-question-footer');
 if(elQp)elQp.addEventListener('click',function(){onQuestionClick('pricing');});
 if(elQf)elQf.addEventListener('click',function(){onQuestionClick('footer');});
