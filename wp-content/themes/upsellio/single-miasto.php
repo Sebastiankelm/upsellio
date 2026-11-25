@@ -3,7 +3,11 @@ if (!defined("ABSPATH")) {
     exit;
 }
 
-get_header();
+if (!have_posts()) {
+    get_header();
+    get_footer();
+    return;
+}
 
 while (have_posts()) :
     the_post();
@@ -16,28 +20,33 @@ while (have_posts()) :
     $voivodeship = is_array($cityDatasetItem) && !empty($cityDatasetItem["voivodeship"])
         ? $cityDatasetItem["voivodeship"]
         : (get_post_meta($postId, "_upsellio_city_voivodeship", true) ?: "polska");
-    /* Meta z AI / edytora ma pierwszeństwo — dataset PHP to tylko fallback dla miast bez zapisanych pól. */
-    $marketAngle = (string) get_post_meta($postId, "_upsellio_city_market_angle", true)
-        ?: (is_array($cityDatasetItem) ? (string) ($cityDatasetItem["market_angle"] ?? "") : "")
-        ?: "lokalne firmy";
-    $serviceFocus = (string) get_post_meta($postId, "_upsellio_city_service_focus", true)
-        ?: (is_array($cityDatasetItem) ? (string) ($cityDatasetItem["service_focus"] ?? "") : "")
-        ?: "marketing i strony WWW";
-    $localChallenge = (string) get_post_meta($postId, "_upsellio_city_local_challenge", true)
-        ?: (is_array($cityDatasetItem) ? (string) ($cityDatasetItem["local_challenge"] ?? "") : "")
-        ?: "niska jakość leadów z kampanii";
-    $localAdvantage = (string) get_post_meta($postId, "_upsellio_city_local_advantage", true)
-        ?: (is_array($cityDatasetItem) ? (string) ($cityDatasetItem["local_advantage"] ?? "") : "")
-        ?: "stabilny popyt lokalny";
-    $seasonalityAngle = (string) get_post_meta($postId, "_upsellio_city_seasonality_angle", true)
-        ?: (is_array($cityDatasetItem) ? (string) ($cityDatasetItem["seasonality_angle"] ?? "") : "")
-        ?: "stabilny popyt przez cały rok";
-    $cta = get_post_meta($postId, "_upsellio_city_cta", true);
-    $faq = get_post_meta($postId, "_upsellio_city_faq", true);
-    if (!is_array($faq)) {
-        $faq = [];
+    // A region is valid only if it is one of Poland's 16 voivodeships.
+    $validRegions = [
+        "dolnoslaskie" => "dolnośląskie", "kujawsko-pomorskie" => "kujawsko-pomorskie",
+        "lubelskie" => "lubelskie", "lubuskie" => "lubuskie", "lodzkie" => "łódzkie",
+        "malopolskie" => "małopolskie", "mazowieckie" => "mazowieckie", "opolskie" => "opolskie",
+        "podkarpackie" => "podkarpackie", "podlaskie" => "podlaskie", "pomorskie" => "pomorskie",
+        "slaskie" => "śląskie", "swietokrzyskie" => "świętokrzyskie",
+        "warminsko-mazurskie" => "warmińsko-mazurskie", "wielkopolskie" => "wielkopolskie",
+        "zachodniopomorskie" => "zachodniopomorskie",
+    ];
+    $normalizeRegion = static function ($value) use ($validRegions) {
+        $key = strtolower(trim(remove_accents((string) $value)));
+        $key = preg_replace('/^woj(?:ewodztwo|\\.)?\\s+/u', '', $key);
+        $key = preg_replace('/\\s+/', '-', trim($key));
+        return isset($validRegions[$key]) ? $key : "";
+    };
+    $voivodeshipKey = $normalizeRegion($voivodeship);
+    if ($voivodeshipKey === "") {
+        $voivodeshipKey = $normalizeRegion(get_post_meta($postId, "_upsellio_city_voivodeship", true));
     }
-    $related = upsellio_get_city_nearby_links($citySlug, 6);
+    $voivodeship = $validRegions[$voivodeshipKey] ?? "";
+    $faq = get_post_meta($postId, "_upsellio_city_faq", true);
+    $faq = is_array($faq) ? array_values(array_filter($faq, static function ($item) {
+        return is_array($item) && isset($item["q"], $item["a"]) &&
+            is_string($item["q"]) && is_string($item["a"]) &&
+            trim($item["q"]) !== "" && trim($item["a"]) !== "";
+    })) : [];
     $frontPageSections = function_exists("upsellio_get_front_page_content_config")
         ? upsellio_get_front_page_content_config()
         : [];
@@ -51,9 +60,8 @@ while (have_posts()) :
     $contactEmailHref = function_exists("upsellio_get_mailto_href") ? upsellio_get_mailto_href($contactEmail) : ("mailto:" . $contactEmail);
     $contactEmailDisplay = function_exists("upsellio_obfuscate_email_address") ? upsellio_obfuscate_email_address($contactEmail) : $contactEmail;
     $phoneHref = preg_replace("/[^0-9+]/", "", $contactPhone);
-    $ctaSeed = abs(crc32($citySlug . "|" . $cityName));
     $city_page_title = "Marketing i strony WWW " . $cityName . " - Google Ads i Meta Ads dla firm | Upsellio";
-    $city_page_description = "Kampanie Google Ads, Meta Ads i tworzenie stron internetowych dla firm z " . $cityName . ". Bezplatna diagnoza - zdalnie lub lokalnie.";
+    $city_page_description = "Google Ads, Meta Ads i strony WWW B2B. Obszar obsługi: " . $cityName . ". Poznaj zakres współpracy z Upsellio.";
     $saved_desc = trim((string) get_post_meta($postId, "rank_math_description", true));
     if ($saved_desc === "") {
         $saved_desc = trim((string) get_post_meta($postId, "_yoast_wpseo_metadesc", true));
@@ -88,145 +96,45 @@ while (have_posts()) :
             echo '<meta name="description" content="' . esc_attr($city_page_description) . "\" />\n";
             echo '<link rel="canonical" href="' . esc_url($canonical) . "\" />\n";
         }
-        echo '<script type="application/ld+json">' . wp_json_encode([
-            "@context" => "https://schema.org",
-            "@type" => "LocalBusiness",
-            "name" => "Upsellio",
-            "url" => $canonical,
-            "areaServed" => [
-                ["@type" => "City", "name" => $cityName],
-                ["@type" => "AdministrativeArea", "name" => $voivodeship],
-            ],
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
-        echo '<script type="application/ld+json">' . wp_json_encode([
-            "@context" => "https://schema.org",
-            "@type" => "BreadcrumbList",
-            "itemListElement" => [
-                ["@type" => "ListItem", "position" => 1, "name" => "Strona glowna", "item" => home_url("/")],
-                ["@type" => "ListItem", "position" => 2, "name" => "Miasta", "item" => function_exists("upsellio_get_cities_archive_url") ? upsellio_get_cities_archive_url() : get_post_type_archive_link("miasto")],
-                ["@type" => "ListItem", "position" => 3, "name" => $cityName, "item" => $canonical],
-            ],
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "</script>\n";
+        // Rank Math (or another configured SEO plugin) owns frontend schema.
+        if (!$seo_plugin) {
+            $areas = [];
+            if ($voivodeship !== "") {
+                $areas[] = ["@type" => "City", "name" => $cityName];
+                $areas[] = ["@type" => "AdministrativeArea", "name" => $voivodeship];
+            }
+            $flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+            echo '<script type="application/ld+json">' . wp_json_encode([
+                "@context" => "https://schema.org",
+                "@type" => "Service",
+                "name" => "Marketing internetowy i strony WWW – " . $cityName,
+                "url" => $canonical,
+                "provider" => ["@type" => "Organization", "name" => "Upsellio", "url" => home_url("/")],
+            ] + ($areas ? ["areaServed" => $areas] : []), $flags) . "</script>\n";
+            echo '<script type="application/ld+json">' . wp_json_encode([
+                "@context" => "https://schema.org",
+                "@type" => "BreadcrumbList",
+                "itemListElement" => [
+                    ["@type" => "ListItem", "position" => 1, "name" => "Strona główna", "item" => home_url("/")],
+                    ["@type" => "ListItem", "position" => 2, "name" => "Miasta", "item" => home_url("/miasta/")],
+                    ["@type" => "ListItem", "position" => 3, "name" => $cityName, "item" => $canonical],
+                ],
+            ], $flags) . "</script>\n";
+        }
     }, 2);
-
-    $voivodeshipKeyRaw = function_exists("remove_accents") ? remove_accents((string) $voivodeship) : (string) $voivodeship;
-    $voivodeshipKeyRaw = strtolower(trim($voivodeshipKeyRaw));
-    $voivodeshipKeyRaw = preg_replace("/^woj\\.?\\s*/", "", $voivodeshipKeyRaw);
-    $voivodeshipKeyRaw = preg_replace("/[^a-z\\s-]/", "", $voivodeshipKeyRaw);
-    $voivodeshipKey = preg_replace("/\\s+/", "-", trim((string) $voivodeshipKeyRaw));
-
-    // Voivodeship centroids calibrated to the current POL_location_map.svg asset.
-    $voivodeshipMapPct = [
-        "zachodniopomorskie" => [21.0, 20.0],
-        "pomorskie" => [39.0, 16.0],
-        "warminsko-mazurskie" => [56.0, 17.0],
-        "podlaskie" => [72.0, 24.0],
-        "lubuskie" => [20.0, 40.0],
-        "wielkopolskie" => [35.0, 36.0],
-        "kujawsko-pomorskie" => [43.0, 28.0],
-        "mazowieckie" => [56.0, 36.0],
-        "lodzkie" => [47.0, 44.0],
-        "lubelskie" => [70.0, 45.0],
-        "dolnoslaskie" => [25.0, 57.0],
-        "opolskie" => [38.0, 60.0],
-        "slaskie" => [42.0, 67.0],
-        "swietokrzyskie" => [55.0, 57.0],
-        "malopolskie" => [51.0, 73.0],
-        "podkarpackie" => [66.0, 72.0],
-    ];
-
-    // Per-city offsets spread markers inside each voivodeship so all city pages can have distinct pins.
-    $voivodeshipSpreadPct = [
-        "zachodniopomorskie" => [5.2, 4.3],
-        "pomorskie" => [4.4, 3.2],
-        "warminsko-mazurskie" => [5.2, 3.8],
-        "podlaskie" => [4.0, 4.0],
-        "lubuskie" => [3.6, 3.5],
-        "wielkopolskie" => [5.0, 4.8],
-        "kujawsko-pomorskie" => [4.2, 3.9],
-        "mazowieckie" => [6.2, 5.3],
-        "lodzkie" => [4.2, 4.0],
-        "lubelskie" => [4.8, 4.9],
-        "dolnoslaskie" => [4.8, 4.4],
-        "opolskie" => [2.8, 2.8],
-        "slaskie" => [3.8, 3.8],
-        "swietokrzyskie" => [3.0, 3.0],
-        "malopolskie" => [4.2, 4.2],
-        "podkarpackie" => [4.2, 4.2],
-    ];
-
-    if (isset($voivodeshipMapPct[$voivodeshipKey])) {
-        [$baseX, $baseY] = $voivodeshipMapPct[$voivodeshipKey];
-        [$spreadX, $spreadY] = $voivodeshipSpreadPct[$voivodeshipKey] ?? [3.5, 3.5];
-
-        $citySeed = abs(crc32($citySlug . "|" . $cityName . "|" . $voivodeshipKey));
-        $angleDeg = (float) ($citySeed % 360);
-        $angleRad = deg2rad($angleDeg);
-        $radius = 0.32 + ((($citySeed >> 8) % 69) / 100); // 0.32 - 1.00
-
-        $offsetX = cos($angleRad) * $spreadX * $radius;
-        $offsetY = sin($angleRad) * $spreadY * $radius;
-
-        $mapPinXPct = $baseX + $offsetX;
-        $mapPinYPct = $baseY + $offsetY;
-    } else {
-        // Safe fallback: keep marker inside Poland bounds if voivodeship value is missing/unknown.
-        $mapPinXPct = 26 + ($ctaSeed % 46); // 26-71%
-        $mapPinYPct = 18 + (($ctaSeed >> 4) % 59); // 18-76%
-    }
-
-    // Final clamping for full map silhouette.
-    $mapPinXPct = max(16.0, min(82.0, $mapPinXPct));
-    $mapPinYPct = max(11.0, min(84.0, $mapPinYPct));
-    $mapPinXPct = round((float) $mapPinXPct, 3);
-    $mapPinYPct = round((float) $mapPinYPct, 3);
+    // Register all metadata filters before the header triggers wp_head.
+    get_header();
     $polandMapFile = trailingslashit(get_template_directory()) . "assets/images/POL_location_map.svg";
-    $polandMapVersion = file_exists($polandMapFile) ? (string) filemtime($polandMapFile) : (string) time();
+    $polandMapVersion = file_exists($polandMapFile) ? (string) filemtime($polandMapFile) : "1";
     $polandMapSrc = add_query_arg("v", $polandMapVersion, trailingslashit(get_template_directory_uri()) . "assets/images/POL_location_map.svg");
 
-    $ctaActionPool = [
-        "Umów bezpłatną konsultację dla %s",
-        "Sprawdź potencjał wzrostu firmy w %s",
-        "Dopasuj kampanie do decyzji klienta w %s",
-        "Popraw konwersję strony dla rynku %s",
-        "Zaplanuj 90 dni marketingu dla %s",
-        "Zweryfikuj jakość leadów z %s",
-        "Uruchom lepiej targetowane reklamy dla %s",
-        "Uspójnij lejek sprzedażowy dla %s",
-        "Skróć czas od kliku do zapytania w %s",
-        "Podnieś skuteczność sprzedaży B2B w %s",
-        "Ułóż plan Meta Ads i Google Ads dla %s",
-        "Przestaw marketing na mierzalny wynik w %s",
-        "Wzmocnij pozycje firmy lokalnie w %s",
-        "Zwiększ liczbę wartościowych rozmów z %s",
-        "Ułóż stronę pod leady dla %s",
-        "Zweryfikuj co blokuje sprzedaż w %s",
-        "Skaluj zapytania bez podbijania CPL w %s",
-        "Połącz reklamy i stronę dla miasta %s",
-        "Przygotuj lokalny plan SEO i Ads dla %s",
-        "Ustaw proces pozyskiwania klientów dla %s",
-    ];
-    $ctaBenefitPool = [
-        "i otrzymaj konkretne rekomendacje na pierwsze 2 tygodnie.",
-        "bez ogólników i bez przepalania budżetu reklamowego.",
-        "z priorytetami wdrożeń pod realną sprzedaż.",
-        "z szybkim audytem strony, reklam i analityki.",
-        "z naciskiem na jakość leadów, nie tylko ich ilość.",
-        "aby kampanie i oferta działały jako jeden system.",
-        "z planem testów komunikatu i kreacji reklamowych.",
-        "z jasnym podziałem: co poprawić od razu, co skalować dalej.",
-        "z mierzeniem pełnej ścieżki: klik, lead, rozmowa, sprzedaż.",
-        "aby szybciej domykać zapytania od klientów B2B.",
-    ];
-    $ctaLibrary = [];
-    foreach ($ctaActionPool as $actionText) {
-        foreach ($ctaBenefitPool as $benefitText) {
-            $ctaLibrary[] = sprintf($actionText . " " . $benefitText, $cityName);
-        }
-    }
-    $ctaLibraryCount = count($ctaLibrary);
-
     $articleHtml = apply_filters("the_content", get_the_content());
+    // The hero owns the page H1. Preserve legacy heading text and attributes.
+    $articleHtml = preg_replace('~<(/?)h1(?=[\\s>])~i', '<$1h2', $articleHtml);
+    // Do not append a second FAQ if the editorial article already contains one.
+    if (preg_match('~<h[2-6]\\b[^>]*>[^<]*(?:FAQ|najczęstsze pytania|pytania dotyczące)[^<]*</h[2-6]>~iu', $articleHtml)) {
+        $faq = [];
+    }
 
     $definitionPosts = get_posts([
         "post_type" => "definicja",
@@ -243,113 +151,47 @@ while (have_posts()) :
         ];
     }
 
-    $cityPosts = get_posts([
-        "post_type" => "miasto",
-        "post_status" => "publish",
-        "numberposts" => 200,
-        "orderby" => "title",
-        "order" => "ASC",
-        "fields" => "ids",
-    ]);
-    $cityLinks = [];
-    if (!empty($cityPosts)) {
+    // Link only published entries in the same verified administrative region.
+    $cityInternalLinks = [];
+    if ($voivodeshipKey !== "") {
+        $cityPosts = get_posts([
+            "post_type" => "miasto",
+            "post_status" => "publish",
+            "numberposts" => -1,
+            "orderby" => "title",
+            "order" => "ASC",
+            "fields" => "ids",
+        ]);
+        // Prime metadata cache before iterating over city IDs.
+        if (!empty($cityPosts)) {
+            update_meta_cache("post", $cityPosts);
+        }
         foreach ($cityPosts as $cityPostId) {
             if ((int) $cityPostId === (int) $postId) {
                 continue;
             }
             $linkedCitySlug = get_post_meta($cityPostId, "_upsellio_city_slug", true) ?: get_post_field("post_name", $cityPostId);
-            $linkedCityDatasetItem = function_exists("upsellio_get_city_by_slug") ? upsellio_get_city_by_slug($linkedCitySlug) : null;
-            $cityLinks[] = [
-                "name" => is_array($linkedCityDatasetItem) && !empty($linkedCityDatasetItem["name"])
-                    ? $linkedCityDatasetItem["name"]
-                    : (get_post_meta($cityPostId, "_upsellio_city_name", true) ?: get_the_title($cityPostId)),
-                "url" => get_permalink($cityPostId),
-            ];
-        }
-    } else {
-        foreach (upsellio_get_cities_dataset() as $city) {
-            if (($city["slug"] ?? "") === $citySlug) {
+            $dataset = function_exists("upsellio_get_city_by_slug") ? upsellio_get_city_by_slug($linkedCitySlug) : null;
+            $region = $normalizeRegion(is_array($dataset) ? ($dataset["voivodeship"] ?? "") : "");
+            if ($region === "") {
+                $region = $normalizeRegion(get_post_meta($cityPostId, "_upsellio_city_voivodeship", true));
+            }
+            if ($region !== $voivodeshipKey) {
                 continue;
             }
-            $cityLinks[] = [
-                "name" => $city["name"],
-                "url" => home_url("/miasto/" . $city["slug"] . "/"),
+            $cityInternalLinks[] = [
+                "name" => is_array($dataset) && !empty($dataset["name"]) ? $dataset["name"] :
+                    (get_post_meta($cityPostId, "_upsellio_city_name", true) ?: get_the_title($cityPostId)),
+                "url" => get_permalink($cityPostId),
             ];
+            if (count($cityInternalLinks) >= 12) {
+                break;
+            }
         }
     }
-
-    $cityInternalLinks = [];
-    for ($i = 0; $i < 12; $i++) {
-        if (empty($cityLinks)) {
-            break;
-        }
-        $cityInternalLinks[] = $cityLinks[($ctaSeed + $i * 11) % count($cityLinks)];
-    }
-
-    $definitionInternalLinks = [];
-    for ($i = 0; $i < 8; $i++) {
-        if (empty($definitionLinks)) {
-            break;
-        }
-        $definitionInternalLinks[] = $definitionLinks[($ctaSeed + $i * 7) % count($definitionLinks)];
-    }
-
-    $inlineCtaIndexes = [
-        $ctaSeed % max(1, $ctaLibraryCount),
-        ($ctaSeed + 67) % max(1, $ctaLibraryCount),
-        ($ctaSeed + 131) % max(1, $ctaLibraryCount),
-    ];
-    $inlineCityIndexes = [0, 1, 2];
-    $inlineDefIndexes = [0, 1, 2];
-    $paragraphCounter = 0;
-    $inlineCounter = 0;
-    $insertAfterParagraphs = [2 + ($ctaSeed % 2), 4 + ($ctaSeed % 3), 7 + ($ctaSeed % 2)];
-    $articleHtml = preg_replace_callback(
-        "/<\/p>/i",
-        function ($matches) use (
-            &$paragraphCounter,
-            &$inlineCounter,
-            $insertAfterParagraphs,
-            $ctaLibrary,
-            $inlineCtaIndexes,
-            $cityInternalLinks,
-            $inlineCityIndexes,
-            $definitionInternalLinks,
-            $inlineDefIndexes
-        ) {
-            $paragraphCounter++;
-            if (!in_array($paragraphCounter, $insertAfterParagraphs, true)) {
-                return $matches[0];
-            }
-            if ($inlineCounter >= count($inlineCtaIndexes)) {
-                return $matches[0];
-            }
-            $ctaText = $ctaLibrary[$inlineCtaIndexes[$inlineCounter]] ?? "";
-            $cityLink = $cityInternalLinks[$inlineCityIndexes[$inlineCounter]] ?? null;
-            $definitionLink = $definitionInternalLinks[$inlineDefIndexes[$inlineCounter]] ?? null;
-            $inlineCounter++;
-
-            if ($ctaText === "") {
-                return $matches[0];
-            }
-
-            $linksHtml = "";
-            if (is_array($cityLink) && !empty($cityLink["url"])) {
-                $linksHtml .= '<a href="' . esc_url($cityLink["url"]) . '">Zobacz też: ' . esc_html("Marketing i strony WWW " . $cityLink["name"]) . "</a>";
-            }
-            if (is_array($definitionLink) && !empty($definitionLink["url"])) {
-                $linksHtml .= '<a href="' . esc_url($definitionLink["url"]) . '">Przeczytaj definicję: ' . esc_html($definitionLink["name"]) . "</a>";
-            }
-
-            return $matches[0] .
-                '<aside class="city-inline-cta">' .
-                    '<strong>' . esc_html($ctaText) . "</strong>" .
-                    '<div class="city-inline-cta-links">' . $linksHtml . "</div>" .
-                    '<a class="city-inline-cta-btn" href="' . esc_url(home_url("/kontakt/")) . '">Umów rozmowę</a>' .
-                "</aside>";
-        },
-        $articleHtml
-    );
+    $related = array_slice($cityInternalLinks, 0, 6);
+    $cityInternalLinks = array_slice($cityInternalLinks, 6);
+    $definitionInternalLinks = array_slice($definitionLinks, 0, 8);
     ?>
     <style>
       .city-wrap{width:min(1240px,calc(100% - 32px));margin:0 auto}
@@ -373,11 +215,13 @@ while (have_posts()) :
       .city-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
       .city-pill{font-size:12px;border:1px solid var(--border-strong,#c9c9c3);border-radius:999px;padding:6px 12px;background:var(--surface,#fff)}
       .city-main{padding:56px 0 72px;display:grid;grid-template-columns:1fr;gap:34px}
-      .city-content{line-height:1.8;color:#262624;padding:26px;border:1px solid var(--border,#e6e6e1);border-radius:18px;background:var(--surface,#fff)}
+      .city-content{min-width:0;overflow-wrap:anywhere;line-height:1.8;color:#262624;padding:26px;border:1px solid var(--border,#e6e6e1);border-radius:18px;background:var(--surface,#fff)}
       .city-content h2,.city-content h3{font-family:var(--font-display, "Bricolage Grotesque", sans-serif);line-height:1.2;color:#071426}
       .city-content h2{font-size:32px;margin:0 0 16px}
       .city-content h3{font-size:23px;margin:28px 0 10px}
       .city-content p{margin:0 0 14px}
+      .city-content table{display:block;max-width:100%;overflow-x:auto;border-collapse:collapse;margin:18px 0}
+      .city-content th,.city-content td{padding:10px 12px;border:1px solid var(--border,#e2e8f0);vertical-align:top;text-align:left}
       .city-content ul{margin:0 0 16px 20px}
       .city-content li{margin:0 0 8px}
       .city-content .city-inline-cta{margin:18px 0 22px;padding:16px 16px 14px;border:1px solid var(--teal-line,#99f6e4);background:var(--teal-soft,#ecfeff);border-radius:12px}
@@ -444,24 +288,19 @@ while (have_posts()) :
                 kampanie Meta i Google Ads, strony pod konwersję oraz wsparcie sprzedaży B2B i usług.
               </p>
               <div class="city-meta">
-                <span class="city-pill">Województwo: <?php echo esc_html($voivodeship); ?></span>
-                <span class="city-pill">Specjalizacja: <?php echo esc_html($marketAngle); ?></span>
-                <span class="city-pill">Model: <?php echo esc_html($serviceFocus); ?></span>
+                <?php if ($voivodeship !== "") : ?>
+                  <span class="city-pill">Województwo: <?php echo esc_html($voivodeship); ?></span>
+                <?php endif; ?>
+                <span class="city-pill">Google Ads · Meta Ads · Strony WWW</span>
               </div>
             </div>
             <aside class="city-hero-map" aria-hidden="true">
               <div class="city-hero-map-visual">
                 <img src="<?php echo esc_url($polandMapSrc); ?>" alt="" loading="lazy" decoding="async"/>
-                <span
-                  class="city-hero-map-pin"
-                  style="left:<?php echo esc_attr($mapPinXPct); ?>%;top:<?php echo esc_attr($mapPinYPct); ?>%;"
-                >
-                  <span class="city-hero-map-pin-dot"></span>
-                </span>
               </div>
               <div class="city-hero-map-caption">
                 <strong><?php echo esc_html($cityName); ?></strong>
-                <span><?php echo esc_html("woj. " . $voivodeship); ?></span>
+                <?php if ($voivodeship !== "") : ?><span><?php echo esc_html("woj. " . $voivodeship); ?></span><?php endif; ?>
               </div>
             </aside>
           </div>
@@ -472,36 +311,14 @@ while (have_posts()) :
         <article class="city-content">
           <?php echo $articleHtml; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 
-          <section class="city-local-context" aria-labelledby="city-local-context-title">
-            <h2 id="city-local-context-title">Lokalny kontekst dla <?php echo esc_html($cityName); ?></h2>
-            <p>
-              Każda strona miasta ma osobny kontekst: rynek, wyzwanie, przewagę i sezonowość.
-              Dla <?php echo esc_html($cityName); ?> plan kampanii i strony opieram o realne bariery, a nie o ten sam szablon dla każdego miasta.
-            </p>
-            <div class="city-local-context-grid">
-              <div class="city-local-context-item">
-                <strong>Najczęstsze wyzwanie</strong>
-                <?php echo esc_html($localChallenge); ?>
-              </div>
-              <div class="city-local-context-item">
-                <strong>Lokalna przewaga</strong>
-                <?php echo esc_html($localAdvantage); ?>
-              </div>
-              <div class="city-local-context-item">
-                <strong>Sezonowość popytu</strong>
-                <?php echo esc_html($seasonalityAngle); ?>
-              </div>
-            </div>
-          </section>
-
           <div class="city-band">
-            <h2>Potrzebujesz planu działań dla <?php echo esc_html($cityName); ?>?</h2>
-            <p>W 30 minut pokażę, co warto poprawić najpierw, żeby szybciej podnieść jakość leadów i skuteczność sprzedaży.</p>
+            <h2>Omówmy plan marketingowy – <?php echo esc_html($cityName); ?></h2>
+            <p>Opisz ofertę, obszar działania i cele sprzedażowe, aby ustalić zakres współpracy.</p>
           </div>
 
           <section class="city-conversion-form" id="formularz-miasto">
-            <h2>Formularz kontaktowy dla <?php echo esc_html($cityName); ?></h2>
-            <p>Zostaw krótki opis sytuacji firmy. Otrzymasz konkretną rekomendację działań dla rynku lokalnego.</p>
+            <h2>Formularz kontaktowy – <?php echo esc_html($cityName); ?></h2>
+            <p>Zostaw krótki opis sytuacji firmy, aby omówić możliwe działania.</p>
             <div class="city-conversion-links">
               <?php if ($contactPhone !== "" && $phoneHref !== "") : ?>
                 <a href="<?php echo esc_url("tel:" . $phoneHref); ?>">Zadzwoń: <?php echo esc_html($contactPhone); ?></a>
@@ -522,8 +339,9 @@ while (have_posts()) :
           </section>
 
           <section class="city-local-links" aria-label="Linkowanie wewnętrzne lokalne">
-            <h2>Sprawdź też inne miasta i tematy</h2>
+            <h2>Inne lokalizacje i tematy</h2>
             <div class="city-link-grid">
+              <a href="<?php echo esc_url(home_url("/miasta/")); ?>">Wszystkie miasta</a>
               <?php foreach ($cityInternalLinks as $cityLink) : ?>
                 <a href="<?php echo esc_url($cityLink["url"]); ?>">
                   <?php echo esc_html("Marketing i strony WWW " . $cityLink["name"]); ?>
@@ -551,8 +369,9 @@ while (have_posts()) :
         </article>
 
         <aside class="city-side-card">
-          <div class="city-side-title">Obsługiwane też w pobliżu</div>
+          <div class="city-side-title"><?php echo $voivodeship !== "" ? "Inne miasta w województwie" : "Obszar obsługi"; ?></div>
           <div class="city-side-list">
+            <a class="city-side-link" href="<?php echo esc_url(home_url("/miasta/")); ?>">Katalog miast</a>
             <?php foreach ($related as $item) : ?>
               <a class="city-side-link" href="<?php echo esc_url($item["url"]); ?>">
                 <?php echo esc_html("Marketing i strony WWW " . $item["name"]); ?>
@@ -560,8 +379,8 @@ while (have_posts()) :
             <?php endforeach; ?>
           </div>
           <div class="city-cta">
-            <strong><?php echo esc_html($cta ?: ("Umów rozmowę dla " . $cityName)); ?></strong>
-            <a class="city-btn" href="<?php echo esc_url(home_url("/#kontakt")); ?>">Umów bezpłatną rozmowę</a>
+            <strong>Porozmawiaj o marketingu – <?php echo esc_html($cityName); ?></strong>
+            <a class="city-btn" href="<?php echo esc_url(home_url("/kontakt/")); ?>">Skontaktuj się</a>
             <div class="city-cta-meta">
               <?php if ($contactPhone !== "" && $phoneHref !== "") : ?>
                 <a href="<?php echo esc_url("tel:" . $phoneHref); ?>">Telefon: <?php echo esc_html($contactPhone); ?></a>

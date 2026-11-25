@@ -46,16 +46,40 @@ get_header();
           <?php
           $cities_list = get_posts([
               "post_type" => "miasto",
-              "numberposts" => 200,
+              "numberposts" => -1,
               "post_status" => "publish",
               "orderby" => "title",
               "order" => "ASC",
           ]);
+          // Count only official voivodeships, using the same normalized data as the cards.
+          $validRegions = [
+              "dolnoslaskie" => "dolnośląskie", "kujawsko-pomorskie" => "kujawsko-pomorskie",
+              "lubelskie" => "lubelskie", "lubuskie" => "lubuskie", "lodzkie" => "łódzkie",
+              "malopolskie" => "małopolskie", "mazowieckie" => "mazowieckie", "opolskie" => "opolskie",
+              "podkarpackie" => "podkarpackie", "podlaskie" => "podlaskie", "pomorskie" => "pomorskie",
+              "slaskie" => "śląskie", "swietokrzyskie" => "świętokrzyskie",
+              "warminsko-mazurskie" => "warmińsko-mazurskie", "wielkopolskie" => "wielkopolskie",
+              "zachodniopomorskie" => "zachodniopomorskie",
+          ];
+          $normalizeRegion = static function ($value) use ($validRegions) {
+              $key = strtolower(trim(remove_accents((string) $value)));
+              $key = preg_replace('/^woj(?:ewództwo|ewodztwo|\\.)?\\s+/u', '', $key);
+              $key = preg_replace('/\\s+/', '-', trim($key));
+              return isset($validRegions[$key]) ? $key : "";
+          };
           $voivodeships = [];
+          $cityRegions = [];
           foreach ($cities_list as $cityPostObj) {
-              $voi = (string) get_post_meta($cityPostObj->ID, "_upsellio_city_voivodeship", true);
-              if ($voi !== "") {
-                  $voivodeships[$voi] = true;
+              $cityId = (int) $cityPostObj->ID;
+              $citySlug = (string) (get_post_meta($cityId, "_upsellio_city_slug", true) ?: get_post_field("post_name", $cityId));
+              $dataset = function_exists("upsellio_get_city_by_slug") ? upsellio_get_city_by_slug($citySlug) : null;
+              $regionKey = $normalizeRegion(is_array($dataset) ? ($dataset["voivodeship"] ?? "") : "");
+              if ($regionKey === "") {
+                  $regionKey = $normalizeRegion(get_post_meta($cityId, "_upsellio_city_voivodeship", true));
+              }
+              $cityRegions[$cityId] = $regionKey === "" ? "" : $validRegions[$regionKey];
+              if ($regionKey !== "") {
+                  $voivodeships[$regionKey] = true;
               }
           }
           $city_schema_items = [];
@@ -74,11 +98,11 @@ get_header();
             echo wp_json_encode([
                 "@context" => "https://schema.org",
                 "@type" => "ItemList",
-                "name" => "Lista miast obslugiwanych przez Upsellio",
+                "name" => "Lista miast obsługiwanych przez Upsellio",
                 "url" => get_post_type_archive_link("miasto"),
                 "numberOfItems" => count($city_schema_items),
                 "itemListElement" => $city_schema_items,
-            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
             ?>
             </script>
           <?php endif; ?>
@@ -109,12 +133,7 @@ get_header();
     <?php
     if (!empty($cities_list)) :
         foreach ($cities_list as $cityPost) :
-            $citySlug = (string) (get_post_meta($cityPost->ID, "_upsellio_city_slug", true) ?: get_post_field("post_name", $cityPost->ID));
-            $cityDatasetItem = function_exists("upsellio_get_city_by_slug") ? upsellio_get_city_by_slug($citySlug) : null;
-            $cityVoiMeta = (string) get_post_meta($cityPost->ID, "_upsellio_city_voivodeship", true);
-            $cityVoi = is_array($cityDatasetItem) && !empty($cityDatasetItem["voivodeship"]) && $cityDatasetItem["voivodeship"] !== "polska"
-                ? (string) $cityDatasetItem["voivodeship"]
-                : $cityVoiMeta;
+            $cityVoi = $cityRegions[(int) $cityPost->ID] ?? "";
             ?>
             <a class="miasta-card" href="<?php echo esc_url(get_permalink($cityPost->ID)); ?>">
               <span class="miasta-card-icon" aria-hidden="true">
