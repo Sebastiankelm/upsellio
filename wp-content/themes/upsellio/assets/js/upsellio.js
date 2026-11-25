@@ -252,15 +252,22 @@
     }
 
     // Intercept only same-page hash links to avoid breaking regular navigation.
-    if (url.pathname !== window.location.pathname) return;
+    if (url.origin !== window.location.origin || url.pathname !== window.location.pathname) return;
     if (url.search !== window.location.search) return;
     if (!url.hash || url.hash.length < 2) return;
 
-    const id = decodeURIComponent(url.hash.slice(1));
+    let id;
+    try {
+      id = decodeURIComponent(url.hash.slice(1));
+    } catch (error) {
+      return;
+    }
     const target = id ? document.getElementById(id) : null;
     if (!target) return;
 
     event.preventDefault();
+    // A skip link must move keyboard focus, not just the viewport.
+    if (link.classList.contains("skip-link")) target.focus({ preventScroll: true });
     const offset = target.getBoundingClientRect().top + window.scrollY - getNavOffset(8);
     window.scrollTo({ top: Math.max(0, offset), behavior: prefersReducedMotion ? "auto" : "smooth" });
   });
