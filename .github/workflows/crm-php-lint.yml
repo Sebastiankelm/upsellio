@@ -13,6 +13,7 @@ on:
       - 'tests/crm-seo-regression.php'
       - 'tests/crm-dashboard-regression.php'
       - 'tests/crm-audit-portfolio-regression.php'
+      - 'tests/crm-audit-mer-regression.php'
       - 'tests/crm-research-regression.cjs'
   workflow_dispatch:
 
@@ -66,6 +67,8 @@ jobs:
         run: php tests/crm-dashboard-regression.php
       - name: Audit portfolio regression
         run: php tests/crm-audit-portfolio-regression.php
+      - name: Audit MER regression
+        run: php tests/crm-audit-mer-regression.php
       - name: Check audit JavaScript syntax
         run: node --check wp-content/themes/upsellio/inc/crm-app/assets/js/audit.js
 
@@ -108,6 +111,9 @@ jobs:
               "inc/client-audit-intelligence.php",
               "inc/client-audit-oauth.php",
               "inc/client-audit-sync.php",
+              "inc/client-audit-insights.php",
+              "inc/client-audit-features.php",
+              "inc/client-audit.php",
           }
           out = pathlib.Path(os.environ["RUNNER_TEMP"]) / "upsellio-crm-release"
           out.mkdir(exist_ok=False)
@@ -136,7 +142,7 @@ jobs:
                               "base_git_sha256": hashlib.sha256(before).hexdigest() if before is not None else None,
                               "release_sha256": hashlib.sha256(after).hexdigest(), "bytes": len(after)})
           assert records, "No CRM files"
-          expected = {"assets/css/crm-redesign.css", "inc/crm-app/render.php", "inc/crm-app/dashboard-data.php", "inc/crm-app/actions.php", "inc/crm-app/core.php", "inc/rankmath-bridge.php", "inc/crm-app/views/rankmath-seo-widgets.php", "inc/client-audit-sync.php", "inc/client-audit-intelligence.php"} | {"inc/crm-app/views/analytics-" + view + ".php" for view in ("today", "marketing", "traffic", "sales", "paid", "roas", "seo")}
+          expected = {"assets/css/crm-redesign.css", "inc/crm-app/render.php", "inc/crm-app/dashboard-data.php", "inc/crm-app/actions.php", "inc/crm-app/core.php", "inc/rankmath-bridge.php", "inc/crm-app/views/rankmath-seo-widgets.php", "inc/client-audit-sync.php", "inc/client-audit-intelligence.php", "inc/client-audit-insights.php", "inc/client-audit-features.php", "inc/client-audit.php", "inc/crm-app/views/client-audit-dashboard.php", "inc/crm-app/views/client-audit-clients.php"} | {"inc/crm-app/views/analytics-" + view + ".php" for view in ("today", "marketing", "traffic", "sales", "paid", "roas", "seo")}
           assert {r["path"] for r in records} == expected, "Unexpected release scope; review before changing this guard"
           manifest = {"format": "upsellio-crm-release-preflight-v1", "base_git_commit": base,
                       "release_git_commit": head, "production_verified": False,
