@@ -824,44 +824,90 @@ function upsellio_crm_app_handle_post_actions()
         if (!isset($_FILES["leads_csv"]) || !is_array($_FILES["leads_csv"])) {
             return;
         }
-        $tmp = (string) ($_FILES["leads_csv"]["tmp_name"] ?? "");
-        if ($tmp === "" || !file_exists($tmp)) {
-            return;
+        $upload = $_FILES["leads_csv"];
+        $tmp = (string) ($upload["tmp_name"] ?? "");
+        if ((int) ($upload["error"] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK ||
+            $tmp === "" || !is_uploaded_file($tmp) || (int) ($upload["size"] ?? 0) > 5 * 1024 * 1024) {
+            wp_die("Nieprawidłowy plik CSV lub przekroczono limit 5 MB.", "", ["response" => 400]);
         }
         $handle = fopen($tmp, "r");
-        if ($handle) {
-            $row = 0;
-            while (($cols = fgetcsv($handle, 0, ",")) !== false) {
-                $row++;
-                if ($row === 1) {
+        if (!$handle) {
+            wp_die("Nie udało się odczytać pliku CSV.", "", ["response" => 400]);
+        }
+        $header = fgetcsv($handle, 0, ",", '"', "");
+        if (!is_array($header) || count($header) < 2) {
+            fclose($handle);
+            wp_die("CSV wymaga nagłówka oraz kolumn nazwy i adresu e-mail.", "", ["response" => 400]);
+        }
+        $imported = $duplicates = $invalid = $failed = 0;
+        $seen = [];
+        while (($cols = fgetcsv($handle, 0, ",", '"', "")) !== false) {
+            $name = sanitize_text_field((string) ($cols[0] ?? ""));
+            $raw_email = trim((string) ($cols[1] ?? ""));
+            $email = strtolower(sanitize_email($raw_email));
+            if ($name === "" || ($raw_email !== "" && !is_email($email))) {
+                $invalid++;
+                continue;
+            }
+            if ($email !== "") {
+                if (isset($seen[$email])) {
+                    $duplicates++;
                     continue;
                 }
-                $name = sanitize_text_field((string) ($cols[0] ?? ""));
-                if ($name === "") {
-                    continue;
-                }
-                $lead_id = (int) wp_insert_post([
+                $existing = get_posts([
                     "post_type" => "crm_lead",
-                    "post_status" => "publish",
-                    "post_title" => $name,
+                    "post_status" => ["publish", "draft", "pending", "private", "future"],
+                    "posts_per_page" => 1,
+                    "fields" => "ids",
+                    "no_found_rows" => true,
+                    "meta_query" => [["key" => "_ups_lead_email", "value" => $email]],
                 ]);
-                if ($lead_id > 0) {
-                    update_post_meta($lead_id, "_ups_lead_email", sanitize_email((string) ($cols[1] ?? "")));
-                    update_post_meta($lead_id, "_ups_lead_phone", sanitize_text_field((string) ($cols[2] ?? "")));
-                    update_post_meta($lead_id, "_ups_lead_source", sanitize_text_field((string) ($cols[3] ?? "csv")));
-                    update_post_meta($lead_id, "_ups_lead_type", sanitize_key((string) ($cols[4] ?? "inbound")));
-                    update_post_meta($lead_id, "_ups_lead_qualification_status", sanitize_key((string) ($cols[5] ?? "new")));
+                if ($existing) {
+                    $seen[$email] = true;
+                    $duplicates++;
+                    continue;
                 }
             }
-            fclose($handle);
+            $lead_id = wp_insert_post([
+                "post_type" => "crm_lead",
+                "post_status" => "publish",
+                "post_title" => $name,
+            ], true);
+            if (is_wp_error($lead_id) || !$lead_id) {
+                $failed++;
+                continue;
+            }
+            update_post_meta($lead_id, "_ups_lead_email", $email);
+            update_post_meta($lead_id, "_ups_lead_phone", sanitize_text_field((string) ($cols[2] ?? "")));
+            update_post_meta($lead_id, "_ups_lead_source", sanitize_text_field((string) ($cols[3] ?? "csv")));
+            update_post_meta($lead_id, "_ups_lead_type", sanitize_key((string) ($cols[4] ?? "inbound")));
+            $status = sanitize_key((string) ($cols[5] ?? "new"));
+            update_post_meta($lead_id, "_ups_lead_qualification_status", in_array($status, ["new", "contact", "qualified", "rejected", "nurturing"], true) ? $status : "new");
+            if ($email !== "") {
+                $seen[$email] = true;
+            }
+            $imported++;
         }
+        fclose($handle);
+        set_transient("ups_crm_notice_" . get_current_user_id(), [
+            "type" => ($invalid || $failed) ? "error" : "success",
+            "message" => sprintf("Import CSV: dodano %d, duplikaty %d, nieprawidłowe %d, błędy zapisu %d.", $imported, $duplicates, $invalid, $failed),
+        ], 60);
     } elseif ($action === "save_quick_settings") {
         $is_admin = current_user_can("manage_options");
         if (upsellio_crm_app_user_can_save_quick_settings()) {
-            update_option("ups_contract_reminder_first_days", isset($_POST["contract_reminder_first_days"]) ? max(1, (int) wp_unslash($_POST["contract_reminder_first_days"])) : 3);
-            update_option("ups_contract_reminder_second_days", isset($_POST["contract_reminder_second_days"]) ? max(2, (int) wp_unslash($_POST["contract_reminder_second_days"])) : 7);
-            update_option("ups_followup_cooldown_hours", isset($_POST["followup_cooldown_hours"]) ? max(0, (int) wp_unslash($_POST["followup_cooldown_hours"])) : 24);
-            update_option("ups_followup_max_per_offer", isset($_POST["followup_max_per_offer"]) ? max(1, (int) wp_unslash($_POST["followup_max_per_offer"])) : 5);
+            if (isset($_POST["contract_reminder_first_days"])) {
+                update_option("ups_contract_reminder_first_days", max(1, (int) wp_unslash($_POST["contract_reminder_first_days"])));
+            }
+            if (isset($_POST["contract_reminder_second_days"])) {
+                update_option("ups_contract_reminder_second_days", max(2, (int) wp_unslash($_POST["contract_reminder_second_days"])));
+            }
+            if (isset($_POST["followup_cooldown_hours"])) {
+                update_option("ups_followup_cooldown_hours", max(0, (int) wp_unslash($_POST["followup_cooldown_hours"])));
+            }
+            if (isset($_POST["followup_max_per_offer"])) {
+                update_option("ups_followup_max_per_offer", max(1, (int) wp_unslash($_POST["followup_max_per_offer"])));
+            }
             $settings_tab_save = isset($_POST["settings_tab"]) ? sanitize_key(wp_unslash($_POST["settings_tab"])) : "";
             if ($settings_tab_save === "general") {
                 if ($is_admin) {
