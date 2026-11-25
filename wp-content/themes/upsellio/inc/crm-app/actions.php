@@ -784,7 +784,8 @@ function upsellio_crm_app_handle_post_actions()
         }
         $note = isset($_POST["task_note"]) ? sanitize_textarea_field(wp_unslash($_POST["task_note"])) : "";
         $due_at_raw = isset($_POST["task_due_at"]) ? sanitize_text_field(wp_unslash($_POST["task_due_at"])) : "";
-        $due_at_ts = $due_at_raw !== "" ? strtotime($due_at_raw) : false;
+        $due_at_ts = $due_at_raw !== "" ? upsellio_crm_app_parse_local_datetime($due_at_raw) : false;
+        if ($due_at_raw !== "" && $due_at_ts === false) { wp_die("Nieprawidłowy termin zadania.", "", ["response" => 400]); }
         $duration_minutes = isset($_POST["task_duration_minutes"]) ? max(15, (int) wp_unslash($_POST["task_duration_minutes"])) : 60;
         $impact_score = isset($_POST["task_impact_score"]) ? max(1, min(100, (int) wp_unslash($_POST["task_impact_score"]))) : 50;
         $close_probability = isset($_POST["task_close_probability"]) ? max(1, min(100, (int) wp_unslash($_POST["task_close_probability"]))) : 50;
@@ -1493,7 +1494,7 @@ function upsellio_crm_app_ajax_schedule_task()
     if (!current_user_can("edit_post", $task_id)) {
         wp_send_json_error(["message" => "forbidden_task"], 403);
     }
-    $ts = strtotime($start_at);
+    $ts = upsellio_crm_app_parse_local_datetime($start_at);
     if ($ts === false || $ts <= 0) {
         wp_send_json_error(["message" => "invalid_start_at"], 400);
     }
