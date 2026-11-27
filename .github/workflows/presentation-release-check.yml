@@ -40,6 +40,25 @@ jobs:
               new=f.read_text(encoding="utf-8")
               a,sep,b=old.partition("get_header();")
               c,sep2,d=new.partition("get_header();")
+              # Intentional reference-design migration: the homepage has a new contract.
+              # Other templates retain all previous presentation safeguards.
+              if n=="front-page.php" and "upsellio-reference-home-css" in new:
+                  assert sep2 and "wp_footer();" in new
+                  assert len(re.findall(r"<h1\b",d))==1
+                  assert len(re.findall(r"<form\b",d))==1
+                  assert len(re.findall(r"<section\b",d))==9
+                  for key in ("start","diagnoza","kontakt","problem","uslugi","system","case-study","kim-jestem","jak-dzialam","faq","up-ref-main","upref-footer"):
+                      assert 'id="'+key+'"' in d,(n,"missing reference ID",key)
+                  for name in ("lead_name","lead_phone","lead_company","lead_consent","lead_form_origin"):
+                      assert 'name="'+name+'"' in d,(n,"missing CRM field",name)
+                  assert 'value="home-hero-form"' in d and 'value="upsellio_submit_lead"' in d
+                  assert "upsellio_unified_lead_form" in d
+                  assert "Więcej zamówień" in d and "Trzy proste kroki" in d
+                  assert "dc-import" not in d and ".dc.html" not in d
+                  assert "upref-services-btn" in new and "upref-mobile-btn" in new
+                  assert "prefers-reduced-motion" in new
+                  print(n,"PASS: reference layout, single short CRM form, navigation and anchors")
+                  continue
               assert sep and sep2 and a==c,(n,"head changed")
               assert len(re.findall(r"<h1\b",d))==1,(n,"H1")
               ids=lambda s:collections.Counter(re.findall(r'\bid="([A-Za-z][\w-]*)"',s))
