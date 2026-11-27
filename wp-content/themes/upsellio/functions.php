@@ -1005,6 +1005,19 @@ function upsellio_get_social_icon_svg($network)
     return (string) ($icons[$network] ?? "");
 }
 
+
+function upsellio_render_reference_cta($href = '', $show_mail = false) {
+    if (!$href) { $href = function_exists('upsellio_get_contact_page_url') ? upsellio_get_contact_page_url() : ''; }
+    if (!$href) { $href = home_url('/kontakt/'); }
+    $phone = function_exists('upsellio_get_contact_phone') ? upsellio_get_contact_phone() : '+48 575 522 595';
+    ob_start();
+    ?>
+    <style>.ur-cta-band,.ur-cta-band *{box-sizing:border-box}.ur-cta-band{width:100%;background:#0f1115;color:#fff;padding:88px 0;font:400 16px/1.6 "DM Sans",sans-serif}.ur-cta-band .ur-cta-inner{max-width:1160px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:32px;align-items:center;justify-content:space-between}.ur-cta-band .ur-cta-copy{flex:1 1 520px;min-width:0}.ur-cta-band h2{font:800 44px/1.05 "Bricolage Grotesque",sans-serif;letter-spacing:-.03em;color:#fff;margin:0 0 12px;max-width:none}.ur-cta-band p{font-size:18px;color:#c4c8ce;margin:0}.ur-cta-band .ur-cta-actions{display:flex;flex-wrap:wrap;align-items:center;gap:20px}.ur-cta-band a{color:#fff;font-weight:700;font-size:17px}.ur-cta-band a.ur-cta-button{display:inline-flex;align-items:center;gap:8px;min-height:54px;padding:0 28px;border-radius:999px;background:#0bb39c;color:#0f1115;font-size:16px;text-decoration:none;transition:transform .18s cubic-bezier(.2,.7,.2,1),background .18s}.ur-cta-band a.ur-cta-button:hover{transform:translateY(-1px);background:#7fe3d2}.ur-cta-band a:focus-visible{outline:3px solid #0bb39c;outline-offset:4px}@media(max-width:720px){.ur-cta-band{padding:64px 0}.ur-cta-band .ur-cta-inner{padding:0 20px}.ur-cta-band h2{font-size:32px}.ur-cta-band .ur-cta-actions{width:100%;flex-direction:column;align-items:stretch;gap:16px}.ur-cta-band .ur-cta-actions a{text-align:center;justify-content:center}}@media(prefers-reduced-motion:reduce){.ur-cta-band a{transition:none!important;transform:none!important}}</style>
+    <section class="ur-cta-band" aria-label="Bezpłatna diagnoza"><div class="ur-cta-inner"><div class="ur-cta-copy"><h2>Sprawdźmy, gdzie uciekają Twoi klienci.</h2><p>30 minut rozmowy. Bez prezentacji i bez zobowiązań.</p></div><div class="ur-cta-actions"><a class="ur-cta-button" href="<?php echo esc_url($href); ?>" data-cta="reference-final-diagnosis">Umów bezpłatną diagnozę →</a><a href="<?php echo esc_url('tel:' . preg_replace('/[^+0-9]/', '', $phone)); ?>"><?php echo esc_html($phone); ?></a><?php if ($show_mail) : ?><a href="mailto:kontakt@upsellio.pl">kontakt@upsellio.pl</a><?php endif; ?></div></div></section>
+    <?php
+    return ob_get_clean();
+}
+
 function upsellio_render_unified_footer($args = [])
 {
     $args = is_array($args) ? $args : [];
@@ -1190,16 +1203,16 @@ function upsellio_render_unified_footer($args = [])
         .nf-footer-grid.is-no-cities{grid-template-columns:1.3fr 1fr 1fr}
       
         /* Reference: light footer, three link groups and a separate SEO disclosure. */
-        .nf-footer{background:#fff;color:#0f1115;border-top:1px solid #e3e6ea}
+        .nf-footer{background:#f5f6f8;color:#0f1115;border-top:0}
         .nf-footer::before{display:none}
         .nf-wrap{width:min(1112px,calc(100% - 48px))}
         .nf-logo{color:#0f1115;font-size:24px;letter-spacing:-.04em}
         .nf-logo img{height:36px;width:auto}
-        .nf-logo-mark::after{background:#fff}
-        .nf-footer-grid,.nf-footer-grid.is-no-cities{display:grid;grid-template-columns:minmax(0,1.55fr) repeat(3,minmax(0,1fr));gap:36px;padding:56px 0 40px}
+        .nf-logo-mark::after{display:none}.nf-logo-mark{width:10px;height:10px;flex:0 0 10px;border-radius:50%;background:#0bb39c}
+        .nf-footer-grid,.nf-footer-grid.is-no-cities{display:grid;grid-template-columns:minmax(0,1.55fr) repeat(3,minmax(0,1fr));gap:40px;padding:64px 0 40px}
         .nf-foot-brand p{color:#5f636b;font-size:14px;line-height:1.65;margin:16px 0 20px}
         .nf-foot-contacts a,.nf-foot-contacts span{color:#3a3d44;font-size:14px}
-        .nf-foot-contacts a i,.nf-foot-contacts span i{background:#effaf7;color:#06745f}
+        .nf-foot-contacts a i,.nf-foot-contacts span i{display:none}.nf-foot-contacts a:first-child{font-size:17px;font-weight:700;color:#0f1115}
         .nf-foot-h{color:#0f1115;font-size:14px;font-weight:700;letter-spacing:0;text-transform:none}
         .nf-foot-col ul{gap:10px;margin:0 0 24px}
         .nf-foot-col ul li a,.nf-cities-grid li a{color:#5f636b;font-size:14px}
@@ -1219,17 +1232,7 @@ function upsellio_render_unified_footer($args = [])
       <div class="nf-wrap nf-footer-grid<?php echo $show_cities ? "" : " is-no-cities"; ?>">
         <div class="nf-foot-brand">
           <a href="<?php echo esc_url(home_url("/")); ?>" class="nf-logo">
-            <?php if ($brand_logo_url !== "") : ?>
-              <picture>
-                <?php if ($brand_logo_webp_320_url !== "" && $brand_logo_webp_640_url !== "") : ?>
-                  <source type="image/webp" srcset="<?php echo esc_url($brand_logo_webp_320_url); ?> 320w, <?php echo esc_url($brand_logo_webp_640_url); ?> 640w" sizes="(max-width: 760px) 132px, 180px" />
-                <?php endif; ?>
-                <img src="<?php echo esc_url($brand_logo_url); ?>" alt="Upsellio" width="320" height="213" loading="lazy" decoding="async" />
-              </picture>
-            <?php else : ?>
-              <span class="nf-logo-mark"></span>
-              Upsellio
-            <?php endif; ?>
+            <span class="nf-logo-mark" aria-hidden="true"></span>Upsellio
           </a>
           <p>Reklamy, strony i sklepy dla małych firm, sklepów internetowych, lokali i usług lokalnych.</p>
           <div class="nf-foot-contacts">
@@ -1280,6 +1283,7 @@ function upsellio_render_unified_footer($args = [])
             <a href="<?php echo esc_url(function_exists("upsellio_cookie_privacy_url") ? upsellio_cookie_privacy_url() : home_url("/polityka-prywatnosci/")); ?>">Polityka prywatności</a>
             <a href="<?php echo esc_url(upsellio_get_social_profile_url("linkedin")); ?>">LinkedIn</a>
             <a href="<?php echo esc_url(upsellio_get_social_profile_url("facebook")); ?>">Facebook</a>
+            <a href="https://www.instagram.com/upsellio.pl/">Instagram</a>
           </div>
         </div>
       </div>
