@@ -1,1 +1,47 @@
-{"schema":1,"action":"idle"}
+{
+  "schema": 1,
+  "request_id": "reference-public-20261127-0ec67af6",
+  "commit": "0ec67af6d2a7b038544a26fa678da1312df0e770",
+  "files": [
+    {
+      "path": "footer.php",
+      "before": "93e52d2074522017850ab881c76f8abe7218a7f369600e711c20b7288caf70ae",
+      "after": "cc245b6ad643b0af37638d126af1119646cf14c8814e59cc2abce0de7c47140a"
+    },
+    {
+      "path": "front-page.php",
+      "before": "388f536937a66ecd8ef62ad560fc4c14c8da66e62d69d4b7e47c960cc01c3716",
+      "after": "bd98612acfc5194429f6a6cf8a7923c84cdf57926d8cb4ec5373cabbfd484c35"
+    },
+    {
+      "path": "home.php",
+      "before": "d336e865dad3ce5f2e930c7f0248dcf0cdbf085e42b018e713f6e2d3246960c1",
+      "after": "0d2f8e8ab2f45c0e470b54ddc6f6aae48467b808a2693049178f317fc1afbd65"
+    },
+    {
+      "path": "page-kontakt.php",
+      "before": "53ae7cbfe7e4c3d895193ea4d774c87cf717146c76f472dd781bba5784d73dc6",
+      "after": "a9bd0e0030cdbba1802dd39f9b032232f3db1d1dc5d0b76641d449a1ffc82622"
+    },
+    {
+      "path": "page-marketing-google-ads.php",
+      "before": "f7267277b31c82a219bf33a5ced861df201b7db0173e206588f0f467dc5263a7",
+      "after": "b3a4d851838ce9eb9d839816a7cad8b859259896e8633fa6ca96d835a2446240"
+    },
+    {
+      "path": "page-marketing-meta-ads.php",
+      "before": "39c2e243a831b4c89e815efc5645a5b2bb3af296842923d94b4bc0a680921c86",
+      "after": "6a796354de3f158e0e2dc089129d85734a804fc2973f40ae78f2b0b0541d5dbf"
+    },
+    {
+      "path": "page-tworzenie-stron-internetowych.php",
+      "before": "856745624fc6861209e0f47fa9a6c8bf5ae73a477e3c7b9d1bfb4437a5d41aeb",
+      "after": "e3c7a0b60a0d31397ef8bc68eb9d3fbf10985fe4e5433139b6dcf0ce073c698b"
+    },
+    {
+      "path": "single.php",
+      "before": "2b43ae84649b3354373c5c74cc27d659bc7e6c01dd1589d240e18a421e3ee13f",
+      "after": "cc9cceccfcb3af57d583fce567274ba0a80e7f682b9069507a6e812cd63ea0a4"
+    }
+  ]
+}
