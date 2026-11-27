@@ -41,38 +41,9 @@ $contact_service_options = [
 
 /* FAQ — z nowym pytaniem "Co jesli nie chce pracowac po rozmowie" */
 $contact_faq_items = [
-    [
-        "question" => "Czy pierwsza diagnoza i rozmowa są płatne?",
-        "answer" => "Nie. Pierwsza rozmowa i wstępna ocena sytuacji są bezpłatne. Jeśli temat wymaga głębszego audytu z dokumentacją, ustalamy osobny zakres. Ale diagnoza „gdzie i dlaczego tracisz zapytania” — to zawsze bezpłatnie.",
-    ],
-    [
-        "question" => "Skąd mam wiedzieć, że to nie kolejna agencja, która sprzeda mi raporty?",
-        "answer" => "Najuczciwsza odpowiedź: w pierwszej rozmowie. 30 minut, bez prezentacji. Jeśli po niej masz wrażenie że gadałeś z kolejnym agencyjnym handlowcem — nie zatrudniaj mnie. Jeśli wyszło z tego 5 konkretnych rzeczy do poprawy w Twoim marketingu, których nikt wcześniej nie wskazał, masz odpowiedź. Pierwsze 30 minut to nie sprzedaż, to próbka pracy.",
-    ],
-    [
-        "question" => "Co jeśli po rozmowie zorientuję się, że nie chcę z Tobą pracować?",
-        "answer" => "Idealna sytuacja. 30 minut które kosztowały Cię 0 zł zamieniły się w mapę 3-5 rzeczy do poprawy które możesz wdrożyć sam, ze swoją obecną agencją albo z innym wykonawcą. Nie ścigam się, nie wysyłam follow-upów typu „pamiętasz o naszej rozmowie”, nie zapraszam na webinar. Decyzja należy do Ciebie i tyle.",
-    ],
-    [
-        "question" => "Czy muszę mieć gotowy brief lub szczegółowy opis projektu?",
-        "answer" => "Nie. Wystarczy krótki opis sytuacji: co robisz, co nie działa tak jak powinno i jaki efekt chcesz osiągnąć. Pytania uzupełniające zadaję sam podczas rozmowy.",
-    ],
-    [
-        "question" => "Czy mogę napisać, jeśli nie wiem, czy problem leży w reklamach czy na stronie?",
-        "answer" => "Tak — i to jest bardzo częsta sytuacja. Patrzę na cały lejek: źródło ruchu, komunikat reklamowy, stronę docelową, formularz i dalszy kontakt z leadem. Pomogę zlokalizować, gdzie jest faktyczny problem.",
-    ],
-    [
-        "question" => "Czy od razu dostanę ofertę cenową?",
-        "answer" => "Nie. Pierwszy mail po rozmowie to nie oferta — to spisana mapa problemów które omówiliśmy, plus rekomendacja co zrobić w pierwszej kolejności (z Tobą lub beze mnie). Wycenę przygotowuję dopiero gdy ustalimy że ma sens współpraca i wiem dokładnie nad czym mam pracować. To oszczędza Twój i mój czas.",
-    ],
-    [
-        "question" => "Dla jakich firm ta współpraca ma największy sens?",
-        "answer" => "Dla firm B2B (usługi, produkcja, IT, SaaS), e-commerce B2B i firm usługowych, które mają już stronę lub kampanie reklamowe, ale nie są zadowolone z jakości zapytań lub sprzedaży. Minimalna wielkość firmy: 3-5 osób. Minimalny budżet reklamowy do pełnej współpracy: 2 000-3 000 zł/mies. na platformę.",
-    ],
-    [
-        "question" => "Ile trwa odpowiedź na zgłoszenie?",
-        "answer" => "Odpowiadam w ciągu 24 godzin w dni robocze. Zwykle szybciej. Jeśli sprawa jest pilna, napisz to w formularzu — priorytetuję takie zgłoszenia.",
-    ],
+    ["question" => "Czy rozmowa jest płatna?", "answer" => "Nie. Pierwsza 30-minutowa rozmowa jest bezpłatna. Jeśli temat wymaga głębszego audytu, najpierw ustalimy zakres i cenę."],
+    ["question" => "A jeśli nie zdecyduję się na współpracę?", "answer" => "Wnioski z rozmowy zostają u Ciebie. Bez nachalnej sprzedaży i wielotygodniowych follow-upów."],
+    ["question" => "Jak wygląda rozmowa?", "answer" => "Telefon albo Google Meet, jak Ci wygodniej. Rozmawiamy o Twojej sytuacji, bez prezentacji i slajdów."],
 ];
 ?>
 
@@ -671,6 +642,23 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
 .up-contact-topics{border:0;margin:0 0 18px;padding:0;min-width:0}.up-contact-topics legend{font-weight:700;font-size:15px;margin-bottom:8px}.up-topic-list{display:flex;flex-wrap:wrap;gap:8px}.up-topic-list button{min-height:44px;border-radius:999px;background:#fff;border:1px solid #e3e6ea;color:#3a3d44;padding:8px 14px;font:600 14px/1.4 "DM Sans",sans-serif}.up-topic-list button[aria-pressed=true]{background:#dff5ef;border-color:#06745f;color:#06745f}.up-topic-list button:focus-visible{outline:3px solid #06745f;outline-offset:2px}
 </style>
 
+<style id="upsellio-contact-reference-corrections">
+.ct-art,.ct-art *{box-sizing:border-box}.ct-art{font-family:'DM Sans',sans-serif;color:#0f1115;background:#fff;line-height:1.6}
+.ct-art .ct-wrap{width:100%;max-width:1160px;padding:0 24px;margin:0 auto}
+.ct-art .ct-hero-form-grid{display:flex;flex-wrap:wrap;gap:64px;align-items:flex-start}
+.ct-art .ct-hero-copy{flex:1 1 460px;min-width:0}
+.ct-art .ct-reference-form{flex:1 1 420px;max-width:520px;min-width:0;display:flex;flex-direction:column;gap:18px;padding:36px;background:#fff;border:1px solid #e3e6ea;border-radius:24px;box-shadow:0 24px 48px rgba(15,17,21,.08);height:auto;margin:0}
+.ct-art .ct-ref-form-head{display:flex;gap:14px;align-items:center}.ct-art .ct-ref-form-head h2{margin:0;font:800 24px/1.15 'Bricolage Grotesque',sans-serif;letter-spacing:-.02em;color:#0f1115}.ct-art .ct-ref-form-head p{margin:0;font-size:14px;color:#5f636b}
+.ct-art .ct-ref-topics{border:0;padding:0;margin:0;min-width:0}.ct-art .ct-ref-topics legend{font-size:14px;font-weight:600;margin:0 0 8px;padding:0}.ct-art .ct-ref-topics>div{display:flex;flex-wrap:wrap;gap:8px}.ct-art .ct-ref-topics label{position:relative;cursor:pointer;margin:0}.ct-art .ct-ref-topics input{position:absolute;width:1px;height:1px;opacity:0;inset:0}.ct-art .ct-ref-topics label span{display:flex;align-items:center;min-height:44px;padding:0 16px;border:1.5px solid #d8dde3;border-radius:999px;background:#fff;font:600 14px/1.4 'DM Sans',sans-serif;color:#0f1115}.ct-art .ct-ref-topics input:checked+span{background:#dff5ef;border-color:#0f1115}.ct-art .ct-ref-topics input:focus-visible+span{outline:3px solid #0bb39c;outline-offset:3px}
+.ct-art .ct-ref-row{display:flex;flex-wrap:wrap;gap:14px}.ct-art .ct-ref-row>div{flex:1 1 180px;min-width:0}.ct-art .ct-ref-row>div,.ct-art .ct-ref-field{display:flex;flex-direction:column;gap:6px}.ct-art .ct-ref-row label,.ct-art .ct-ref-field label{font-size:14px;font-weight:600;color:#0f1115;margin:0}.ct-art .ct-ref-field label span{font-weight:400;color:#5f636b}
+.ct-art .ct-ref-row input,.ct-art .ct-ref-field input,.ct-art .ct-ref-field textarea{width:100%;min-width:0;min-height:48px;padding:0 14px;border:1.5px solid #d8dde3;border-radius:12px;font:inherit;font-size:15px;color:#0f1115;background:#fff;margin:0;box-shadow:none}.ct-art .ct-ref-field textarea{min-height:96px;padding:12px 14px;resize:vertical}.ct-art .ct-ref-row input:focus,.ct-art .ct-ref-field :is(input,textarea):focus{outline:none;border-color:#0bb39c;box-shadow:0 0 0 3px rgba(11,179,156,.18)}
+.ct-art .ct-ref-consent{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#5f636b;line-height:1.5;margin:0}.ct-art .ct-ref-consent input{appearance:auto;width:18px;height:18px;flex:0 0 18px;margin:2px 0 0;accent-color:#0bb39c}.ct-art .ct-ref-consent a{color:#3a3d44;text-decoration:underline}.ct-art .ct-ref-submit{width:100%;min-height:54px;padding:0 18px;border:0;border-radius:999px;background:#06745f;color:#fff;font:700 16px/1.4 'DM Sans',sans-serif;cursor:pointer}.ct-art .ct-ref-submit:hover{background:#055e4d}
+.ct-art .ct-ref-success{color:#06745f;margin:0}.ct-art .ct-ref-error{color:#b42318;margin:0}
+.ct-art .ct-channels{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.ct-art .ct-channel-link,.ct-art .ct-ref-address{display:flex;align-items:center;gap:14px;min-height:96px;padding:20px;border:1px solid #e3e6ea;border-radius:20px;background:#fff;color:#0f1115}.ct-art .ct-ref-address strong{display:block;color:#5f636b;font-size:13px}
+.ct-art .ct-agenda-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:32px}.ct-art .ct-agenda-card h3{font-size:18px}.ct-art .ct-faq{padding:96px 0;background:#f5f6f8}.ct-art .ct-faq .ct-section-head h2{max-width:14ch}
+@media(max-width:980px){.ct-art .ct-hero-form-grid{gap:32px}.ct-art .ct-reference-form{max-width:none}.ct-art .ct-faq>.ct-wrap{grid-template-columns:1fr}}
+@media(max-width:399px){.ct-art .ct-wrap{padding-inline:20px}.ct-art .ct-reference-form{padding:24px}.ct-art .ct-channels,.ct-art .ct-agenda-grid{grid-template-columns:1fr}}
+</style>
 <main class="ct-art" id="kontakt">
 
 <!-- ====================================================================
@@ -682,7 +670,7 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
         <div class="ct-hero-form-grid">
 
             <div class="ct-hero-copy" data-animate="fade-right">
-                <div class="ct-eyebrow">Bezpłatna 30-min diagnoza</div>
+                <div class="ct-eyebrow">Bezpłatna 30-minutowa diagnoza</div>
 
                 <h1 class="ct-h1">
                     Opisz sytuację. W 30 minut wskażę, <span class="ct-h1-accent">co poprawić najpierw.</span>
@@ -706,29 +694,24 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
 
             </div>
 
-            <aside class="ct-form-card" aria-labelledby="form-heading" data-animate="fade-left" data-delay="1">
-                <div class="ct-form-head">
-                    <span class="ct-eyebrow">Wypełnij formularz</span>
-                    <h2 id="form-heading">Umów diagnozę</h2>
-                    <p>Odpowiadam osobiście w 24h roboczych.</p>
-                </div>
-
-                <fieldset class="up-contact-topics" hidden><legend>Co chcesz poprawić? (opcjonalnie)</legend><div class="up-topic-list"><button type="button" aria-pressed="false" data-up-topic="Google Ads">Google Ads</button><button type="button" aria-pressed="false" data-up-topic="Meta Ads">Meta Ads</button><button type="button" aria-pressed="false" data-up-topic="Strona lub sklep">Strona lub sklep</button><button type="button" aria-pressed="false" data-up-topic="Nie wiem, od czego zacząć">Nie wiem, od czego zacząć</button></div></fieldset>
-                <?php
-                /* Renderuj formularz przez wspolny helper motywu */
-                echo upsellio_render_lead_form([
-                    "origin" => "contact-page-form",
-                    "submit_label" => "Wyślij — oddzwonię w 24h →",
-                    "variant" => "full",
-                    "heading" => "",
-                    "subheading" => "",
-                    "redirect_url" => $contact_page_url,
-                    "service_options" => $contact_service_options,
-                    "css_class" => "ct-form",
-                    "form_id" => "contact-page-form",
-                ]);
-                ?>
-            </aside>
+            <form id="contact-page-form" class="ct-form-card ct-reference-form" aria-labelledby="form-heading" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" method="post" data-upsellio-lead-form="1" data-upsellio-server-form="1" <?php $ct_short = function_exists('upsellio_crm_is_short_diagnosis_origin') && upsellio_crm_is_short_diagnosis_origin('contact-page-form'); if ($ct_short) echo 'data-upsellio-short-diagnosis="1"'; ?>>
+    <?php wp_nonce_field('upsellio_unified_lead_form','upsellio_lead_form_nonce'); ?>
+    <input type="hidden" name="action" value="upsellio_submit_lead">
+    <input type="hidden" name="redirect_url" value="<?php echo esc_url($contact_page_url); ?>">
+    <input type="hidden" name="lead_form_origin" value="contact-page-form"><input type="hidden" name="lead_source" value="contact-page-form">
+    <input type="text" name="lead_website" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;pointer-events:none">
+    <?php foreach (['source','medium','campaign','term','content','gclid','fbclid','msclkid'] as $key): ?><input type="hidden" name="<?php echo esc_attr(in_array($key,['gclid','fbclid','msclkid'],true)?$key:'utm_'.$key); ?>" data-ups-utm="<?php echo esc_attr($key); ?>" value=""><?php endforeach; ?>
+    <input type="hidden" name="landing_url" data-ups-context="landing" value=""><input type="hidden" name="referrer" data-ups-context="referrer" value="">
+    <div class="ct-ref-form-head"><span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/></svg></span><div><h2 id="form-heading">Umów diagnozę</h2><p>Odpowiadam osobiście w 24h roboczych.</p></div></div>
+    <?php $ct_status = isset($_GET['ups_lead_status']) && is_string($_GET['ups_lead_status']) ? sanitize_key(wp_unslash($_GET['ups_lead_status'])) : ''; if ($ct_status === 'success'): ?><p role="status" class="ct-ref-success">Dziękuję! Oddzwonię w ciągu 24h roboczych.</p><?php elseif ($ct_status === 'error'): ?><p role="alert" class="ct-ref-error">Nie udało się wysłać formularza. Sprawdź dane lub zadzwoń.</p><?php endif; ?>
+    <fieldset class="ct-ref-topics"><legend>W czym mogę pomóc?</legend><div><?php foreach (['Google Ads','Facebook / Instagram','Strona lub sklep','Nie wiem jeszcze'] as $ct_topic): ?><label><input type="radio" name="lead_service" value="<?php echo esc_attr($ct_topic); ?>" <?php checked($ct_topic,'Nie wiem jeszcze'); ?>><span><?php echo esc_html($ct_topic); ?></span></label><?php endforeach; ?></div></fieldset>
+    <div class="ct-ref-row"><div><label for="k-name">Imię</label><input id="k-name" name="lead_name" type="text" autocomplete="given-name" maxlength="200" required></div><div><label for="k-phone">Telefon</label><input id="k-phone" name="lead_phone" type="tel" autocomplete="tel" maxlength="24" required></div></div>
+    <?php if (!$ct_short): ?><div class="ct-ref-field"><label for="k-email">E-mail</label><input id="k-email" name="lead_email" type="email" autocomplete="email" maxlength="200" required></div><?php endif; ?>
+    <div class="ct-ref-field"><label for="k-www">Strona, sklep lub profil <span>(opcjonalnie)</span></label><input id="k-www" name="lead_company" type="text" placeholder="twojsklep.pl lub link do Facebooka" maxlength="200"></div>
+    <div class="ct-ref-field"><label for="k-msg">Co chcesz poprawić? <span>(opcjonalnie)</span></label><textarea id="k-msg" name="lead_message" placeholder="Np. reklamy działają, ale zamówień jest mało" rows="3"></textarea></div>
+    <label class="ct-ref-consent"><input type="checkbox" name="lead_consent" value="1" required><span>Zgadzam się na kontakt w sprawie diagnozy. <a href="<?php echo esc_url(home_url('/polityka-prywatnosci/')); ?>">Polityka prywatności</a></span></label>
+    <button type="submit" class="ct-ref-submit">Wyślij, oddzwonię w 24h →</button>
+</form>
 
         </div>
     </div>
@@ -745,6 +728,7 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
                     <a href="mailto:<?php echo esc_attr($contact_email); ?>" class="ct-channel-link">
                         <span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span><span><strong>E-mail</strong><?php echo esc_html($contact_email); ?></span>
                     </a>
+                    <div class="ct-channel-link ct-ref-address"><span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg></span><span><strong>Adres</strong>Wierzbowa 21A/2, Dopiewiec</span></div>
                     <a href="<?php echo esc_url($linkedin_url); ?>" target="_blank" rel="noopener noreferrer" class="ct-channel-link">
                         <span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10v6M8 7v1M12 16v-6m0 2c0-3 4-3 4 0v4"/></svg></span><span><strong>LinkedIn</strong>Sebastian Kelm</span>
                     </a>
@@ -764,26 +748,7 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
             <article class="ct-agenda-card"><span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 15l4-4 4 3 5-7"/></svg></span><div><h3>Rozsądny budżet na start</h3><p>Ile wydać, żeby reklama miała szansę się zwrócić.</p></div></article>
             <article class="ct-agenda-card"><span class="ct-channel-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4 10-10"/></svg></span><div><h3>Co zrobić samemu</h3><p>Co poprawisz sam od ręki, a co lepiej zlecić.</p></div></article>
         </div>
-    <div class="ct-proof-grid">
-                    <div class="ct-proof-cell">
-                        <strong>30 min</strong>
-                        <span>rozmowa</span>
-                    </div>
-                    <div class="ct-proof-cell">
-                        <strong>0 zł</strong>
-                        <span>diagnoza</span>
-                    </div>
-                    <div class="ct-proof-cell">
-                        <strong>24h</strong>
-                        <span>odpowiedź</span>
-                    </div>
-                    <div class="ct-proof-cell">
-                        <strong>1 osoba</strong>
-                        <span>cały kontakt</span>
-                    </div>
-                </div>
-
-                </div>
+    </div>
 </section>
 
 <!-- ====================================================================
@@ -792,153 +757,10 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
      To wystarczy."
      Symptomy zapakowane w pigule "ten problem widac tak".
      ==================================================================== -->
-<section class="ct-topics" id="o-co-zapytac" data-animate="fade-up">
-    <div class="ct-wrap">
-        <div class="ct-section-head">
-            <span class="ct-eyebrow">O co możesz zapytać?</span>
-            <h2>Wiesz że coś nie działa. Niekoniecznie wiesz co dokładnie. To wystarczy.</h2>
-            <p>
-                Wystarczy że opiszesz objaw. Pomogę zlokalizować, czy problem jest w ruchu, stronie,
-                ofercie, formularzu czy procesie sprzedaży — i co naprawić najpierw.
-            </p>
-        </div>
-
-        <div class="ct-topic-grid">
-            <article class="ct-topic-card">
-                <span class="ct-topic-symptom">Kliknięcia są, rozmów nie ma</span>
-                <h3>Google Ads dla firm B2B</h3>
-                <p>Kampania pochłania budżet, statystyki w panelu wyglądają poprawnie — CTR jest, kliknięcia są, koszt na kliknięcie pod kontrolą. A handlowiec mówi, że telefon milczy. Najczęściej problem nie leży w samej reklamie, tylko w dopasowaniu intencji do oferty i w tym, co dzieje się po kliknięciu. Sprawdzę strukturę kampanii (Search, Performance Max, remarketing), słowa kluczowe, dopasowanie kreacji do landing page'a i ścieżkę konwersji aż do formularza.</p>
-                <?php if ($google_ads_url !== "") : ?>
-                <a class="ct-topic-link" href="<?php echo esc_url($google_ads_url); ?>">
-                    Zobacz usługę Google Ads →
-                </a>
-                <?php endif; ?>
-            </article>
-
-            <article class="ct-topic-card">
-                <span class="ct-topic-symptom">Leady od osób, które nie kupują</span>
-                <h3>Meta Ads (Facebook i Instagram) B2B</h3>
-                <p>Reklamy na Facebooku i Instagramie generują ruch, formularze się wypełniają, ale jakość zapytań jest słaba — głównie ciekawscy, studenci, freelancerzy zamiast docelowych decyzyjnych w firmach B2B. To zwykle kwestia targetowania, kreacji i mechaniki Lead Ads. Sprawdzę audiences (lookalike, custom, retargeting), Pixel i Conversions API, atrybucję po iOS oraz to, czy kreacja faktycznie filtruje niepoważnych zainteresowanych już na poziomie reklamy.</p>
-                <?php if ($meta_ads_url !== "") : ?>
-                <a class="ct-topic-link" href="<?php echo esc_url($meta_ads_url); ?>">
-                    Zobacz usługę Meta Ads →
-                </a>
-                <?php endif; ?>
-            </article>
-
-            <article class="ct-topic-card">
-                <span class="ct-topic-symptom">Wysoki bounce rate, zero leadów</span>
-                <h3>Strona WWW i landing page B2B</h3>
-                <p>Ruch wchodzi, ale konwersja na formularz jest poniżej 1%. Najczęściej strona za mało precyzyjnie odpowiada na pytanie „dla kogo, po co i co dalej". Klient B2B w 5 sekund decyduje, czy ten dostawca rozumie jego problem. Sprawdzę przekaz strony, hierarchię informacji, sekcje budujące zaufanie, jasność CTA, wydajność (Core Web Vitals) i formularz — od liczby pól po sposób ich opisania. Często wystarczy poprawić te 5-7 elementów żeby konwersja wzrosła kilkukrotnie.</p>
-                <?php if ($websites_url !== "") : ?>
-                <a class="ct-topic-link" href="<?php echo esc_url($websites_url); ?>">
-                    Zobacz usługę stron WWW →
-                </a>
-                <?php endif; ?>
-            </article>
-
-            <article class="ct-topic-card">
-                <span class="ct-topic-symptom">Koszyki napełniają się, zamówienia nie wpływają</span>
-                <h3>Sklep internetowy B2B (WooCommerce)</h3>
-                <p>Klienci dodają produkty do koszyka, część rejestruje konto, ale finalizacja zamówienia kuleje. W e-commerce B2B problem zwykle leży w jednym z trzech miejsc: rejestracja jest zbyt skomplikowana, brakuje informacji o cenach hurtowych i dostępności, albo proces zamawiania nie pasuje do tego jak klient B2B faktycznie kupuje (negocjacje, zapytania ofertowe, wielokrotne zamówienia). Sprawdzę cały lejek od wejścia do potwierdzenia zamówienia.</p>
-                <a class="ct-topic-link" href="#formularz-kontaktowy">Opisz swój przypadek →</a>
-            </article>
-
-            <article class="ct-topic-card">
-                <span class="ct-topic-symptom">Pozycje są, konwersja nie</span>
-                <h3>SEO i ruch organiczny dla firm B2B</h3>
-                <p>Wpisujesz frazy kluczowe w Google, widzisz swoją firmę na pierwszej stronie, ruch z organic wzrósł — ale w skrzynce zapytaniowej cisza. To często rozmijanie się intencji wyszukiwania z treścią strony albo brak ścieżek konwersji w treściach blogowych. Pomogę zlokalizować, czy problem to dobór fraz, struktura treści, brakujące CTA w artykułach, czy może jakość ruchu (klienci końcowi B2C zamiast B2B). Bez tej diagnozy SEO to często wydatek bez zwrotu.</p>
-                <a class="ct-topic-link" href="#formularz-kontaktowy">Opisz swój przypadek →</a>
-            </article>
-
-            <article class="ct-topic-card">
-                <span class="ct-topic-symptom">Dużo rozmów, mało zamkniętych</span>
-                <h3>Oferta i jakość leadów B2B</h3>
-                <p>Reklama działa, formularzy jest dużo, telefon dzwoni, ale rozmowy nie kończą się umowami. Tu marketing kończy swoją robotę, a zaczyna się sprzedaż — i tu często leży faktyczny problem. Sprawdzę jakość leadów na wejściu (czy reklama nie ściąga niewłaściwych klientów), spójność komunikatu od reklamy przez stronę po pierwszą rozmowę, a także sam proces sprzedaży: czy oferta odpowiada na realny ból klienta, czy follow-up nie zabija dynamiki. Tu pomaga moje 10-letnie tło sprzedażowe.</p>
-                <a class="ct-topic-link" href="#formularz-kontaktowy">Opisz swój przypadek →</a>
-            </article>
-        </div>
-    </div>
-</section>
-
-
-<!-- ====================================================================
-     SEKCJA 03 — OPINIE
-     UWAGA: trzymam jeden testimonial (M.) ktory bylo w obecnej wersji.
-     Drugi i trzeci to placeholdery — Sebastian dodaje gdy bedzie mial
-     zgody klientow. Lepiej puste niz fikcyjne.
-     ==================================================================== -->
-<section class="ct-opinions" id="opinie" data-animate="fade-up"><div class="ct-wrap"><div class="ct-section-head"><span class="ct-eyebrow">Po rozmowie</span><h2>Co dostajesz po diagnozie?</h2><p>Konkretną listę priorytetów, którą możesz wykorzystać samodzielnie, niezależnie od decyzji o współpracy.</p></div></div></section>
-
-
-<!-- ====================================================================
-     SEKCJA 04 — PROCES (3 kroki)
-     Krok 2 zmieniony: "Twoj przypadek trafia pod konkretna pare oczu"
-     zamiast "Sprawdzam kontekst" (ja-ja).
-     ==================================================================== -->
-<section class="ct-process" id="jak-dziala" data-animate="fade-up">
-    <div class="ct-wrap">
-        <div class="ct-section-head">
-            <span class="ct-eyebrow">Jak to działa?</span>
-            <h2>Krótko, konkretnie, bez przeciągania.</h2>
-            <p>
-                Od formularza do konkretnej odpowiedzi — opisuję każdy krok,
-                żebyś wiedział czego się spodziewać.
-            </p>
-        </div>
-
-        <div class="ct-process-grid">
-            <div class="ct-step-card">
-                <span class="ct-step-num">Krok 01</span>
-                <h3>Wysyłasz formularz</h3>
-                <p>Opisujesz w 2-3 zdaniach co nie działa. Może to być link do strony, konkretny problem z kampanią, albo „nie wiem co jest nie tak — pomóż zlokalizować".</p>
-                <ul class="ct-step-list">
-                    <li>Bez gotowego briefu, bez prezentacji</li>
-                    <li>Wystarczy opis sytuacji własnymi słowami</li>
-                    <li>Możesz dodać link do strony lub panelu reklamowego</li>
-                </ul>
-                <span class="ct-step-timing">2 minuty, teraz</span>
-            </div>
-
-            <div class="ct-step-card">
-                <span class="ct-step-num">Krok 02</span>
-                <h3>Sprawdzam Twój przypadek</h3>
-                <p>Patrzę na Twoją stronę, kampanie i komunikat z perspektywy 10 lat sprzedaży B2B — szukam miejsc gdzie pieniądze wyciekają, zanim klient zdąży zapytać o cenę.</p>
-                <ul class="ct-step-list">
-                    <li>Audyt kampanii (jeśli dasz dostęp do panelu)</li>
-                    <li>Analiza strony pod kątem konwersji i przekazu</li>
-                    <li>Pierwsze hipotezy: gdzie jest największy wyciek</li>
-                </ul>
-                <span class="ct-step-timing">Odpisuję w 24h roboczych</span>
-            </div>
-
-            <div class="ct-step-card">
-                <span class="ct-step-num">Krok 03</span>
-                <h3>Dostajesz konkretną mapę</h3>
-                <p>30-minutowa rozmowa (telefon lub Google Meet). Pokazuję 3-5 punktów wycieku, mówię czego sam nie widzisz i podpowiadam co poprawić w pierwszej kolejności.</p>
-                <ul class="ct-step-list">
-                    <li>Konkretne wskazania, nie ogólne porady</li>
-                    <li>Co możesz zrobić sam, gdzie warto pomóc</li>
-                    <li>Bez „a może jednak" — albo kontynuujemy, albo nie</li>
-                </ul>
-                <span class="ct-step-timing">Bezpłatnie, bez zobowiązań</span>
-            </div>
-        </div>
-    </div>
-</section>
-
-
-<!-- ====================================================================
-     SEKCJA 05 — FAQ (8 pytan w nowej kolejnosci)
-     Pierwsze pytanie nie o cenie, tylko "po jakim czasie efekty".
-     Trzecie: nowe — "co jesli nie chce z Toba pracowac" (kasowe).
-     ==================================================================== -->
 <section class="ct-faq" id="faq" data-animate="fade-up">
     <div class="ct-wrap">
         <div class="ct-section-head">
-            <span class="ct-eyebrow">Zanim wyślesz formularz</span>
-            <h2>Odpowiedzi na najczęstsze pytania</h2>
-            <p>Jeśli nie znajdziesz odpowiedzi — napisz, a odpowiem bezpośrednio.</p>
+            <h2>Zanim napiszesz</h2>
             <div class="ct-faq-help">
                 <strong>Nie ma tu Twojego pytania?</strong>
                 <p>Zadzwoń — odbieram osobiście, pn–pt 9–17.</p>
@@ -958,18 +780,7 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
             <?php endforeach; ?>
         </div>
 
-        <p class="ct-faq-cta-row">
-            Potrzebujesz więcej kontekstu o usługach?
-            <?php if ($google_ads_url !== "") : ?>
-                <a href="<?php echo esc_url($google_ads_url); ?>">Google Ads B2B</a> ·
-            <?php endif; ?>
-            <?php if ($meta_ads_url !== "") : ?>
-                <a href="<?php echo esc_url($meta_ads_url); ?>">Meta Ads B2B</a> ·
-            <?php endif; ?>
-            <?php if ($websites_url !== "") : ?>
-                <a href="<?php echo esc_url($websites_url); ?>">Strony WWW</a>
-            <?php endif; ?>
-        </p>
+        
     </div>
 </section>
 
@@ -979,41 +790,6 @@ a.ct-final-btn:hover,.ct-art a.ct-final-btn:hover{transform:translateY(-1px);bac
      "Wystarcza 2 zdania. Wrocisz do swojej pracy." — zbija strach
      ze formularz urosnie w cały dzien maili.
      ==================================================================== -->
-<section class="ct-final">
-    <div class="ct-wrap">
-        <div class="ct-final-box">
-            <div>
-                <span class="ct-final-eyebrow">Nie odkładaj na później</span>
-                <h2>Jeśli leady uciekają, zwykle da się znaleźć konkretny powód</h2>
-                <p>
-                    Wystarczą 2 zdania. Wrócisz do swojej pracy, a do 24h dostaniesz wstępną odpowiedź:
-                    gdzie szukać problemu w pierwszej kolejności — reklama, strona, oferta, formularz
-                    czy proces sprzedaży. Pierwsze 30 minut bez opłat, bez zobowiązań.
-                </p>
-                <a href="#formularz-kontaktowy" class="ct-final-btn">
-                    Wróć do formularza
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M5 12h14M12 5l7 7-7 7"/>
-                    </svg>
-                </a>
-            </div>
-            <aside class="ct-final-side">
-                <div>
-                    <strong>Albo bezpośrednio</strong>
-                    <a href="tel:<?php echo esc_attr($contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a>
-                </div>
-                <div>
-                    <strong>E-mailem</strong>
-                    <a href="mailto:<?php echo esc_attr($contact_email); ?>"><?php echo esc_html($contact_email); ?></a>
-                </div>
-                <div style="font-size:13px;color:var(--ct-muted);margin-top:8px;line-height:1.5">
-                    Odpowiadam osobiście pn–pt, 9-17. Jeśli wolisz krótką rozmowę telefoniczną zamiast formularza — zadzwoń, oddzwaniam tego samego dnia.
-                </div>
-            </aside>
-        </div>
-    </div>
-</section>
-
 </main>
 
 <!-- ====================================================================
@@ -1090,19 +866,6 @@ echo wp_json_encode([
         document.querySelectorAll('[data-animate]').forEach(function(el) {
             el.classList.add('is-visible');
         });
-    }
-
-    /* --- Nadpisz placeholder w polu wiadomosci formularza ---
-       Wspolny helper upsellio_render_lead_form ma zaszyty placeholder
-       "Krotko opisz sytuacje". Tu zastepujemy go konkretnym przykladem
-       — tylko dla tego formularza, bez modyfikacji wspolnego helpera. */
-    var contactForm = document.getElementById('contact-page-form');
-    if (contactForm) {
-        var msg = contactForm.querySelector('textarea[name="lead_message"]');
-        if (msg) {
-            msg.setAttribute('placeholder',
-                'Np. Płacę za reklamy, ale mam mało zamówień. Chcę sprawdzić, co warto poprawić w sklepie lub kampanii.');
-        }
     }
 
     // Anchor scrolling is handled by the shared theme script; avoid duplicate listeners.
