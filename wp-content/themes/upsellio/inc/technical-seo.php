@@ -714,3 +714,110 @@ function upsellio_canonical_fallback(): void
 }
 
 add_action("wp_head", "upsellio_canonical_fallback", 1);
+
+
+/**
+ * Public editorial typography: replace the long em dash in reader-facing copy.
+ * Keep the stored originals, URL attributes, scripts, CSS and code samples intact.
+ */
+function upsellio_public_copy_short_dash(string $text): string
+{
+    return str_replace("—", "-", $text);
+}
+
+function upsellio_public_copy_normalize_html(string $html): string
+{
+    if (!class_exists("WP_HTML_Tag_Processor") ||
+        !method_exists("WP_HTML_Tag_Processor", "set_modifiable_text")) {
+        return $html;
+    }
+    // WordPress 6.7+ decodes HTML text entities and updates only selected tokens.
+    $processor = new WP_HTML_Tag_Processor($html);
+    $protected = ["PRE", "CODE", "KBD", "SAMP", "SVG", "MATH", "TEMPLATE", "SCRIPT", "STYLE", "TEXTAREA"];
+    $stack = [];
+    while ($processor->next_token()) {
+        $token = $processor->get_token_name();
+        if (in_array($token, $protected, true)) {
+            // SCRIPT, STYLE and TEXTAREA are atomic tokens in the HTML API.
+            if (in_array($token, ["SCRIPT", "STYLE", "TEXTAREA"], true)) {
+                continue;
+            }
+            if ($processor->is_tag_closer()) {
+                if (end($stack) === $token) {
+                    array_pop($stack);
+                }
+            } else {
+                $stack[] = $token;
+            }
+            continue;
+        }
+        if ($stack !== []) {
+            continue;
+        }
+        if ($token === "#text" || $token === "TITLE") {
+            $text = $processor->get_modifiable_text();
+            $updated = upsellio_public_copy_short_dash($text);
+            if ($updated !== $text) {
+                $processor->set_modifiable_text($updated);
+            }
+            continue;
+        }
+        if ($processor->get_token_type() !== "#tag" || $processor->is_tag_closer()) {
+            continue;
+        }
+        $attributes = ["title", "alt", "aria-label", "placeholder"];
+        if ($token === "META") {
+            $key = strtolower((string) ($processor->get_attribute("name") ?? $processor->get_attribute("property") ?? ""));
+            if (in_array($key, ["description", "og:title", "og:description", "twitter:title", "twitter:description"], true)) {
+                $attributes[] = "content";
+            }
+        }
+        foreach ($attributes as $attribute) {
+            $text = $processor->get_attribute($attribute);
+            if (!is_string($text)) {
+                continue;
+            }
+            $updated = upsellio_public_copy_short_dash($text);
+            if ($updated !== $text) {
+                $processor->set_attribute($attribute, $updated);
+            }
+        }
+    }
+    return $processor->get_updated_html();
+}
+
+function upsellio_public_copy_output(string $html, int $phase): string
+{
+    // Do not touch partial output, non-HTML responses or downloads.
+    if (($phase & PHP_OUTPUT_HANDLER_FINAL) === 0 || stripos($html, "<html") === false) {
+        return $html;
+    }
+    foreach (headers_list() as $header) {
+        if (stripos($header, "Content-Disposition:") === 0 ||
+            (stripos($header, "Content-Type:") === 0 && stripos($header, "text/html") === false)) {
+            return $html;
+        }
+    }
+    return upsellio_public_copy_normalize_html($html);
+}
+
+function upsellio_public_copy_template($template)
+{
+    if (strtoupper((string) ($_SERVER["REQUEST_METHOD"] ?? "GET")) !== "GET" ||
+        is_admin() || wp_doing_ajax() || wp_doing_cron() || is_feed() || is_preview() ||
+        (defined("REST_REQUEST") && REST_REQUEST) || is_page("crm-app")) {
+        return $template;
+    }
+    if (is_singular()) {
+        $post = get_queried_object();
+        if (!($post instanceof WP_Post) || $post->post_status !== "publish" || $post->post_password !== "" ||
+            !in_array($post->post_type, ["page", "post", "miasto", "definicja", "portfolio", "marketing_portfolio", "lead_magnet"], true)) {
+            return $template;
+        }
+    } elseif (!(is_front_page() || is_home() || is_archive() || is_search() || is_404())) {
+        return $template;
+    }
+    ob_start("upsellio_public_copy_output");
+    return $template;
+}
+add_filter("template_include", "upsellio_public_copy_template", PHP_INT_MAX);
