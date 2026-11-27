@@ -201,18 +201,18 @@ get_header();
 <section class="upref-section" id="case-study" style="padding: 88px 0; background: #0f1115; color: #ffffff">
 <div style="max-width: 1160px; margin: 0 auto; padding: 0 24px; display: flex; flex-wrap: wrap; gap: 56px; align-items: center">
 <div style="flex: 1 1 440px; min-width: 0">
-<p style="margin: 0 0 12px; font-size: 14px; font-weight: 700; color: #7fe3d2">Przykład z praktyki</p>
-<h2 style="margin: 0 0 40px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(30px, 3.4vw, 42px); line-height: 1.08; letter-spacing: -0.03em; color: #ffffff; max-width: 18ch; ">Ten sam budżet, pięć razy więcej zapytań.</h2>
+<p style="margin: 0 0 12px; font-size: 14px; font-weight: 700; color: #7fe3d2">Przykład ilustracyjny · nie wynik klienta</p>
+<h2 style="margin: 0 0 40px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(30px, 3.4vw, 42px); line-height: 1.08; letter-spacing: -0.03em; color: #ffffff; max-width: 18ch; ">Ten sam budżet, pięć razy więcej zapytań — przykład.</h2>
 <div style="margin-top: -8px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
 <div style="border-top: 2px solid #0bb39c; padding-top: 14px"><div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(34px, 3.6vw, 48px); line-height: 1; color: #ffffff">5×</div><div style="margin-top: 8px; font-size: 14px; color: #c4c8ce">więcej zapytań miesięcznie</div></div>
-<div style="border-top: 2px solid #0bb39c; padding-top: 14px"><div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(34px, 3.6vw, 48px); line-height: 1; color: #ffffff">−60%</div><div style="margin-top: 8px; font-size: 14px; color: #c4c8ce">koszt jednego zapytania</div></div>
-<div style="border-top: 2px solid #0bb39c; padding-top: 14px"><div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(34px, 3.6vw, 48px); line-height: 1; color: #ffffff">90 dni</div><div style="margin-top: 8px; font-size: 14px; color: #c4c8ce">do pełnego efektu</div></div>
+<div style="border-top: 2px solid #0bb39c; padding-top: 14px"><div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(34px, 3.6vw, 48px); line-height: 1; color: #ffffff">−80%</div><div style="margin-top: 8px; font-size: 14px; color: #c4c8ce">koszt jednego zapytania</div></div>
+<div style="border-top: 2px solid #0bb39c; padding-top: 14px"><div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: clamp(34px, 3.6vw, 48px); line-height: 1; color: #ffffff">90 dni</div><div style="margin-top: 8px; font-size: 14px; color: #c4c8ce">przykładowy okres pomiaru</div></div>
 </div>
 </div>
 <figure style="flex: 1 1 400px; min-width: 0; margin: 0; background: #1a1e25; border: 1px solid #2a2f38; border-radius: 24px; padding: 36px">
 <svg aria-hidden="true" fill="#0bb39c" height="34" viewBox="0 0 24 24" width="34"><path d="M4 18v-5c0-4 2-7 6-8l1 2c-2 1-3 2.5-3 5h3v6zm9 0v-5c0-4 2-7 6-8l1 2c-2 1-3 2.5-3 5h3v6z"></path></svg>
-<blockquote style="margin: 16px 0 24px; font-size: 18px; line-height: 1.65; color: #ffffff">Przez dwa lata dostawaliśmy od agencji kolorowe raporty, a klientów nie przybywało. Sebastian w pół godziny pokazał, dlaczego. Dziś mamy tygodniowo tyle zapytań, co wcześniej przez miesiąc.</blockquote>
-<figcaption style="display: flex; align-items: center; gap: 12px; font-size: 14px; color: #c4c8ce"><span style="width: 40px; height: 40px; border-radius: 50%; background: #2a2f38; display: grid; place-items: center; color: #ffffff; font-weight: 700">W</span><span><strong style="display: block; color: #ffffff">Właściciel firmy</strong>Wielkopolska · <a href="https://upsellio.pl/portfolio-marketingowe/" style="color: #7fe3d2; font-weight: 700">Zobacz portfolio →</a></span></figcaption>
+<blockquote style="margin: 16px 0 24px; font-size: 18px; line-height: 1.65; color: #ffffff">Przy niezmienionym budżecie pięciokrotny wzrost liczby zapytań oznacza spadek kosztu jednego zapytania o 80%. To ilustracja zależności, nie udokumentowany wynik ani gwarancja.</blockquote>
+<figcaption style="display: flex; align-items: center; gap: 12px; font-size: 14px; color: #c4c8ce"><span style="width: 40px; height: 40px; border-radius: 50%; background: #2a2f38; display: grid; place-items: center; color: #ffffff; font-weight: 700">W</span><span><strong style="display: block; color: #ffffff">Model obliczeniowy</strong>Nie jest opinią klienta · <a href="https://upsellio.pl/portfolio-marketingowe/" style="color: #7fe3d2; font-weight: 700">Zobacz portfolio →</a></span></figcaption>
 </figure>
 </div>
 </section>
