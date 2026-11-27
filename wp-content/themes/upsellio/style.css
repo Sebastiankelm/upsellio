@@ -106,3 +106,18 @@ body .definition-faq-item.up-faq-disclosure + .definition-faq-item{margin-top:0}
 body :is(.pp-wrap,.pf-content,.mc-block-body,.lms-content){min-width:0;overflow-wrap:break-word}
 body details.up-faq-disclosure > summary > :first-child{min-width:0}
 body details.up-faq-disclosure > summary:focus-visible{border-radius:12px}
+
+
+/* Legacy button accordion on the original Meta audit, retaining its ARIA behavior. */
+body #faq .faq-item{margin:0 0 10px;border:1px solid #e3e6ea;border-radius:14px;background:#fff;overflow:hidden}
+body #faq .faq-item.open{border-color:#c7e6dd}
+body #faq .faq-item .faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:56px;padding:17px 20px;text-align:left;font:700 16px/1.45 var(--font-body,"DM Sans",sans-serif);color:#0f172a}
+body #faq .faq-item .faq-q:focus-visible{outline:3px solid #06745f;outline-offset:-3px}
+body #faq .faq-item .faq-icon{background:#effaf7;color:#06745f;border:0;width:30px;height:30px;font-size:22px}
+body #faq .faq-item.open .faq-a{max-height:none;padding:0 20px 18px;overflow:visible;color:#334155;font-size:15px;line-height:1.7}
+body #faq .faq-item .faq-a[hidden]{display:none}
+body .am-faq details.up-faq-disclosure{margin:0;padding:0}
+body .am-faq details.up-faq-disclosure p{margin:0}
+body .mc-block-body > details.up-faq-disclosure{padding:0!important;border:1px solid #e3e6ea!important}
+body .mc-block-body > details.up-faq-disclosure > p{margin:0!important}
+@media(max-width:760px){body #faq .faq-item .faq-q{padding:14px 16px}body #faq .faq-item.open .faq-a{padding:0 16px 16px}}
