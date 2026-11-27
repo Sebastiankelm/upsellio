@@ -1,1 +1,12 @@
-{"schema":1,"action":"idle"}
+{
+  "schema": 1,
+  "request_id": "city-white-typography-20261127-d774b3f7",
+  "commit": "d774b3f772dc9e5632513c0895c6a3b8ece80c5c",
+  "files": [
+    {
+      "path": "single-miasto.php",
+      "before": "c297666b13cc5791b0a5eca0c5f30b7684f55d2032fd7b2093834e5a4c15e3dc",
+      "after": "208a9545f9a2b05ee5f75f3475f3dd62b69427c631a54de3ad053d2c0d83e365"
+    }
+  ]
+}
