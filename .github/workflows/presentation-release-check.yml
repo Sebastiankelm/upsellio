@@ -54,16 +54,16 @@ jobs:
               # Intentional reference-design migration: the homepage has a new contract.
               # Other templates retain all previous presentation safeguards.
               if n=="front-page.php" and "upsellio-reference-home-css" in new:
-                  assert sep2 and "get_footer();" in new
+                  assert sep2 and "get_footer(null," in new
                   header=(p/"header.php").read_text(encoding="utf-8")
                   footer=(p/"footer.php").read_text(encoding="utf-8")
                   for shared in ("header.php","footer.php"):
                       subprocess.run(["php","-n","-l",str(p/shared)],check=True)
                   assert "wp_head();" in header and "wp_footer();" in footer
-                  assert "function upsellio_render_reference_cta(" in header
+                  assert "function upsellio_render_reference_cta(" in footer
                   assert "function upsellio_render_reference_footer(" in footer
                   assert "upsellio_render_reference_footer();" in footer
-                  assert "upsellio_render_reference_cta(" in d
+                  assert "reference_cta" in d
                   assert "upsellio_reference_home_nav()" not in new
                   assert len(re.findall(r"<h1\b",d))==1
                   assert len(re.findall(r"<form\b",d))==1
@@ -83,7 +83,7 @@ jobs:
                   continue
               assert sep and sep2 and a==c,(n,"head changed")
               if n.startswith("page-marketing-") or n=="page-tworzenie-stron-internetowych.php":
-                  assert "upsellio_render_reference_cta(" in d and "FAQPage" in d
+                  assert "reference_cta" in d and "FAQPage" in d
               if n=="single.php":
                   assert "upsellio_render_lead_form(" in d and "upsellio_prepare_toc_content" in new
               if n=="page-kontakt.php":
