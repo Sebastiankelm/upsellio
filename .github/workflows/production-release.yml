@@ -43,8 +43,10 @@ jobs:
           done
           node --check wp-content/themes/upsellio/assets/js/upsellio.js
           node --check wp-content/themes/upsellio/assets/js/upsellio-ui.js
+  # Production defaults to the WordPress DevOps Bridge manifest protocol.
+  # Legacy SSH is an explicit manual fallback only, never an automatic push job.
   deploy:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && vars.UPSELLIO_ENABLE_LEGACY_SSH == 'true'
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 15
