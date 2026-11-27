@@ -402,3 +402,91 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded",init,{once:true});
   else init();
 })();
+
+
+// Editorial tables and FAQs: progressively enhance public content; never touch CRM.
+// Native tables, headings and answers remain readable if JavaScript is unavailable.
+(function () {
+  function initEditorial() {
+    const roots = ".sp-prose,.definition-prose,.city-prose,.pp-wrap,.pf-content,.mc-block-body,.lms-content";
+    document.querySelectorAll(roots).forEach(root => {
+      root.querySelectorAll("table").forEach(table => {
+        if (table.closest(".city-table-card,.city-table-scroll,.up-editorial-table") || table.closest("table table")) return;
+        const wrapper = document.createElement("div");
+        wrapper.className = "up-editorial-table";
+        const scroll = document.createElement("div");
+        scroll.className = "up-editorial-scroll";
+        scroll.setAttribute("role","region");
+        scroll.setAttribute("aria-label",table.caption?.textContent.trim() || "Tabela danych");
+        const count = Math.max(1,...Array.from(table.rows,row => Array.from(row.cells).reduce((n,cell) => n + cell.colSpan,0)));
+        const min = count <= 2 ? 340 : count === 3 ? 510 : Math.max(620,count * 135);
+        wrapper.style.setProperty("--up-table-min",min + "px");
+        const hint = document.createElement("p");
+        hint.className = "up-table-hint";
+        hint.textContent = "Przesuń tabelę w bok, aby zobaczyć wszystkie kolumny.";
+        hint.hidden = true;
+        table.before(wrapper);
+        wrapper.append(scroll,hint);
+        scroll.append(table);
+        function update() {
+          const overflow = scroll.scrollWidth > scroll.clientWidth + 2;
+          scroll.tabIndex = overflow ? 0 : -1;
+          hint.hidden = !overflow;
+        }
+        update();
+        if ("ResizeObserver" in window) new ResizeObserver(update).observe(scroll);
+        else window.addEventListener("resize",update,{passive:true});
+      });
+      // Convert simple FAQ heading/answer pairs only; preserve other sections,
+      // forms, existing links/IDs, native heading structure and structured data.
+      let inFaq = false;
+      Array.from(root.children).forEach(node => {
+        if (node.matches("h2")) {
+          inFaq = /(?:\bFAQ\b|najczęściej zadawane pytania|często zadawane pytania|częste pytania|najczęstsze pytania|^pytania (?:o|i odpowiedzi))/i.test(node.textContent.trim());
+          return;
+        }
+        if (!inFaq || !node.matches("h3,h4") || node.closest("details")) return;
+        const answers = [];
+        for (let sibling = node.nextElementSibling; sibling && sibling.matches("p,ul,ol"); sibling = sibling.nextElementSibling) {
+          if (sibling.querySelector("form,input,button,iframe")) break;
+          answers.push(sibling);
+        }
+        if (!answers.length) return;
+        const disclosure = document.createElement("details");
+        disclosure.className = "up-faq-disclosure";
+        const summary = document.createElement("summary");
+        const answer = document.createElement("div");
+        answer.className = "up-faq-answer";
+        node.before(disclosure);
+        disclosure.append(summary,answer);
+        summary.append(node);
+        answers.forEach(p => answer.append(p));
+      });
+    });
+    // Match explicit FAQ components on public service, industry and audit pages.
+    document.querySelectorAll("details").forEach(d => {
+      if (d.matches(".up-faq-disclosure,.up-extra-content,.up-mobile-toc") || d.closest("footer,header,form,#wpadminbar,.crm-app")) return;
+      const explicit = Array.from(d.classList).some(c => /(?:^|-)faq(?:-|$)/i.test(c));
+      const parent = d.closest('#faq,[class*="faq-list"],[class*="faq-grid"],.lms-faq,.lpc-faq');
+      if (explicit || parent) d.classList.add("up-faq-disclosure");
+    });
+    function revealFaq(hash) {
+      if (!hash || hash.length < 2) return;
+      let id; try { id = decodeURIComponent(hash.slice(1)); } catch (_) { return; }
+      const node = document.getElementById(id);
+      const disclosure = node?.closest("details.up-faq-disclosure");
+      if (disclosure && !disclosure.open) {
+        disclosure.open = true;
+        requestAnimationFrame(() => node.scrollIntoView({block:"start",behavior:"instant"}));
+      }
+    }
+    revealFaq(location.hash);
+    window.addEventListener("hashchange",() => revealFaq(location.hash));
+    document.addEventListener("click",e => {
+      const a = e.target.closest?.('a[href^="#"]');
+      if (a && !e.defaultPrevented && e.button === 0) revealFaq(a.hash);
+    },true);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded",initEditorial,{once:true});
+  else initEditorial();
+})();
