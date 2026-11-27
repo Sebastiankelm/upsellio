@@ -38,28 +38,37 @@ jobs:
               subprocess.run(["php","-n","-l",str(f)],check=True)
               old=subprocess.check_output(["git","show",os.environ["BASE_SHA"]+":"+str(f)]).decode("utf-8").replace("\r\n","\n")
               new=f.read_text(encoding="utf-8")
-              # The blog entry point delegates to the shared template. Preserve the
-              # wrapper itself and run the same checks on its actual view.
-              if n=="home.php" and "require get_theme_file_path('/ups-blog-core.php');" in old:
-                  assert old==new,(n,"blog entry point changed")
-                  f=p/"ups-blog-core.php"
-                  subprocess.run(["php","-n","-l",str(f)],check=True)
-                  old=subprocess.check_output(["git","show",os.environ["BASE_SHA"]+":"+str(f)]).decode("utf-8").replace("\r\n","\n")
-                  new=f.read_text(encoding="utf-8")
+              if n=="home.php" and "Upsellio - Blog (Reference)" in new:
+                  wrapper=(p/"ups-blog-core.php").read_text(encoding="utf-8")
+                  subprocess.run(["php","-n","-l",str(p/"ups-blog-core.php")],check=True)
+                  assert "require get_theme_file_path('/home.php');" in wrapper
+                  assert "require get_theme_file_path('/ups-blog-core.php');" not in new
+                  for marker in ("get_header();","get_footer();","upsellio_get_blog_payload","blog_search","ub-tag-filter","max_num_pages","'@type'=>'Blog'","upsellio_get_primary_lead_magnet"):
+                      assert marker in new,(n,"missing blog contract",marker)
+                  assert len(re.findall(r"<h1\b",new))==1
+                  assert len(re.findall(r"<form\b",new))==1
+                  print(n,"PASS: self-contained selectable blog, query, filters, pagination and schema")
+                  continue
               a,sep,b=old.partition("get_header();")
               c,sep2,d=new.partition("get_header();")
               # Intentional reference-design migration: the homepage has a new contract.
               # Other templates retain all previous presentation safeguards.
               if n=="front-page.php" and "upsellio-reference-home-css" in new:
-                  shared_footer = "get_footer();" in new and "upsellio_render_reference_cta" in d
-                  assert sep2 and ("wp_footer();" in new or shared_footer)
+                  assert sep2 and "get_footer(null," in new
+                  header=(p/"header.php").read_text(encoding="utf-8")
+                  footer=(p/"footer.php").read_text(encoding="utf-8")
+                  for shared in ("header.php","footer.php"):
+                      subprocess.run(["php","-n","-l",str(p/shared)],check=True)
+                  assert "wp_head();" in header and "wp_footer();" in footer
+                  assert "function upsellio_render_reference_cta(" in footer
+                  assert "function upsellio_render_reference_footer(" in footer
+                  assert "upsellio_render_reference_footer();" in footer
+                  assert "reference_cta" in d
+                  assert "upsellio_reference_home_nav()" not in new
                   assert len(re.findall(r"<h1\b",d))==1
                   assert len(re.findall(r"<form\b",d))==1
-                  assert len(re.findall(r"<section\b",d))==(8 if shared_footer else 9)
-                  required = ("start","diagnoza","kontakt","problem","uslugi","system","case-study","kim-jestem","jak-dzialam","faq","up-ref-main")
-                  if not shared_footer:
-                      required += ("upref-footer",)
-                  for key in required:
+                  assert len(re.findall(r"<section\b",d))==8 # ninth section is the shared CTA
+                  for key in ("start","diagnoza","kontakt","problem","uslugi","system","case-study","kim-jestem","jak-dzialam","faq","up-ref-main"):
                       assert 'id="'+key+'"' in d,(n,"missing reference ID",key)
                   for name in ("lead_name","lead_phone","lead_company","lead_consent","lead_form_origin"):
                       assert 'name="'+name+'"' in d,(n,"missing CRM field",name)
@@ -67,17 +76,18 @@ jobs:
                   assert "upsellio_unified_lead_form" in d
                   assert "Więcej zamówień" in d and "Trzy proste kroki" in d
                   assert "dc-import" not in d and ".dc.html" not in d
-                  if shared_footer:
-                      header=(p/"header.php").read_text(encoding="utf-8")
-                      footer=(p/"footer.php").read_text(encoding="utf-8")
-                      assert "ur-services" in header and "ur-mobile-toggle" in header and "ur-mobile-panel" in header
-                      assert "wp_footer();" in footer
-                  else:
-                      assert "upref-services-btn" in new and "upref-mobile-btn" in new
+                  assert all(marker in header for marker in ('id="upref-nav"', 'id="ur-services"', 'id="ur-mobile-toggle"', 'aria-expanded', 'Escape'))
+                  assert 'nf-footer' in footer and '$normalized_city_links' in footer
                   assert "prefers-reduced-motion" in new
                   print(n,"PASS: reference layout, single short CRM form, navigation and anchors")
                   continue
               assert sep and sep2 and a==c,(n,"head changed")
+              if n.startswith("page-marketing-") or n=="page-tworzenie-stron-internetowych.php":
+                  assert "reference_cta" in d and "FAQPage" in d
+              if n=="single.php":
+                  assert "upsellio_render_lead_form(" in d and "upsellio_prepare_toc_content" in new
+              if n=="page-kontakt.php":
+                  assert "upsellio_unified_lead_form" in d and "upsellio_submit_lead" in d
               assert len(re.findall(r"<h1\b",d))==1,(n,"H1")
               ids=lambda s:collections.Counter(re.findall(r'\bid="([A-Za-z][\w-]*)"',s))
               orig,cur=ids(b),ids(d)
