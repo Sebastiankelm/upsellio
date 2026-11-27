@@ -35,6 +35,7 @@ jobs:
           php -n tests/mobile-callback-contract.php
           php -n tests/seo-indexability-contract.php
           php -n tests/public-editorial-contract.php /tmp/upsellio-public-editorial.js
+          php -n tests/blog-reading-contract.php
           node --check /tmp/upsellio-public-editorial.js
           bash tests/production-deploy-contract.sh
       - name: Lint public theme

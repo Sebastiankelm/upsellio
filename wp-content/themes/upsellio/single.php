@@ -5,6 +5,29 @@ if (!defined("ABSPATH")) {
 
 get_header();
 
+// Remove only a redundant, explicitly labelled list of links to the generated TOC.
+// Do not change stored post content, heading IDs or links that are not in the TOC.
+function upsellio_single_remove_redundant_toc(string $html, array $toc): string
+{
+    $ids = array_fill_keys(array_column($toc, "id"), true);
+    if (!$ids) { return $html; }
+    return (string) preg_replace_callback(
+        '~<p\s*>\s*(?:<strong\s*>\s*)?Spis treści\s*(?:</strong>\s*)?</p>\s*(?:<!--[\s\S]*?-->\s*)*<(ul|ol)(?:\s+class=(?:"[^"]*"|\'[^\']*\'))?\s*>([\s\S]*?)</\1>~iu',
+        static function ($match) use ($ids) {
+            $items = preg_replace('/<!--[\s\S]*?-->/', '', $match[2]);
+            $pattern = '~<li\s*>\s*<a\s+href=(["\'])#([^"\']+)\1\s*>[^<]+</a>\s*</li>~iu';
+            if (!preg_match_all($pattern, $items, $links, PREG_SET_ORDER)) { return $match[0]; }
+            if (trim((string) preg_replace($pattern, '', $items)) !== '') { return $match[0]; }
+            foreach ($links as $link) {
+                $id = rawurldecode(html_entity_decode($link[2], ENT_QUOTES | ENT_HTML5, "UTF-8"));
+                if (!isset($ids[$id])) { return $match[0]; }
+            }
+            return "";
+        },
+        $html
+    );
+}
+
 if (have_posts()) :
     while (have_posts()) :
         the_post();
@@ -48,7 +71,7 @@ if (have_posts()) :
         $raw_content = apply_filters("the_content", $content_for_the_content);
         $prepared_content = upsellio_prepare_toc_content($raw_content);
         $toc_items = $prepared_content["toc"];
-        $content_html = $prepared_content["content"];
+        $content_html = upsellio_single_remove_redundant_toc($prepared_content["content"], $toc_items);
         $has_upsellio_content_shortcodes = strpos($raw_post_content, "[upsellio_internal_links]") !== false;
         $lead_magnet = function_exists("upsellio_get_primary_lead_magnet") ? upsellio_get_primary_lead_magnet() : [];
         $offer_url = function_exists("upsellio_get_offer_page_url") ? (string) upsellio_get_offer_page_url() : "";
@@ -272,6 +295,35 @@ if (have_posts()) :
           .sp-art .sp-rel-card h3{font-size:19px}
           @media(max-width:980px){.sp-art .sp-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"toc" "article";gap:32px;max-width:800px}}
           @media(max-width:720px){.sp-art .sp-wrap,.sp-art .sp-wrap-narrow,.sp-art .sp-grid,.sp-art .sp-related .sp-wrap-narrow{width:calc(100% - 40px)}.sp-art .sp-h1{font-size:clamp(32px,8.5vw,40px)}.sp-art .sp-prose h2{font-size:26px}.sp-art .sp-prose p,.sp-art .sp-prose li{font-size:17px}.sp-art .sp-cover{padding-bottom:32px}}
+
+          /* Use the same reading canvas as the cover, not the narrow headline wrapper. */
+          .sp-art .sp-body .sp-grid{width:min(1112px,calc(100% - 48px));max-width:none;margin-inline:auto;grid-template-columns:minmax(0,1fr) 248px;grid-template-areas:"article toc";gap:44px}
+          .sp-art .sp-body .sp-prose{width:100%;min-width:0;max-width:none}
+          .sp-art .sp-body .sp-prose > :first-child{margin-top:0}
+          .sp-art .sp-body .sp-toc{min-width:0;max-height:none;overflow:visible;top:112px}
+          .sp-art .sp-toc-disclosure{margin:0;padding:0;border:0;background:transparent}
+          .sp-art .sp-toc-label{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;margin:0 0 10px;cursor:pointer;list-style:none;font:750 17px/1.4 "Bricolage Grotesque",sans-serif;color:#0f1115}
+          .sp-art .sp-toc-label::-webkit-details-marker{display:none}
+          .sp-art .sp-toc-label::marker{content:""}
+          .sp-art .sp-toc-label::after{content:"+";display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%;background:#effaf7;color:#06745f;font:500 20px/1 "DM Sans",sans-serif}
+          .sp-art .sp-toc-disclosure[open]>.sp-toc-label::after{content:"−"}
+          .sp-art .sp-toc-label:focus-visible{outline:2px solid #06745f;outline-offset:3px}
+          .sp-art .sp-body .sp-toc ol{max-height:min(48vh,440px);overflow-y:auto;scrollbar-width:thin;gap:0;padding-right:6px}
+          .sp-art .sp-body .sp-toc ol li{margin-bottom:0}
+          .sp-art .sp-body .sp-toc ol li a{font-size:14px;line-height:1.45;min-height:40px;padding:9px 0}
+          .sp-art .sp-body .sp-toc-cta{margin-top:20px;padding:18px}
+          .sp-art .sp-body .sp-toc-cta strong{font-size:18px}
+          @media(max-height:700px) and (min-width:1021px){.sp-art .sp-body .sp-toc{position:static}.sp-art .sp-body .sp-toc ol{max-height:none;overflow:visible}}
+          @media(max-width:1020px){
+            .sp-art .sp-body .sp-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"toc" "article";max-width:850px;gap:28px}
+            .sp-art .sp-body .sp-toc{position:static}
+            .sp-art .sp-toc-disclosure{padding:4px 16px;border:1px solid #e3e6ea;border-radius:14px;background:#f8fafc}
+            .sp-art .sp-toc-label{margin:0;min-height:52px}
+            .sp-art .sp-body .sp-toc ol{max-height:none;overflow:visible;margin:0 0 12px}
+            .sp-art .sp-body .sp-toc ol li a{min-height:44px}
+            .sp-art .sp-body .sp-toc-cta{display:none}
+          }
+          @media(max-width:720px){.sp-art .sp-body .sp-grid{width:calc(100% - 40px)}}
 </style>
 
         <main class="sp-art">
@@ -342,17 +394,19 @@ if (have_posts()) :
           </div>
 
           <section class="sp-body">
-            <div class="sp-wrap-narrow sp-grid">
+            <div class="sp-wrap sp-grid">
               <aside class="sp-toc" aria-label="Spis treści i kontakt" data-animate="fade-up" data-delay="1">
                 <?php if (!empty($toc_items)) : ?>
-                  <div class="sp-toc-head">W tym wpisie</div>
-                  <ol>
+                  <details class="sp-toc-disclosure" open>
+                    <summary class="sp-toc-label">Spis treści</summary>
+                    <ol>
                     <?php foreach ($toc_items as $toc_index => $toc_item) : ?>
                       <li class="<?php echo $toc_index === 0 ? "is-active" : ""; ?>">
                         <a href="#<?php echo esc_attr($toc_item["id"]); ?>"><?php echo esc_html($toc_item["title"]); ?></a>
                       </li>
                     <?php endforeach; ?>
-                  </ol>
+                    </ol>
+                  </details>
                 <?php endif; ?>
                 <div class="sp-toc-cta">
                   <strong>Wolisz, żebym ustawił to za Ciebie?</strong>
@@ -475,6 +529,17 @@ if (have_posts()) :
               }).catch(function () {
                 if (status) status.textContent = "Nie udało się skopiować adresu. Skopiuj go z paska przeglądarki.";
               });
+            });
+          }
+          var toc = root.querySelector(".sp-toc-disclosure");
+          if (toc && window.matchMedia) {
+            var compact = window.matchMedia("(max-width: 1020px)");
+            function syncToc() { toc.open = !compact.matches; }
+            syncToc();
+            if (compact.addEventListener) compact.addEventListener("change", syncToc);
+            else if (compact.addListener) compact.addListener(syncToc);
+            toc.addEventListener("click", function (event) {
+              if (compact.matches && event.target.closest("a[href^='#']")) toc.open = false;
             });
           }
           var entries = Array.from(root.querySelectorAll(".sp-toc ol a")).map(function (link) {
