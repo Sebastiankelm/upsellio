@@ -1188,7 +1188,34 @@ function upsellio_render_unified_footer($args = [])
         @media (max-width:1100px){.nf-footer-grid{grid-template-columns:1fr 1fr;gap:30px}}
         @media (max-width:720px){.nf-wrap{width:min(1240px,100% - 24px)}.nf-footer-grid{grid-template-columns:1fr;padding:44px 0 36px}}
         .nf-footer-grid.is-no-cities{grid-template-columns:1.3fr 1fr 1fr}
-      </style>
+      
+        /* Reference: light footer, three link groups and a separate SEO disclosure. */
+        .nf-footer{background:#fff;color:#0f1115;border-top:1px solid #e3e6ea}
+        .nf-footer::before{display:none}
+        .nf-wrap{width:min(1112px,calc(100% - 48px))}
+        .nf-logo{color:#0f1115;font-size:24px;letter-spacing:-.04em}
+        .nf-logo img{height:36px;width:auto}
+        .nf-logo-mark::after{background:#fff}
+        .nf-footer-grid,.nf-footer-grid.is-no-cities{display:grid;grid-template-columns:minmax(0,1.55fr) repeat(3,minmax(0,1fr));gap:36px;padding:56px 0 40px}
+        .nf-foot-brand p{color:#5f636b;font-size:14px;line-height:1.65;margin:16px 0 20px}
+        .nf-foot-contacts a,.nf-foot-contacts span{color:#3a3d44;font-size:14px}
+        .nf-foot-contacts a i,.nf-foot-contacts span i{background:#effaf7;color:#06745f}
+        .nf-foot-h{color:#0f1115;font-size:14px;font-weight:700;letter-spacing:0;text-transform:none}
+        .nf-foot-col ul{gap:10px;margin:0 0 24px}
+        .nf-foot-col ul li a,.nf-cities-grid li a{color:#5f636b;font-size:14px}
+        .nf-foot-col ul li a:hover,.nf-cities-grid li a:hover,.nf-foot-contacts a:hover{color:#06745f}
+        .nf-footer .nf-foot-cities{grid-column:1/-1;border-top:1px solid #e3e6ea;padding-top:16px}
+        .nf-footer .nf-foot-cities summary{cursor:pointer;color:#5f636b;font-weight:600;margin:0}
+        .nf-footer .nf-foot-cities details[open] summary{margin-bottom:16px}
+        .nf-cities-grid{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+        .nf-cities-all{color:#06745f}
+        .nf-foot-bar{border-color:#e3e6ea}
+        .nf-foot-bar-row,.nf-foot-social a{color:#5f636b;font-size:13px}
+        .nf-foot-social a:hover{color:#06745f}
+        .nf-footer a:focus-visible,.nf-footer summary:focus-visible{outline:2px solid #06745f;outline-offset:4px}
+        @media(max-width:900px){.nf-footer-grid,.nf-footer-grid.is-no-cities{grid-template-columns:1fr 1fr;gap:28px}}
+        @media(max-width:540px){.nf-wrap{width:calc(100% - 40px)}.nf-footer-grid,.nf-footer-grid.is-no-cities{grid-template-columns:1fr 1fr;gap:24px;padding:40px 0 28px}.nf-foot-brand{grid-column:1/-1}.nf-foot-bar-row{gap:12px}.nf-foot-social{flex-wrap:wrap;gap:12px}}
+</style>
       <div class="nf-wrap nf-footer-grid<?php echo $show_cities ? "" : " is-no-cities"; ?>">
         <div class="nf-foot-brand">
           <a href="<?php echo esc_url(home_url("/")); ?>" class="nf-logo">
@@ -1204,21 +1231,25 @@ function upsellio_render_unified_footer($args = [])
               Upsellio
             <?php endif; ?>
           </a>
-          <p><?php echo esc_html($brand_description); ?></p>
+          <p>Reklamy, strony i sklepy dla małych firm, sklepów internetowych, lokali i usług lokalnych.</p>
           <div class="nf-foot-contacts">
-            <a href="<?php echo esc_url($contact_email_href); ?>"><i>@</i><span><?php echo esc_html($contact_email); ?></span></a>
             <a href="<?php echo esc_url("tel:" . $contact_phone_href); ?>"><i>T</i><span><?php echo esc_html($contact_phone); ?></span></a>
-            <?php if ($brand_address !== "") : ?><span><i>A</i><span><?php echo esc_html($brand_address); ?></span></span><?php endif; ?>
+            <a href="<?php echo esc_url($contact_email_href); ?>"><i>@</i><span><?php echo esc_html($contact_email); ?></span></a>
+            <?php if ($brand_address !== "") : ?><span><i>A</i><span><?php echo esc_html($brand_address . " · pn–pt 9–17"); ?></span></span><?php endif; ?>
           </div>
         </div>
 
         <?php
-        $sections_for_column_one = array_slice($normalized_sections, 0, 2);
-        $sections_for_column_two = array_slice($normalized_sections, 2);
+        // Preserve configured links and distribute them over three reference columns.
+        $column_groups = [[], [], []];
+        foreach ($normalized_sections as $section_index => $footer_section) {
+            $column_groups[min($section_index, 2)][] = $footer_section;
+        }
         ?>
+        <?php foreach ($column_groups as $column_sections) : ?>
         <div class="nf-foot-col">
-          <?php foreach ($sections_for_column_one as $footer_section) : ?>
-            <div class="nf-foot-h"><?php echo esc_html((string) $footer_section["title"]); ?></div>
+          <?php foreach ($column_sections as $footer_section) : ?>
+            <h2 class="nf-foot-h"><?php echo esc_html((string) $footer_section["title"]); ?></h2>
             <ul>
               <?php foreach ((array) $footer_section["links"] as $footer_link) : ?>
                 <li><a href="<?php echo esc_url((string) $footer_link["url"]); ?>"><?php echo esc_html((string) $footer_link["label"]); ?></a></li>
@@ -1226,17 +1257,7 @@ function upsellio_render_unified_footer($args = [])
             </ul>
           <?php endforeach; ?>
         </div>
-
-        <div class="nf-foot-col">
-          <?php foreach ($sections_for_column_two as $footer_section) : ?>
-            <div class="nf-foot-h"><?php echo esc_html((string) $footer_section["title"]); ?></div>
-            <ul>
-              <?php foreach ((array) $footer_section["links"] as $footer_link) : ?>
-                <li><a href="<?php echo esc_url((string) $footer_link["url"]); ?>"><?php echo esc_html((string) $footer_link["label"]); ?></a></li>
-              <?php endforeach; ?>
-            </ul>
-          <?php endforeach; ?>
-        </div>
+        <?php endforeach; ?>
 
         <?php if ($show_cities) : ?>
         <div class="nf-foot-col nf-foot-cities">
