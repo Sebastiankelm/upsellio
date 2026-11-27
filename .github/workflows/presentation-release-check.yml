@@ -51,11 +51,15 @@ jobs:
               # Intentional reference-design migration: the homepage has a new contract.
               # Other templates retain all previous presentation safeguards.
               if n=="front-page.php" and "upsellio-reference-home-css" in new:
-                  assert sep2 and "wp_footer();" in new
+                  shared_footer = "get_footer();" in new and "upsellio_render_reference_cta" in d
+                  assert sep2 and ("wp_footer();" in new or shared_footer)
                   assert len(re.findall(r"<h1\b",d))==1
                   assert len(re.findall(r"<form\b",d))==1
-                  assert len(re.findall(r"<section\b",d))==9
-                  for key in ("start","diagnoza","kontakt","problem","uslugi","system","case-study","kim-jestem","jak-dzialam","faq","up-ref-main","upref-footer"):
+                  assert len(re.findall(r"<section\b",d))==(8 if shared_footer else 9)
+                  required = ("start","diagnoza","kontakt","problem","uslugi","system","case-study","kim-jestem","jak-dzialam","faq","up-ref-main")
+                  if not shared_footer:
+                      required += ("upref-footer",)
+                  for key in required:
                       assert 'id="'+key+'"' in d,(n,"missing reference ID",key)
                   for name in ("lead_name","lead_phone","lead_company","lead_consent","lead_form_origin"):
                       assert 'name="'+name+'"' in d,(n,"missing CRM field",name)
@@ -63,7 +67,13 @@ jobs:
                   assert "upsellio_unified_lead_form" in d
                   assert "Więcej zamówień" in d and "Trzy proste kroki" in d
                   assert "dc-import" not in d and ".dc.html" not in d
-                  assert "upref-services-btn" in new and "upref-mobile-btn" in new
+                  if shared_footer:
+                      header=(p/"header.php").read_text(encoding="utf-8")
+                      footer=(p/"footer.php").read_text(encoding="utf-8")
+                      assert "ur-services" in header and "ur-mobile-toggle" in header and "ur-mobile-panel" in header
+                      assert "wp_footer();" in footer
+                  else:
+                      assert "upref-services-btn" in new and "upref-mobile-btn" in new
                   assert "prefers-reduced-motion" in new
                   print(n,"PASS: reference layout, single short CRM form, navigation and anchors")
                   continue
