@@ -107,6 +107,22 @@ jobs:
                   assert len(re.findall(r'<section\b',ext))==len(re.findall(r'</section>',ext)),(n,"balanced extended sections")
                   print(n,"PASS: optional sections, FAQ and responsive CTA")
               print(n,"PASS: lint, head, H1, IDs, anchors, origins")
+          about=p/"page-o-mnie.php"
+          subprocess.run(["php","-n","-l",str(about)],check=True)
+          previous=subprocess.check_output(["git","show",os.environ["BASE_SHA"]+":"+str(about)]).decode("utf-8").replace("\r\n","\n")
+          current=about.read_text(encoding="utf-8")
+          seo=lambda s:s[s.index('add_action("wp_head"'):s.index("get_header();")]
+          assert seo(previous)==seo(current),"About Person and breadcrumb schema changed"
+          assert 'upsellio_register_template_seo_head("about")' in current
+          assert len(re.findall(r"<h1\b",current))==1
+          assert len(re.findall(r"<section\b",current))==len(re.findall(r"</section>",current))==6
+          assert current.count('id="kontakt-o-mnie"')==1 and 'href="#kontakt-o-mnie"' in current
+          assert 'upsellio_render_lead_form([' in current and '"origin" => "about-contact-form"' in current
+          assert '"redirect_url" => $about_url . "#kontakt-o-mnie"' in current
+          assert '"variant" => "full"' in current and 'get_footer();' in current
+          assert all(token in current for token in ('#effaf7','#f5f6f8','#06745f','#0f1115','prefers-reduced-motion'))
+          assert "—" not in current
+          print("page-o-mnie.php PASS: lint, SEO, CRM, reference palette and contact anchors")
           PY
       - name: Shared JavaScript syntax
         run: |
