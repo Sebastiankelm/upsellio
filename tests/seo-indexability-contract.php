@@ -54,4 +54,10 @@ check(!upsellio_sitemap_post_is_indexable(new WP_Post(8,"page","crm-app"),home_u
 $options = ["blog_public"=>0];
 check(strpos(upsellio_get_robots_txt_content(),"Disallow: /\n") !== false, "Respect private site");
 check(upsellio_collect_sitemap_entries() === [], "Private sitemap empty");
-echo "SEO indexing regression tests passed\n";
+check(upsellio_public_copy_short_dash("Nagłówek — treść — przykład") === "Nagłówek - treść - przykład", "Replace em dashes");
+check(upsellio_public_copy_short_dash("2024–2026, e-commerce, 5 − 2") === "2024–2026, e-commerce, 5 − 2", "Preserve ranges, compounds and minus");
+check(upsellio_public_copy_short_dash("Bez zmian.") === "Bez zmian.", "Ordinary copy unchanged");
+check(upsellio_public_copy_output("<?xml version=\"1.0\"?><url>—</url>", PHP_OUTPUT_HANDLER_FINAL) === "<?xml version=\"1.0\"?><url>—</url>", "Non-HTML output untouched");
+check(upsellio_public_copy_output("<html>—</html>", PHP_OUTPUT_HANDLER_FLUSH) === "<html>—</html>", "Partial output untouched");
+check(upsellio_public_copy_normalize_html("<html>—</html>") === "<html>—</html>", "Fail closed without WordPress HTML API");
+echo "SEO indexing and editorial typography regression tests passed\n";
