@@ -238,7 +238,41 @@ if (have_posts()) :
           @media(max-width:980px){.sp-art .sp-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"toc" "article";gap:32px;max-width:800px}.sp-art .sp-toc{position:static;max-height:none;overflow:visible}.sp-art .sp-rel-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
           @media(max-width:720px){.sp-art .sp-wrap,.sp-art .sp-wrap-narrow,.sp-art .sp-grid,.sp-art .sp-related .sp-wrap-narrow{width:calc(100% - 40px)}.sp-art .sp-h1{font-size:clamp(32px,8.5vw,40px)}.sp-art .sp-cover{padding-bottom:32px}.sp-art .sp-body{padding-bottom:64px}.sp-art .sp-rel-grid{grid-template-columns:minmax(0,1fr)}.sp-art .sp-related{padding:48px 0 64px}.sp-art .sp-author-box{padding:20px}}
           @media(prefers-reduced-motion:reduce){.sp-art *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
-        </style>
+        
+          /* Final reference artboard overrides, scoped to single posts. */
+          .sp-art{background:#fff;color:#0f1115}
+          .sp-art .sp-wrap,.sp-art .sp-grid,.sp-art .sp-related .sp-wrap-narrow{width:min(1112px,calc(100% - 48px))}
+          .sp-art .sp-wrap-narrow{width:min(850px,calc(100% - 48px))}
+          .sp-art .sp-crumbs{background:#fff;border:0;padding:24px 0 0}
+          .sp-art .sp-head{background:#fff;padding:24px 0 32px}
+          .sp-art .sp-head .sp-eyebrow{background:#dff5ef;color:#06745f;letter-spacing:0;text-transform:none;font-size:13px}
+          .sp-art .sp-head .sp-eyebrow:before{display:none}
+          .sp-art .sp-h1{font-size:clamp(34px,4.4vw,52px);line-height:1.06;letter-spacing:-.035em;color:#0f1115}
+          .sp-art .sp-lead{font-size:20px;line-height:1.6;color:#5f636b}
+          .sp-art .sp-avatar{background:#dff5ef;color:#06745f}
+          .sp-art .sp-author{border:0;padding:0;margin-top:24px}
+          .sp-art .sp-cover{background:#fff;padding:0 0 48px}
+          .sp-art .sp-cover-img{aspect-ratio:1600/840;border-radius:24px}
+          .sp-art .sp-grid{grid-template-columns:minmax(0,720px) minmax(0,280px);gap:64px}
+          .sp-art .sp-prose h2{font-size:30px;margin:48px 0 16px;line-height:1.15}
+          .sp-art .sp-prose p,.sp-art .sp-prose li{font-size:18px;line-height:1.78}
+          .sp-art .sp-prose blockquote{font-size:22px;padding:24px 28px;border-color:#06745f;background:#effaf7}
+          .sp-art .sp-author-box{background:#f5f6f8;border-color:#e3e6ea}
+          .sp-art .sp-toc-cta{border:0;background:#0f1115;color:#fff;padding:24px;border-radius:20px}
+          .sp-art .sp-toc-cta strong{color:#fff;font-size:20px;line-height:1.25}
+          .sp-art .sp-toc-cta p{color:#c4c8ce}
+          .sp-art .sp-toc-cta a{background:#0bb39c;color:#0f1115;border-radius:999px;padding:12px 16px;justify-content:center;text-align:center;font-weight:700}
+          .sp-art .sp-contact-disclosure{margin-top:24px;scroll-margin-top:108px;border:1px solid #e3e6ea;border-radius:20px;padding:18px 24px}
+          .sp-art .sp-contact-disclosure>summary{font-size:16px;font-weight:700;color:#06745f;cursor:pointer}
+          .sp-art .sp-contact-disclosure .hr-contact-shell{margin-top:24px}
+          .sp-art .sp-related .sp-h2{font-size:28px}
+          .sp-art .sp-related .sp-sec-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
+          .sp-art .sp-related .sp-divider{display:none}
+          .sp-art .sp-rel-grid{margin-top:24px}
+          .sp-art .sp-rel-card h3{font-size:19px}
+          @media(max-width:980px){.sp-art .sp-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"toc" "article";gap:32px;max-width:800px}}
+          @media(max-width:720px){.sp-art .sp-wrap,.sp-art .sp-wrap-narrow,.sp-art .sp-grid,.sp-art .sp-related .sp-wrap-narrow{width:calc(100% - 40px)}.sp-art .sp-h1{font-size:clamp(32px,8.5vw,40px)}.sp-art .sp-prose h2{font-size:26px}.sp-art .sp-prose p,.sp-art .sp-prose li{font-size:17px}.sp-art .sp-cover{padding-bottom:32px}}
+</style>
 
         <main class="sp-art">
           <?php
@@ -246,7 +280,7 @@ if (have_posts()) :
           $category_label = !empty($pill_categories) ? $pill_categories[0] : "Blog";
           $read_time = (string) upsellio_estimated_read_time($post_id);
           $author_name = (string) get_the_author_meta("display_name", (int) get_post_field("post_author", $post_id));
-          $category_url = $primary_category instanceof WP_Term ? get_category_link((int) $primary_category->term_id) : $blog_index_url;
+          $category_url = $primary_category instanceof WP_Term ? add_query_arg("category", $primary_category->slug, $blog_index_url) : $blog_index_url;
           if ($author_name === "") {
               $author_name = "Upsellio";
           }
@@ -264,7 +298,7 @@ if (have_posts()) :
 
           <header class="sp-head">
             <div class="sp-wrap-narrow">
-              <div class="sp-eyebrow" data-animate="fade-up"><?php echo esc_html($category_label . " · " . $read_time); ?></div>
+              <div class="sp-eyebrow" data-animate="fade-up"><?php echo esc_html($category_label); ?></div>
               <h1 class="sp-h1" data-animate="fade-up" data-delay="1"><?php echo esc_html(get_the_title($post_id)); ?></h1>
               <?php if (has_excerpt()) : ?>
                 <p class="sp-lead" data-animate="fade-up" data-delay="2"><?php echo esc_html(get_the_excerpt($post_id)); ?></p>
@@ -278,7 +312,7 @@ if (have_posts()) :
                 <div class="sp-share" aria-label="Udostępnij artykuł">
                   <a href="https://www.facebook.com/sharer/sharer.php?u=<?php echo rawurlencode(get_permalink($post_id)); ?>" target="_blank" rel="noopener noreferrer" aria-label="Udostępnij na Facebooku">f</a>
                   <a href="https://www.linkedin.com/sharing/share-offsite/?url=<?php echo rawurlencode(get_permalink($post_id)); ?>" target="_blank" rel="noopener noreferrer" aria-label="Udostępnij na LinkedIn">in</a>
-                  <a href="https://twitter.com/intent/tweet?url=<?php echo rawurlencode(get_permalink($post_id)); ?>" target="_blank" rel="noopener noreferrer" aria-label="Udostępnij w X">𝕏</a>
+                  
                   <a href="<?php echo esc_url(get_permalink($post_id)); ?>" data-sp-copy-link aria-label="Kopiuj adres artykułu">⎘</a>
                 </div>
                 <p class="sp-share-status" role="status" aria-live="polite"></p>
@@ -321,28 +355,22 @@ if (have_posts()) :
                   </ol>
                 <?php endif; ?>
                 <div class="sp-toc-cta">
-                  <strong>Bezpłatna diagnoza</strong>
+                  <strong>Wolisz, żebym ustawił to za Ciebie?</strong>
                   <p>30 minut, bez zobowiązań. Powiem, od czego zacząć w Twojej firmie.</p>
-                  <?php if ($offer_form_url !== "") : ?><a href="<?php echo esc_url($offer_form_url); ?>">Umów rozmowę →</a><?php endif; ?>
+                  <a href="#kontakt" data-sp-open-contact>Umów bezpłatną diagnozę →</a>
                 </div>
               </aside>
 
               <article class="sp-prose">
                 <?php echo wp_kses_post($content_html); ?>
 
-                <div class="sp-end-cta">
-                  <div>
-                    <div class="sp-eyebrow">Bezpłatna diagnoza</div>
-                    <strong>Sprawdźmy, co blokuje zamówienia lub telefony od Twoich klientów.</strong>
-                  </div>
-                  <?php if ($offer_form_url !== "") : ?><a class="sp-btn post-cta" href="<?php echo esc_url($offer_form_url); ?>">Umów rozmowę →</a><?php endif; ?>
-                </div>
+                
 
                 <?php if (!empty($post_categories)) : ?>
                   <div class="sp-tags">
                     <span>Kategorie:</span>
                     <?php foreach ($post_categories as $post_category) : ?>
-                      <a href="<?php echo esc_url(get_category_link($post_category->term_id)); ?>"><?php echo esc_html($post_category->name); ?></a>
+                      <a href="<?php echo esc_url(add_query_arg("category", $post_category->slug, $blog_index_url)); ?>"><?php echo esc_html($post_category->name); ?></a>
                     <?php endforeach; ?>
                   </div>
                 <?php endif; ?>
@@ -352,7 +380,7 @@ if (have_posts()) :
                   <div class="sp-tags" aria-label="Tagi artykułu">
                     <span>Tematy:</span>
                     <?php foreach ($article_tags as $article_tag) : ?>
-                      <?php $article_tag_url = get_tag_link($article_tag->term_id); ?>
+                      <?php $article_tag_url = add_query_arg("tags", $article_tag->slug, $blog_index_url); ?>
                       <?php if (!is_wp_error($article_tag_url)) : ?>
                         <a href="<?php echo esc_url($article_tag_url); ?>"><?php echo esc_html("#" . $article_tag->name); ?></a>
                       <?php endif; ?>
@@ -369,7 +397,7 @@ if (have_posts()) :
                   </div>
                 </div>
 
-                <section class="hr-contact-shell" id="kontakt">
+                <details class="sp-contact-disclosure" id="kontakt"><summary>Umów bezpłatną diagnozę</summary><section class="hr-contact-shell">
                   <?php
                   echo upsellio_render_lead_form([
                       "origin" => "single-post-contact-form",
@@ -382,7 +410,7 @@ if (have_posts()) :
                   ]);
                   ?>
                   <p class="sp-contact-note">Możesz też napisać: <a href="<?php echo esc_url("mailto:" . $contact_email); ?>"><?php echo esc_html($contact_email); ?></a> lub zadzwonić: <a href="<?php echo esc_url("tel:" . preg_replace("/\s+/", "", $contact_phone)); ?>"><?php echo esc_html($contact_phone); ?></a></p>
-                </section>
+                </section></details>
               </article>
             </div>
           </section>
@@ -391,7 +419,7 @@ if (have_posts()) :
             <section class="sp-related">
               <div class="sp-wrap-narrow">
                 <header class="sp-sec-head">
-                  <div class="sp-eyebrow">Czytaj też</div>
+                  
                   <h2 class="sp-h2">Przeczytaj też</h2>
                   <a href="<?php echo esc_url($blog_index_url); ?>" class="sp-btn">Wszystkie wpisy</a>
                 </header>
@@ -418,7 +446,7 @@ if (have_posts()) :
                       <div class="sp-rel-meta">
                         <span><?php echo esc_html($related_cat_name); ?></span>
                         <span>·</span>
-                        <span><?php echo esc_html(upsellio_estimated_read_time($related_post_id)); ?></span>
+                        <span><?php echo esc_html(get_the_date("j M Y", $related_post_id)); ?> · <?php echo esc_html(upsellio_estimated_read_time($related_post_id)); ?></span>
                       </div>
                       <h3><?php echo esc_html(get_the_title($related_post_id)); ?></h3>
                     </a>
@@ -433,6 +461,9 @@ if (have_posts()) :
         (function () {
           var root = document.querySelector(".sp-art");
           if (!root) return;
+          var contact = root.querySelector(".sp-contact-disclosure");
+          root.querySelectorAll("[data-sp-open-contact]").forEach(function(link){link.addEventListener("click",function(){if(contact)contact.open=true;});});
+          if(contact && location.hash === "#kontakt")contact.open=true;
           var copy = root.querySelector("[data-sp-copy-link]");
           var status = root.querySelector(".sp-share-status");
           if (copy && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
