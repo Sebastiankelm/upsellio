@@ -493,7 +493,22 @@ while (have_posts()) :
     $articleHtml = preg_replace_callback(
         '/<table\b[^>]*>[\s\S]*?<\/table>/i',
         static function ($match) {
-            return '<div class="city-table-scroll" role="region" aria-label="Tabela danych" tabindex="0">' . $match[0] . '</div>';
+            $table = $match[0];
+            $captionText = "Tabela danych";
+            if (preg_match('/<caption\b[^>]*>([\s\S]*?)<\/caption>/i', $table, $captionMatch)) {
+                $captionText = trim(wp_strip_all_tags($captionMatch[1]));
+                $captionText = $captionText !== "" ? $captionText : "Tabela danych";
+                // Retain the native caption and make the specific scenario table easier to scan.
+                if ($captionText === "Przykładowe scenariusze marketingowe") {
+                    $table = preg_replace('/<\/caption>/i', '<span class="city-table-subtitle">Porównanie ofert, kryteriów zakupowych i działań marketingowych</span></caption>', $table, 1);
+                }
+            }
+            $columnCount = 0;
+            if (preg_match('/<thead\b[^>]*>[\s\S]*?<tr\b[^>]*>([\s\S]*?)<\/tr>/i', $table, $headerRow)) {
+                $columnCount = preg_match_all('/<(?:th|td)\b/i', $headerRow[1]);
+            }
+            $layout = $columnCount === 2 ? " city-table--two" : ($columnCount === 3 ? " city-table--three" : " city-table--wide");
+            return '<div class="city-table-card' . $layout . '"><div class="city-table-scroll" role="region" aria-label="' . esc_attr($captionText) . '" tabindex="0">' . $table . '</div><p class="city-table-hint" aria-hidden="true">Przesuń tabelę w bok, aby zobaczyć wszystkie kolumny.</p></div>';
         },
         $articleHtml
     );
@@ -650,6 +665,37 @@ while (have_posts()) :
         .city-page .city-prose table{font-size:14px}
         .city-page .city-side-card{padding:18px}
       }
+
+      /* Editorial data tables: native caption, explicit header and readable row hierarchy. */
+      .city-page .city-prose .city-table-card{margin:28px 0 36px;border:1px solid #e2e8f0;border-radius:16px;background:#fff;box-shadow:0 6px 20px rgba(15,23,42,.045);overflow:hidden}
+      .city-page .city-prose .city-table-card .city-table-scroll{margin:0;border:0;border-radius:0;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-color:#94a3b8 #f1f5f9;scrollbar-width:thin}
+      .city-page .city-prose .city-table-scroll:focus-visible{outline:2px solid #0f766e;outline-offset:-2px}
+      .city-page .city-prose .city-table-card table{display:table;caption-side:top;width:100%;min-width:620px;table-layout:auto;border:0;border-collapse:separate;border-spacing:0;margin:0;background:#fff}
+      .city-page .city-prose .city-table--two table{min-width:360px;table-layout:fixed}
+      .city-page .city-prose .city-table--three table{min-width:520px;table-layout:fixed}
+      .city-page .city-prose .city-table-card caption{display:table-caption;caption-side:top;text-align:left;background:#fff;padding:20px 20px 18px;border:0;font-family:var(--font-display,"Bricolage Grotesque",sans-serif);font-size:clamp(19px,2vw,23px);font-weight:750;line-height:1.3;letter-spacing:-.02em;color:#0f172a}
+      .city-page .city-prose .city-table-subtitle{display:block;margin-top:6px;font-family:var(--font-body,"DM Sans",sans-serif);font-size:13px;font-weight:400;line-height:1.5;letter-spacing:0;color:#475569}
+      .city-page .city-prose .city-table-card thead{display:table-header-group}
+      .city-page .city-prose .city-table-card tbody{display:table-row-group}
+      .city-page .city-prose .city-table-card tr{display:table-row}
+      .city-page .city-prose .city-table-card :is(th,td){display:table-cell;border:0;border-bottom:1px solid #e2e8f0;padding:15px 20px;line-height:1.55;text-align:left;vertical-align:top;white-space:normal;overflow-wrap:anywhere}
+      .city-page .city-prose .city-table-card thead th{background:#f0fdfa;border-top:1px solid #ccfbf1;border-bottom:1px solid #99f6e4;font-size:13px;font-weight:700;color:#134e4a}
+      .city-page .city-prose .city-table-card tbody th{font-weight:700;color:#0f172a}
+      .city-page .city-prose .city-table-card tbody tr:nth-child(even){background:#f8fafc}
+      .city-page .city-prose .city-table-card tbody tr:last-child > *{border-bottom:0}
+      .city-page .city-prose .city-table--two thead th:first-child{width:40%}
+      .city-page .city-prose .city-table--three thead th:first-child{width:32%}
+      .city-page .city-prose .city-table--three thead th:nth-child(2){width:38%}
+      .city-page .city-prose .city-table--three tbody td:last-child{color:#0f766e;font-weight:600}
+      .city-page .city-prose .city-table-hint{display:none;margin:0;padding:10px 16px;border-top:1px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:12px;line-height:1.4}
+      @media(max-width:760px){
+        .city-page .city-prose .city-table-card{margin:22px 0 28px}
+        .city-page .city-prose .city-table-card caption{padding:16px}
+        .city-page .city-prose .city-table-card :is(th,td){padding:12px 14px}
+        .city-page .city-prose .city-table--wide .city-table-hint{display:block}
+      }
+      @media(max-width:552px){.city-page .city-prose .city-table--three .city-table-hint{display:block}}
+      @media(max-width:392px){.city-page .city-prose .city-table--two .city-table-hint{display:block}}
     </style>
 
     <main class="city-page">

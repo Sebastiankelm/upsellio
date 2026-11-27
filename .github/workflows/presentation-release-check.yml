@@ -38,6 +38,14 @@ jobs:
               subprocess.run(["php","-n","-l",str(f)],check=True)
               old=subprocess.check_output(["git","show",os.environ["BASE_SHA"]+":"+str(f)]).decode("utf-8").replace("\r\n","\n")
               new=f.read_text(encoding="utf-8")
+              # The blog entry point delegates to the shared template. Preserve the
+              # wrapper itself and run the same checks on its actual view.
+              if n=="home.php" and "require get_theme_file_path('/ups-blog-core.php');" in old:
+                  assert old==new,(n,"blog entry point changed")
+                  f=p/"ups-blog-core.php"
+                  subprocess.run(["php","-n","-l",str(f)],check=True)
+                  old=subprocess.check_output(["git","show",os.environ["BASE_SHA"]+":"+str(f)]).decode("utf-8").replace("\r\n","\n")
+                  new=f.read_text(encoding="utf-8")
               a,sep,b=old.partition("get_header();")
               c,sep2,d=new.partition("get_header();")
               # Intentional reference-design migration: the homepage has a new contract.
