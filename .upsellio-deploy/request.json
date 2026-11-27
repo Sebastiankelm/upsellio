@@ -1,4 +1,12 @@
 {
   "schema": 1,
-  "action": "idle"
+  "request_id": "bridge-smoke-20261127-d764d8c7",
+  "commit": "d764d8c70d39a57a880853b35acff461afcc2e72",
+  "files": [
+    {
+      "path": "style.css",
+      "before": "2d349922c8550eddcb4c433279720aa56b1baf0f5ff33c552c2f749d2cefe4a9",
+      "after": "d2df16d6df813d1f97987494b3696fd08f7a9cf40125efaf9f54e673f9fb0e8b"
+    }
+  ]
 }
