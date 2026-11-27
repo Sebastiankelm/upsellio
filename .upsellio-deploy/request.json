@@ -1,12 +1,1 @@
-{
-  "schema": 1,
-  "request_id": "public-copy-dashes-20261127-631c2b1c",
-  "commit": "631c2b1cd833f41e0fc21e24823eb5eb6f4dfb6d",
-  "files": [
-    {
-      "path": "inc/technical-seo.php",
-      "before": "318c830d9a09e519564d226d56b0c0415f47b8056fbb3f61304710dd74a4611b",
-      "after": "6ad70d59d402b9231a643cd1152e130556443b85d9246514a1f9d722c961ecf8"
-    }
-  ]
-}
+{"schema":1,"action":"idle"}
