@@ -812,12 +812,12 @@ SOFTWARE.
           </section>
 
           <div class="city-band">
-            <h2>Potrzebujesz planu działań dla <?php echo esc_html($cityName); ?>?</h2>
+            <h2>Porozmawiajmy o planie działań</h2>
             <p>W 30 minut pokażę, co warto poprawić najpierw, żeby szybciej podnieść jakość leadów i skuteczność sprzedaży.</p>
           </div>
 
           <section class="city-conversion-form" id="formularz-miasto">
-            <h2>Formularz kontaktowy dla <?php echo esc_html($cityName); ?></h2>
+            <h2>Skontaktuj się w sprawie marketingu</h2>
             <p>Zostaw krótki opis sytuacji firmy. Otrzymasz konkretną rekomendację działań dla rynku lokalnego.</p>
             <div class="city-conversion-links">
               <?php if ($contactPhone !== "" && $phoneHref !== "") : ?>
@@ -856,7 +856,7 @@ SOFTWARE.
 
           <?php if (!empty($faq)) : ?>
             <div class="city-faq">
-              <h2>Najczęściej zadawane pytania</h2>
+              <h2>Pytania o współpracę</h2>
               <?php foreach ($faq as $item) : ?>
                 <details class="city-faq-item up-faq-disclosure">
                   <summary><span><?php echo esc_html($item["q"]); ?></span></summary>
@@ -868,7 +868,7 @@ SOFTWARE.
         </article>
 
         <aside class="city-side-card">
-          <div class="city-side-title">Obsługiwane też w pobliżu</div>
+          <div class="city-side-title">Marketing w pobliskich miastach</div>
           <div class="city-side-list">
             <?php foreach ($related as $item) : ?>
               <a class="city-side-link" href="<?php echo esc_url($item["url"]); ?>">
