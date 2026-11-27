@@ -489,6 +489,14 @@ while (have_posts()) :
         },
         $articleHtml
     );
+    // Keep native table semantics and allow wide tables to scroll on narrow screens.
+    $articleHtml = preg_replace_callback(
+        '/<table\b[^>]*>[\s\S]*?<\/table>/i',
+        static function ($match) {
+            return '<div class="city-table-scroll" role="region" aria-label="Tabela danych" tabindex="0">' . $match[0] . '</div>';
+        },
+        $articleHtml
+    );
     ?>
     <style>
       .city-wrap{width:min(1240px,calc(100% - 32px));margin:0 auto}
@@ -565,9 +573,86 @@ while (have_posts()) :
       @media(min-width:761px){.city-wrap{width:min(1240px,calc(100% - 48px))}}
       @media(min-width:761px){.city-form-grid.two{grid-template-columns:1fr 1fr}.city-link-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.city-local-context-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
       @media(min-width:961px){.city-main{grid-template-columns:minmax(0,1fr) 340px}.city-side-card{position:sticky}}
+
+      /* City-only neutral palette; do not alter the global brand theme. */
+      body.single-miasto{--bg:#fff;--bg-alt:#f8fafc;--surface-soft:#f8fafc;--sand:#f8fafc;--sand-d:#f1f5f9;--sand-b:#cbd5e1;--border:#e2e8f0;--border-strong:#cbd5e1;background:#fff}
+      body.single-miasto .ups-footer{--uf-bg:#fff;--uf-border:#e2e8f0;--uf-border-strong:#cbd5e1;background:#fff}
+      body.single-miasto .ups-footer :is(.ups-footer__trust-item,.ups-footer__mini-box,.ups-footer__chips a){background:#f8fafc}
+      body.single-miasto .ups-footer :is(.ups-footer__links a,.ups-footer__contact a):hover{background:#f1f5f9}
+      .city-page{background:#fff;color:#0f172a;font-family:var(--font-body,"DM Sans",sans-serif)}
+      .city-page .city-hero{background:linear-gradient(135deg,#fff 20%,#f0fdfa 100%);border-color:#e2e8f0}
+      .city-page .city-h1{margin:0;line-height:1.09;letter-spacing:-.045em;overflow-wrap:break-word}
+      .city-page .city-lead{font-size:clamp(16px,1.55vw,18px);line-height:1.72;max-width:68ch;color:#334155}
+      .city-page .city-pill{background:#fff;border-color:#cbd5e1;color:#334155;line-height:1.45}
+      .city-page .city-main{align-items:start;gap:clamp(24px,3.5vw,48px);padding:clamp(32px,5vw,64px) 0 clamp(48px,6vw,80px)}
+      .city-page .city-content{min-width:0;padding:0;border:0;border-radius:0;background:#fff;color:#334155;font-size:17px;line-height:1.8;overflow-wrap:break-word}
+      .city-page .city-prose{min-width:0;max-width:76ch}
+      .city-page .city-prose > :first-child{margin-top:0}
+      .city-page .city-prose > :last-child{margin-bottom:0}
+      .city-page .city-content :is(h2,h3,h4){font-family:var(--font-display,"Bricolage Grotesque",sans-serif);font-weight:750;color:#0f172a;letter-spacing:-.025em;line-height:1.25;text-wrap:pretty}
+      .city-page .city-prose h2{font-size:clamp(25px,2.7vw,32px);margin:44px 0 16px}
+      .city-page .city-prose h3{font-size:clamp(20px,2vw,24px);margin:28px 0 12px}
+      .city-page .city-prose h4{font-size:19px;margin:24px 0 10px}
+      .city-page .city-prose p{margin:0 0 18px}
+      .city-page .city-prose strong{color:#0f172a;font-weight:700}
+      .city-page .city-prose :is(ul,ol){margin:0 0 22px;padding-inline-start:1.5em;list-style-position:outside}
+      .city-page .city-prose ul{list-style-type:disc}
+      .city-page .city-prose ol{list-style-type:decimal}
+      .city-page .city-prose li{margin:0 0 8px;padding-inline-start:3px}
+      .city-page .city-prose li::marker{color:#0f766e}
+      .city-page .city-prose li > :is(ul,ol){margin:8px 0}
+      .city-page .city-prose :is(p,li,td,th) a,.city-page .city-conversion-links a{color:#0f766e;font-weight:600;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;overflow-wrap:anywhere}
+      .city-page .city-prose a:hover{color:#115e59}
+      .city-page a:focus-visible{outline:2px solid #0f766e;outline-offset:3px}
+      .city-page .city-prose :is(figure,img){max-width:100%}
+      .city-page .city-prose img{height:auto;border-radius:12px}
+      .city-page .city-prose blockquote{margin:24px 0;padding:16px 20px;background:#f8fafc;border-left:3px solid #0d9488}
+      .city-page .city-prose blockquote p:last-child{margin-bottom:0}
+      .city-page .city-prose .city-table-scroll{max-width:100%;overflow-x:auto;margin:24px 0 32px;border:1px solid #e2e8f0;border-radius:12px;background:#fff}
+      .city-page .city-prose .wp-block-table{max-width:100%;overflow-x:auto;margin:24px 0}
+      .city-page .city-prose table{width:100%;border-collapse:collapse;table-layout:auto;color:#334155;background:#fff;font-size:15px;line-height:1.55;text-align:left}
+      .city-page .city-prose caption{text-align:left;padding:14px 16px;font-weight:700;color:#0f172a;background:#fff}
+      .city-page .city-prose :is(th,td){padding:12px 16px;vertical-align:top;border-bottom:1px solid #e2e8f0;overflow-wrap:break-word;text-align:left}
+      .city-page .city-prose thead th{background:#f1f5f9;color:#0f172a;font-weight:700}
+      .city-page .city-prose tbody th{font-weight:600;color:#0f172a}
+      .city-page .city-prose tbody tr:nth-child(even){background:#f8fafc}
+      .city-page .city-prose tbody tr:last-child > *{border-bottom:0}
+      .city-page .city-content .city-inline-cta{margin:24px 0 32px;padding:20px;background:#f0fdfa;border-color:#99f6e4;border-radius:14px}
+      .city-page .city-content .city-inline-cta strong{font-size:16px;line-height:1.5;color:#134e4a}
+      .city-page .city-inline-cta-links{gap:6px 16px;margin:12px 0}
+      .city-page .city-inline-cta-links a{font-size:14px;color:#0f766e;text-decoration:underline;text-underline-offset:3px}
+      .city-page .city-inline-cta-btn,.city-page .city-btn{min-height:44px;line-height:1.4;font-size:14px;font-weight:700;background:#0f766e;color:#fff;text-decoration:none}
+      .city-page .city-side-card{min-width:0;align-self:start;background:#fff;border-color:#e2e8f0;box-shadow:0 8px 24px rgba(15,23,42,.045)}
+      .city-page .city-side-title{font-size:23px;font-weight:700;line-height:1.25;color:#0f172a}
+      .city-page .city-side-link,.city-page .city-link-grid a{font-size:14px;line-height:1.55;color:#334155;overflow-wrap:anywhere}
+      .city-page .city-side-link:hover,.city-page .city-link-grid a:hover{color:#0f766e;text-decoration:underline}
+      .city-page .city-cta,.city-page .city-band{background:#f0fdfa;border-color:#99f6e4}
+      .city-page .city-band p{color:#334155}
+      .city-page .city-local-context,.city-page .city-conversion-form,.city-page .city-band{margin:40px 0 0;padding:clamp(18px,3vw,28px)}
+      .city-page .city-local-context{background:#f8fafc;border-color:#e2e8f0}
+      .city-page .city-local-context-item{min-width:0;font-size:15px;line-height:1.65;border-color:#e2e8f0}
+      .city-page .city-local-context-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))}
+      .city-page .city-conversion-form{background:#fff;border-color:#e2e8f0}
+      .city-page .city-conversion-form .city-lead-form{background:#fff;border-color:#e2e8f0}
+      .city-page .city-conversion-form .city-lead-form :is(input:not([type=checkbox]):not([type=hidden]),textarea,select){background:#fff;border-color:#cbd5e1;color:#0f172a}
+      .city-page .city-local-links,.city-page .city-faq{margin-top:40px;padding-top:32px;border-color:#e2e8f0}
+      .city-page .city-link-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px 18px}
+      .city-page .city-faq-item{padding:16px 0;border-bottom:1px solid #e2e8f0}
+      .city-page .city-faq-item + .city-faq-item{margin-top:0}
+      .city-page .city-faq-item h3{margin:0 0 8px;font-size:20px}
+      .city-page .city-faq-item p{margin:0}
+      @media(max-width:760px){
+        .city-page .city-hero{padding:40px 0 32px}
+        .city-page .city-h1{font-size:clamp(30px,8.5vw,42px)}
+        .city-page .city-content{font-size:16px;line-height:1.75}
+        .city-page .city-prose h2{margin-top:32px}
+        .city-page .city-prose :is(th,td){padding:10px 12px}
+        .city-page .city-prose table{font-size:14px}
+        .city-page .city-side-card{padding:18px}
+      }
     </style>
 
-    <main>
+    <main class="city-page">
       <section class="city-hero">
         <div class="city-wrap">
           <div class="city-hero-grid">
@@ -655,7 +740,9 @@ SOFTWARE.
 
       <section class="city-main city-wrap">
         <article class="city-content">
-          <?php echo $articleHtml; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+          <div class="city-prose">
+            <?php echo $articleHtml; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+          </div>
 
           <section class="city-local-context" aria-labelledby="city-local-context-title">
             <h2 id="city-local-context-title">Lokalny kontekst dla <?php echo esc_html($cityName); ?></h2>
