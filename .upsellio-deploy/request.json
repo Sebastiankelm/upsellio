@@ -1,12 +1,1 @@
-{
-  "schema": 1,
-  "request_id": "city-map-geographic-pins-20261127-23f1f93a",
-  "commit": "23f1f93a1fb9d1ffb629c5638b05f80a6d9ad059",
-  "files": [
-    {
-      "path": "single-miasto.php",
-      "before": "56432102aaf7ec42f7e04ca5628dbb7f5829d1ec62c505729f1d3cc6db70b229",
-      "after": "c297666b13cc5791b0a5eca0c5f30b7684f55d2032fd7b2093834e5a4c15e3dc"
-    }
-  ]
-}
+{"schema":1,"action":"idle"}
