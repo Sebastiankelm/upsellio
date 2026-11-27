@@ -913,8 +913,8 @@ function upsellio_public_editorial_assets()
     document.querySelectorAll("details").forEach(d => {
       if (d.matches(".up-faq-disclosure,.up-extra-content,.up-mobile-toc") || d.closest("footer,header,form,#wpadminbar,.crm-app")) return;
       const explicit = Array.from(d.classList).some(c => /(?:^|-)faq(?:-|$)/i.test(c));
-      const parent = d.closest('#faq,[class*="faq-list"],[class*="faq-grid"],.lms-faq,.lpc-faq');
-      if (explicit || parent) d.classList.add("up-faq-disclosure");
+      const parent = d.closest('#faq,[class*="faq-list"],[class*="faq-grid"],.lms-faq,.lpc-faq,.am-faq');
+      if (explicit || parent || d.matches('.mc-block-body > details[style*="border:1px solid #e2e8f0"]')) d.classList.add("up-faq-disclosure");
     });
     function revealFaq(hash) {
       if (!hash || hash.length < 2) return;
