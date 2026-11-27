@@ -791,10 +791,9 @@ SOFTWARE.
           </div>
 
           <section class="city-local-context" aria-labelledby="city-local-context-title">
-            <h2 id="city-local-context-title">Lokalny kontekst dla <?php echo esc_html($cityName); ?></h2>
+            <h2 id="city-local-context-title">Na co zwrócić uwagę w marketingu?</h2>
             <p>
-              Każda strona miasta ma osobny kontekst: rynek, wyzwanie, przewagę i sezonowość.
-              Dla <?php echo esc_html($cityName); ?> plan kampanii i strony opieram o realne bariery, a nie o ten sam szablon dla każdego miasta.
+              Przy planowaniu kampanii i strony internetowej warto uwzględnić potrzeby klientów, możliwości firmy oraz zmiany popytu w ciągu roku.
             </p>
             <div class="city-local-context-grid">
               <div class="city-local-context-item">
@@ -857,12 +856,12 @@ SOFTWARE.
 
           <?php if (!empty($faq)) : ?>
             <div class="city-faq">
-              <h2>Lokalne FAQ - <?php echo esc_html($cityName); ?></h2>
+              <h2>Najczęściej zadawane pytania</h2>
               <?php foreach ($faq as $item) : ?>
-                <div class="city-faq-item">
-                  <h3><?php echo esc_html($item["q"]); ?></h3>
+                <details class="city-faq-item up-faq-disclosure">
+                  <summary><span><?php echo esc_html($item["q"]); ?></span></summary>
                   <p><?php echo esc_html($item["a"]); ?></p>
-                </div>
+                </details>
               <?php endforeach; ?>
             </div>
           <?php endif; ?>
