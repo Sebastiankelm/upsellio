@@ -129,134 +129,46 @@ foreach ((array) $primary_navigation_links as $nav_link) {
 <noscript data-cookieconsent="marketing"><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1281722377419475&ev=PageView&noscript=1" alt="" /></noscript>
 <?php endif; ?>
 <a class="skip-link" href="#main-content">Przejdź do treści</a>
-<?php if (function_exists('upsellio_reference_home_nav') && is_front_page()) { upsellio_reference_home_nav(); echo '<div id="main-content" tabindex="-1"></div>'; return; } ?>
-<header class="nav site-nav">
-  <div class="wrap nav-inner">
-    <a href="<?php echo esc_url(home_url("/")); ?>" class="brand" aria-label="Upsellio — strona główna">
-      <?php if ($brand_logo_url !== "") : ?>
-        <?php if ($brand_logo_attachment_id > 0) : ?>
-          <?php
-          echo wp_get_attachment_image($brand_logo_attachment_id, "medium", false, [
-              "class" => "brand-logo",
-              "alt" => "Upsellio — reklamy, strony i sklepy dla małych firm",
-              "loading" => "eager",
-              "decoding" => "async",
-              "fetchpriority" => "high",
-              "sizes" => "(max-width: 760px) 163px, 222px",
-          ]);
-          ?>
-        <?php else : ?>
-          <picture>
-            <?php if ($brand_logo_webp_320_url !== "" && $brand_logo_webp_640_url !== "") : ?>
-              <source type="image/webp" srcset="<?php echo esc_url($brand_logo_webp_320_url); ?> 320w, <?php echo esc_url($brand_logo_webp_640_url); ?> 640w" sizes="(max-width: 760px) 163px, 222px" />
-            <?php endif; ?>
-            <img src="<?php echo esc_url($brand_logo_url); ?>" alt="Upsellio — reklamy, strony i sklepy dla małych firm" class="brand-logo" width="320" height="213" decoding="async" fetchpriority="high" />
-          </picture>
-        <?php endif; ?>
-      <?php else : ?>
-        <span class="brand-fallback">Upsellio</span>
-      <?php endif; ?>
-    </a>
-
-    <ul class="nav-links" aria-label="Nawigacja główna">
-      <?php foreach ($primary_navigation_top as $nav_link) : ?>
-        <?php
-        $nav_id = (int) ($nav_link["id"] ?? 0);
-        $nav_children = ($nav_id > 0 && isset($primary_navigation_children[$nav_id])) ? (array) $primary_navigation_children[$nav_id] : [];
-        $nav_url = (string) $nav_link["url"];
-        $is_active = untrailingslashit($nav_url) === untrailingslashit($current_url);
-        if (!$is_active && $is_blog_context) {
-            $is_active = untrailingslashit($nav_url) === untrailingslashit($blog_index_url);
-        }
-        if (!$is_active && $is_definitions_context) {
-            $is_active = untrailingslashit($nav_url) === untrailingslashit(home_url("/definicje/"));
-        }
-        if (!$is_active && $is_cities_context) {
-            $is_active = untrailingslashit($nav_url) === untrailingslashit(home_url("/miasta/"));
-        }
-        if (!$is_active && $is_portfolio_context) {
-            $is_active = untrailingslashit($nav_url) === untrailingslashit($portfolio_url);
-        }
-        if (!$is_active && $is_marketing_portfolio_context) {
-            $is_active = untrailingslashit($nav_url) === untrailingslashit($marketing_portfolio_url);
-        }
-        if (!$is_active && $is_lead_magnets_context) {
-            $is_active = untrailingslashit($nav_url) === untrailingslashit($lead_magnets_url);
-        }
-        if (!$is_active && $is_contact_context) {
-            $is_active = untrailingslashit($nav_url) === untrailingslashit($contact_url);
-        }
-        $has_active_child = false;
-        foreach ($nav_children as $nav_child) {
-            $child_url = (string) ($nav_child["url"] ?? "");
-            if ($child_url !== "" && untrailingslashit($child_url) === untrailingslashit($current_url)) {
-                $has_active_child = true;
-                break;
-            }
-        }
-        $is_item_active = $is_active || $has_active_child;
-        ?>
-        <?php if (!empty($nav_children)) : ?>
-          <li class="nav-dropdown">
-            <a href="<?php echo esc_url($nav_url); ?>" class="nav-dropdown-parent <?php echo $is_item_active ? "is-active" : ""; ?>" <?php echo $is_item_active ? 'aria-current="page"' : ""; ?><?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>>
-              <?php echo esc_html((string) $nav_link["title"]); ?>
-            </a>
-            <button type="button" class="nav-dropdown-toggle" aria-controls="nav-submenu-<?php echo esc_attr((string) $nav_id); ?>" aria-expanded="false" aria-label="<?php echo esc_attr("Rozwiń podmenu: " . (string) $nav_link["title"]); ?>">▾</button>
-            <div class="nav-dropdown-menu" id="nav-submenu-<?php echo esc_attr((string) $nav_id); ?>">
-              <?php foreach ($nav_children as $nav_child) : ?>
-                <?php
-                $child_url = (string) ($nav_child["url"] ?? "");
-                $is_child_active = $child_url !== "" && untrailingslashit($child_url) === untrailingslashit($current_url);
-                ?>
-                <a href="<?php echo esc_url($child_url); ?>" class="<?php echo $is_child_active ? "is-active" : ""; ?>" <?php echo ((string) ($nav_child["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?><?php echo $is_child_active ? ' aria-current="page"' : ""; ?>>
-                  <?php echo esc_html((string) ($nav_child["title"] ?? "")); ?>
-                </a>
-              <?php endforeach; ?>
-            </div>
-          </li>
-        <?php else : ?>
-          <li>
-            <a href="<?php echo esc_url($nav_url); ?>" class="<?php echo $is_item_active ? "is-active" : ""; ?>" <?php echo $is_item_active ? 'aria-current="page"' : ""; ?><?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>>
-              <?php echo esc_html((string) $nav_link["title"]); ?>
-            </a>
-          </li>
-        <?php endif; ?>
-      <?php endforeach; ?>
-    </ul>
-
-    <?php if ($nav_cta_url !== "") : ?>
-      <a href="<?php echo esc_url($nav_cta_url); ?>" class="btn btn-primary btn-sm nav-cta" aria-label="Bezpłatna diagnoza">
-        <span class="nav-cta-long">Bezpłatna diagnoza</span>
-        <span class="nav-cta-short">Bezpłatna diagnoza</span>
-      </a>
-    <?php endif; ?>
-
-    <button class="hamburger" id="hamburger" aria-label="Otwórz menu" aria-controls="mobile-menu" aria-expanded="false" type="button">
-      <span></span><span></span><span></span>
-    </button>
-  </div>
-  <div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Menu mobilne" inert>
-    <div class="wrap">
-      <?php foreach ($primary_navigation_top as $nav_link) : ?>
-        <a href="<?php echo esc_url((string) $nav_link["url"]); ?>"<?php echo ((string) ($nav_link["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>><?php echo esc_html((string) $nav_link["title"]); ?></a>
-        <?php
-        $mobile_nav_id = (int) ($nav_link["id"] ?? 0);
-        $mobile_children = ($mobile_nav_id > 0 && isset($primary_navigation_children[$mobile_nav_id])) ? (array) $primary_navigation_children[$mobile_nav_id] : [];
-        ?>
-        <?php foreach ($mobile_children as $mobile_child) : ?>
-          <a class="mobile-sub-link" href="<?php echo esc_url((string) ($mobile_child["url"] ?? "")); ?>"<?php echo ((string) ($mobile_child["target"] ?? "") === "_blank") ? ' target="_blank" rel="noopener noreferrer"' : ""; ?>>
-            <?php echo esc_html((string) ($mobile_child["title"] ?? "")); ?>
-          </a>
-        <?php endforeach; ?>
-      <?php endforeach; ?>
-      <?php if ($nav_cta_url !== "") : ?><a href="<?php echo esc_url($nav_cta_url); ?>" class="mobile-menu-cta">Bezpłatna diagnoza</a><?php endif; ?>
-    </div>
-  </div>
+<?php
+$ref_services = [
+ ['Google Ads','Klienci, którzy już szukają Twojej oferty','upsellio_get_google_ads_page_url','/marketing-google-ads/'],
+ ['Meta Ads','Reklamy na Facebooku i Instagramie','upsellio_get_meta_ads_page_url','/marketing-meta-ads/'],
+ ['Strony i sklepy','Strony WWW i sklepy internetowe','upsellio_get_websites_page_url','/tworzenie-stron-internetowych/'],
+];
+$ref_links = [
+ ['Realizacje', $marketing_portfolio_url ?: home_url('/portfolio-marketingowe/'), $is_portfolio_context || $is_marketing_portfolio_context],
+ ['O mnie', home_url('/o-mnie/'), is_page('o-mnie')],
+ ['Blog', $blog_index_url, $is_blog_context],
+ ['Kontakt', $contact_url ?: home_url('/kontakt/'), $is_contact_context],
+];
+$ref_current_path = untrailingslashit((string) wp_parse_url($current_url, PHP_URL_PATH));
+foreach ($ref_services as &$ref_service) {
+    $ref_service[4] = function_exists($ref_service[2]) ? call_user_func($ref_service[2]) : '';
+    if (!$ref_service[4]) { $ref_service[4] = home_url($ref_service[3]); }
+    $ref_service[5] = $ref_current_path === untrailingslashit((string) wp_parse_url($ref_service[4], PHP_URL_PATH));
+}
+unset($ref_service);
+$ref_services_active = in_array(true, array_column($ref_services,5),true);
+$ref_cta = $is_homepage_context ? home_url('/#diagnoza') : ($contact_url ?: home_url('/kontakt/'));
+?>
+<style id="upsellio-reference-nav-css">
+#upref-nav,#upref-nav *{box-sizing:border-box}#upref-nav{position:sticky;top:0;z-index:1000;width:100%;background:#fff;border-bottom:1px solid #eceef1;font:400 15px/1.5 "DM Sans",sans-serif;color:#0f1115;transition:box-shadow .2s cubic-bezier(.2,.7,.2,1)}#upref-nav.is-scrolled{box-shadow:0 4px 16px rgba(15,17,21,.06);border-color:transparent}#upref-nav .ur-nav-inner{max-width:1160px;margin:auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:24px}#upref-nav a{text-decoration:none;color:inherit}#upref-nav .ur-logo{display:flex;align-items:center;gap:8px;font:800 22px/1.2 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;white-space:nowrap}#upref-nav .ur-logo:before{content:"";width:10px;height:10px;border-radius:50%;background:#0bb39c;flex:0 0 10px}#upref-nav .ur-desktop{display:flex;align-items:center;gap:28px}#upref-nav .ur-desktop>a{color:#3a3d44;font-weight:500;padding:10px 0 8px;border-bottom:2px solid transparent;white-space:nowrap}#upref-nav .ur-desktop>a[aria-current]{color:#0f1115;font-weight:700;border-color:#0bb39c}#upref-nav .ur-dropdown{position:relative}#upref-nav button{font:inherit;cursor:pointer}#upref-nav .ur-service-toggle{display:flex;align-items:center;gap:6px;min-height:44px;padding:0;border:0;background:none;color:#3a3d44;font-weight:500}#upref-nav .ur-service-toggle.is-active{color:#0f1115;font-weight:700}#upref-nav .ur-service-toggle svg{transition:transform .2s}#upref-nav .ur-service-toggle[aria-expanded=true] svg{transform:rotate(180deg)}#upref-nav .ur-services{position:absolute;top:52px;left:-16px;width:320px;background:#fff;border:1px solid #e3e6ea;border-radius:14px;box-shadow:0 16px 40px #0f11151a;padding:8px;display:flex;flex-direction:column;gap:2px;transform-origin:top left;animation:ur-menu-in .16s cubic-bezier(.2,.7,.2,1)}#upref-nav .ur-services a{padding:12px 14px;border-radius:10px;display:block}#upref-nav .ur-services a:hover,#upref-nav .ur-services a[aria-current]{background:#effaf7}#upref-nav .ur-services strong{display:block;font-weight:700;font-size:15px}#upref-nav .ur-services small{display:block;font-size:13px;color:#5f636b}#upref-nav .ur-actions{display:flex;align-items:center;gap:20px;font-weight:700;white-space:nowrap}#upref-nav .ur-primary{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border-radius:999px;background:#06745f;color:white;font-weight:700;transition:background-color .18s,transform .18s}#upref-nav .ur-primary:hover{background:#055e4d;transform:translateY(-1px)}#upref-nav .ur-mobile-actions{display:none;align-items:center;gap:8px}#upref-nav .ur-mobile-actions a,#upref-nav .ur-mobile-actions button{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;padding:0}#upref-nav .ur-mobile-actions a{background:#dff5ef;color:#06745f}#upref-nav .ur-mobile-actions button{background:white;border:1px solid #e3e6ea;color:#0f1115}#upref-nav .ur-mobile-panel{display:flex;flex-direction:column;border-top:1px solid #eceef1;background:white;padding:8px 24px 24px;max-height:calc(100dvh - 73px);overflow:auto;overscroll-behavior:contain;animation:ur-menu-in .24s cubic-bezier(.2,.7,.2,1)}#upref-nav .ur-mobile-panel>span{padding:16px 0 4px;font-size:13px;font-weight:600;color:#5f636b}#upref-nav .ur-mobile-panel>a:not(.ur-primary):not(.ur-mobile-phone){display:flex;align-items:center;min-height:48px;border-bottom:1px solid #eceef1;font-size:18px;font-weight:500}#upref-nav .ur-mobile-panel>a.ur-service-link{font-weight:700}#upref-nav .ur-mobile-panel>a[aria-current]{color:#06745f}#upref-nav .ur-mobile-panel .ur-primary{margin-top:24px;min-height:54px;font-size:16px}#upref-nav .ur-mobile-phone{display:flex;align-items:center;justify-content:center;margin-top:12px;min-height:48px;font-weight:700}#upref-nav [hidden]{display:none!important}#upref-nav :focus-visible{outline:3px solid #0bb39c;outline-offset:3px}body.ur-nav-lock{overflow:hidden}body.admin-bar #upref-nav{top:32px}@keyframes ur-menu-in{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}@media(max-width:979px){#upref-nav .ur-desktop,#upref-nav .ur-actions{display:none!important}#upref-nav .ur-mobile-actions{display:flex}}@media(min-width:980px){#upref-nav .ur-mobile-panel{display:none!important}}@media(max-width:399px){#upref-nav .ur-nav-inner,#upref-nav .ur-mobile-panel{padding-inline:20px}}@media(max-width:782px){body.admin-bar #upref-nav{top:46px}}@media(prefers-reduced-motion:reduce){#upref-nav *{animation:none!important;transition:none!important;transform:none!important}}
+</style>
+<header id="upref-nav">
+<div class="ur-nav-inner">
+<a class="ur-logo" href="<?php echo esc_url(home_url('/')); ?>" aria-label="Upsellio, strona główna">Upsellio</a>
+<nav class="ur-desktop" aria-label="Główna">
+<div class="ur-dropdown"><button class="ur-service-toggle<?php echo $ref_services_active ? ' is-active' : ''; ?>" type="button" aria-expanded="false" aria-controls="ur-services">Usługi <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button><div class="ur-services" id="ur-services" hidden><?php foreach ($ref_services as $s) : ?><a href="<?php echo esc_url($s[4]); ?>"<?php echo $s[5] ? ' aria-current="page"' : ''; ?>><strong><?php echo esc_html($s[0]); ?></strong><small><?php echo esc_html($s[1]); ?></small></a><?php endforeach; ?></div></div>
+<?php foreach ($ref_links as $l) : ?><a href="<?php echo esc_url($l[1]); ?>"<?php echo $l[2] ? ' aria-current="page"' : ''; ?>><?php echo esc_html($l[0]); ?></a><?php endforeach; ?>
+</nav>
+<div class="ur-actions"><a href="<?php echo esc_url('tel:' . $contact_phone_href); ?>"><?php echo esc_html($contact_phone); ?></a><a href="<?php echo esc_url($ref_cta); ?>" class="ur-primary" data-cta="nav-diagnosis">Bezpłatna diagnoza</a></div>
+<div class="ur-mobile-actions"><a href="<?php echo esc_url('tel:' . $contact_phone_href); ?>" aria-label="<?php echo esc_attr('Zadzwoń: ' . $contact_phone); ?>"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></a><button id="ur-mobile-toggle" aria-expanded="false" aria-controls="ur-mobile-panel" aria-label="Otwórz menu" type="button"><svg class="ur-open" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><svg class="ur-close" hidden aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div></div>
+<nav class="ur-mobile-panel" id="ur-mobile-panel" aria-label="Menu mobilne" hidden><span>Usługi</span><?php foreach ($ref_services as $s) : ?><a class="ur-service-link" href="<?php echo esc_url($s[4]); ?>"<?php echo $s[5] ? ' aria-current="page"' : ''; ?>><?php echo esc_html($s[0]); ?></a><?php endforeach; ?><?php foreach ($ref_links as $l) : ?><a href="<?php echo esc_url($l[1]); ?>"<?php echo $l[2] ? ' aria-current="page"' : ''; ?>><?php echo esc_html($l[0]); ?></a><?php endforeach; ?><a class="ur-primary" href="<?php echo esc_url($ref_cta); ?>" data-cta="nav-mobile-diagnosis">Umów bezpłatną diagnozę</a><a class="ur-mobile-phone" href="<?php echo esc_url('tel:' . $contact_phone_href); ?>">Zadzwoń: <?php echo esc_html($contact_phone); ?></a></nav>
 </header>
-<?php if ($nav_cta_url !== "" && (!function_exists("upsellio_is_contact_page_context") || !upsellio_is_contact_page_context())) : ?>
-<a href="<?php echo esc_url("tel:" . $contact_phone_href); ?>" class="mobile-sticky-cta">Zadzwoń: <?php echo esc_html($contact_phone); ?></a>
-<?php endif; ?>
-<?php if (function_exists("upsellio_render_breadcrumbs")) : ?>
+<script>
+(function(){var root=document.getElementById('upref-nav');if(!root)return;var service=root.querySelector('.ur-service-toggle'),menu=root.querySelector('#ur-services'),mobile=root.querySelector('#ur-mobile-toggle'),panel=root.querySelector('#ur-mobile-panel'),mq=window.matchMedia('(min-width:980px)');function svc(open,focus){menu.hidden=!open;service.setAttribute('aria-expanded',String(open));if(focus)service.focus()}function mob(open,focus){panel.hidden=!open;mobile.setAttribute('aria-expanded',String(open));mobile.setAttribute('aria-label',open?'Zamknij menu':'Otwórz menu');mobile.querySelector('.ur-open').hidden=open;mobile.querySelector('.ur-close').hidden=!open;document.body.classList.toggle('ur-nav-lock',open);if(focus)mobile.focus()}service.addEventListener('click',function(){svc(menu.hidden,false)});mobile.addEventListener('click',function(){mob(panel.hidden,false)});document.addEventListener('click',function(e){if(!root.contains(e.target)){if(!menu.hidden)svc(false,false);if(!panel.hidden)mob(false,false)}else if(!menu.hidden&&!menu.contains(e.target)&&!service.contains(e.target))svc(false,false)});document.addEventListener('keydown',function(e){if(e.key==='Escape'){if(!panel.hidden)mob(false,true);else if(!menu.hidden)svc(false,true)}if(e.key==='Tab'&&!panel.hidden){var all=[...root.querySelectorAll('.ur-mobile-actions a,.ur-mobile-actions button,.ur-mobile-panel a')];if(e.shiftKey&&document.activeElement===all[0]){e.preventDefault();all[all.length-1].focus()}else if(!e.shiftKey&&document.activeElement===all[all.length-1]){e.preventDefault();all[0].focus()}}});panel.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){mob(false,false)})});var resize=function(){if(mq.matches)mob(false,false);else svc(false,false)};if(mq.addEventListener)mq.addEventListener('change',resize);else mq.addListener(resize);var shadow=function(){root.classList.toggle('is-scrolled',window.scrollY>8)};window.addEventListener('scroll',shadow,{passive:true});shadow()})();
+</script>
+<?php if (!$is_homepage_context && !$is_blog_context && !is_page_template(["page-marketing-google-ads.php","page-marketing-meta-ads.php","page-tworzenie-stron-internetowych.php"]) && function_exists("upsellio_render_breadcrumbs")) : ?>
 <?php echo upsellio_render_breadcrumbs(); ?>
 <?php endif; ?>
 <div id="main-content" tabindex="-1"></div>
