@@ -797,11 +797,11 @@ SOFTWARE.
             </p>
             <div class="city-local-context-grid">
               <div class="city-local-context-item">
-                <strong>Najczęstsze wyzwanie</strong>
+                <strong>Wyzwania sprzedażowe</strong>
                 <?php echo esc_html($localChallenge); ?>
               </div>
               <div class="city-local-context-item">
-                <strong>Lokalna przewaga</strong>
+                <strong>Możliwości rozwoju</strong>
                 <?php echo esc_html($localAdvantage); ?>
               </div>
               <div class="city-local-context-item">
