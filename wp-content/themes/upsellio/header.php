@@ -129,6 +129,7 @@ foreach ((array) $primary_navigation_links as $nav_link) {
 <noscript data-cookieconsent="marketing"><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1281722377419475&ev=PageView&noscript=1" alt="" /></noscript>
 <?php endif; ?>
 <a class="skip-link" href="#main-content">Przejdź do treści</a>
+<?php if (function_exists('upsellio_reference_home_nav') && is_front_page()) { upsellio_reference_home_nav(); echo '<div id="main-content" tabindex="-1"></div>'; return; } ?>
 <header class="nav site-nav">
   <div class="wrap nav-inner">
     <a href="<?php echo esc_url(home_url("/")); ?>" class="brand" aria-label="Upsellio — strona główna">
