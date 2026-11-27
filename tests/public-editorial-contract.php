@@ -55,6 +55,8 @@ check(strpos($city,'<details class="city-faq-item up-faq-disclosure">')!==false,
 check(strpos($definition,'<details class="definition-faq-item up-faq-disclosure">')!==false,"Native glossary FAQ");
 check(strpos($definition,'<div class="definition-prose">')!==false,"Scoped glossary content");
 check(strpos($css,".up-editorial-scroll")!==false && strpos($css,".up-faq-disclosure")!==false,"Shared styles");
+check(strpos($css,".faq-item.open .faq-a{max-height:none")!==false,"Legacy FAQ answers do not clip");
+check(strpos($city,"Potrzebujesz planu działań dla")===false && strpos($city,"Formularz kontaktowy dla")===false,"No malformed city inflections");
 check(strpos($js,"table.closest")!==false && strpos($js,"revealFaq")!==false,"Progressive enhancement");
 if (isset($argv[1])) { file_put_contents($argv[1],$js); }
 echo "Public editorial scope and FAQ/table contracts passed\n";
