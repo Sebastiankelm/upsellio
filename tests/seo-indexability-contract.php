@@ -61,3 +61,60 @@ check(upsellio_public_copy_output("<?xml version=\"1.0\"?><url>—</url>", PHP_O
 check(upsellio_public_copy_output("<html>—</html>", PHP_OUTPUT_HANDLER_FLUSH) === "<html>—</html>", "Partial output untouched");
 check(upsellio_public_copy_normalize_html("<html>—</html>") === "<html>—</html>", "Fail closed without WordPress HTML API");
 echo "SEO indexing and editorial typography regression tests passed\n";
+
+
+// City map: every catalog entry must use a real point inside the rendered map.
+$cityTemplate = file_get_contents(__DIR__ . "/../wp-content/themes/upsellio/single-miasto.php");
+$cityDataset = file_get_contents(__DIR__ . "/../wp-content/themes/upsellio/inc/cities-data.php");
+check(preg_match('/\$cityNames = \[([\s\S]*?)\];/', $cityDataset, $catalog), "City catalog available");
+preg_match_all('/"([^"]+)"/', $catalog[1], $names);
+check(preg_match('/\$cityCoordinates = \[([\s\S]*?)\];/', $cityTemplate, $coords), "Coordinate table available");
+preg_match_all('/"([a-z0-9-]+)" => \[([0-9.]+), ([0-9.]+)\]/', $coords[1], $rows, PREG_SET_ORDER);
+check(count($rows) === count($names[1]), "All catalog cities have map points");
+$points = [];
+foreach ($rows as $row) {
+    check(!isset($points[$row[1]]), "Unique city coordinate: " . $row[1]);
+    $points[$row[1]] = [(float)$row[2], (float)$row[3]];
+}
+foreach ($names[1] as $name) {
+    $slug = strtolower(str_replace(" ", "-", strtr($name, [
+        "ą"=>"a","ć"=>"c","ę"=>"e","ł"=>"l","ń"=>"n","ó"=>"o","ś"=>"s","ź"=>"z","ż"=>"z",
+        "Ą"=>"A","Ć"=>"C","Ę"=>"E","Ł"=>"L","Ń"=>"N","Ó"=>"O","Ś"=>"S","Ź"=>"Z","Ż"=>"Z"
+    ])));
+    check(isset($points[$slug]), "Missing map point for " . $name);
+}
+preg_match_all('/<path d="([^"]+)"\/>/', $cityTemplate, $paths);
+check(count($paths[1]) === 16, "All 16 voivodeship outlines present");
+$polygons = [];
+foreach ($paths[1] as $path) {
+    $rings = [];
+    foreach (explode("Z", $path) as $ring) {
+        if (trim($ring) === "") { continue; }
+        preg_match_all('/[ML]([0-9.]+),([0-9.]+)/', $ring, $vertices, PREG_SET_ORDER);
+        $rings[] = $vertices;
+    }
+    $polygons[] = $rings;
+}
+foreach ($points as $slug => [$lat, $lon]) {
+    $x = 8 + ($lon - 14.1237) * 481 / (24.1454 - 14.1237);
+    $y = 8 + (54.8364 - $lat) * 447 / (54.8364 - 49.002);
+    $hits = 0;
+    foreach ($polygons as $rings) {
+        $inside = false;
+        foreach ($rings as $vertices) {
+            for ($i = 0, $j = count($vertices) - 1; $i < count($vertices); $j = $i++) {
+                [, $a, $b] = $vertices[$i]; [, $c, $d] = $vertices[$j];
+                if (($b > $y) !== ($d > $y) && $x < ($c - $a) * ($y - $b) / ($d - $b) + $a) {
+                    $inside = !$inside;
+                }
+            }
+        }
+        if ($inside) { $hits++; }
+    }
+    check($hits === 1, "City point must lie inside its rendered voivodeship: " . $slug);
+}
+check($points["olsztyn"][0] > 53 && $points["boleslawiec"][1] < 16, "Disambiguate duplicate names");
+check($points["czestochowa-polnoc"][0] > $points["czestochowa"][0], "Northern district distinct");
+check(strpos($cityTemplate, '$voivodeshipSpreadPct') === false, "No pseudo-random pins");
+check(strpos($cityTemplate, '<?php if ($hasMapPin) : ?>') !== false, "Missing city has no fabricated pin");
+echo "City map geographic coverage and geometry tests passed\n";
