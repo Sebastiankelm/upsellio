@@ -1,12 +1,1 @@
-{
-  "schema": 1,
-  "request_id": "city-editorial-tables-20261127-47d426f2",
-  "commit": "47d426f264f61a670d1c1006619a977b8663af09",
-  "files": [
-    {
-      "path": "single-miasto.php",
-      "before": "208a9545f9a2b05ee5f75f3475f3dd62b69427c631a54de3ad053d2c0d83e365",
-      "after": "a3f70677e4479bd01706d24a7f09d23f2fcb6ab4f5554002d7d932ee819aa8b1"
-    }
-  ]
-}
+{"schema":1,"action":"idle"}
