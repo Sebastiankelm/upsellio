@@ -1,1 +1,12 @@
-{"schema":1,"action":"idle"}
+{
+  "schema": 1,
+  "request_id": "about-reference-20261127-fd7d3efd",
+  "commit": "fd7d3efd8db8f5a71f0192936d16f8636bc68dbc",
+  "files": [
+    {
+      "path": "page-o-mnie.php",
+      "before": "7fcc156d5d778ec888baa86434766d3add8de834fad3cf25807f78a179c2716d",
+      "after": "738c53bb15a9d26426e137aab25b102102f26a0680a57279836a6b114b25a2be"
+    }
+  ]
+}
