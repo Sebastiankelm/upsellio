@@ -440,7 +440,9 @@ while (have_posts()) :
 
     <section class="definition-main definition-wrap">
       <article class="definition-content">
-        <?php echo $articleHtml; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        <div class="definition-prose">
+          <?php echo $articleHtml; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </div>
 
         <section class="definition-tool" id="narzedzie-definicji">
           <h2><?php echo esc_html($toolTitle); ?></h2>
@@ -539,12 +541,12 @@ while (have_posts()) :
 
         <?php if (!empty($faq)) : ?>
           <div class="definition-faq">
-            <h2>Dodatkowe FAQ</h2>
+            <h2>Najczęściej zadawane pytania</h2>
             <?php foreach ($faq as $item) : ?>
-              <div class="definition-faq-item">
-                <h3><?php echo esc_html($item["q"]); ?></h3>
+              <details class="definition-faq-item up-faq-disclosure">
+                <summary><span><?php echo esc_html($item["q"]); ?></span></summary>
                 <p><?php echo esc_html($item["a"]); ?></p>
-              </div>
+              </details>
             <?php endforeach; ?>
           </div>
         <?php endif; ?>
