@@ -236,5 +236,5 @@ get_header();
 </section>
 
 
-<?php echo upsellio_render_reference_cta(home_url('/#diagnoza')); ?></main>
-<?php get_footer(); ?>
+</main>
+<?php get_footer(null, ['reference_cta' => home_url('/#diagnoza')]); ?>

@@ -278,6 +278,25 @@ function upsellio_render_reference_footer($args = [])
     return ob_get_clean();
 }
 }
+if (!function_exists('upsellio_render_reference_cta')) {
+function upsellio_render_reference_cta($href = '', $show_mail = false) {
+    if (!$href) { $href = function_exists('upsellio_get_contact_page_url') ? upsellio_get_contact_page_url() : ''; }
+    if (!$href) { $href = home_url('/kontakt/'); }
+    $phone = function_exists('upsellio_get_contact_phone') ? upsellio_get_contact_phone() : '+48 575 522 595';
+    ob_start();
+    ?>
+    <style>.ur-cta-band,.ur-cta-band *{box-sizing:border-box}.ur-cta-band{width:100%;background:#0f1115;color:#fff;padding:88px 0;font:400 16px/1.6 "DM Sans",sans-serif}.ur-cta-band .ur-cta-inner{max-width:1160px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;gap:32px;align-items:center;justify-content:space-between}.ur-cta-band .ur-cta-copy{flex:1 1 520px;min-width:0}.ur-cta-band h2{font:800 44px/1.05 "Bricolage Grotesque",sans-serif;letter-spacing:-.03em;color:#fff;margin:0 0 12px;max-width:none}.ur-cta-band p{font-size:18px;color:#c4c8ce;margin:0}.ur-cta-band .ur-cta-actions{display:flex;flex-wrap:wrap;align-items:center;gap:20px}.ur-cta-band a{color:#fff;font-weight:700;font-size:17px}.ur-cta-band a.ur-cta-button{display:inline-flex;align-items:center;gap:8px;min-height:54px;padding:0 28px;border-radius:999px;background:#0bb39c;color:#0f1115;font-size:16px;text-decoration:none;transition:transform .18s cubic-bezier(.2,.7,.2,1),background .18s}.ur-cta-band a.ur-cta-button:hover{transform:translateY(-1px);background:#7fe3d2}.ur-cta-band a:focus-visible{outline:3px solid #0bb39c;outline-offset:4px}@media(max-width:720px){.ur-cta-band{padding:64px 0}.ur-cta-band .ur-cta-inner{padding:0 20px}.ur-cta-band h2{font-size:32px}.ur-cta-band .ur-cta-actions{width:100%;flex-direction:column;align-items:stretch;gap:16px}.ur-cta-band .ur-cta-actions a{text-align:center;justify-content:center}}@media(prefers-reduced-motion:reduce){.ur-cta-band a{transition:none!important;transform:none!important}}</style>
+    <section class="ur-cta-band" aria-label="Bezpłatna diagnoza"><div class="ur-cta-inner"><div class="ur-cta-copy"><h2>Sprawdźmy, gdzie uciekają Twoi klienci.</h2><p>30 minut rozmowy. Bez prezentacji i bez zobowiązań.</p></div><div class="ur-cta-actions"><a class="ur-cta-button" href="<?php echo esc_url($href); ?>" data-cta="reference-final-diagnosis">Umów bezpłatną diagnozę →</a><a href="<?php echo esc_url('tel:' . preg_replace('/[^+0-9]/', '', $phone)); ?>"><?php echo esc_html($phone); ?></a><?php if ($show_mail) : ?><a href="mailto:kontakt@upsellio.pl">kontakt@upsellio.pl</a><?php endif; ?></div></div></section>
+    <?php
+    return ob_get_clean();
+}
+}
+if (!empty($args['reference_cta'])) {
+    $reference_cta_id = (string) ($args['reference_cta_id'] ?? '');
+    if ($reference_cta_id !== '') { echo '<div id="' . esc_attr($reference_cta_id) . '">'; }
+    echo upsellio_render_reference_cta((string) $args['reference_cta']);
+    if ($reference_cta_id !== '') { echo '</div>'; }
+}
 echo upsellio_render_reference_footer();
 ?>
 <style id="upsellio-reference-motion">
